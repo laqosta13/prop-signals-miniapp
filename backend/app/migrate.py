@@ -19,3 +19,10 @@ def run_migrations(engine: Engine) -> None:
             conn.execute(text("ALTER TABLE signals ADD COLUMN points_percent REAL DEFAULT 1.0"))
         if not _has_column(engine, "signals", "author_username"):
             conn.execute(text("ALTER TABLE signals ADD COLUMN author_username VARCHAR(64)"))
+
+        if "traders" in inspect(engine).get_table_names():
+            conn.execute(text("UPDATE traders SET wins = 0 WHERE wins IS NULL"))
+            conn.execute(text("UPDATE traders SET losses = 0 WHERE losses IS NULL"))
+            conn.execute(text("UPDATE traders SET rating_percent = 0.0 WHERE rating_percent IS NULL"))
+        if "signals" in inspect(engine).get_table_names():
+            conn.execute(text("UPDATE signals SET points_percent = 1.0 WHERE points_percent IS NULL"))

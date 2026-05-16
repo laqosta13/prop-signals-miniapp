@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.deps import db_session, get_current_user, require_admin
 from app.models import Signal
 from app.schemas import SignalCreate, SignalRead, TelegramUser
-from app.signal_service import build_signal_row, notify_new_signal, register_subscriber
+from app.signal_service import build_signal_row, notify_new_signal
 
 router = APIRouter(prefix="/signals", tags=["signals"])
 
@@ -15,8 +15,6 @@ def list_signals(
     db: Session = Depends(db_session),
     user: TelegramUser = Depends(get_current_user),
 ) -> list[Signal]:
-    register_subscriber(db, user.telegram_user_id, user.username)
-    db.commit()
     stmt = select(Signal).order_by(Signal.created_at.desc()).limit(200)
     return list(db.scalars(stmt).all())
 

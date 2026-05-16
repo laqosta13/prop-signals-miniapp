@@ -3,29 +3,52 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.models import Signal, Subscriber, Trader
 from app.signal_utils import compute_signal_points_percent, evaluate_signal
 from app.telegram_notify import format_closed_signal_message, format_new_signal_message, notify_subscribers
 
 
+def _normalize_trader_stats(trader: Trader) -> None:
+    if trader.wins is None:
+        trader.wins = 0
+    if trader.losses is None:
+        trader.losses = 0
+    if trader.rating_percent is None:
+        trader.rating_percent = 0.0
+
+
 def get_or_create_trader(db: Session, telegram_id: int, username: str | None) -> Trader:
     trader = db.get(Trader, telegram_id)
     if trader is None:
-        trader = Trader(telegram_id=telegram_id, username=username)
+        trader = Trader(telegram_id=telegram_id, username=username, wins=0, losses=0, rating_percent=0.0)
         db.add(trader)
-    elif username and trader.username != username:
-        trader.username = username
+    else:
+        _normalize_trader_stats(trader)
+        if username and trader.username != username:
+            trader.username = username
     return trader
 
 
 def register_subscriber(db: Session, telegram_id: int, username: str | None) -> Subscriber:
-    sub = db.get(Subscriber, telegram_id)
-    if sub is None:
-        sub = Subscriber(telegram_user_id=telegram_id, username=username, notify_enabled=True)
-        db.add(sub)
-    elif username and sub.username != username:
+    sub = db.get(Subscriber, telegram_user_id=telegram_id)
+    if sub is not None:
+        if username and sub.username != username:
+            sub.username = username
+        return sub
+    sub = Subscriber(telegram_user_id=telegram_id, username=username, notify_enabled=True)
+    try:
+        with db.begin_nested():
+            db.add(sub)
+            db.flush()
+    except IntegrityError:
+        sub = db.get(Subscriber, telegram_user_id=telegram_id)
+        if sub is None:
+            raise
+    if username and sub.username != username:
         sub.username = username
     return sub
 
@@ -47,12 +70,13 @@ def close_signal(db: Session, signal: Signal, outcome: str) -> None:
     signal.status = outcome
     signal.closed_at = datetime.now(timezone.utc)
     trader = get_or_create_trader(db, signal.author_telegram_id, signal.author_username)
-    pts = signal.points_percent
+    _normalize_trader_stats(trader)
+    pts = signal.points_percent if signal.points_percent is not None else settings.default_signal_points_percent
     if outcome == "win":
-        trader.wins += 1
+        trader.wins = trader.wins + 1
         trader.rating_percent = round(trader.rating_percent + pts, 2)
     else:
-        trader.losses += 1
+        trader.losses = trader.losses + 1
         trader.rating_percent = round(trader.rating_percent - pts, 2)
     db.commit()
     db.refresh(signal)
