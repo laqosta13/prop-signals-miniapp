@@ -11,6 +11,43 @@ function formatTime(iso: string) {
   }
 }
 
+/** Показ тейков: и старый JSON, и обычный текст через запятую */
+function formatTakeProfits(raw: string | null): string {
+  if (!raw) return "";
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("[")) {
+    try {
+      const arr = JSON.parse(trimmed) as unknown;
+      if (Array.isArray(arr)) return arr.map(String).join(", ");
+    } catch {
+      /* как есть */
+    }
+  }
+  return trimmed;
+}
+
+/** Ввод: 1.08, 1.09 или старый JSON — на сервер уходит простая строка */
+function normalizeTakeProfits(input: string): string | undefined {
+  const trimmed = input.trim();
+  if (!trimmed) return undefined;
+  if (trimmed.startsWith("[")) {
+    try {
+      const arr = JSON.parse(trimmed) as unknown;
+      if (Array.isArray(arr)) {
+        const levels = arr.map(String).map((s) => s.trim()).filter(Boolean);
+        if (levels.length) return levels.join(", ");
+      }
+    } catch {
+      /* ниже — через запятую */
+    }
+  }
+  const levels = trimmed
+    .split(/[,;]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return levels.length ? levels.join(", ") : undefined;
+}
+
 export default function App() {
   const [signals, setSignals] = useState<Signal[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -60,7 +97,7 @@ export default function App() {
         entry_low: form.entry_low || undefined,
         entry_high: form.entry_high || undefined,
         stop_loss: form.stop_loss || undefined,
-        take_profits: form.take_profits || undefined,
+        take_profits: normalizeTakeProfits(form.take_profits),
         comment: form.comment || undefined,
       });
       setForm((f) => ({ ...f, symbol: "", comment: "" }));
@@ -120,11 +157,11 @@ export default function App() {
             <input value={form.stop_loss} onChange={(e) => setForm((f) => ({ ...f, stop_loss: e.target.value }))} />
           </div>
           <div>
-            <label>Тейки (JSON массив строк)</label>
+            <label>Тейки</label>
             <input
               value={form.take_profits}
               onChange={(e) => setForm((f) => ({ ...f, take_profits: e.target.value }))}
-              placeholder='["1.0850","1.0900"]'
+              placeholder="1.0850, 1.0900"
             />
           </div>
           <div>
@@ -154,7 +191,7 @@ export default function App() {
             </div>
           )}
           {s.stop_loss && <div className="row">Стоп: {s.stop_loss}</div>}
-          {s.take_profits && <div className="row">Тейки: {s.take_profits}</div>}
+          {s.take_profits && <div className="row">Тейки: {formatTakeProfits(s.take_profits)}</div>}
           {s.comment && <div className="row">{s.comment}</div>}
           <div className="meta" style={{ marginTop: 8 }}>
             Статус: {s.status}
