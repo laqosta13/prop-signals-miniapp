@@ -34,7 +34,7 @@ def get_or_create_trader(db: Session, telegram_id: int, username: str | None) ->
 
 
 def register_subscriber(db: Session, telegram_id: int, username: str | None) -> Subscriber:
-    sub = db.get(Subscriber, telegram_user_id=telegram_id)
+    sub = db.get(Subscriber, telegram_id)
     if sub is not None:
         if username and sub.username != username:
             sub.username = username
@@ -45,7 +45,7 @@ def register_subscriber(db: Session, telegram_id: int, username: str | None) -> 
             db.add(sub)
             db.flush()
     except IntegrityError:
-        sub = db.get(Subscriber, telegram_user_id=telegram_id)
+        sub = db.get(Subscriber, telegram_id)
         if sub is None:
             raise
     if username and sub.username != username:
