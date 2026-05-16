@@ -123,7 +123,9 @@ export default function App() {
             signals={signals}
             challenge={challenge}
             loading={loading}
+            isAdmin={isAdmin}
             onOpenTracker={() => setTab("tracker")}
+            onChanged={load}
           />
         )}
         {tab === "tracker" && challenge && (

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -44,3 +44,22 @@ async def create_signal(
     db.refresh(row)
     await notify_new_signal(db, row)
     return row
+
+
+@router.delete("/{signal_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_signal(
+    signal_id: int,
+    db: Session = Depends(db_session),
+    admin: TelegramUser = Depends(require_admin),
+) -> None:
+    _ = admin
+    row = db.get(Signal, signal_id)
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")
+    if row.status != "active":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Можно удалить только активный сигнал",
+        )
+    db.delete(row)
+    db.commit()

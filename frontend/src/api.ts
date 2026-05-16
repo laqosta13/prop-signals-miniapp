@@ -102,6 +102,14 @@ export const createSignal = (body: SignalCreate) =>
     body: JSON.stringify(body),
   });
 
+export async function deleteSignal(signalId: number): Promise<void> {
+  const res = await fetch(`${base}/signals/${signalId}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+
 export const setNotifications = (enabled: boolean) =>
   api<Me>("/subscriptions/me", {
     method: "PUT",

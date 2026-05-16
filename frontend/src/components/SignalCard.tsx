@@ -1,9 +1,14 @@
 import type { Signal } from "../api";
 import { calcRR, formatTakeProfits, formatTime, formatUsd } from "../utils";
 
-type Props = { signal: Signal };
+type Props = {
+  signal: Signal;
+  isAdmin?: boolean;
+  onDelete?: (id: number) => void;
+  deleting?: boolean;
+};
 
-export function SignalCard({ signal: s }: Props) {
+export function SignalCard({ signal: s, isAdmin, onDelete, deleting }: Props) {
   const entry = s.entry_low || s.entry_high || "—";
   const target = formatTakeProfits(s.take_profits);
   const isLong = s.direction === "long";
@@ -29,7 +34,19 @@ export function SignalCard({ signal: s }: Props) {
             {isLong ? "↑ LONG" : "↓ SHORT"}
           </span>
         </div>
-        <span className="risk-tag">Риск {risk}%</span>
+        <div className="signal-card__actions">
+          <span className="risk-tag">Риск {risk}%</span>
+          {isAdmin && s.status === "active" && onDelete && (
+            <button
+              type="button"
+              className="delete-btn"
+              disabled={deleting}
+              onClick={() => onDelete(s.id)}
+            >
+              Удалить
+            </button>
+          )}
+        </div>
       </header>
       <p className="signal-card__time">{formatTime(s.created_at)}</p>
       <div className="levels-grid">
