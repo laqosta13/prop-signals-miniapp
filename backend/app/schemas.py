@@ -11,6 +11,8 @@ class SignalCreate(BaseModel):
     stop_loss: str | None = None
     take_profits: str | None = None
     comment: str | None = None
+    leverage: int | None = Field(None, ge=1, le=50)
+    risk_percent: float | None = Field(None, ge=0.1, le=10.0)
 
 
 class SignalRead(BaseModel):
@@ -26,6 +28,9 @@ class SignalRead(BaseModel):
     comment: str | None
     status: str
     points_percent: float = 1.0
+    leverage: int | None = None
+    risk_percent: float | None = None
+    realized_pnl: float | None = None
     author_telegram_id: int
     author_username: str | None = None
 
@@ -53,3 +58,30 @@ class TraderRead(BaseModel):
     win_rate: float = 0.0
 
     model_config = {"from_attributes": True}
+
+
+class ChallengeUpdate(BaseModel):
+    account_size: float | None = Field(None, ge=1000)
+    stage: int | None = Field(None, ge=1, le=3)
+    balance: float | None = Field(None, ge=0)
+    reset_day: bool = False
+
+
+class ChallengeDashboard(BaseModel):
+    account_size: float
+    stage: int
+    balance: float
+    profit_pct: float
+    profit_target_pct: float
+    drawdown_pct: float
+    max_drawdown_pct: float
+    daily_loss_pct: float
+    max_daily_loss_pct: float
+    daily_remaining_usd: float
+    trading_days: int
+    min_trading_days: int
+    goal_balance: float
+    trades_count: int
+    winrate: float
+    total_pnl: float
+    max_leverage: str

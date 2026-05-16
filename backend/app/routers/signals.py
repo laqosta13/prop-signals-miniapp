@@ -36,6 +36,8 @@ async def create_signal(
         comment=body.comment,
         author_telegram_id=admin.telegram_user_id,
         author_username=admin.username,
+        leverage=body.leverage,
+        risk_percent=body.risk_percent,
     )
     db.add(row)
     db.commit()

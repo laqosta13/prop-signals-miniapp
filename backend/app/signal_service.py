@@ -72,6 +72,10 @@ def close_signal(db: Session, signal: Signal, outcome: str) -> None:
     trader = get_or_create_trader(db, signal.author_telegram_id, signal.author_username)
     _normalize_trader_stats(trader)
     pts = signal.points_percent if signal.points_percent is not None else settings.default_signal_points_percent
+    risk = signal.risk_percent if signal.risk_percent is not None else pts
+    nominal = 10_000.0
+    pnl = nominal * risk / 100.0
+    signal.realized_pnl = round(pnl if outcome == "win" else -pnl, 2)
     if outcome == "win":
         trader.wins = trader.wins + 1
         trader.rating_percent = round(trader.rating_percent + pts, 2)
@@ -101,8 +105,10 @@ def build_signal_row(
     comment: str | None,
     author_telegram_id: int,
     author_username: str | None,
+    leverage: int | None = None,
+    risk_percent: float | None = None,
 ) -> Signal:
-    points = compute_signal_points_percent(entry_low, entry_high, stop_loss)
+    points = risk_percent if risk_percent is not None else compute_signal_points_percent(entry_low, entry_high, stop_loss)
     get_or_create_trader(db, author_telegram_id, author_username)
     return Signal(
         symbol=symbol,
@@ -114,6 +120,8 @@ def build_signal_row(
         comment=comment,
         status="active",
         points_percent=points,
+        leverage=leverage,
+        risk_percent=risk_percent or points,
         author_telegram_id=author_telegram_id,
         author_username=author_username,
     )

@@ -13,7 +13,7 @@ from app.config import settings
 from app.database import Base, engine
 from app.migrate import run_migrations
 from app.price_monitor import price_monitor_loop
-from app.routers import auth, signals, subscriptions, traders
+from app.routers import auth, challenge, signals, subscriptions, traders
 
 logging.basicConfig(level=logging.INFO)
 
@@ -44,6 +44,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(challenge.router)
 app.include_router(signals.router)
 app.include_router(traders.router)
 app.include_router(subscriptions.router)

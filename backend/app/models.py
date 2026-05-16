@@ -21,8 +21,25 @@ class Signal(Base):
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(16), default="active")  # active | win | lose
     points_percent: Mapped[float] = mapped_column(Float, default=1.0)
+    leverage: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    risk_percent: Mapped[float | None] = mapped_column(Float, nullable=True)
+    realized_pnl: Mapped[float | None] = mapped_column(Float, nullable=True)
     author_telegram_id: Mapped[int] = mapped_column(Integer, nullable=False)
     author_username: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+
+class UserChallenge(Base):
+    """Персональный трекер челленджа Hash Hedge."""
+
+    __tablename__ = "user_challenges"
+
+    telegram_user_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    account_size: Mapped[float] = mapped_column(Float, default=10_000.0)
+    stage: Mapped[int] = mapped_column(Integer, default=1)
+    balance: Mapped[float] = mapped_column(Float, default=10_000.0)
+    day_start_balance: Mapped[float] = mapped_column(Float, default=10_000.0)
+    trading_days: Mapped[int] = mapped_column(Integer, default=0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
 class Trader(Base):
