@@ -2,6 +2,8 @@
 .env.*
 !.env.example
 **/.env
+media/
+backend/media/
 *.db
 __pycache__/
 *.py[cod]

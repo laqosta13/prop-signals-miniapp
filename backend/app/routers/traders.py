@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from app.deps import db_session, get_current_user
 from app.models import Trader
 from app.schemas import TelegramUser, TraderRead
+from app.serializers import trader_to_read
+from app.telegram_avatar import ensure_trader_avatar
 
 router = APIRouter(prefix="/traders", tags=["traders"])
 
@@ -19,17 +21,12 @@ def leaderboard(
     traders = list(db.scalars(stmt).all())
     result: list[TraderRead] = []
     for rank, t in enumerate(traders, start=1):
-        total = t.wins + t.losses
-        win_rate = round(t.wins / total * 100, 1) if total > 0 else 0.0
-        result.append(
-            TraderRead(
-                telegram_id=t.telegram_id,
-                username=t.username,
-                rating_percent=t.rating_percent,
-                wins=t.wins,
-                losses=t.losses,
-                rank=rank,
-                win_rate=win_rate,
-            )
-        )
+        if not t.avatar_path:
+            path = ensure_trader_avatar(t.telegram_id)
+            if path:
+                t.avatar_path = path
+        total = (t.wins or 0) + (t.losses or 0)
+        win_rate = round((t.wins or 0) / total * 100, 1) if total > 0 else 0.0
+        result.append(trader_to_read(t, rank, win_rate))
+    db.commit()
     return result

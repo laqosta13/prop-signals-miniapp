@@ -1,6 +1,6 @@
 import { useState } from "react";
 import WebApp from "@twa-dev/sdk";
-import { createSignal } from "../api";
+import { createSignalWithMedia } from "../api";
 import { normalizeTakeProfits } from "../utils";
 
 type Props = {
@@ -20,25 +20,40 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
   const [leverage, setLeverage] = useState("5");
   const [risk, setRisk] = useState("1");
   const [comment, setComment] = useState("");
+  const [screenshot, setScreenshot] = useState<File | null>(null);
+  const [video, setVideo] = useState<File | null>(null);
+  const [shotPreview, setShotPreview] = useState<string | null>(null);
 
   if (!open) return null;
+
+  const onScreenshot = (file: File | null) => {
+    setScreenshot(file);
+    if (shotPreview) URL.revokeObjectURL(shotPreview);
+    setShotPreview(file ? URL.createObjectURL(file) : null);
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
     try {
-      await createSignal({
-        symbol,
-        direction,
-        entry_low: entry || undefined,
-        entry_high: entry || undefined,
-        stop_loss: stop || undefined,
-        take_profits: normalizeTakeProfits(target),
-        comment: comment || undefined,
-        leverage: parseInt(leverage, 10) || 5,
-        risk_percent: parseFloat(risk) || 1,
-      });
+      const fd = new FormData();
+      fd.append("symbol", symbol);
+      fd.append("direction", direction);
+      if (entry) {
+        fd.append("entry_low", entry);
+        fd.append("entry_high", entry);
+      }
+      if (stop) fd.append("stop_loss", stop);
+      const tp = normalizeTakeProfits(target);
+      if (tp) fd.append("take_profits", tp);
+      if (comment) fd.append("comment", comment);
+      fd.append("leverage", String(parseInt(leverage, 10) || 5));
+      fd.append("risk_percent", String(parseFloat(risk) || 1));
+      if (screenshot) fd.append("screenshot", screenshot);
+      if (video) fd.append("video", video);
+
+      await createSignalWithMedia(fd);
       WebApp.HapticFeedback.notificationOccurred("success");
       onCreated();
       onClose();
@@ -67,18 +82,10 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
 
         <label className="field-label">Направление</label>
         <div className="dir-toggle">
-          <button
-            type="button"
-            className={direction === "long" ? "active long" : ""}
-            onClick={() => setDirection("long")}
-          >
+          <button type="button" className={direction === "long" ? "active long" : ""} onClick={() => setDirection("long")}>
             LONG
           </button>
-          <button
-            type="button"
-            className={direction === "short" ? "active short" : ""}
-            onClick={() => setDirection("short")}
-          >
+          <button type="button" className={direction === "short" ? "active short" : ""} onClick={() => setDirection("short")}>
             SHORT
           </button>
         </div>
@@ -109,12 +116,24 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
           </div>
         </div>
 
-        <label className="field-label">Комментарий</label>
-        <textarea
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          placeholder="Краткий анализ сетапа…"
+        <label className="field-label">Скрин сетапа</label>
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          onChange={(e) => onScreenshot(e.target.files?.[0] ?? null)}
         />
+        {shotPreview && <img src={shotPreview} alt="Превью" className="media-preview" />}
+
+        <label className="field-label">Видео</label>
+        <input
+          type="file"
+          accept="video/mp4,video/webm,video/quicktime"
+          onChange={(e) => setVideo(e.target.files?.[0] ?? null)}
+        />
+        {video && <p className="meta">Видео: {video.name}</p>}
+
+        <label className="field-label">Комментарий</label>
+        <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Краткий анализ сетапа…" />
 
         {error && <p className="err">{error}</p>}
 

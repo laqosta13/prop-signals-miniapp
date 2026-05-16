@@ -1,5 +1,6 @@
 import type { Signal } from "../api";
-import { calcRR, formatTakeProfits, formatTime, formatUsd } from "../utils";
+import { calcRR, formatTakeProfits, formatTime, formatUsd, traderName } from "../utils";
+import { Avatar } from "./Avatar";
 
 type Props = {
   signal: Signal;
@@ -28,21 +29,20 @@ export function SignalCard({ signal: s, isAdmin, onDelete, deleting }: Props) {
   return (
     <article className="signal-card">
       <header className="signal-card__head">
-        <div>
-          <h3>{s.symbol}</h3>
-          <span className={`dir-badge ${isLong ? "long" : "short"}`}>
-            {isLong ? "↑ LONG" : "↓ SHORT"}
-          </span>
+        <div className="signal-card__author">
+          <Avatar url={s.author_avatar_url} username={s.author_username} telegramId={s.author_telegram_id} size={36} />
+          <div>
+            <h3>{s.symbol}</h3>
+            <span className="author-line">{traderName(s.author_username, s.author_telegram_id)}</span>
+            <span className={`dir-badge ${isLong ? "long" : "short"}`}>
+              {isLong ? "↑ LONG" : "↓ SHORT"}
+            </span>
+          </div>
         </div>
         <div className="signal-card__actions">
           <span className="risk-tag">Риск {risk}%</span>
           {isAdmin && s.status === "active" && onDelete && (
-            <button
-              type="button"
-              className="delete-btn"
-              disabled={deleting}
-              onClick={() => onDelete(s.id)}
-            >
+            <button type="button" className="delete-btn" disabled={deleting} onClick={() => onDelete(s.id)}>
               Удалить
             </button>
           )}
@@ -63,6 +63,14 @@ export function SignalCard({ signal: s, isAdmin, onDelete, deleting }: Props) {
           <strong>{target}</strong>
         </div>
       </div>
+      {s.media_image_url && (
+        <a href={s.media_image_url} target="_blank" rel="noreferrer" className="media-link">
+          <img src={s.media_image_url} alt="Скрин" className="signal-media-img" />
+        </a>
+      )}
+      {s.media_video_url && (
+        <video src={s.media_video_url} controls className="signal-media-video" playsInline />
+      )}
       {s.comment && <p className="signal-card__comment">{s.comment}</p>}
       <footer className="signal-card__foot">
         <span>Плечо {s.leverage ?? 5}x</span>

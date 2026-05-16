@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     max_signal_points_percent: float = 10.0
     price_check_interval_seconds: int = 60
     mini_app_url: str = ""
+    media_root: str = "./media"
+    max_image_bytes: int = 10 * 1024 * 1024
+    max_video_bytes: int = 50 * 1024 * 1024
 
     @property
     def admin_id_set(self) -> set[int]:

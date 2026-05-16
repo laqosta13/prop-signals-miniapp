@@ -32,3 +32,10 @@ def run_migrations(engine: Engine) -> None:
                 conn.execute(text("ALTER TABLE signals ADD COLUMN risk_percent REAL"))
             if not _has_column(engine, "signals", "realized_pnl"):
                 conn.execute(text("ALTER TABLE signals ADD COLUMN realized_pnl REAL"))
+            if not _has_column(engine, "signals", "media_image_path"):
+                conn.execute(text("ALTER TABLE signals ADD COLUMN media_image_path VARCHAR(256)"))
+            if not _has_column(engine, "signals", "media_video_path"):
+                conn.execute(text("ALTER TABLE signals ADD COLUMN media_video_path VARCHAR(256)"))
+        if "traders" in inspect(engine).get_table_names():
+            if not _has_column(engine, "traders", "avatar_path"):
+                conn.execute(text("ALTER TABLE traders ADD COLUMN avatar_path VARCHAR(256)"))

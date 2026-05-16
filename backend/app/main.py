@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app import models  # noqa: F401
 from app.config import settings
+from app.media_storage import media_root
 from app.database import Base, engine
 from app.migrate import run_migrations
 from app.price_monitor import price_monitor_loop
@@ -19,6 +20,7 @@ logging.basicConfig(level=logging.INFO)
 
 Base.metadata.create_all(bind=engine)
 run_migrations(engine)
+media_root()
 
 
 @asynccontextmanager
@@ -54,6 +56,10 @@ app.include_router(subscriptions.router)
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
+
+_media = Path(settings.media_root)
+if _media.is_dir():
+    app.mount("/media", StaticFiles(directory=str(_media)), name="media")
 
 _static = os.environ.get("STATIC_ROOT", "").strip()
 if _static and Path(_static).is_dir():

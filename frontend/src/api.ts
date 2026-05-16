@@ -22,6 +22,9 @@ export type Signal = {
   realized_pnl: number | null;
   author_telegram_id: number;
   author_username: string | null;
+  media_image_url: string | null;
+  media_video_url: string | null;
+  author_avatar_url: string | null;
 };
 
 export type Me = {
@@ -39,6 +42,7 @@ export type Trader = {
   losses: number;
   rank: number;
   win_rate: number;
+  avatar_url: string | null;
 };
 
 export type ChallengeDashboard = {
@@ -95,12 +99,15 @@ export type SignalCreate = {
   risk_percent?: number;
 };
 
-export const createSignal = (body: SignalCreate) =>
-  api<Signal>("/signals", {
+export async function createSignalWithMedia(form: FormData): Promise<Signal> {
+  const res = await fetch(`${base}/signals`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    headers: authHeaders(),
+    body: form,
   });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
 
 export async function deleteSignal(signalId: number): Promise<void> {
   const res = await fetch(`${base}/signals/${signalId}`, {

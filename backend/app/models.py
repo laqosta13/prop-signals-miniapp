@@ -24,6 +24,8 @@ class Signal(Base):
     leverage: Mapped[int | None] = mapped_column(Integer, nullable=True)
     risk_percent: Mapped[float | None] = mapped_column(Float, nullable=True)
     realized_pnl: Mapped[float | None] = mapped_column(Float, nullable=True)
+    media_image_path: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    media_video_path: Mapped[str | None] = mapped_column(String(256), nullable=True)
     author_telegram_id: Mapped[int] = mapped_column(Integer, nullable=False)
     author_username: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
@@ -47,6 +49,7 @@ class Trader(Base):
 
     telegram_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     username: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    avatar_path: Mapped[str | None] = mapped_column(String(256), nullable=True)
     rating_percent: Mapped[float] = mapped_column(Float, default=0.0)
     wins: Mapped[int] = mapped_column(Integer, default=0)
     losses: Mapped[int] = mapped_column(Integer, default=0)

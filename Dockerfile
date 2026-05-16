@@ -12,7 +12,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app/backend \
     DATABASE_URL=sqlite:////data/signals.db \
-    STATIC_ROOT=/app/static
+    STATIC_ROOT=/app/static \
+    MEDIA_ROOT=/data/media
 
 COPY backend/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt

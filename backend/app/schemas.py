@@ -33,6 +33,9 @@ class SignalRead(BaseModel):
     realized_pnl: float | None = None
     author_telegram_id: int
     author_username: str | None = None
+    media_image_url: str | None = None
+    media_video_url: str | None = None
+    author_avatar_url: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -56,6 +59,7 @@ class TraderRead(BaseModel):
     losses: int
     rank: int = 0
     win_rate: float = 0.0
+    avatar_url: str | None = None
 
     model_config = {"from_attributes": True}
 

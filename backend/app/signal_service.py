@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.models import Signal, Subscriber, Trader
 from app.signal_utils import compute_signal_points_percent, evaluate_signal
+from app.telegram_avatar import ensure_trader_avatar
 from app.telegram_notify import format_closed_signal_message, format_new_signal_message, notify_subscribers
 
 
@@ -30,6 +31,10 @@ def get_or_create_trader(db: Session, telegram_id: int, username: str | None) ->
         _normalize_trader_stats(trader)
         if username and trader.username != username:
             trader.username = username
+    if not trader.avatar_path:
+        path = ensure_trader_avatar(telegram_id)
+        if path:
+            trader.avatar_path = path
     return trader
 
 
