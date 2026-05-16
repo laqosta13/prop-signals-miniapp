@@ -1,0 +1,66 @@
+from __future__ import annotations
+
+import logging
+
+import httpx
+
+from app.config import settings
+from app.models import Signal
+from app.signal_utils import parse_take_profit_levels
+
+logger = logging.getLogger(__name__)
+
+API = "https://api.telegram.org/bot{token}/{method}"
+
+
+def _format_take_profits(raw: str | None) -> str:
+    levels = parse_take_profit_levels(raw)
+    if not levels:
+        return "—"
+    return ", ".join(str(x) for x in levels)
+
+
+async def _send_message(chat_id: int, text: str) -> None:
+    if not settings.bot_token:
+        return
+    url = API.format(token=settings.bot_token, method="sendMessage")
+    payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            r = await client.post(url, json=payload)
+            if r.status_code != 200:
+                logger.warning("Telegram sendMessage %s: %s", r.status_code, r.text[:200])
+    except Exception as e:
+        logger.warning("Telegram notify failed: %s", e)
+
+
+async def notify_subscribers(text: str, subscriber_ids: list[int]) -> None:
+    for uid in subscriber_ids:
+        await _send_message(uid, text)
+
+
+def format_new_signal_message(signal: Signal) -> str:
+    author = f"@{signal.author_username}" if signal.author_username else f"id {signal.author_telegram_id}"
+    tps = _format_take_profits(signal.take_profits)
+    return (
+        f"📢 <b>Новый сигнал</b>\n"
+        f"{signal.symbol} · <b>{signal.direction.upper()}</b>\n"
+        f"Вход: {signal.entry_low or '—'} — {signal.entry_high or '—'}\n"
+        f"Стоп: {signal.stop_loss or '—'}\n"
+        f"Тейки: {tps}\n"
+        f"Автор: {author}"
+    )
+
+
+def format_closed_signal_message(signal: Signal) -> str:
+    emoji = "✅" if signal.status == "win" else "❌"
+    label = "WIN" if signal.status == "win" else "LOSE"
+    pts = signal.points_percent
+    sign = "+" if signal.status == "win" else "−"
+    author = f"@{signal.author_username}" if signal.author_username else f"id {signal.author_telegram_id}"
+    return (
+        f"{emoji} <b>Сигнал {label}</b>\n"
+        f"{signal.symbol} · {signal.direction.upper()}\n"
+        f"Рейтинг автора: {sign}{pts}%\n"
+        f"Автор: {author}"
+    )

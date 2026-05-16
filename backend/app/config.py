@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     telegram_admin_ids: str = ""
     database_url: str = "sqlite:///./signals.db"
     cors_origins: str = "http://localhost:5173"
+    default_signal_points_percent: float = 1.0
+    max_signal_points_percent: float = 10.0
+    price_check_interval_seconds: int = 60
+    mini_app_url: str = ""
 
     @property
     def admin_id_set(self) -> set[int]:

@@ -1,18 +1,38 @@
+import asyncio
+import logging
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app import models  # noqa: F401 — регистрация таблиц для metadata.create_all
+from app import models  # noqa: F401
 from app.config import settings
 from app.database import Base, engine
-from app.routers import auth, signals
+from app.migrate import run_migrations
+from app.price_monitor import price_monitor_loop
+from app.routers import auth, signals, subscriptions, traders
+
+logging.basicConfig(level=logging.INFO)
 
 Base.metadata.create_all(bind=engine)
+run_migrations(engine)
 
-app = FastAPI(title="Prop Signals API", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(price_monitor_loop())
+    yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
+
+app = FastAPI(title="Prop Signals API", version="0.2.0", lifespan=lifespan)
 
 origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
 app.add_middleware(
@@ -25,6 +45,8 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(signals.router)
+app.include_router(traders.router)
+app.include_router(subscriptions.router)
 
 
 @app.get("/health")

@@ -4,31 +4,41 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.schemas import TelegramUser
+from app.signal_service import register_subscriber
 from app.telegram_auth import validate_init_data
 
 
 def get_current_user(
+    db: Session = Depends(get_db),
     x_telegram_init_data: str | None = Header(default=None, alias="X-Telegram-Init-Data"),
     x_dev_telegram_user_id: str | None = Header(default=None, alias="X-Dev-Telegram-User-Id"),
 ) -> TelegramUser:
-    """
-    В Mini App клиент передаёт X-Telegram-Init-Data (window.Telegram.WebApp.initData).
-    Для локальной отладки без Telegram: X-Dev-Telegram-User-Id (только если BOT_TOKEN пустой).
-    """
     if x_telegram_init_data and settings.bot_token:
         user = validate_init_data(x_telegram_init_data, settings.bot_token)
         if user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Telegram init data")
-        is_admin = user.id in settings.admin_id_set
-        return TelegramUser(telegram_user_id=user.id, is_admin=is_admin)
+        sub = register_subscriber(db, user.id, user.username)
+        db.commit()
+        return TelegramUser(
+            telegram_user_id=user.id,
+            is_admin=user.id in settings.admin_id_set,
+            username=user.username,
+            notify_enabled=sub.notify_enabled,
+        )
 
     if not settings.bot_token and x_dev_telegram_user_id:
         try:
             tid = int(x_dev_telegram_user_id.strip())
         except ValueError as e:
             raise HTTPException(status_code=400, detail="Bad dev user id") from e
-        is_admin = tid in settings.admin_id_set
-        return TelegramUser(telegram_user_id=tid, is_admin=is_admin)
+        sub = register_subscriber(db, tid, None)
+        db.commit()
+        return TelegramUser(
+            telegram_user_id=tid,
+            is_admin=tid in settings.admin_id_set,
+            username=None,
+            notify_enabled=sub.notify_enabled,
+        )
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

@@ -7,6 +7,7 @@ const base =
 export type Signal = {
   id: number;
   created_at: string;
+  closed_at: string | null;
   symbol: string;
   direction: string;
   entry_low: string | null;
@@ -15,7 +16,26 @@ export type Signal = {
   take_profits: string | null;
   comment: string | null;
   status: string;
+  points_percent: number;
   author_telegram_id: number;
+  author_username: string | null;
+};
+
+export type Me = {
+  telegram_user_id: number;
+  is_admin: boolean;
+  username: string | null;
+  notify_enabled: boolean;
+};
+
+export type Trader = {
+  telegram_id: number;
+  username: string | null;
+  rating_percent: number;
+  wins: number;
+  losses: number;
+  rank: number;
+  win_rate: number;
 };
 
 function authHeaders(): HeadersInit {
@@ -29,23 +49,21 @@ function authHeaders(): HeadersInit {
   return h;
 }
 
-export type Me = { telegram_user_id: number; is_admin: boolean };
-
 export async function fetchMe(): Promise<Me> {
   const res = await fetch(`${base}/auth/me`, { headers: authHeaders() });
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(t || res.statusText);
-  }
+  if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
 
 export async function fetchSignals(): Promise<Signal[]> {
   const res = await fetch(`${base}/signals`, { headers: authHeaders() });
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(t || res.statusText);
-  }
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function fetchLeaderboard(): Promise<Trader[]> {
+  const res = await fetch(`${base}/traders/leaderboard`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
 
@@ -65,9 +83,16 @@ export async function createSignal(body: SignalCreate): Promise<Signal> {
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(t || res.statusText);
-  }
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function setNotifications(enabled: boolean): Promise<Me> {
+  const res = await fetch(`${base}/subscriptions/me`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ notify_enabled: enabled }),
+  });
+  if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
