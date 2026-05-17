@@ -8,6 +8,7 @@ from app.media_storage import delete_media_files, delete_signal_media_dir, save_
 from app.models import Signal
 from app.schemas import LikeResponse, SignalRead, TelegramUser, ViewResponse
 from app.serializers import signal_to_read
+from app.challenge_service import ensure_tracker_for_new_signal
 from app.signal_service import (
     build_signal_row,
     notify_deleted_signal,
@@ -69,6 +70,8 @@ async def create_signal(
         tracker_balance=tracker_balance,
     )
     db.add(row)
+    db.flush()
+    ensure_tracker_for_new_signal(db, row)
     db.commit()
     db.refresh(row)
 

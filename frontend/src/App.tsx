@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import {
-  fetchChallengeDashboard,
+  fetchChallengeTrackers,
   fetchLeaderboard,
   fetchMe,
   fetchSignals,
@@ -23,7 +23,8 @@ export default function App() {
   const [tab, setTab] = useState<Tab>("feed");
   const [signals, setSignals] = useState<Signal[]>([]);
   const [traders, setTraders] = useState<Trader[]>([]);
-  const [challenge, setChallenge] = useState<ChallengeDashboard | null>(null);
+  const [trackers, setTrackers] = useState<ChallengeDashboard[]>([]);
+  const [myTelegramId, setMyTelegramId] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [notifyEnabled, setNotifyEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -38,11 +39,12 @@ export default function App() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [sig, me, dash] = await Promise.all([fetchSignals(), fetchMe(), fetchChallengeDashboard()]);
+      const [sig, me, trackerList] = await Promise.all([fetchSignals(), fetchMe(), fetchChallengeTrackers()]);
       setSignals(sig);
       setIsAdmin(me.is_admin);
       setNotifyEnabled(me.notify_enabled);
-      setChallenge(dash);
+      setMyTelegramId(me.telegram_user_id);
+      setTrackers(trackerList);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка загрузки");
     } finally {
@@ -81,16 +83,17 @@ export default function App() {
   };
 
   const openSettings = async () => {
-    const size = prompt("Размер счёта Hash Hedge ($)", String(challenge?.account_size ?? 10000));
+    const mine = trackers.find((t) => t.owner_telegram_id === myTelegramId);
+    const size = prompt("Размер счёта Hash Hedge ($)", String(mine?.account_size ?? 10000));
     if (!size) return;
-    const stage = prompt("Этап (1, 2 или 3)", String(challenge?.stage ?? 1));
+    const stage = prompt("Этап (1, 2 или 3)", String(mine?.stage ?? 1));
     try {
-      const dash = await updateChallenge({
+      await updateChallenge({
         account_size: parseFloat(size),
         stage: parseInt(stage || "1", 10),
         reset_day: true,
       });
-      setChallenge(dash);
+      await load();
     } catch (e) {
       alert(e instanceof Error ? e.message : "Ошибка");
     }
@@ -99,7 +102,7 @@ export default function App() {
   const titles: Record<Tab, { title: string; sub: string }> = {
     feed: { title: "Сигналы", sub: "PROP-DESK · Hash Hedge" },
     tracker: { title: "Трекер", sub: "HASH HEDGE CHALLENGE" },
-    top: { title: "ТОП трейдеров", sub: "±риск% · P/L по трекеру" },
+    top: { title: "ТОП трейдеров", sub: "Рейтинг по сигналам" },
   };
 
   const head = titles[tab];
@@ -127,7 +130,7 @@ export default function App() {
         {tab === "feed" && (
           <FeedTab
             signals={signals}
-            challenge={challenge}
+            trackers={trackers}
             loading={loading}
             isAdmin={isAdmin}
             onOpenTracker={() => setTab("tracker")}
@@ -136,8 +139,14 @@ export default function App() {
             onPatch={patchSignal}
           />
         )}
-        {tab === "tracker" && challenge && (
-          <TrackerTab data={challenge} signals={signals} onSettings={() => void openSettings()} />
+        {tab === "tracker" && (
+          <TrackerTab
+            trackers={trackers}
+            signals={signals}
+            myTelegramId={myTelegramId}
+            isAdmin={isAdmin}
+            onSettings={() => void openSettings()}
+          />
         )}
         {tab === "top" && <LeaderboardTab traders={traders} loading={loading && traders.length === 0} />}
       </main>

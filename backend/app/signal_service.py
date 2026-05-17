@@ -16,6 +16,7 @@ from app.telegram_notify import (
     format_updated_signal_message,
     notify_subscribers,
 )
+from app.challenge_service import apply_signal_to_tracker, ensure_tracker_for_new_signal
 from app.trader_stats import apply_outcome_to_trader, signal_risk_percent
 
 
@@ -104,6 +105,7 @@ def close_signal(db: Session, signal: Signal, outcome: str) -> None:
     trader = get_or_create_trader(db, signal.author_telegram_id, signal.author_username)
     _normalize_trader_stats(trader)
     apply_outcome_to_trader(trader, signal, outcome)
+    apply_signal_to_tracker(db, signal)
     db.commit()
     db.refresh(signal)
 

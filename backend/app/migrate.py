@@ -51,3 +51,30 @@ def run_migrations(engine: Engine) -> None:
                 conn.execute(text("ALTER TABLE signals ADD COLUMN likes_count INTEGER DEFAULT 0"))
             conn.execute(text("UPDATE signals SET views_count = 0 WHERE views_count IS NULL"))
             conn.execute(text("UPDATE signals SET likes_count = 0 WHERE likes_count IS NULL"))
+
+    _replay_admin_trackers_once(engine)
+
+
+def _replay_admin_trackers_once(engine: Engine) -> None:
+    from pathlib import Path
+
+    from app.database import SessionLocal
+    from app.challenge_service import replay_trackers_from_closed_signals
+
+    db_url = str(engine.url)
+    if db_url.startswith("sqlite"):
+        db_file = engine.url.database
+        if not db_file or db_file == ":memory:":
+            return
+        marker = Path(db_file).resolve().parent / ".tracker_replay_v1"
+    else:
+        return
+    if marker.exists():
+        return
+    db = SessionLocal()
+    try:
+        replay_trackers_from_closed_signals(db)
+        db.commit()
+        marker.touch()
+    finally:
+        db.close()

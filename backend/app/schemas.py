@@ -87,6 +87,9 @@ class ChallengeUpdate(BaseModel):
 
 
 class ChallengeDashboard(BaseModel):
+    owner_telegram_id: int
+    owner_username: str | None = None
+    owner_avatar_url: str | None = None
     account_size: float
     stage: int
     balance: float

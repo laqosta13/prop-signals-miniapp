@@ -259,11 +259,49 @@ body {
   color: var(--muted);
 }
 
-.top-hint {
+.tracker-block {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tracker-block__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.tracker-block__name {
+  margin: 0;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.tracker-block__sub {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.prop-mini__item {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.prop-mini__item:first-of-type {
+  margin-top: 8px;
+  padding-top: 0;
+  border-top: none;
+}
+
+.prop-mini__owner {
+  margin: 0 0 4px;
   font-size: 0.78rem;
   color: var(--muted);
-  line-height: 1.4;
-  margin: 0 0 12px;
 }
 
 .signal-card__time {

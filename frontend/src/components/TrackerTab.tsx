@@ -1,23 +1,54 @@
 import type { ChallengeDashboard, Signal } from "../api";
-import { formatTakeProfits, formatTime, formatUsd } from "../utils";
+import { formatTakeProfits, formatTime, formatUsd, traderName } from "../utils";
+import { Avatar } from "./Avatar";
 
 type Props = {
-  data: ChallengeDashboard;
+  trackers: ChallengeDashboard[];
   signals: Signal[];
-  onSettings: () => void;
+  myTelegramId: number | null;
+  isAdmin: boolean;
+  onSettings: (ownerId: number) => void;
 };
 
-export function TrackerTab({ data, signals, onSettings }: Props) {
+function TrackerBlock({
+  data,
+  signals,
+  isAdmin,
+  myTelegramId,
+  onSettings,
+}: {
+  data: ChallengeDashboard;
+  signals: Signal[];
+  isAdmin: boolean;
+  myTelegramId: number | null;
+  onSettings: (ownerId: number) => void;
+}) {
   const progress = Math.min(100, Math.max(0, (data.profit_pct / data.profit_target_pct) * 100));
   const ddProgress = Math.min(100, (data.drawdown_pct / data.max_drawdown_pct) * 100);
   const dayProgress = Math.min(
     100,
     ((data.max_daily_loss_pct - data.daily_loss_pct) / data.max_daily_loss_pct) * 100,
   );
-  const recent = signals.filter((s) => s.status !== "active").slice(0, 5);
+  const recent = signals
+    .filter((s) => s.author_telegram_id === data.owner_telegram_id && s.status !== "active")
+    .slice(0, 5);
+  const canEdit = isAdmin && myTelegramId === data.owner_telegram_id;
 
   return (
-    <>
+    <section className="tracker-block">
+      <header className="tracker-block__head">
+        <Avatar
+          url={data.owner_avatar_url}
+          username={data.owner_username}
+          telegramId={data.owner_telegram_id}
+          size={40}
+        />
+        <div>
+          <p className="tracker-block__name">{traderName(data.owner_username, data.owner_telegram_id)}</p>
+          <p className="tracker-block__sub">Трекер · этап {data.stage}</p>
+        </div>
+      </header>
+
       <div className="tracker-hero">
         <p className="label">Текущий баланс</p>
         <h2>{formatUsd(data.balance)}</h2>
@@ -26,13 +57,12 @@ export function TrackerTab({ data, signals, onSettings }: Props) {
           {data.profit_pct.toFixed(2)}%
         </p>
         <div className="progress large">
-          <span className="progress__fill" style={{ width: `${progress}%` }} />
+          <span className="progress__fill" style={{ width: `${Math.max(0, progress)}%` }} />
         </div>
         <div className="tracker-hero__row">
           <span>Старт: {formatUsd(data.account_size)}</span>
           <span>Цель: {formatUsd(data.goal_balance)}</span>
         </div>
-        <p className="stage-tag">Этап {data.stage} · Hash Hedge</p>
       </div>
 
       <div className="metric-row">
@@ -72,26 +102,56 @@ export function TrackerTab({ data, signals, onSettings }: Props) {
         </div>
       </div>
 
-      <button type="button" className="ghost-btn" onClick={onSettings}>
-        Настроить счёт и этап
-      </button>
+      {canEdit && (
+        <button type="button" className="ghost-btn" onClick={() => onSettings(data.owner_telegram_id)}>
+          Настроить счёт и этап
+        </button>
+      )}
 
-      <h3 className="section-title">Последние сделки</h3>
-      <ul className="trade-list">
-        {recent.map((s) => (
-          <li key={s.id}>
-            <div>
-              <strong>{s.symbol}</strong>
-              <span className="muted"> {s.direction.toUpperCase()} · {formatTime(s.closed_at || s.created_at)}</span>
-            </div>
-            <span className={s.realized_pnl && s.realized_pnl >= 0 ? "pnl-win" : "pnl-lose"}>
-              {s.realized_pnl != null
-                ? `${s.realized_pnl >= 0 ? "+" : ""}${formatUsd(s.realized_pnl)}`
-                : formatTakeProfits(s.take_profits)}
-            </span>
-          </li>
-        ))}
-      </ul>
+      {recent.length > 0 && (
+        <>
+          <h3 className="section-title">Последние сделки</h3>
+          <ul className="trade-list">
+            {recent.map((s) => (
+              <li key={s.id}>
+                <div>
+                  <strong>{s.symbol}</strong>
+                  <span className="muted">
+                    {" "}
+                    {s.direction.toUpperCase()} · {formatTime(s.closed_at || s.created_at)}
+                  </span>
+                </div>
+                <span className={s.realized_pnl && s.realized_pnl >= 0 ? "pnl-win" : "pnl-lose"}>
+                  {s.realized_pnl != null
+                    ? `${s.realized_pnl >= 0 ? "+" : ""}${formatUsd(s.realized_pnl)}`
+                    : formatTakeProfits(s.take_profits)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
+  );
+}
+
+export function TrackerTab({ trackers, signals, myTelegramId, isAdmin, onSettings }: Props) {
+  if (trackers.length === 0) {
+    return <p className="meta">Трекеры появятся после публикации сигналов админами.</p>;
+  }
+
+  return (
+    <>
+      {trackers.map((t) => (
+        <TrackerBlock
+          key={t.owner_telegram_id}
+          data={t}
+          signals={signals}
+          isAdmin={isAdmin}
+          myTelegramId={myTelegramId}
+          onSettings={onSettings}
+        />
+      ))}
     </>
   );
 }

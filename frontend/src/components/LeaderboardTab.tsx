@@ -11,11 +11,7 @@ export function LeaderboardTab({ traders, loading }: Props) {
   }
 
   return (
-    <>
-      <p className="top-hint">
-        Рейтинг: сумма ±риск% за каждый сигнал. P/L в $ = трекер × риск% (пример: $5000 × 10% → ±$500).
-      </p>
-      <ol className="top-list">
+    <ol className="top-list">
       {traders.map((t) => (
         <li key={t.telegram_id} className="top-card">
           <span className="top-rank">#{t.rank}</span>
@@ -31,7 +27,6 @@ export function LeaderboardTab({ traders, loading }: Props) {
           </div>
         </li>
       ))}
-      </ol>
-    </>
+    </ol>
   );
 }

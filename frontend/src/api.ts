@@ -51,6 +51,9 @@ export type Trader = {
 };
 
 export type ChallengeDashboard = {
+  owner_telegram_id: number;
+  owner_username: string | null;
+  owner_avatar_url: string | null;
   account_size: number;
   stage: number;
   balance: number;
@@ -89,7 +92,10 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 export const fetchMe = () => api<Me>("/auth/me");
 export const fetchSignals = () => api<Signal[]>("/signals");
 export const fetchLeaderboard = () => api<Trader[]>("/traders/leaderboard");
-export const fetchChallengeDashboard = () => api<ChallengeDashboard>("/challenge/dashboard");
+export const fetchChallengeTrackers = () => api<ChallengeDashboard[]>("/challenge/trackers");
+
+export const fetchChallengeDashboard = (ownerId?: number) =>
+  api<ChallengeDashboard>(ownerId != null ? `/challenge/dashboard?owner_id=${ownerId}` : "/challenge/dashboard");
 export const fetchChallengeRules = () => api<Record<string, unknown>>("/challenge/rules");
 
 export type SignalCreate = {

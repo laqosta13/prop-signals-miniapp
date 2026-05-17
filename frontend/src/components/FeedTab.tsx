@@ -6,7 +6,7 @@ import { SignalCard } from "./SignalCard";
 
 type Props = {
   signals: Signal[];
-  challenge: ChallengeDashboard | null;
+  trackers: ChallengeDashboard[];
   loading: boolean;
   isAdmin: boolean;
   onOpenTracker: () => void;
@@ -15,7 +15,7 @@ type Props = {
   onPatch: (id: number, patch: Partial<Signal>) => void;
 };
 
-export function FeedTab({ signals, challenge, loading, isAdmin, onOpenTracker, onChanged, onEdit, onPatch }: Props) {
+export function FeedTab({ signals, trackers, loading, isAdmin, onOpenTracker, onChanged, onEdit, onPatch }: Props) {
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const handleDelete = async (id: number) => {
@@ -47,7 +47,7 @@ export function FeedTab({ signals, challenge, loading, isAdmin, onOpenTracker, o
           onPatch={onPatch}
         />
       ))}
-      {challenge && <PropTrackerMini data={challenge} onOpen={onOpenTracker} />}
+      {trackers.length > 0 && <PropTrackerMini trackers={trackers} onOpen={onOpenTracker} />}
     </>
   );
 }
