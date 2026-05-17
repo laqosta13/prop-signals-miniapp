@@ -1,18 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
-import { createSignalWithMedia } from "../api";
-import { normalizeTakeProfits } from "../utils";
+import { updateSignalWithMedia, type Signal } from "../api";
+import { formatTakeProfits, normalizeTakeProfits } from "../utils";
 
 type Props = {
-  open: boolean;
+  signal: Signal | null;
   onClose: () => void;
-  onCreated: () => void;
+  onUpdated: () => void;
 };
 
-export function NewSignalModal({ open, onClose, onCreated }: Props) {
+export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [symbol, setSymbol] = useState("BTCUSDT");
+  const [symbol, setSymbol] = useState("");
   const [direction, setDirection] = useState<"long" | "short">("long");
   const [entry, setEntry] = useState("");
   const [stop, setStop] = useState("");
@@ -24,11 +24,34 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [video, setVideo] = useState<File | null>(null);
   const [shotPreview, setShotPreview] = useState<string | null>(null);
+  const [removeScreenshot, setRemoveScreenshot] = useState(false);
+  const [removeVideo, setRemoveVideo] = useState(false);
 
-  if (!open) return null;
+  useEffect(() => {
+    if (!signal) return;
+    setSymbol(signal.symbol);
+    setDirection(signal.direction === "short" ? "short" : "long");
+    setEntry(signal.entry_low || signal.entry_high || "");
+    setStop(signal.stop_loss || "");
+    setTarget(formatTakeProfits(signal.take_profits));
+    setLeverage(String(signal.leverage ?? 5));
+    setRisk(String(signal.risk_percent ?? signal.points_percent ?? 10));
+    setTracker(String(signal.tracker_balance ?? 5000));
+    setComment(signal.comment || "");
+    setScreenshot(null);
+    setVideo(null);
+    if (shotPreview) URL.revokeObjectURL(shotPreview);
+    setShotPreview(null);
+    setRemoveScreenshot(false);
+    setRemoveVideo(false);
+    setError(null);
+  }, [signal]);
+
+  if (!signal) return null;
 
   const onScreenshot = (file: File | null) => {
     setScreenshot(file);
+    setRemoveScreenshot(false);
     if (shotPreview) URL.revokeObjectURL(shotPreview);
     setShotPreview(file ? URL.createObjectURL(file) : null);
   };
@@ -48,16 +71,18 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
       if (stop) fd.append("stop_loss", stop);
       const tp = normalizeTakeProfits(target);
       if (tp) fd.append("take_profits", tp);
-      if (comment) fd.append("comment", comment);
+      fd.append("comment", comment);
       fd.append("leverage", String(parseInt(leverage, 10) || 5));
       fd.append("risk_percent", String(parseFloat(risk) || 10));
       fd.append("tracker_balance", String(parseFloat(tracker) || 5000));
+      fd.append("remove_screenshot", removeScreenshot ? "true" : "false");
+      fd.append("remove_video", removeVideo ? "true" : "false");
       if (screenshot) fd.append("screenshot", screenshot);
       if (video) fd.append("video", video);
 
-      await createSignalWithMedia(fd);
+      await updateSignalWithMedia(signal.id, fd);
       WebApp.HapticFeedback.notificationOccurred("success");
-      onCreated();
+      onUpdated();
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка");
@@ -66,13 +91,15 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
     }
   };
 
+  const imageSrc = shotPreview || (removeScreenshot ? null : signal.media_image_url);
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
         <header className="modal__head">
           <div>
-            <h2>Новый сигнал</h2>
-            <p>Публикация в ленту</p>
+            <h2>Редактировать</h2>
+            <p>{signal.symbol} · активный сигнал</p>
           </div>
           <button type="button" className="icon-btn" onClick={onClose}>
             ×
@@ -123,18 +150,33 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
         </div>
 
         <label className="field-label">Скрин сетапа</label>
+        {signal.media_image_url && !removeScreenshot && !screenshot && (
+          <label className="check-row">
+            <input type="checkbox" checked={removeScreenshot} onChange={(e) => setRemoveScreenshot(e.target.checked)} />
+            Удалить текущий скрин
+          </label>
+        )}
         <input
           type="file"
           accept="image/jpeg,image/png,image/webp,image/gif"
           onChange={(e) => onScreenshot(e.target.files?.[0] ?? null)}
         />
-        {shotPreview && <img src={shotPreview} alt="Превью" className="media-preview" />}
+        {imageSrc && <img src={imageSrc} alt="Превью" className="media-preview" />}
 
         <label className="field-label">Видео</label>
+        {signal.media_video_url && !removeVideo && !video && (
+          <label className="check-row">
+            <input type="checkbox" checked={removeVideo} onChange={(e) => setRemoveVideo(e.target.checked)} />
+            Удалить текущее видео
+          </label>
+        )}
         <input
           type="file"
           accept="video/mp4,video/webm,video/quicktime"
-          onChange={(e) => setVideo(e.target.files?.[0] ?? null)}
+          onChange={(e) => {
+            setVideo(e.target.files?.[0] ?? null);
+            setRemoveVideo(false);
+          }}
         />
         {video && <p className="meta">Видео: {video.name}</p>}
 
@@ -144,7 +186,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
         {error && <p className="err">{error}</p>}
 
         <button type="submit" className="submit-btn" disabled={submitting}>
-          {submitting ? "Публикация…" : "Опубликовать сигнал"}
+          {submitting ? "Сохранение…" : "Сохранить изменения"}
         </button>
       </form>
     </div>

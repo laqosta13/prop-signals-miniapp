@@ -19,7 +19,11 @@ export type Signal = {
   points_percent: number;
   leverage: number | null;
   risk_percent: number | null;
+  tracker_balance: number | null;
   realized_pnl: number | null;
+  views_count: number;
+  likes_count: number;
+  liked_by_me: boolean;
   author_telegram_id: number;
   author_username: string | null;
   media_image_url: string | null;
@@ -38,6 +42,7 @@ export type Trader = {
   telegram_id: number;
   username: string | null;
   rating_percent: number;
+  total_pnl_usd: number;
   wins: number;
   losses: number;
   rank: number;
@@ -99,15 +104,22 @@ export type SignalCreate = {
   risk_percent?: number;
 };
 
-export async function createSignalWithMedia(form: FormData): Promise<Signal> {
-  const res = await fetch(`${base}/signals`, {
-    method: "POST",
-    headers: authHeaders(),
-    body: form,
-  });
+async function sendForm(path: string, method: string, form: FormData): Promise<Signal> {
+  const res = await fetch(`${base}${path}`, { method, headers: authHeaders(), body: form });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
+
+export const createSignalWithMedia = (form: FormData) => sendForm("/signals", "POST", form);
+
+export const updateSignalWithMedia = (signalId: number, form: FormData) =>
+  sendForm(`/signals/${signalId}`, "PUT", form);
+
+export const recordSignalView = (signalId: number) =>
+  api<{ views_count: number }>(`/signals/${signalId}/view`, { method: "POST" });
+
+export const toggleSignalLike = (signalId: number) =>
+  api<{ liked: boolean; likes_count: number }>(`/signals/${signalId}/like`, { method: "POST" });
 
 export async function deleteSignal(signalId: number): Promise<void> {
   const res = await fetch(`${base}/signals/${signalId}`, {

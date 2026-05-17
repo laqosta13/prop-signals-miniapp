@@ -6,11 +6,17 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.config import settings
 from app.models import Signal, Subscriber, Trader
-from app.signal_utils import compute_signal_points_percent, evaluate_signal
+from app.signal_utils import compute_signal_points_percent
 from app.telegram_avatar import ensure_trader_avatar
-from app.telegram_notify import format_closed_signal_message, format_new_signal_message, notify_subscribers
+from app.telegram_notify import (
+    format_closed_signal_message,
+    format_deleted_signal_message,
+    format_new_signal_message,
+    format_updated_signal_message,
+    notify_subscribers,
+)
+from app.trader_stats import apply_outcome_to_trader, signal_risk_percent
 
 
 def _normalize_trader_stats(trader: Trader) -> None:
@@ -20,12 +26,21 @@ def _normalize_trader_stats(trader: Trader) -> None:
         trader.losses = 0
     if trader.rating_percent is None:
         trader.rating_percent = 0.0
+    if trader.total_pnl_usd is None:
+        trader.total_pnl_usd = 0.0
 
 
 def get_or_create_trader(db: Session, telegram_id: int, username: str | None) -> Trader:
     trader = db.get(Trader, telegram_id)
     if trader is None:
-        trader = Trader(telegram_id=telegram_id, username=username, wins=0, losses=0, rating_percent=0.0)
+        trader = Trader(
+            telegram_id=telegram_id,
+            username=username,
+            wins=0,
+            losses=0,
+            rating_percent=0.0,
+            total_pnl_usd=0.0,
+        )
         db.add(trader)
     else:
         _normalize_trader_stats(trader)
@@ -69,6 +84,18 @@ async def notify_new_signal(db: Session, signal: Signal) -> None:
         await notify_subscribers(format_new_signal_message(signal), ids)
 
 
+async def notify_updated_signal(db: Session, signal: Signal) -> None:
+    ids = subscriber_ids_for_notify(db)
+    if ids:
+        await notify_subscribers(format_updated_signal_message(signal), ids)
+
+
+async def notify_deleted_signal(db: Session, signal: Signal) -> None:
+    ids = subscriber_ids_for_notify(db)
+    if ids:
+        await notify_subscribers(format_deleted_signal_message(signal), ids)
+
+
 def close_signal(db: Session, signal: Signal, outcome: str) -> None:
     if signal.status != "active":
         return
@@ -76,17 +103,7 @@ def close_signal(db: Session, signal: Signal, outcome: str) -> None:
     signal.closed_at = datetime.now(timezone.utc)
     trader = get_or_create_trader(db, signal.author_telegram_id, signal.author_username)
     _normalize_trader_stats(trader)
-    pts = signal.points_percent if signal.points_percent is not None else settings.default_signal_points_percent
-    risk = signal.risk_percent if signal.risk_percent is not None else pts
-    nominal = 10_000.0
-    pnl = nominal * risk / 100.0
-    signal.realized_pnl = round(pnl if outcome == "win" else -pnl, 2)
-    if outcome == "win":
-        trader.wins = trader.wins + 1
-        trader.rating_percent = round(trader.rating_percent + pts, 2)
-    else:
-        trader.losses = trader.losses + 1
-        trader.rating_percent = round(trader.rating_percent - pts, 2)
+    apply_outcome_to_trader(trader, signal, outcome)
     db.commit()
     db.refresh(signal)
 
@@ -112,6 +129,7 @@ def build_signal_row(
     author_username: str | None,
     leverage: int | None = None,
     risk_percent: float | None = None,
+    tracker_balance: float | None = None,
 ) -> Signal:
     points = risk_percent if risk_percent is not None else compute_signal_points_percent(entry_low, entry_high, stop_loss)
     get_or_create_trader(db, author_telegram_id, author_username)
@@ -127,6 +145,38 @@ def build_signal_row(
         points_percent=points,
         leverage=leverage,
         risk_percent=risk_percent or points,
+        tracker_balance=tracker_balance,
+        views_count=0,
+        likes_count=0,
         author_telegram_id=author_telegram_id,
         author_username=author_username,
     )
+
+
+def update_signal_fields(
+    signal: Signal,
+    *,
+    symbol: str,
+    direction: str,
+    entry_low: str | None,
+    entry_high: str | None,
+    stop_loss: str | None,
+    take_profits: str | None,
+    comment: str | None,
+    leverage: int | None,
+    risk_percent: float | None,
+    tracker_balance: float | None,
+) -> None:
+    signal.symbol = symbol
+    signal.direction = direction
+    signal.entry_low = entry_low
+    signal.entry_high = entry_high
+    signal.stop_loss = stop_loss
+    signal.take_profits = take_profits
+    signal.comment = comment
+    signal.leverage = leverage
+    if risk_percent is not None:
+        signal.risk_percent = risk_percent
+        signal.points_percent = risk_percent
+    if tracker_balance is not None:
+        signal.tracker_balance = tracker_balance

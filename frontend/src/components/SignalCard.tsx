@@ -1,20 +1,50 @@
-import type { Signal } from "../api";
+import { useEffect, useState } from "react";
+import WebApp from "@twa-dev/sdk";
+import { recordSignalView, toggleSignalLike, type Signal } from "../api";
 import { calcRR, formatTakeProfits, formatTime, formatUsd, traderName } from "../utils";
 import { Avatar } from "./Avatar";
 
 type Props = {
   signal: Signal;
   isAdmin?: boolean;
+  onEdit?: (signal: Signal) => void;
   onDelete?: (id: number) => void;
   deleting?: boolean;
+  onPatch?: (id: number, patch: Partial<Signal>) => void;
 };
 
-export function SignalCard({ signal: s, isAdmin, onDelete, deleting }: Props) {
+export function SignalCard({ signal: s, isAdmin, onEdit, onDelete, deleting, onPatch }: Props) {
+  const [views, setViews] = useState(s.views_count);
+  const [likes, setLikes] = useState(s.likes_count);
+  const [liked, setLiked] = useState(s.liked_by_me);
+  const [liking, setLiking] = useState(false);
+
+  useEffect(() => {
+    setViews(s.views_count);
+    setLikes(s.likes_count);
+    setLiked(s.liked_by_me);
+  }, [s.views_count, s.likes_count, s.liked_by_me]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void recordSignalView(s.id)
+      .then((r) => {
+        if (cancelled) return;
+        setViews(r.views_count);
+        onPatch?.(s.id, { views_count: r.views_count });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [s.id]);
+
   const entry = s.entry_low || s.entry_high || "—";
   const target = formatTakeProfits(s.take_profits);
   const isLong = s.direction === "long";
   const pnl = s.realized_pnl;
   const risk = s.risk_percent ?? s.points_percent ?? 1;
+  const tracker = s.tracker_balance;
 
   let statusBadge = "Активен";
   let statusClass = "active";
@@ -25,6 +55,22 @@ export function SignalCard({ signal: s, isAdmin, onDelete, deleting }: Props) {
     statusBadge = "Стоп";
     statusClass = "lose";
   }
+
+  const handleLike = async () => {
+    if (liking) return;
+    setLiking(true);
+    try {
+      const r = await toggleSignalLike(s.id);
+      setLiked(r.liked);
+      setLikes(r.likes_count);
+      onPatch?.(s.id, { liked_by_me: r.liked, likes_count: r.likes_count });
+      WebApp.HapticFeedback.impactOccurred("light");
+    } catch {
+      /* */
+    } finally {
+      setLiking(false);
+    }
+  };
 
   return (
     <article className="signal-card">
@@ -41,10 +87,20 @@ export function SignalCard({ signal: s, isAdmin, onDelete, deleting }: Props) {
         </div>
         <div className="signal-card__actions">
           <span className="risk-tag">Риск {risk}%</span>
-          {isAdmin && s.status === "active" && onDelete && (
-            <button type="button" className="delete-btn" disabled={deleting} onClick={() => onDelete(s.id)}>
-              Удалить
-            </button>
+          {tracker != null && tracker > 0 && <span className="risk-tag">Трекер {formatUsd(tracker)}</span>}
+          {isAdmin && s.status === "active" && (
+            <div className="admin-actions">
+              {onEdit && (
+                <button type="button" className="edit-btn" onClick={() => onEdit(s)}>
+                  Изменить
+                </button>
+              )}
+              {onDelete && (
+                <button type="button" className="delete-btn" disabled={deleting} onClick={() => onDelete(s.id)}>
+                  Удалить
+                </button>
+              )}
+            </div>
           )}
         </div>
       </header>
@@ -72,6 +128,19 @@ export function SignalCard({ signal: s, isAdmin, onDelete, deleting }: Props) {
         <video src={s.media_video_url} controls className="signal-media-video" playsInline />
       )}
       {s.comment && <p className="signal-card__comment">{s.comment}</p>}
+      <div className="signal-engagement">
+        <span className="engagement-stat" title="Просмотры">
+          👁 {views}
+        </span>
+        <button
+          type="button"
+          className={`like-btn ${liked ? "on" : ""}`}
+          disabled={liking}
+          onClick={() => void handleLike()}
+        >
+          {liked ? "♥" : "♡"} {likes}
+        </button>
+      </div>
       <footer className="signal-card__foot">
         <span>Плечо {s.leverage ?? 5}x</span>
         <span>RR {calcRR(entry === "—" ? null : entry, s.stop_loss, s.take_profits)}</span>

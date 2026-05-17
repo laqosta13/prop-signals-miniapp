@@ -7,6 +7,7 @@ import httpx
 from app.config import settings
 from app.models import Signal
 from app.signal_utils import parse_take_profit_levels
+from app.trader_stats import signal_risk_percent, signal_tracker_balance
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,20 @@ def _format_take_profits(raw: str | None) -> str:
     if not levels:
         return "—"
     return ", ".join(str(x) for x in levels)
+
+
+def _signal_summary(signal: Signal) -> str:
+    author = f"@{signal.author_username}" if signal.author_username else f"id {signal.author_telegram_id}"
+    risk = signal_risk_percent(signal)
+    tracker = signal_tracker_balance(signal)
+    return (
+        f"{signal.symbol} · <b>{signal.direction.upper()}</b>\n"
+        f"Вход: {signal.entry_low or signal.entry_high or '—'}\n"
+        f"Стоп: {signal.stop_loss or '—'}\n"
+        f"Цель: {_format_take_profits(signal.take_profits)}\n"
+        f"Риск: {risk}% · Трекер: ${tracker:,.0f}\n"
+        f"Автор: {author}"
+    )
 
 
 async def _send_message(chat_id: int, text: str) -> None:
@@ -40,27 +55,26 @@ async def notify_subscribers(text: str, subscriber_ids: list[int]) -> None:
 
 
 def format_new_signal_message(signal: Signal) -> str:
-    author = f"@{signal.author_username}" if signal.author_username else f"id {signal.author_telegram_id}"
-    tps = _format_take_profits(signal.take_profits)
-    return (
-        f"📢 <b>Новый сигнал</b>\n"
-        f"{signal.symbol} · <b>{signal.direction.upper()}</b>\n"
-        f"Вход: {signal.entry_low or '—'} — {signal.entry_high or '—'}\n"
-        f"Стоп: {signal.stop_loss or '—'}\n"
-        f"Тейки: {tps}\n"
-        f"Автор: {author}"
-    )
+    return f"📢 <b>Новый сигнал</b>\n{_signal_summary(signal)}"
+
+
+def format_updated_signal_message(signal: Signal) -> str:
+    return f"✏️ <b>Сигнал обновлён</b>\n{_signal_summary(signal)}"
+
+
+def format_deleted_signal_message(signal: Signal) -> str:
+    return f"🗑 <b>Сигнал удалён</b>\n{_signal_summary(signal)}"
 
 
 def format_closed_signal_message(signal: Signal) -> str:
     emoji = "✅" if signal.status == "win" else "❌"
     label = "WIN" if signal.status == "win" else "LOSE"
-    pts = signal.points_percent
+    risk = signal_risk_percent(signal)
     sign = "+" if signal.status == "win" else "−"
-    author = f"@{signal.author_username}" if signal.author_username else f"id {signal.author_telegram_id}"
+    pnl = signal.realized_pnl or 0
     return (
         f"{emoji} <b>Сигнал {label}</b>\n"
         f"{signal.symbol} · {signal.direction.upper()}\n"
-        f"Рейтинг автора: {sign}{pts}%\n"
-        f"Автор: {author}"
+        f"Рейтинг: {sign}{risk}% · P/L: {pnl:+.0f}$\n"
+        f"Трекер сигнала: ${signal_tracker_balance(signal):,.0f}"
     )

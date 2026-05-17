@@ -13,6 +13,7 @@ import {
 } from "./api";
 import { FeedTab } from "./components/FeedTab";
 import { LeaderboardTab } from "./components/LeaderboardTab";
+import { EditSignalModal } from "./components/EditSignalModal";
 import { NewSignalModal } from "./components/NewSignalModal";
 import { TrackerTab } from "./components/TrackerTab";
 
@@ -27,7 +28,12 @@ export default function App() {
   const [notifyEnabled, setNotifyEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [showNewSignal, setShowNewSignal] = useState(false);
+  const [editSignal, setEditSignal] = useState<Signal | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const patchSignal = (id: number, patch: Partial<Signal>) => {
+    setSignals((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  };
 
   const load = useCallback(async () => {
     setError(null);
@@ -93,7 +99,7 @@ export default function App() {
   const titles: Record<Tab, { title: string; sub: string }> = {
     feed: { title: "Сигналы", sub: "PROP-DESK · Hash Hedge" },
     tracker: { title: "Трекер", sub: "HASH HEDGE CHALLENGE" },
-    top: { title: "ТОП трейдеров", sub: "Рейтинг по сигналам" },
+    top: { title: "ТОП трейдеров", sub: "±риск% · P/L по трекеру" },
   };
 
   const head = titles[tab];
@@ -126,6 +132,8 @@ export default function App() {
             isAdmin={isAdmin}
             onOpenTracker={() => setTab("tracker")}
             onChanged={load}
+            onEdit={setEditSignal}
+            onPatch={patchSignal}
           />
         )}
         {tab === "tracker" && challenge && (
@@ -156,6 +164,7 @@ export default function App() {
       </nav>
 
       <NewSignalModal open={showNewSignal} onClose={() => setShowNewSignal(false)} onCreated={load} />
+      <EditSignalModal signal={editSignal} onClose={() => setEditSignal(null)} onUpdated={load} />
     </div>
   );
 }

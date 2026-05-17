@@ -39,3 +39,15 @@ def run_migrations(engine: Engine) -> None:
         if "traders" in inspect(engine).get_table_names():
             if not _has_column(engine, "traders", "avatar_path"):
                 conn.execute(text("ALTER TABLE traders ADD COLUMN avatar_path VARCHAR(256)"))
+            if not _has_column(engine, "traders", "total_pnl_usd"):
+                conn.execute(text("ALTER TABLE traders ADD COLUMN total_pnl_usd REAL DEFAULT 0"))
+            conn.execute(text("UPDATE traders SET total_pnl_usd = 0 WHERE total_pnl_usd IS NULL"))
+        if "signals" in inspect(engine).get_table_names():
+            if not _has_column(engine, "signals", "tracker_balance"):
+                conn.execute(text("ALTER TABLE signals ADD COLUMN tracker_balance REAL"))
+            if not _has_column(engine, "signals", "views_count"):
+                conn.execute(text("ALTER TABLE signals ADD COLUMN views_count INTEGER DEFAULT 0"))
+            if not _has_column(engine, "signals", "likes_count"):
+                conn.execute(text("ALTER TABLE signals ADD COLUMN likes_count INTEGER DEFAULT 0"))
+            conn.execute(text("UPDATE signals SET views_count = 0 WHERE views_count IS NULL"))
+            conn.execute(text("UPDATE signals SET likes_count = 0 WHERE likes_count IS NULL"))

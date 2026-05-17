@@ -26,8 +26,27 @@ class Signal(Base):
     realized_pnl: Mapped[float | None] = mapped_column(Float, nullable=True)
     media_image_path: Mapped[str | None] = mapped_column(String(256), nullable=True)
     media_video_path: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    tracker_balance: Mapped[float | None] = mapped_column(Float, nullable=True)
+    views_count: Mapped[int] = mapped_column(Integer, default=0)
+    likes_count: Mapped[int] = mapped_column(Integer, default=0)
     author_telegram_id: Mapped[int] = mapped_column(Integer, nullable=False)
     author_username: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+
+class SignalView(Base):
+    __tablename__ = "signal_views"
+
+    signal_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    telegram_user_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class SignalLike(Base):
+    __tablename__ = "signal_likes"
+
+    signal_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    telegram_user_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class UserChallenge(Base):
@@ -51,6 +70,7 @@ class Trader(Base):
     username: Mapped[str | None] = mapped_column(String(64), nullable=True)
     avatar_path: Mapped[str | None] = mapped_column(String(256), nullable=True)
     rating_percent: Mapped[float] = mapped_column(Float, default=0.0)
+    total_pnl_usd: Mapped[float] = mapped_column(Float, default=0.0)
     wins: Mapped[int] = mapped_column(Integer, default=0)
     losses: Mapped[int] = mapped_column(Integer, default=0)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

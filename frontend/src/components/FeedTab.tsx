@@ -11,9 +11,11 @@ type Props = {
   isAdmin: boolean;
   onOpenTracker: () => void;
   onChanged: () => void;
+  onEdit: (signal: Signal) => void;
+  onPatch: (id: number, patch: Partial<Signal>) => void;
 };
 
-export function FeedTab({ signals, challenge, loading, isAdmin, onOpenTracker, onChanged }: Props) {
+export function FeedTab({ signals, challenge, loading, isAdmin, onOpenTracker, onChanged, onEdit, onPatch }: Props) {
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const handleDelete = async (id: number) => {
@@ -40,7 +42,9 @@ export function FeedTab({ signals, challenge, loading, isAdmin, onOpenTracker, o
           signal={s}
           isAdmin={isAdmin}
           deleting={deletingId === s.id}
+          onEdit={onEdit}
           onDelete={handleDelete}
+          onPatch={onPatch}
         />
       ))}
       {challenge && <PropTrackerMini data={challenge} onOpen={onOpenTracker} />}

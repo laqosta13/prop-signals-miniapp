@@ -12,7 +12,8 @@ class SignalCreate(BaseModel):
     take_profits: str | None = None
     comment: str | None = None
     leverage: int | None = Field(None, ge=1, le=50)
-    risk_percent: float | None = Field(None, ge=0.1, le=10.0)
+    risk_percent: float | None = Field(None, ge=0.1, le=100.0)
+    tracker_balance: float | None = Field(None, ge=100)
 
 
 class SignalRead(BaseModel):
@@ -30,7 +31,11 @@ class SignalRead(BaseModel):
     points_percent: float = 1.0
     leverage: int | None = None
     risk_percent: float | None = None
+    tracker_balance: float | None = None
     realized_pnl: float | None = None
+    views_count: int = 0
+    likes_count: int = 0
+    liked_by_me: bool = False
     author_telegram_id: int
     author_username: str | None = None
     media_image_url: str | None = None
@@ -38,6 +43,15 @@ class SignalRead(BaseModel):
     author_avatar_url: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+class LikeResponse(BaseModel):
+    liked: bool
+    likes_count: int
+
+
+class ViewResponse(BaseModel):
+    views_count: int
 
 
 class TelegramUser(BaseModel):
@@ -55,6 +69,7 @@ class TraderRead(BaseModel):
     telegram_id: int
     username: str | None
     rating_percent: float
+    total_pnl_usd: float = 0.0
     wins: int
     losses: int
     rank: int = 0

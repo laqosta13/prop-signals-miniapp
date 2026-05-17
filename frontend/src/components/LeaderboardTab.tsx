@@ -1,5 +1,5 @@
 import type { Trader } from "../api";
-import { traderName } from "../utils";
+import { formatUsd, traderName } from "../utils";
 import { Avatar } from "./Avatar";
 
 type Props = { traders: Trader[]; loading: boolean };
@@ -11,7 +11,11 @@ export function LeaderboardTab({ traders, loading }: Props) {
   }
 
   return (
-    <ol className="top-list">
+    <>
+      <p className="top-hint">
+        Рейтинг: сумма ±риск% за каждый сигнал. P/L в $ = трекер × риск% (пример: $5000 × 10% → ±$500).
+      </p>
+      <ol className="top-list">
       {traders.map((t) => (
         <li key={t.telegram_id} className="top-card">
           <span className="top-rank">#{t.rank}</span>
@@ -20,12 +24,14 @@ export function LeaderboardTab({ traders, loading }: Props) {
             <p className="top-name">{traderName(t.username, t.telegram_id)}</p>
             <p className="top-score">{t.rating_percent.toFixed(1)}%</p>
             <p className="top-meta">
+              <span className={t.total_pnl_usd >= 0 ? "pnl-win" : "pnl-lose"}>{formatUsd(t.total_pnl_usd)}</span> ·{" "}
               <span className="pnl-win">W {t.wins}</span> · <span className="pnl-lose">L {t.losses}</span> · WR{" "}
               {t.win_rate}%
             </p>
           </div>
         </li>
       ))}
-    </ol>
+      </ol>
+    </>
   );
 }
