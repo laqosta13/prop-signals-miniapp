@@ -1,3 +1,17 @@
+export function formatDayLabel(isoDate: string) {
+  try {
+    const d = new Date(isoDate + "T12:00:00");
+    const today = new Date();
+    if (d.toDateString() === today.toDateString()) return "Сегодня";
+    const y = new Date(today);
+    y.setDate(today.getDate() - 1);
+    if (d.toDateString() === y.toDateString()) return "Вчера";
+    return d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  } catch {
+    return isoDate;
+  }
+}
+
 export function formatTime(iso: string) {
   try {
     const d = new Date(iso);

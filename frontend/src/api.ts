@@ -38,6 +38,14 @@ export type Me = {
   notify_enabled: boolean;
 };
 
+export type TraderDayStat = {
+  date: string;
+  pnl_usd: number;
+  rating_delta: number;
+  wins: number;
+  losses: number;
+};
+
 export type Trader = {
   telegram_id: number;
   username: string | null;
@@ -48,6 +56,7 @@ export type Trader = {
   rank: number;
   win_rate: number;
   avatar_url: string | null;
+  daily_stats: TraderDayStat[];
 };
 
 export type ChallengeDashboard = {
@@ -93,22 +102,6 @@ export const fetchMe = () => api<Me>("/auth/me");
 export const fetchSignals = () => api<Signal[]>("/signals");
 export const fetchLeaderboard = () => api<Trader[]>("/traders/leaderboard");
 export const fetchChallengeTrackers = () => api<ChallengeDashboard[]>("/challenge/trackers");
-
-export const fetchChallengeDashboard = (ownerId?: number) =>
-  api<ChallengeDashboard>(ownerId != null ? `/challenge/dashboard?owner_id=${ownerId}` : "/challenge/dashboard");
-export const fetchChallengeRules = () => api<Record<string, unknown>>("/challenge/rules");
-
-export type SignalCreate = {
-  symbol: string;
-  direction: "long" | "short";
-  entry_low?: string;
-  entry_high?: string;
-  stop_loss?: string;
-  take_profits?: string;
-  comment?: string;
-  leverage?: number;
-  risk_percent?: number;
-};
 
 async function sendForm(path: string, method: string, form: FormData): Promise<Signal> {
   const res = await fetch(`${base}${path}`, { method, headers: authHeaders(), body: form });

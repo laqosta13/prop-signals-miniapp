@@ -19,36 +19,48 @@ import { TrackerTab } from "./components/TrackerTab";
 
 type Tab = "feed" | "tracker" | "top";
 
+const TITLES: Record<Tab, { title: string; sub: string }> = {
+  feed: { title: "Сигналы", sub: "PROP-DESK · Hash Hedge" },
+  tracker: { title: "Трекер", sub: "Админы · Hash Hedge" },
+  top: { title: "ТОП трейдеров", sub: "Рейтинг по сигналам" },
+};
+
 export default function App() {
   const [tab, setTab] = useState<Tab>("feed");
   const [signals, setSignals] = useState<Signal[]>([]);
   const [traders, setTraders] = useState<Trader[]>([]);
   const [trackers, setTrackers] = useState<ChallengeDashboard[]>([]);
-  const [myTelegramId, setMyTelegramId] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [myId, setMyId] = useState<number | null>(null);
   const [notifyEnabled, setNotifyEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [showNewSignal, setShowNewSignal] = useState(false);
   const [editSignal, setEditSignal] = useState<Signal | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const patchSignal = (id: number, patch: Partial<Signal>) => {
+  const patchSignal = (id: number, patch: Partial<Signal>) =>
     setSignals((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
-  };
 
-  const load = useCallback(async () => {
-    setError(null);
+  const loadFeed = useCallback(async () => {
     try {
-      const [sig, me, trackerList] = await Promise.all([fetchSignals(), fetchMe(), fetchChallengeTrackers()]);
+      const [sig, me] = await Promise.all([fetchSignals(), fetchMe()]);
       setSignals(sig);
       setIsAdmin(me.is_admin);
+      setMyId(me.telegram_user_id);
       setNotifyEnabled(me.notify_enabled);
-      setMyTelegramId(me.telegram_user_id);
-      setTrackers(trackerList);
+      setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка загрузки");
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const loadTrackers = useCallback(async () => {
+    try {
+      setTrackers(await fetchChallengeTrackers());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Ошибка трекеров");
     }
   }, []);
 
@@ -61,17 +73,35 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void loadFeed();
+  }, [loadFeed]);
 
   useEffect(() => {
+    if (tab === "feed" || tab === "tracker") void loadTrackers();
     if (tab === "top") void loadTop();
-  }, [tab, loadTop]);
+  }, [tab, loadTrackers, loadTop]);
 
   useEffect(() => {
-    const id = window.setInterval(() => void load(), 45000);
-    return () => window.clearInterval(id);
-  }, [load]);
+    const id = window.setInterval(() => void loadFeed(), 45000);
+    return () => clearInterval(id);
+  }, [loadFeed]);
+
+  const openSettings = async () => {
+    const mine = trackers.find((t) => t.owner_telegram_id === myId);
+    const size = prompt("Размер счёта ($)", String(mine?.account_size ?? 10000));
+    if (!size) return;
+    const stage = prompt("Этап (1–3)", String(mine?.stage ?? 1));
+    try {
+      await updateChallenge({
+        account_size: parseFloat(size),
+        stage: parseInt(stage || "1", 10),
+        reset_day: true,
+      });
+      await Promise.all([loadTrackers(), loadFeed()]);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Ошибка");
+    }
+  };
 
   const toggleNotify = async () => {
     try {
@@ -82,30 +112,7 @@ export default function App() {
     }
   };
 
-  const openSettings = async () => {
-    const mine = trackers.find((t) => t.owner_telegram_id === myTelegramId);
-    const size = prompt("Размер счёта Hash Hedge ($)", String(mine?.account_size ?? 10000));
-    if (!size) return;
-    const stage = prompt("Этап (1, 2 или 3)", String(mine?.stage ?? 1));
-    try {
-      await updateChallenge({
-        account_size: parseFloat(size),
-        stage: parseInt(stage || "1", 10),
-        reset_day: true,
-      });
-      await load();
-    } catch (e) {
-      alert(e instanceof Error ? e.message : "Ошибка");
-    }
-  };
-
-  const titles: Record<Tab, { title: string; sub: string }> = {
-    feed: { title: "Сигналы", sub: "PROP-DESK · Hash Hedge" },
-    tracker: { title: "Трекер", sub: "HASH HEDGE CHALLENGE" },
-    top: { title: "ТОП трейдеров", sub: "Рейтинг по сигналам" },
-  };
-
-  const head = titles[tab];
+  const head = TITLES[tab];
 
   return (
     <div className="app">
@@ -134,21 +141,15 @@ export default function App() {
             loading={loading}
             isAdmin={isAdmin}
             onOpenTracker={() => setTab("tracker")}
-            onChanged={load}
+            onChanged={loadFeed}
             onEdit={setEditSignal}
             onPatch={patchSignal}
           />
         )}
         {tab === "tracker" && (
-          <TrackerTab
-            trackers={trackers}
-            signals={signals}
-            myTelegramId={myTelegramId}
-            isAdmin={isAdmin}
-            onSettings={() => void openSettings()}
-          />
+          <TrackerTab trackers={trackers} signals={signals} myId={myId} isAdmin={isAdmin} onSettings={openSettings} />
         )}
-        {tab === "top" && <LeaderboardTab traders={traders} loading={loading && traders.length === 0} />}
+        {tab === "top" && <LeaderboardTab traders={traders} loading={loading && !traders.length} />}
       </main>
 
       {isAdmin && (
@@ -158,22 +159,16 @@ export default function App() {
       )}
 
       <nav className="bottom-nav">
-        <button type="button" className={tab === "feed" ? "on" : ""} onClick={() => setTab("feed")}>
-          <span className="ico">📈</span>
-          Лента
-        </button>
-        <button type="button" className={tab === "tracker" ? "on" : ""} onClick={() => setTab("tracker")}>
-          <span className="ico">〰</span>
-          Трекер
-        </button>
-        <button type="button" className={tab === "top" ? "on" : ""} onClick={() => setTab("top")}>
-          <span className="ico">🏆</span>
-          ТОП
-        </button>
+        {(["feed", "tracker", "top"] as const).map((t) => (
+          <button key={t} type="button" className={tab === t ? "on" : ""} onClick={() => setTab(t)}>
+            <span className="ico">{t === "feed" ? "📈" : t === "tracker" ? "〰" : "🏆"}</span>
+            {t === "feed" ? "Лента" : t === "tracker" ? "Трекер" : "ТОП"}
+          </button>
+        ))}
       </nav>
 
-      <NewSignalModal open={showNewSignal} onClose={() => setShowNewSignal(false)} onCreated={load} />
-      <EditSignalModal signal={editSignal} onClose={() => setEditSignal(null)} onUpdated={load} />
+      <NewSignalModal open={showNewSignal} onClose={() => setShowNewSignal(false)} onCreated={loadFeed} />
+      <EditSignalModal signal={editSignal} onClose={() => setEditSignal(null)} onUpdated={loadFeed} />
     </div>
   );
 }

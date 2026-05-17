@@ -50,7 +50,7 @@ class SignalLike(Base):
 
 
 class UserChallenge(Base):
-    """Персональный трекер челленджа Hash Hedge."""
+    """Трекер Hash Hedge — только для админов (telegram_user_id = admin)."""
 
     __tablename__ = "user_challenges"
 

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.engagement import user_liked
 from app.media_storage import public_url
 from app.models import Signal, Trader
-from app.schemas import SignalRead, TraderRead
+from app.schemas import SignalRead, TraderDayStat, TraderRead
 
 
 def trader_avatar_url(trader: Trader | None) -> str | None:
@@ -43,7 +43,9 @@ def signal_to_read(db: Session, signal: Signal, viewer_id: int | None = None) ->
     )
 
 
-def trader_to_read(t: Trader, rank: int, win_rate: float) -> TraderRead:
+def trader_to_read(
+    t: Trader, rank: int, win_rate: float, daily_stats: list[TraderDayStat] | None = None
+) -> TraderRead:
     return TraderRead(
         telegram_id=t.telegram_id,
         username=t.username,
@@ -54,4 +56,5 @@ def trader_to_read(t: Trader, rank: int, win_rate: float) -> TraderRead:
         rank=rank,
         win_rate=win_rate,
         avatar_url=trader_avatar_url(t),
+        daily_stats=daily_stats or [],
     )

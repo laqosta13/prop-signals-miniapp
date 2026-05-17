@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.challenge_service import build_dashboard, get_or_create_challenge, list_admin_trackers
@@ -25,23 +25,6 @@ def trackers(
     return rows
 
 
-@router.get("/dashboard", response_model=ChallengeDashboard)
-def dashboard(
-    owner_id: int | None = Query(None, description="Telegram ID админа-трейдера"),
-    db: Session = Depends(db_session),
-    user: TelegramUser = Depends(get_current_user),
-) -> ChallengeDashboard:
-    target = owner_id if owner_id is not None else user.telegram_user_id
-    if owner_id is None and not user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Укажите owner_id или откройте вкладку «Трекер»",
-        )
-    ch = get_or_create_challenge(db, target)
-    db.commit()
-    return build_dashboard(db, ch)
-
-
 @router.put("/settings", response_model=ChallengeDashboard)
 def update_settings(
     body: ChallengeUpdate,
@@ -52,8 +35,7 @@ def update_settings(
     if body.account_size is not None:
         ch.account_size = body.account_size
         if body.balance is None:
-            ch.balance = body.account_size
-            ch.day_start_balance = body.account_size
+            ch.balance = ch.day_start_balance = body.account_size
     if body.stage is not None:
         ch.stage = body.stage
     if body.balance is not None:

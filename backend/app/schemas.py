@@ -65,6 +65,14 @@ class SubscriptionUpdate(BaseModel):
     notify_enabled: bool
 
 
+class TraderDayStat(BaseModel):
+    date: str
+    pnl_usd: float
+    rating_delta: float
+    wins: int
+    losses: int
+
+
 class TraderRead(BaseModel):
     telegram_id: int
     username: str | None
@@ -75,6 +83,7 @@ class TraderRead(BaseModel):
     rank: int = 0
     win_rate: float = 0.0
     avatar_url: str | None = None
+    daily_stats: list[TraderDayStat] = []
 
     model_config = {"from_attributes": True}
 
