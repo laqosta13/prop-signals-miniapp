@@ -3,21 +3,22 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models import Signal, Subscriber, Trader
-from app.signal_utils import compute_signal_points_percent
+from app.signal_utils import compute_signal_points_percent, entry_zone_defined
 from app.telegram_avatar import ensure_trader_avatar
 from app.telegram_notify import (
     format_closed_signal_message,
     format_deleted_signal_message,
+    format_entry_filled_message,
     format_new_signal_message,
     format_updated_signal_message,
     notify_subscribers,
 )
 from app.challenge_service import apply_signal_to_tracker, ensure_tracker_for_new_signal
-from app.trader_stats import apply_outcome_to_trader, signal_risk_percent
+from app.subscription_billing import register_subscriber_with_meta
+from app.trader_stats import apply_outcome_to_trader
 
 
 def _normalize_trader_stats(trader: Trader) -> None:
@@ -54,28 +55,18 @@ def get_or_create_trader(db: Session, telegram_id: int, username: str | None) ->
     return trader
 
 
-def register_subscriber(db: Session, telegram_id: int, username: str | None) -> Subscriber:
-    sub = db.get(Subscriber, telegram_id)
-    if sub is not None:
-        if username and sub.username != username:
-            sub.username = username
-        return sub
-    sub = Subscriber(telegram_user_id=telegram_id, username=username, notify_enabled=True)
-    try:
-        with db.begin_nested():
-            db.add(sub)
-            db.flush()
-    except IntegrityError:
-        sub = db.get(Subscriber, telegram_id)
-        if sub is None:
-            raise
-    if username and sub.username != username:
-        sub.username = username
-    return sub
+def register_subscriber(db: Session, telegram_id: int, username: str | None, start_param: str | None = None) -> Subscriber:
+    return register_subscriber_with_meta(db, telegram_id, username, start_param)
 
 
 def subscriber_ids_for_notify(db: Session) -> list[int]:
-    stmt = select(Subscriber.telegram_user_id).where(Subscriber.notify_enabled.is_(True))
+    now = datetime.now(timezone.utc)
+    stmt = (
+        select(Subscriber.telegram_user_id)
+        .where(Subscriber.notify_enabled.is_(True))
+        .where(Subscriber.subscription_until.is_not(None))
+        .where(Subscriber.subscription_until > now)
+    )
     return list(db.scalars(stmt).all())
 
 
@@ -117,6 +108,12 @@ async def close_signal_and_notify(db: Session, signal: Signal, outcome: str) -> 
         await notify_subscribers(format_closed_signal_message(signal), ids)
 
 
+async def notify_entry_filled(db: Session, signal: Signal) -> None:
+    ids = subscriber_ids_for_notify(db)
+    if ids:
+        await notify_subscribers(format_entry_filled_message(signal), ids)
+
+
 def build_signal_row(
     db: Session,
     *,
@@ -144,6 +141,7 @@ def build_signal_row(
         take_profits=take_profits,
         comment=comment,
         status="active",
+        entry_filled_at=None if entry_zone_defined(entry_low, entry_high) else datetime.now(timezone.utc),
         points_percent=points,
         leverage=leverage,
         risk_percent=risk_percent or points,

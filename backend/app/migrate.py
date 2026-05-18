@@ -38,12 +38,43 @@ def run_migrations(engine: Engine) -> None:
                 ("tracker_balance", "ALTER TABLE signals ADD COLUMN tracker_balance REAL"),
                 ("views_count", "ALTER TABLE signals ADD COLUMN views_count INTEGER DEFAULT 0"),
                 ("likes_count", "ALTER TABLE signals ADD COLUMN likes_count INTEGER DEFAULT 0"),
+                ("entry_filled_at", "ALTER TABLE signals ADD COLUMN entry_filled_at DATETIME"),
             ):
                 if not _has_column(engine, "signals", col):
                     conn.execute(text(ddl))
             conn.execute(text("UPDATE signals SET points_percent = 1.0 WHERE points_percent IS NULL"))
             conn.execute(text("UPDATE signals SET views_count = 0 WHERE views_count IS NULL"))
             conn.execute(text("UPDATE signals SET likes_count = 0 WHERE likes_count IS NULL"))
+
+        if "subscribers" in tables:
+            if not _has_column(engine, "subscribers", "subscription_until"):
+                conn.execute(text("ALTER TABLE subscribers ADD COLUMN subscription_until DATETIME"))
+            if not _has_column(engine, "subscribers", "referral_code"):
+                conn.execute(text("ALTER TABLE subscribers ADD COLUMN referral_code VARCHAR(16)"))
+            if not _has_column(engine, "subscribers", "referred_by_telegram_id"):
+                conn.execute(text("ALTER TABLE subscribers ADD COLUMN referred_by_telegram_id INTEGER"))
+            conn.execute(
+                text(
+                    "UPDATE subscribers SET subscription_until = datetime('now', '+3 days') "
+                    "WHERE subscription_until IS NULL"
+                )
+            )
+
+        if "payment_txs" not in inspect(engine).get_table_names():
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS payment_txs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        telegram_user_id INTEGER NOT NULL,
+                        tx_id VARCHAR(128) NOT NULL UNIQUE,
+                        plan VARCHAR(16) NOT NULL,
+                        amount_usd REAL NOT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
+            )
 
         if "traders" in tables:
             if not _has_column(engine, "traders", "avatar_path"):
@@ -55,7 +86,32 @@ def run_migrations(engine: Engine) -> None:
             conn.execute(text("UPDATE traders SET rating_percent = 0.0 WHERE rating_percent IS NULL"))
             conn.execute(text("UPDATE traders SET total_pnl_usd = 0 WHERE total_pnl_usd IS NULL"))
 
+    _backfill_referral_codes(engine)
     _purge_test_data_once(engine)
+
+
+def _backfill_referral_codes(engine: Engine) -> None:
+    if not str(engine.url).startswith("sqlite"):
+        return
+    import secrets
+    import string
+
+    from app.database import SessionLocal
+
+    alphabet = string.ascii_uppercase + string.digits
+    db = SessionLocal()
+    try:
+        rows = db.execute(text("SELECT telegram_user_id FROM subscribers WHERE referral_code IS NULL OR referral_code = ''")).fetchall()
+        for (tid,) in rows:
+            for _ in range(30):
+                code = "".join(secrets.choice(alphabet) for _ in range(8))
+                clash = db.execute(text("SELECT 1 FROM subscribers WHERE referral_code = :c"), {"c": code}).fetchone()
+                if not clash:
+                    db.execute(text("UPDATE subscribers SET referral_code = :c WHERE telegram_user_id = :t"), {"c": code, "t": tid})
+                    break
+        db.commit()
+    finally:
+        db.close()
 
 
 def _purge_test_data_once(engine: Engine) -> None:

@@ -33,6 +33,7 @@ class SignalRead(BaseModel):
     risk_percent: float | None = None
     tracker_balance: float | None = None
     realized_pnl: float | None = None
+    entry_filled_at: datetime | None = None
     views_count: int = 0
     likes_count: int = 0
     liked_by_me: bool = False
@@ -59,10 +60,30 @@ class TelegramUser(BaseModel):
     is_admin: bool
     username: str | None = None
     notify_enabled: bool = True
+    subscription_until: datetime | None = None
+    subscription_active: bool = True
+    referral_code: str = ""
 
 
 class SubscriptionUpdate(BaseModel):
     notify_enabled: bool
+
+
+class PaymentSubmit(BaseModel):
+    plan: str = Field(..., pattern="^(week|month)$")
+    tx_id: str = Field(..., min_length=8, max_length=128)
+
+
+class SubscriptionInfo(BaseModel):
+    usdt_ton_address: str
+    week_usd: float
+    month_usd: float
+    trial_days: int
+    referral_bonus_days: int
+    subscription_until: datetime | None
+    subscription_active: bool
+    referral_code: str
+    referral_link_hint: str
 
 
 class TraderDayStat(BaseModel):

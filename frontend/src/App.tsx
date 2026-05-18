@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import WebApp from "@twa-dev/sdk";
 import {
   fetchChallengeTrackers,
   fetchLeaderboard,
@@ -15,14 +14,16 @@ import { FeedTab } from "./components/FeedTab";
 import { LeaderboardTab } from "./components/LeaderboardTab";
 import { EditSignalModal } from "./components/EditSignalModal";
 import { NewSignalModal } from "./components/NewSignalModal";
+import { SubscriptionTab } from "./components/SubscriptionTab";
 import { TrackerTab } from "./components/TrackerTab";
 
-type Tab = "feed" | "tracker" | "top";
+type Tab = "feed" | "tracker" | "top" | "pay";
 
 const TITLES: Record<Tab, { title: string; sub: string }> = {
   feed: { title: "Сигналы", sub: "PROP-DESK · Hash Hedge" },
   tracker: { title: "Трекер", sub: "Админы · Hash Hedge" },
   top: { title: "ТОП трейдеров", sub: "Рейтинг по сигналам" },
+  pay: { title: "Подписка", sub: "USDT TON · рефералы" },
 };
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
   const [trackers, setTrackers] = useState<ChallengeDashboard[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [myId, setMyId] = useState<number | null>(null);
+  const [subActive, setSubActive] = useState(true);
   const [notifyEnabled, setNotifyEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [showNewSignal, setShowNewSignal] = useState(false);
@@ -41,14 +43,19 @@ export default function App() {
   const patchSignal = (id: number, patch: Partial<Signal>) =>
     setSignals((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
 
-  const loadFeed = useCallback(async () => {
+  const loadMeAndSignals = useCallback(async () => {
     try {
-      const [sig, me] = await Promise.all([fetchSignals(), fetchMe()]);
-      setSignals(sig);
+      const me = await fetchMe();
       setIsAdmin(me.is_admin);
       setMyId(me.telegram_user_id);
       setNotifyEnabled(me.notify_enabled);
+      setSubActive(me.subscription_active);
       setError(null);
+      if (me.subscription_active || me.is_admin) {
+        setSignals(await fetchSignals());
+      } else {
+        setSignals([]);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка загрузки");
     } finally {
@@ -73,8 +80,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    void loadFeed();
-  }, [loadFeed]);
+    void loadMeAndSignals();
+  }, [loadMeAndSignals]);
 
   useEffect(() => {
     if (tab === "feed" || tab === "tracker") void loadTrackers();
@@ -82,9 +89,9 @@ export default function App() {
   }, [tab, loadTrackers, loadTop]);
 
   useEffect(() => {
-    const id = window.setInterval(() => void loadFeed(), 45000);
+    const id = window.setInterval(() => void loadMeAndSignals(), 45000);
     return () => clearInterval(id);
-  }, [loadFeed]);
+  }, [loadMeAndSignals]);
 
   const openSettings = async () => {
     const mine = trackers.find((t) => t.owner_telegram_id === myId);
@@ -97,7 +104,7 @@ export default function App() {
         stage: parseInt(stage || "1", 10),
         reset_day: true,
       });
-      await Promise.all([loadTrackers(), loadFeed()]);
+      await Promise.all([loadTrackers(), loadMeAndSignals()]);
     } catch (e) {
       alert(e instanceof Error ? e.message : "Ошибка");
     }
@@ -137,19 +144,20 @@ export default function App() {
         {tab === "feed" && (
           <FeedTab
             signals={signals}
-            trackers={trackers}
             loading={loading}
             isAdmin={isAdmin}
-            onOpenTracker={() => setTab("tracker")}
-            onChanged={loadFeed}
+            subscriptionActive={subActive}
+            onChanged={loadMeAndSignals}
             onEdit={setEditSignal}
             onPatch={patchSignal}
+            onOpenPay={() => setTab("pay")}
           />
         )}
         {tab === "tracker" && (
           <TrackerTab trackers={trackers} signals={signals} myId={myId} isAdmin={isAdmin} onSettings={openSettings} />
         )}
         {tab === "top" && <LeaderboardTab traders={traders} loading={loading && !traders.length} />}
+        {tab === "pay" && <SubscriptionTab onPaid={() => void loadMeAndSignals()} />}
       </main>
 
       {isAdmin && (
@@ -159,16 +167,16 @@ export default function App() {
       )}
 
       <nav className="bottom-nav">
-        {(["feed", "tracker", "top"] as const).map((t) => (
+        {(["feed", "tracker", "top", "pay"] as const).map((t) => (
           <button key={t} type="button" className={tab === t ? "on" : ""} onClick={() => setTab(t)}>
-            <span className="ico">{t === "feed" ? "📈" : t === "tracker" ? "〰" : "🏆"}</span>
-            {t === "feed" ? "Лента" : t === "tracker" ? "Трекер" : "ТОП"}
+            <span className="ico">{t === "feed" ? "📈" : t === "tracker" ? "〰" : t === "top" ? "🏆" : "💳"}</span>
+            {t === "feed" ? "Лента" : t === "tracker" ? "Трекер" : t === "top" ? "ТОП" : "Подписка"}
           </button>
         ))}
       </nav>
 
-      <NewSignalModal open={showNewSignal} onClose={() => setShowNewSignal(false)} onCreated={loadFeed} />
-      <EditSignalModal signal={editSignal} onClose={() => setEditSignal(null)} onUpdated={loadFeed} />
+      <NewSignalModal open={showNewSignal} onClose={() => setShowNewSignal(false)} onCreated={loadMeAndSignals} />
+      <EditSignalModal signal={editSignal} onClose={() => setEditSignal(null)} onUpdated={loadMeAndSignals} />
     </div>
   );
 }

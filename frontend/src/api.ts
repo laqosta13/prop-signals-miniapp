@@ -21,6 +21,7 @@ export type Signal = {
   risk_percent: number | null;
   tracker_balance: number | null;
   realized_pnl: number | null;
+  entry_filled_at?: string | null;
   views_count: number;
   likes_count: number;
   liked_by_me: boolean;
@@ -36,6 +37,21 @@ export type Me = {
   is_admin: boolean;
   username: string | null;
   notify_enabled: boolean;
+  subscription_until: string | null;
+  subscription_active: boolean;
+  referral_code: string;
+};
+
+export type SubscriptionInfo = {
+  usdt_ton_address: string;
+  week_usd: number;
+  month_usd: number;
+  trial_days: number;
+  referral_bonus_days: number;
+  subscription_until: string | null;
+  subscription_active: boolean;
+  referral_code: string;
+  referral_link_hint: string;
 };
 
 export type TraderDayStat = {
@@ -97,6 +113,15 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
+
+export const fetchSubscriptionInfo = () => api<SubscriptionInfo>("/subscriptions/info");
+
+export const submitPayment = (plan: "week" | "month", tx_id: string) =>
+  api<SubscriptionInfo>("/subscriptions/pay", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ plan, tx_id }),
+  });
 
 export const fetchMe = () => api<Me>("/auth/me");
 export const fetchSignals = () => api<Signal[]>("/signals");

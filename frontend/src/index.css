@@ -402,6 +402,120 @@ body {
   color: var(--muted);
 }
 
+.outcome.waiting {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+}
+
+.outcome.active-in {
+  background: rgba(224, 175, 255, 0.22);
+  color: #e0afff;
+}
+
+.media-thumb {
+  display: block;
+  width: 100%;
+  padding: 0;
+  margin: 0 0 10px;
+  border: none;
+  background: none;
+  cursor: zoom-in;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.lightbox__close {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 2001;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.lightbox__img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.sub-banner {
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.9rem;
+}
+
+.sub-banner p {
+  margin: 0 0 10px;
+}
+
+.sub-pay__status {
+  font-size: 0.9rem;
+  margin: 0 0 16px;
+}
+
+.sub-card {
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sub-card h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.pay-addr-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 10px 0;
+}
+
+.pay-addr {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.72rem;
+  word-break: break-all;
+  color: var(--text);
+}
+
+.pay-form {
+  margin-top: 12px;
+}
+
+.ref-code {
+  margin: 8px 0;
+  font-size: 0.9rem;
+}
+
+.meta.small {
+  font-size: 0.75rem;
+}
+
 /* Prop mini */
 .prop-mini {
   background: var(--surface);

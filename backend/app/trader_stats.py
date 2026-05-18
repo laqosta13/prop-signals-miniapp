@@ -1,14 +1,20 @@
-"""Рейтинг трейдера: ±risk% и P/L в $ от суммы трекера сигнала."""
+"""Рейтинг: ±% поля «сумма входа»; P/L $ = трекер × этот % / 100."""
 
 from app.models import Signal, Trader
 
 
-def signal_risk_percent(signal: Signal) -> float:
+def signal_entry_stake_pct(signal: Signal) -> float:
+    """Доля входа от трекера, % (хранится в risk_percent)."""
     if signal.risk_percent is not None:
         return float(signal.risk_percent)
     if signal.points_percent is not None:
         return float(signal.points_percent)
     return 1.0
+
+
+# alias для совместимости
+def signal_risk_percent(signal: Signal) -> float:
+    return signal_entry_stake_pct(signal)
 
 
 def signal_tracker_balance(signal: Signal) -> float:
@@ -17,14 +23,18 @@ def signal_tracker_balance(signal: Signal) -> float:
     return 10_000.0
 
 
+def signal_entry_stake_usd(signal: Signal) -> float:
+    """Номинал позиции в $: трекер × сумма входа % / 100."""
+    return round(signal_tracker_balance(signal) * signal_entry_stake_pct(signal) / 100.0, 2)
+
+
 def pnl_usd_for_outcome(signal: Signal, outcome: str) -> float:
-    """P/L в долларах: трекер × риск% / 100. WIN +, LOSE −."""
-    base = signal_tracker_balance(signal) * signal_risk_percent(signal) / 100.0
+    base = signal_entry_stake_usd(signal)
     return round(base if outcome == "win" else -base, 2)
 
 
 def apply_outcome_to_trader(trader: Trader, signal: Signal, outcome: str) -> None:
-    risk_pct = signal_risk_percent(signal)
+    risk_pct = signal_entry_stake_pct(signal)
     pnl = pnl_usd_for_outcome(signal, outcome)
     signal.realized_pnl = pnl
     if trader.total_pnl_usd is None:
@@ -39,8 +49,8 @@ def apply_outcome_to_trader(trader: Trader, signal: Signal, outcome: str) -> Non
     if outcome == "win":
         trader.wins += 1
         trader.rating_percent = round(trader.rating_percent + risk_pct, 2)
-        trader.total_pnl_usd = round(trader.total_pnl_usd + abs(pnl), 2)
+        trader.total_pnl_usd = round(trader.total_pnl_usd + pnl, 2)
     else:
         trader.losses += 1
         trader.rating_percent = round(trader.rating_percent - risk_pct, 2)
-        trader.total_pnl_usd = round(trader.total_pnl_usd + pnl, 2)  # pnl уже отрицательный
+        trader.total_pnl_usd = round(trader.total_pnl_usd + pnl, 2)

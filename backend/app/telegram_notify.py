@@ -7,7 +7,7 @@ import httpx
 from app.config import settings
 from app.models import Signal
 from app.signal_utils import parse_take_profit_levels
-from app.trader_stats import signal_risk_percent, signal_tracker_balance
+from app.trader_stats import signal_entry_stake_pct, signal_tracker_balance
 
 logger = logging.getLogger(__name__)
 
@@ -23,14 +23,14 @@ def _format_take_profits(raw: str | None) -> str:
 
 def _signal_summary(signal: Signal) -> str:
     author = f"@{signal.author_username}" if signal.author_username else f"id {signal.author_telegram_id}"
-    risk = signal_risk_percent(signal)
+    stake = signal_entry_stake_pct(signal)
     tracker = signal_tracker_balance(signal)
     return (
         f"{signal.symbol} · <b>{signal.direction.upper()}</b>\n"
         f"Вход: {signal.entry_low or signal.entry_high or '—'}\n"
         f"Стоп: {signal.stop_loss or '—'}\n"
         f"Цель: {_format_take_profits(signal.take_profits)}\n"
-        f"Риск: {risk}% · Трекер: ${tracker:,.0f}\n"
+        f"Сумма входа: {stake}% · Трекер: ${tracker:,.0f}\n"
         f"Автор: {author}"
     )
 
@@ -69,12 +69,22 @@ def format_deleted_signal_message(signal: Signal) -> str:
 def format_closed_signal_message(signal: Signal) -> str:
     emoji = "✅" if signal.status == "win" else "❌"
     label = "WIN" if signal.status == "win" else "LOSE"
-    risk = signal_risk_percent(signal)
+    stake = signal_entry_stake_pct(signal)
     sign = "+" if signal.status == "win" else "−"
     pnl = signal.realized_pnl or 0
     return (
         f"{emoji} <b>Сигнал {label}</b>\n"
         f"{signal.symbol} · {signal.direction.upper()}\n"
-        f"Рейтинг: {sign}{risk}% · P/L: {pnl:+.0f}$\n"
+        f"Рейтинг: {sign}{stake}% · P/L: {pnl:+.0f}$\n"
         f"Трекер сигнала: ${signal_tracker_balance(signal):,.0f}"
+    )
+
+
+def format_entry_filled_message(signal: Signal) -> str:
+    author = f"@{signal.author_username}" if signal.author_username else f"id {signal.author_telegram_id}"
+    return (
+        f"🎯 <b>Вход в зоне</b>\n"
+        f"{signal.symbol} · <b>{signal.direction.upper()}</b>\n"
+        f"Цена достигла уровня входа — позиция в работе.\n"
+        f"Автор: {author}"
     )

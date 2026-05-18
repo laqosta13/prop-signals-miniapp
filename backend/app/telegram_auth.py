@@ -16,6 +16,7 @@ from app.config import settings
 class WebAppUser:
     id: int
     username: str | None = None
+    start_param: str | None = None
 
 
 def _parse_user(user_json: str) -> WebAppUser | None:
@@ -45,4 +46,10 @@ def validate_init_data(init_data: str, bot_token: str) -> WebAppUser | None:
     user_raw = parsed.get("user")
     if not user_raw:
         return None
-    return _parse_user(user_raw)
+    user = _parse_user(user_raw)
+    if user is None:
+        return None
+    sp = parsed.get("start_param") or parsed.get("startattach") or ""
+    if isinstance(sp, str) and sp.strip():
+        user.start_param = sp.strip()[:128]
+    return user

@@ -1,0 +1,122 @@
+"""Подписка, рефералы, оплата USDT TON (по TXID)."""
+
+from __future__ import annotations
+
+import secrets
+import string
+from datetime import datetime, timedelta, timezone
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.config import settings
+from app.models import PaymentTx, Subscriber
+
+TRIAL_DAYS = 3
+REFERRAL_BONUS_DAYS = 3
+WEEK_USD = 20.0
+MONTH_USD = 70.0
+WEEK_DAYS = 7
+MONTH_DAYS = 30
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def usdt_pay_address() -> str:
+    return getattr(settings, "usdt_ton_address", None) or "UQDdFFYSG8sGiQfps2WWuIWFuaDPv1GAcFeRck6y5oeR_sPe"
+
+
+def subscription_active(sub: Subscriber | None, is_admin: bool) -> bool:
+    if is_admin:
+        return True
+    if not settings.bot_token:
+        return True
+    if sub is None or sub.subscription_until is None:
+        return False
+    return sub.subscription_until > _now()
+
+
+def _gen_referral_code(db: Session) -> str:
+    alphabet = string.ascii_uppercase + string.digits
+    for _ in range(50):
+        code = "".join(secrets.choice(alphabet) for _ in range(8))
+        exists = db.scalar(select(Subscriber.telegram_user_id).where(Subscriber.referral_code == code))
+        if not exists:
+            return code
+    return secrets.token_hex(4).upper()[:8]
+
+
+def grant_referrer_bonus(db: Session, referrer_id: int) -> None:
+    ref_sub = db.get(Subscriber, referrer_id)
+    if ref_sub is None:
+        return
+    base = _now()
+    if ref_sub.subscription_until and ref_sub.subscription_until > base:
+        base = ref_sub.subscription_until
+    ref_sub.subscription_until = base + timedelta(days=REFERRAL_BONUS_DAYS)
+
+
+def register_subscriber_with_meta(
+    db: Session, telegram_id: int, username: str | None, start_param: str | None
+) -> Subscriber:
+    from sqlalchemy.exc import IntegrityError
+
+    sub = db.get(Subscriber, telegram_id)
+    if sub is not None:
+        if username and sub.username != username:
+            sub.username = username
+        return sub
+
+    code = (start_param or "").strip().upper()[:16]
+    referrer_id: int | None = None
+    if code:
+        referrer_id = db.scalar(select(Subscriber.telegram_user_id).where(Subscriber.referral_code == code))
+
+    sub = Subscriber(
+        telegram_user_id=telegram_id,
+        username=username,
+        notify_enabled=True,
+        subscription_until=_now() + timedelta(days=TRIAL_DAYS),
+        referral_code=_gen_referral_code(db),
+        referred_by_telegram_id=referrer_id if referrer_id and referrer_id != telegram_id else None,
+    )
+    created = False
+    try:
+        with db.begin_nested():
+            db.add(sub)
+            db.flush()
+            created = True
+    except IntegrityError:
+        sub = db.get(Subscriber, telegram_id)
+        if sub is None:
+            raise
+    if username and sub.username != username:
+        sub.username = username
+    if created and sub.referred_by_telegram_id:
+        grant_referrer_bonus(db, sub.referred_by_telegram_id)
+    return sub
+
+
+def extend_subscription(db: Session, sub: Subscriber, days: int) -> None:
+    base = _now()
+    if sub.subscription_until and sub.subscription_until > base:
+        base = sub.subscription_until
+    sub.subscription_until = base + timedelta(days=days)
+
+
+def record_payment(db: Session, telegram_user_id: int, plan: str, tx_id: str) -> None:
+    tx_id = tx_id.strip()
+    if len(tx_id) < 8:
+        raise ValueError("TXID слишком короткий")
+    if db.scalar(select(PaymentTx.id).where(PaymentTx.tx_id == tx_id)):
+        raise ValueError("Этот TXID уже зарегистрирован")
+    days = WEEK_DAYS if plan == "week" else MONTH_DAYS
+    if plan not in ("week", "month"):
+        raise ValueError("plan: week или month")
+    sub = db.get(Subscriber, telegram_user_id)
+    if sub is None:
+        raise ValueError("Подписчик не найден")
+    extend_subscription(db, sub, days)
+    db.add(PaymentTx(telegram_user_id=telegram_user_id, tx_id=tx_id, plan=plan, amount_usd=WEEK_USD if plan == "week" else MONTH_USD))

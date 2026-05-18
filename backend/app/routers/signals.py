@@ -1,8 +1,10 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.deps import db_session, get_current_user, require_admin
+from app.deps import db_session, require_active_subscription, require_admin
 from app.engagement import record_view, toggle_like
 from app.media_storage import delete_media_files, delete_signal_media_dir, save_signal_image, save_signal_video
 from app.models import Signal
@@ -16,6 +18,7 @@ from app.signal_service import (
     notify_updated_signal,
     update_signal_fields,
 )
+from app.signal_utils import entry_zone_defined
 
 router = APIRouter(prefix="/signals", tags=["signals"])
 
@@ -30,7 +33,7 @@ def _parse_direction(direction: str) -> str:
 @router.get("", response_model=list[SignalRead])
 def list_signals(
     db: Session = Depends(db_session),
-    user: TelegramUser = Depends(get_current_user),
+    user: TelegramUser = Depends(require_active_subscription),
 ) -> list[SignalRead]:
     stmt = select(Signal).order_by(Signal.created_at.desc()).limit(200)
     rows = list(db.scalars(stmt).all())
@@ -140,6 +143,8 @@ async def update_signal(
         delete_media_files(row.media_video_path)
         row.media_video_path = await save_signal_video(row.id, video)
 
+    row.entry_filled_at = None if entry_zone_defined(row.entry_low, row.entry_high) else datetime.now(timezone.utc)
+
     db.commit()
     db.refresh(row)
     await notify_updated_signal(db, row)
@@ -172,7 +177,7 @@ async def delete_signal(
 def add_view(
     signal_id: int,
     db: Session = Depends(db_session),
-    user: TelegramUser = Depends(get_current_user),
+    user: TelegramUser = Depends(require_active_subscription),
 ) -> ViewResponse:
     count = record_view(db, signal_id, user.telegram_user_id)
     if count == 0:
@@ -184,7 +189,7 @@ def add_view(
 def like_signal(
     signal_id: int,
     db: Session = Depends(db_session),
-    user: TelegramUser = Depends(get_current_user),
+    user: TelegramUser = Depends(require_active_subscription),
 ) -> LikeResponse:
     result = toggle_like(db, signal_id, user.telegram_user_id)
     if result is None:

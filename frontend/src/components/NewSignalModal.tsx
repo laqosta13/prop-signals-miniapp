@@ -113,7 +113,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
             <input value={leverage} onChange={(e) => setLeverage(e.target.value)} />
           </div>
           <div>
-            <label className="field-label">Риск %</label>
+            <label className="field-label">Сумма входа %</label>
             <input value={risk} onChange={(e) => setRisk(e.target.value)} />
           </div>
           <div>
@@ -138,8 +138,8 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
         />
         {video && <p className="meta">Видео: {video.name}</p>}
 
-        <label className="field-label">Комментарий</label>
-        <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Краткий анализ сетапа…" />
+        <label className="field-label">Комментарий (на русском)</label>
+        <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Краткий анализ по-русски…" />
 
         {error && <p className="err">{error}</p>}
 

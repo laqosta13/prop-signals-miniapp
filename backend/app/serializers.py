@@ -32,6 +32,7 @@ def signal_to_read(db: Session, signal: Signal, viewer_id: int | None = None) ->
         risk_percent=signal.risk_percent,
         tracker_balance=signal.tracker_balance,
         realized_pnl=signal.realized_pnl,
+        entry_filled_at=signal.entry_filled_at,
         views_count=signal.views_count or 0,
         likes_count=signal.likes_count or 0,
         liked_by_me=liked,

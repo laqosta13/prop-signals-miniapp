@@ -18,6 +18,7 @@ export function SignalCard({ signal: s, isAdmin, onEdit, onDelete, deleting, onP
   const [likes, setLikes] = useState(s.likes_count);
   const [liked, setLiked] = useState(s.liked_by_me);
   const [liking, setLiking] = useState(false);
+  const [lightbox, setLightbox] = useState<string | null>(null);
 
   useEffect(() => {
     setViews(s.views_count);
@@ -43,8 +44,9 @@ export function SignalCard({ signal: s, isAdmin, onEdit, onDelete, deleting, onP
   const target = formatTakeProfits(s.take_profits);
   const isLong = s.direction === "long";
   const pnl = s.realized_pnl;
-  const risk = s.risk_percent ?? s.points_percent ?? 1;
+  const stake = s.risk_percent ?? s.points_percent ?? 1;
   const tracker = s.tracker_balance;
+  const entryDone = !!(s.entry_filled_at || (!s.entry_low && !s.entry_high));
 
   let statusBadge = "Активен";
   let statusClass = "active";
@@ -54,6 +56,11 @@ export function SignalCard({ signal: s, isAdmin, onEdit, onDelete, deleting, onP
   } else if (s.status === "lose") {
     statusBadge = "Стоп";
     statusClass = "lose";
+  } else if (!entryDone) {
+    statusBadge = "Ожидание входа";
+    statusClass = "waiting";
+  } else {
+    statusClass = "active-in";
   }
 
   const handleLike = async () => {
@@ -74,6 +81,14 @@ export function SignalCard({ signal: s, isAdmin, onEdit, onDelete, deleting, onP
 
   return (
     <article className="signal-card">
+      {lightbox && (
+        <div className="lightbox" role="dialog" onClick={() => setLightbox(null)}>
+          <button type="button" className="lightbox__close" aria-label="Закрыть" onClick={() => setLightbox(null)}>
+            ×
+          </button>
+          <img src={lightbox} alt="" className="lightbox__img" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
       <header className="signal-card__head">
         <div className="signal-card__author">
           <Avatar url={s.author_avatar_url} username={s.author_username} telegramId={s.author_telegram_id} size={36} />
@@ -86,7 +101,7 @@ export function SignalCard({ signal: s, isAdmin, onEdit, onDelete, deleting, onP
           </div>
         </div>
         <div className="signal-card__actions">
-          <span className="risk-tag">Риск {risk}%</span>
+          <span className="risk-tag">Вход {stake}%</span>
           {tracker != null && tracker > 0 && <span className="risk-tag">Трекер {formatUsd(tracker)}</span>}
           {isAdmin && s.status === "active" && (
             <div className="admin-actions">
@@ -120,9 +135,9 @@ export function SignalCard({ signal: s, isAdmin, onEdit, onDelete, deleting, onP
         </div>
       </div>
       {s.media_image_url && (
-        <a href={s.media_image_url} target="_blank" rel="noreferrer" className="media-link">
+        <button type="button" className="media-thumb" onClick={() => setLightbox(s.media_image_url)}>
           <img src={s.media_image_url} alt="Скрин" className="signal-media-img" />
-        </a>
+        </button>
       )}
       {s.media_video_url && (
         <video src={s.media_video_url} controls className="signal-media-video" playsInline />

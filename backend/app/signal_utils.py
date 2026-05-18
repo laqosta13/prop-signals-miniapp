@@ -46,6 +46,24 @@ def entry_mid(entry_low: str | None, entry_high: str | None) -> float | None:
     return low if low is not None else high
 
 
+def entry_zone_defined(entry_low: str | None, entry_high: str | None) -> bool:
+    return parse_price(entry_low) is not None or parse_price(entry_high) is not None
+
+
+def price_in_entry_zone(price: float, entry_low: str | None, entry_high: str | None) -> bool:
+    """Цена в зоне лимитного входа (включительно). Без зоны — считаем вход сразу состоявшимся."""
+    a = parse_price(entry_low)
+    b = parse_price(entry_high)
+    if a is None and b is None:
+        return True
+    if a is None or b is None:
+        v = a if a is not None else b
+        assert v is not None
+        return abs(price - v) / max(abs(v), 1e-12) <= 0.0005
+    lo, hi = min(a, b), max(a, b)
+    return lo <= price <= hi
+
+
 def compute_signal_points_percent(
     entry_low: str | None,
     entry_high: str | None,

@@ -20,6 +20,7 @@ class Signal(Base):
     take_profits: Mapped[str | None] = mapped_column(Text, nullable=True)
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(16), default="active")  # active | win | lose
+    entry_filled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     points_percent: Mapped[float] = mapped_column(Float, default=1.0)
     leverage: Mapped[int | None] = mapped_column(Integer, nullable=True)
     risk_percent: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -82,4 +83,18 @@ class Subscriber(Base):
     telegram_user_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     username: Mapped[str | None] = mapped_column(String(64), nullable=True)
     notify_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    subscription_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    referral_code: Mapped[str | None] = mapped_column(String(16), nullable=True, unique=True)
+    referred_by_telegram_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class PaymentTx(Base):
+    __tablename__ = "payment_txs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    telegram_user_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    tx_id: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
+    plan: Mapped[str] = mapped_column(String(16), nullable=False)
+    amount_usd: Mapped[float] = mapped_column(Float, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

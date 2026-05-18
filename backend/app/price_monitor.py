@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -10,14 +11,14 @@ from app.config import settings
 from app.database import SessionLocal
 from app.models import Signal
 from app.price_service import clear_price_cache, fetch_price
-from app.signal_service import close_signal_and_notify
-from app.signal_utils import evaluate_signal
+from app.signal_service import close_signal_and_notify, notify_entry_filled
+from app.signal_utils import evaluate_signal, price_in_entry_zone
 
 logger = logging.getLogger(__name__)
 
 
 async def check_active_signals_once() -> int:
-    """Проверяет активные сигналы; возвращает число закрытых."""
+    """Закрытие сигналов и отметка входа в зоне. Возвращает число закрытий."""
     closed = 0
     clear_price_cache()
     db = SessionLocal()
@@ -35,6 +36,14 @@ async def check_active_signals_once() -> int:
             price = prices.get(signal.symbol.upper())
             if price is None:
                 continue
+
+            if signal.entry_filled_at is None:
+                if price_in_entry_zone(price, signal.entry_low, signal.entry_high):
+                    signal.entry_filled_at = datetime.now(timezone.utc)
+                    db.commit()
+                    await notify_entry_filled(db, signal)
+                continue
+
             outcome = evaluate_signal(price, signal.direction, signal.stop_loss, signal.take_profits)
             if outcome in ("win", "lose"):
                 await close_signal_and_notify(db, signal, outcome)
