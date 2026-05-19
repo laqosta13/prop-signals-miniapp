@@ -4,6 +4,14 @@ const base =
   import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
   (import.meta.env.DEV ? "/api" : "");
 
+export type SignalSupplement = {
+  id: number;
+  created_at: string;
+  comment: string | null;
+  media_image_url: string | null;
+  media_video_url: string | null;
+};
+
 export type Signal = {
   id: number;
   created_at: string;
@@ -30,6 +38,7 @@ export type Signal = {
   media_image_url: string | null;
   media_video_url: string | null;
   author_avatar_url: string | null;
+  supplements?: SignalSupplement[];
 };
 
 export type Me = {
@@ -138,6 +147,9 @@ export const createSignalWithMedia = (form: FormData) => sendForm("/signals", "P
 
 export const updateSignalWithMedia = (signalId: number, form: FormData) =>
   sendForm(`/signals/${signalId}`, "PUT", form);
+
+export const appendSignalSupplement = (signalId: number, form: FormData) =>
+  sendForm(`/signals/${signalId}/supplement`, "POST", form);
 
 export const recordSignalView = (signalId: number) =>
   api<{ views_count: number }>(`/signals/${signalId}/view`, { method: "POST" });

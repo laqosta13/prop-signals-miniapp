@@ -35,6 +35,18 @@ async def save_signal_video(signal_id: int, file: UploadFile) -> str:
     return await _save_upload(file, f"signals/{signal_id}", VIDEO_TYPES, VIDEO_EXT, settings.max_video_bytes, "video")
 
 
+async def save_supplement_image(signal_id: int, supplement_id: int, file: UploadFile) -> str:
+    return await _save_upload(
+        file, f"signals/{signal_id}/supplements/{supplement_id}", IMAGE_TYPES, IMAGE_EXT, settings.max_image_bytes, "shot"
+    )
+
+
+async def save_supplement_video(signal_id: int, supplement_id: int, file: UploadFile) -> str:
+    return await _save_upload(
+        file, f"signals/{signal_id}/supplements/{supplement_id}", VIDEO_TYPES, VIDEO_EXT, settings.max_video_bytes, "vid"
+    )
+
+
 async def _save_upload(
     file: UploadFile,
     subdir: str,

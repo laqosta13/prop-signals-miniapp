@@ -16,6 +16,14 @@ class SignalCreate(BaseModel):
     tracker_balance: float | None = Field(None, ge=100)
 
 
+class SignalSupplementRead(BaseModel):
+    id: int
+    created_at: datetime
+    comment: str | None = None
+    media_image_url: str | None = None
+    media_video_url: str | None = None
+
+
 class SignalRead(BaseModel):
     id: int
     created_at: datetime
@@ -42,6 +50,7 @@ class SignalRead(BaseModel):
     media_image_url: str | None = None
     media_video_url: str | None = None
     author_avatar_url: str | None = None
+    supplements: list[SignalSupplementRead] = []
 
     model_config = {"from_attributes": True}
 

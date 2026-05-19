@@ -12,6 +12,7 @@ type Props = {
   subscriptionActive: boolean;
   onChanged: () => void;
   onEdit: (signal: Signal) => void;
+  onSupplement: (signal: Signal) => void;
   onPatch: (id: number, patch: Partial<Signal>) => void;
   onOpenPay: () => void;
   onOpenTracker: () => void;
@@ -25,6 +26,7 @@ export function FeedTab({
   subscriptionActive,
   onChanged,
   onEdit,
+  onSupplement,
   onPatch,
   onOpenPay,
   onOpenTracker,
@@ -65,6 +67,7 @@ export function FeedTab({
           canEngage={subscriptionActive || isAdmin}
           deleting={deletingId === s.id}
           onEdit={onEdit}
+          onSupplement={onSupplement}
           onDelete={handleDelete}
           onPatch={onPatch}
         />

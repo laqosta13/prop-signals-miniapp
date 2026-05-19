@@ -60,6 +60,23 @@ def run_migrations(engine: Engine) -> None:
                 )
             )
 
+        if "signal_supplements" not in inspect(engine).get_table_names():
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS signal_supplements (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        signal_id INTEGER NOT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        comment TEXT,
+                        media_image_path VARCHAR(256),
+                        media_video_path VARCHAR(256)
+                    )
+                    """
+                )
+            )
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_signal_supplements_signal_id ON signal_supplements (signal_id)"))
+
         if "payment_txs" not in inspect(engine).get_table_names():
             conn.execute(
                 text(

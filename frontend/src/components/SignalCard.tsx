@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { recordSignalView, toggleSignalLike, type Signal } from "../api";
 import { calcRR, formatTakeProfits, formatTime, formatUsd, traderName } from "../utils";
+import { canEditOrDeleteSignal, canSupplementSignal } from "../utils/signalActions";
 import { Avatar } from "./Avatar";
 
 type Props = {
@@ -10,11 +11,21 @@ type Props = {
   canEngage?: boolean;
   onEdit?: (signal: Signal) => void;
   onDelete?: (id: number) => void;
+  onSupplement?: (signal: Signal) => void;
   deleting?: boolean;
   onPatch?: (id: number, patch: Partial<Signal>) => void;
 };
 
-export function SignalCard({ signal: s, isAdmin, canEngage = true, onEdit, onDelete, deleting, onPatch }: Props) {
+export function SignalCard({
+  signal: s,
+  isAdmin,
+  canEngage = true,
+  onEdit,
+  onDelete,
+  onSupplement,
+  deleting,
+  onPatch,
+}: Props) {
   const [views, setViews] = useState(s.views_count);
   const [likes, setLikes] = useState(s.likes_count);
   const [liked, setLiked] = useState(s.liked_by_me);
@@ -105,7 +116,7 @@ export function SignalCard({ signal: s, isAdmin, canEngage = true, onEdit, onDel
         <div className="signal-card__actions">
           <span className="risk-tag">Вход {stake}%</span>
           {tracker != null && tracker > 0 && <span className="risk-tag">Трекер {formatUsd(tracker)}</span>}
-          {isAdmin && s.status === "active" && (
+          {isAdmin && canEditOrDeleteSignal(s) && (
             <div className="admin-actions">
               {onEdit && (
                 <button type="button" className="edit-btn" onClick={() => onEdit(s)}>
@@ -145,6 +156,30 @@ export function SignalCard({ signal: s, isAdmin, canEngage = true, onEdit, onDel
         <video src={s.media_video_url} controls className="signal-media-video" playsInline />
       )}
       {s.comment && <p className="signal-card__comment">{s.comment}</p>}
+      {(s.supplements?.length ?? 0) > 0 && (
+        <section className="signal-supplements">
+          <h4 className="signal-supplements__title">Дополнения</h4>
+          {s.supplements!.map((sup) => (
+            <div key={sup.id} className="signal-supplement">
+              <p className="signal-supplement__time">{formatTime(sup.created_at)}</p>
+              {sup.comment && <p className="signal-card__comment">{sup.comment}</p>}
+              {sup.media_image_url && (
+                <button type="button" className="media-thumb" onClick={() => setLightbox(sup.media_image_url)}>
+                  <img src={sup.media_image_url} alt="Скрин дополнения" className="signal-media-img" />
+                </button>
+              )}
+              {sup.media_video_url && (
+                <video src={sup.media_video_url} controls className="signal-media-video" playsInline />
+              )}
+            </div>
+          ))}
+        </section>
+      )}
+      {isAdmin && canSupplementSignal(s) && onSupplement && (
+        <button type="button" className="supplement-btn" onClick={() => onSupplement(s)}>
+          Дополнить сигнал
+        </button>
+      )}
       <div className="signal-engagement">
         <span className="engagement-stat" title="Просмотры">
           👁 {views}

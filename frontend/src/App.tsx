@@ -12,6 +12,7 @@ import {
 } from "./api";
 import { FeedTab } from "./components/FeedTab";
 import { LeaderboardTab } from "./components/LeaderboardTab";
+import { AppendSupplementModal } from "./components/AppendSupplementModal";
 import { EditSignalModal } from "./components/EditSignalModal";
 import { NewSignalModal } from "./components/NewSignalModal";
 import { SubscriptionTab } from "./components/SubscriptionTab";
@@ -38,6 +39,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [showNewSignal, setShowNewSignal] = useState(false);
   const [editSignal, setEditSignal] = useState<Signal | null>(null);
+  const [supplementSignal, setSupplementSignal] = useState<Signal | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const patchSignal = (id: number, patch: Partial<Signal>) =>
@@ -129,7 +131,14 @@ export default function App() {
           <h1>{head.title}</h1>
           <p>{head.sub}</p>
         </div>
-        <span className="status-dot" title="online" />
+        <div className="topbar__actions">
+          {isAdmin && tab === "feed" && (
+            <button type="button" className="fab-top" onClick={() => setShowNewSignal(true)} aria-label="Новый сигнал">
+              +
+            </button>
+          )}
+          <span className="status-dot" title="online" />
+        </div>
       </header>
 
       {tab === "feed" && (
@@ -151,6 +160,7 @@ export default function App() {
             subscriptionActive={subActive}
             onChanged={loadMeAndSignals}
             onEdit={setEditSignal}
+            onSupplement={setSupplementSignal}
             onPatch={patchSignal}
             onOpenPay={() => setTab("pay")}
             onOpenTracker={() => setTab("tracker")}
@@ -163,12 +173,6 @@ export default function App() {
         {tab === "pay" && <SubscriptionTab onPaid={() => void loadMeAndSignals()} />}
       </main>
 
-      {isAdmin && (
-        <button type="button" className="fab" onClick={() => setShowNewSignal(true)} aria-label="Новый сигнал">
-          +
-        </button>
-      )}
-
       <nav className="bottom-nav">
         {(["feed", "tracker", "top", "pay"] as const).map((t) => (
           <button key={t} type="button" className={tab === t ? "on" : ""} onClick={() => setTab(t)}>
@@ -180,6 +184,11 @@ export default function App() {
 
       <NewSignalModal open={showNewSignal} onClose={() => setShowNewSignal(false)} onCreated={loadMeAndSignals} />
       <EditSignalModal signal={editSignal} onClose={() => setEditSignal(null)} onUpdated={loadMeAndSignals} />
+      <AppendSupplementModal
+        signal={supplementSignal}
+        onClose={() => setSupplementSignal(null)}
+        onDone={loadMeAndSignals}
+      />
     </div>
   );
 }

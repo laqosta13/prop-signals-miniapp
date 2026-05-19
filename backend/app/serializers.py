@@ -1,15 +1,32 @@
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.engagement import user_liked
 from app.media_storage import public_url
-from app.models import Signal, Trader
-from app.schemas import SignalRead, TraderDayStat, TraderRead
+from app.models import Signal, SignalSupplement, Trader
+from app.schemas import SignalRead, SignalSupplementRead, TraderDayStat, TraderRead
 
 
 def trader_avatar_url(trader: Trader | None) -> str | None:
     if trader and trader.avatar_path:
         return public_url(trader.avatar_path)
     return None
+
+
+def _supplements_read(db: Session, signal_id: int) -> list[SignalSupplementRead]:
+    rows = db.scalars(
+        select(SignalSupplement).where(SignalSupplement.signal_id == signal_id).order_by(SignalSupplement.created_at)
+    ).all()
+    return [
+        SignalSupplementRead(
+            id=s.id,
+            created_at=s.created_at,
+            comment=s.comment,
+            media_image_url=public_url(s.media_image_path),
+            media_video_url=public_url(s.media_video_path),
+        )
+        for s in rows
+    ]
 
 
 def signal_to_read(db: Session, signal: Signal, viewer_id: int | None = None) -> SignalRead:
@@ -41,6 +58,7 @@ def signal_to_read(db: Session, signal: Signal, viewer_id: int | None = None) ->
         media_image_url=public_url(signal.media_image_path),
         media_video_url=public_url(signal.media_video_path),
         author_avatar_url=trader_avatar_url(trader),
+        supplements=_supplements_read(db, signal.id),
     )
 
 

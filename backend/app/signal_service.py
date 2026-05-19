@@ -13,6 +13,7 @@ from app.telegram_notify import (
     format_deleted_signal_message,
     format_entry_filled_message,
     format_new_signal_message,
+    format_supplement_message,
     format_updated_signal_message,
     notify_subscribers,
 )
@@ -112,6 +113,12 @@ async def notify_entry_filled(db: Session, signal: Signal) -> None:
     ids = subscriber_ids_for_notify(db)
     if ids:
         await notify_subscribers(format_entry_filled_message(signal), ids)
+
+
+async def notify_signal_supplement(db: Session, signal: Signal, comment: str | None) -> None:
+    ids = subscriber_ids_for_notify(db)
+    if ids:
+        await notify_subscribers(format_supplement_message(signal, comment), ids)
 
 
 def build_signal_row(

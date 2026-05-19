@@ -34,6 +34,19 @@ class Signal(Base):
     author_username: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
 
+class SignalSupplement(Base):
+    """Дополнение к сигналу (комментарий / медиа после публикации)."""
+
+    __tablename__ = "signal_supplements"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    signal_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    media_image_path: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    media_video_path: Mapped[str | None] = mapped_column(String(256), nullable=True)
+
+
 class SignalView(Base):
     __tablename__ = "signal_views"
 

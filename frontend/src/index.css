@@ -49,6 +49,26 @@ body {
   color: var(--muted);
 }
 
+.topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fab-top {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent);
+  color: #000;
+  font-size: 1.6rem;
+  line-height: 1;
+  font-weight: 300;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 .status-dot {
   width: 8px;
   height: 8px;
@@ -822,23 +842,50 @@ body {
   margin-bottom: 2px;
 }
 
-.fab {
-  position: fixed;
-  bottom: 72px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  border: none;
-  background: var(--accent);
-  color: #000;
-  font-size: 2rem;
-  line-height: 1;
-  font-weight: 300;
+.supplement-btn {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-  z-index: 10;
+}
+
+.signal-supplements {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.signal-supplements__title {
+  margin: 0 0 8px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.signal-supplement {
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.signal-supplement:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.signal-supplement__time {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+  color: var(--muted);
 }
 
 /* Modal */

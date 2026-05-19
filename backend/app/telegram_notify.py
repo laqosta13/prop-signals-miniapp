@@ -80,6 +80,15 @@ def format_closed_signal_message(signal: Signal) -> str:
     )
 
 
+def format_supplement_message(signal: Signal, comment: str | None) -> str:
+    text = comment.strip() if comment else "—"
+    return (
+        f"➕ <b>Дополнение к сигналу</b>\n"
+        f"{signal.symbol} · {signal.direction.upper()}\n"
+        f"{text}"
+    )
+
+
 def format_entry_filled_message(signal: Signal) -> str:
     author = f"@{signal.author_username}" if signal.author_username else f"id {signal.author_telegram_id}"
     return (

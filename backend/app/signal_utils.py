@@ -78,6 +78,24 @@ def compute_signal_points_percent(
     return settings.default_signal_points_percent
 
 
+def signal_awaiting_entry(signal) -> bool:
+    """Сигнал ещё не в работе — можно менять уровни и удалить."""
+    if signal.status != "active":
+        return False
+    if signal.entry_filled_at is not None:
+        return False
+    return entry_zone_defined(signal.entry_low, signal.entry_high)
+
+
+def signal_in_trade(signal) -> bool:
+    """Сигнал в работе (вход сработал), ещё не закрыт."""
+    if signal.status != "active":
+        return False
+    if signal.entry_filled_at is not None:
+        return True
+    return not entry_zone_defined(signal.entry_low, signal.entry_high)
+
+
 def evaluate_signal(price: float, direction: str, stop_loss: str | None, take_profits: str | None) -> str | None:
     """Возвращает 'win', 'lose' или None если уровни не достигнуты."""
     stop = parse_price(stop_loss)
