@@ -35,7 +35,10 @@ def subscription_active(sub: Subscriber | None, is_admin: bool) -> bool:
         return True
     if sub is None or sub.subscription_until is None:
         return False
-    return sub.subscription_until > _now()
+    until = sub.subscription_until
+    if until.tzinfo is None:
+        until = until.replace(tzinfo=timezone.utc)
+    return until > _now()
 
 
 def _gen_referral_code(db: Session) -> str:

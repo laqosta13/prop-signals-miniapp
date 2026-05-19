@@ -11,11 +11,15 @@ def record_view(db: Session, signal_id: int, telegram_user_id: int) -> int:
     existing = db.get(SignalView, (signal_id, telegram_user_id))
     if existing:
         return signal.views_count or 0
-    db.add(SignalView(signal_id=signal_id, telegram_user_id=telegram_user_id))
+    try:
+        with db.begin_nested():
+            db.add(SignalView(signal_id=signal_id, telegram_user_id=telegram_user_id))
+            db.flush()
+    except IntegrityError:
+        return signal.views_count or 0
     signal.views_count = (signal.views_count or 0) + 1
-    db.commit()
-    db.refresh(signal)
-    return signal.views_count
+    db.flush()
+    return signal.views_count or 0
 
 
 def toggle_like(db: Session, signal_id: int, telegram_user_id: int) -> tuple[bool, int] | None:
@@ -36,9 +40,8 @@ def toggle_like(db: Session, signal_id: int, telegram_user_id: int) -> tuple[boo
             pass
         signal.likes_count = (signal.likes_count or 0) + 1
         liked = True
-    db.commit()
-    db.refresh(signal)
-    return liked, signal.likes_count
+    db.flush()
+    return liked, signal.likes_count or 0
 
 
 def user_liked(db: Session, signal_id: int, telegram_user_id: int) -> bool:

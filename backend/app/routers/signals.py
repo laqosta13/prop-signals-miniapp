@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.deps import db_session, require_active_subscription, require_admin
+from app.deps import db_session, get_current_user, require_active_subscription, require_admin
 from app.engagement import record_view, toggle_like
 from app.media_storage import delete_media_files, delete_signal_media_dir, save_signal_image, save_signal_video
 from app.models import Signal
@@ -177,11 +177,12 @@ async def delete_signal(
 def add_view(
     signal_id: int,
     db: Session = Depends(db_session),
-    user: TelegramUser = Depends(require_active_subscription),
+    user: TelegramUser = Depends(get_current_user),
 ) -> ViewResponse:
     count = record_view(db, signal_id, user.telegram_user_id)
     if count == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")
+    db.commit()
     return ViewResponse(views_count=count)
 
 
@@ -189,10 +190,11 @@ def add_view(
 def like_signal(
     signal_id: int,
     db: Session = Depends(db_session),
-    user: TelegramUser = Depends(require_active_subscription),
+    user: TelegramUser = Depends(get_current_user),
 ) -> LikeResponse:
     result = toggle_like(db, signal_id, user.telegram_user_id)
     if result is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")
     liked, count = result
+    db.commit()
     return LikeResponse(liked=liked, likes_count=count)

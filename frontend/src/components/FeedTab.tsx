@@ -1,10 +1,12 @@
 import { useState } from "react";
 import WebApp from "@twa-dev/sdk";
-import { deleteSignal, type Signal } from "../api";
+import { deleteSignal, type ChallengeDashboard, type Signal } from "../api";
+import { PropTrackerMini } from "./PropTrackerMini";
 import { SignalCard } from "./SignalCard";
 
 type Props = {
   signals: Signal[];
+  trackers: ChallengeDashboard[];
   loading: boolean;
   isAdmin: boolean;
   subscriptionActive: boolean;
@@ -12,10 +14,12 @@ type Props = {
   onEdit: (signal: Signal) => void;
   onPatch: (id: number, patch: Partial<Signal>) => void;
   onOpenPay: () => void;
+  onOpenTracker: () => void;
 };
 
 export function FeedTab({
   signals,
+  trackers,
   loading,
   isAdmin,
   subscriptionActive,
@@ -23,6 +27,7 @@ export function FeedTab({
   onEdit,
   onPatch,
   onOpenPay,
+  onOpenTracker,
 }: Props) {
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
@@ -57,12 +62,14 @@ export function FeedTab({
           key={s.id}
           signal={s}
           isAdmin={isAdmin}
+          canEngage={subscriptionActive || isAdmin}
           deleting={deletingId === s.id}
           onEdit={onEdit}
           onDelete={handleDelete}
           onPatch={onPatch}
         />
       ))}
+      {trackers.length > 0 && <PropTrackerMini trackers={trackers} onOpen={onOpenTracker} />}
     </>
   );
 }

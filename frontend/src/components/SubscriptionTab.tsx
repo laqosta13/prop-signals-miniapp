@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { fetchSubscriptionInfo, submitPayment, type SubscriptionInfo } from "../api";
+import { copyToClipboard } from "../utils";
 
 export function SubscriptionTab({ onPaid }: { onPaid: () => void }) {
   const [info, setInfo] = useState<SubscriptionInfo | null>(null);
@@ -8,6 +9,7 @@ export function SubscriptionTab({ onPaid }: { onPaid: () => void }) {
   const [plan, setPlan] = useState<"week" | "month">("week");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -39,9 +41,16 @@ export function SubscriptionTab({ onPaid }: { onPaid: () => void }) {
     }
   };
 
-  const copy = (t: string) => {
-    void navigator.clipboard.writeText(t);
-    WebApp.HapticFeedback.impactOccurred("light");
+  const copyWallet = async () => {
+    if (!info?.usdt_ton_address) return;
+    const ok = await copyToClipboard(info.usdt_ton_address);
+    WebApp.HapticFeedback.notificationOccurred(ok ? "success" : "error");
+    if (ok) {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } else {
+      WebApp.showAlert("Не удалось скопировать. Выделите адрес вручную.");
+    }
   };
 
   if (!info) return <p className="meta">{err || "Загрузка…"}</p>;
@@ -61,8 +70,8 @@ export function SubscriptionTab({ onPaid }: { onPaid: () => void }) {
         <p className="meta">Неделя — ${info.week_usd}, 30 дней — ${info.month_usd}</p>
         <div className="pay-addr-row">
           <code className="pay-addr">{info.usdt_ton_address}</code>
-          <button type="button" className="ghost-btn" onClick={() => copy(info.usdt_ton_address)}>
-            Копировать
+          <button type="button" className={`copy-btn${copied ? " copied" : ""}`} onClick={() => void copyWallet()}>
+            {copied ? "Скопировано ✓" : "Копировать адрес"}
           </button>
         </div>
         <form onSubmit={pay} className="pay-form">

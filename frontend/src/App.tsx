@@ -81,7 +81,8 @@ export default function App() {
 
   useEffect(() => {
     void loadMeAndSignals();
-  }, [loadMeAndSignals]);
+    void loadTrackers();
+  }, [loadMeAndSignals, loadTrackers]);
 
   useEffect(() => {
     if (tab === "feed" || tab === "tracker") void loadTrackers();
@@ -144,6 +145,7 @@ export default function App() {
         {tab === "feed" && (
           <FeedTab
             signals={signals}
+            trackers={trackers}
             loading={loading}
             isAdmin={isAdmin}
             subscriptionActive={subActive}
@@ -151,6 +153,7 @@ export default function App() {
             onEdit={setEditSignal}
             onPatch={patchSignal}
             onOpenPay={() => setTab("pay")}
+            onOpenTracker={() => setTab("tracker")}
           />
         )}
         {tab === "tracker" && (

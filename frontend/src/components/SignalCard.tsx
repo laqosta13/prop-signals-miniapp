@@ -7,13 +7,14 @@ import { Avatar } from "./Avatar";
 type Props = {
   signal: Signal;
   isAdmin?: boolean;
+  canEngage?: boolean;
   onEdit?: (signal: Signal) => void;
   onDelete?: (id: number) => void;
   deleting?: boolean;
   onPatch?: (id: number, patch: Partial<Signal>) => void;
 };
 
-export function SignalCard({ signal: s, isAdmin, onEdit, onDelete, deleting, onPatch }: Props) {
+export function SignalCard({ signal: s, isAdmin, canEngage = true, onEdit, onDelete, deleting, onPatch }: Props) {
   const [views, setViews] = useState(s.views_count);
   const [likes, setLikes] = useState(s.likes_count);
   const [liked, setLiked] = useState(s.liked_by_me);
@@ -27,6 +28,7 @@ export function SignalCard({ signal: s, isAdmin, onEdit, onDelete, deleting, onP
   }, [s.views_count, s.likes_count, s.liked_by_me]);
 
   useEffect(() => {
+    if (!canEngage) return;
     let cancelled = false;
     void recordSignalView(s.id)
       .then((r) => {
@@ -38,7 +40,7 @@ export function SignalCard({ signal: s, isAdmin, onEdit, onDelete, deleting, onP
     return () => {
       cancelled = true;
     };
-  }, [s.id]);
+  }, [s.id, canEngage]);
 
   const entry = s.entry_low || s.entry_high || "—";
   const target = formatTakeProfits(s.take_profits);

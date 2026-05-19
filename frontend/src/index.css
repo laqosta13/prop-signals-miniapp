@@ -507,6 +507,28 @@ body {
   margin-top: 12px;
 }
 
+.copy-btn {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  background: #3b82f6;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.copy-btn:active {
+  opacity: 0.85;
+}
+
+.copy-btn.copied {
+  background: var(--green);
+  color: #000;
+}
+
 .ref-code {
   margin: 8px 0;
   font-size: 0.9rem;
