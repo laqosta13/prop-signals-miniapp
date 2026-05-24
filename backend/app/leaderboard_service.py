@@ -52,7 +52,7 @@ def daily_stats_map(db: Session, admin_ids: list[int]) -> dict[int, list[TraderD
             TraderDayStat(date=d, pnl_usd=v["pnl"], rating_delta=v["rating"], wins=v["w"], losses=v["l"])
             for d, v in sorted(days.items(), reverse=True)
         ]
-        out[tid] = stats[:14]
+        out[tid] = stats[:30]
     return out
 
 

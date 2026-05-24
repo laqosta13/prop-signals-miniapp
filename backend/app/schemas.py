@@ -75,6 +75,11 @@ class TelegramUser(BaseModel):
     subscription_until: datetime | None = None
     subscription_active: bool = False
     referral_code: str = ""
+    member_since: datetime | None = None
+    paid_subscription: bool = False
+    can_write_review: bool = False
+    review_write_blocked_reason: str | None = None
+    days_until_review: int | None = None
 
 
 class SubscriptionUpdate(BaseModel):
@@ -173,6 +178,7 @@ class ReviewRead(BaseModel):
     author_avatar_url: str | None = None
     text: str
     rating: int
+    image_url: str | None = None
     is_mine: bool = False
 
 
@@ -183,5 +189,6 @@ class NewsRead(BaseModel):
     title: str
     body: str
     image_url: str | None = None
+    video_url: str | None = None
     author_telegram_id: int
     author_display_name: str | None = None

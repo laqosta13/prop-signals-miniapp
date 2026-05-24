@@ -5,6 +5,7 @@ from app.config import settings
 from app.database import get_db
 from app.schemas import TelegramUser
 from app.signal_service import get_or_create_trader, register_subscriber
+from app.review_access import has_active_paid_subscription, review_write_access
 from app.subscription_billing import subscription_active
 from app.telegram_auth import validate_init_data
 
@@ -30,16 +31,14 @@ def get_current_user(
                 photo_url=user.photo_url,
             )
         db.commit()
-        return TelegramUser(
+        return _telegram_user_from_sub(
+            db,
+            sub,
             telegram_user_id=user.id,
             is_admin=is_admin,
             username=user.username,
             first_name=user.first_name,
             last_name=user.last_name,
-            notify_enabled=sub.notify_enabled,
-            subscription_until=sub.subscription_until,
-            subscription_active=subscription_active(sub, is_admin),
-            referral_code=sub.referral_code or "",
         )
 
     if not settings.bot_token and x_dev_telegram_user_id:
@@ -50,14 +49,12 @@ def get_current_user(
         sub = register_subscriber(db, tid, None, None)
         db.commit()
         is_admin = tid in settings.admin_id_set
-        return TelegramUser(
+        return _telegram_user_from_sub(
+            db,
+            sub,
             telegram_user_id=tid,
             is_admin=is_admin,
             username=None,
-            notify_enabled=sub.notify_enabled,
-            subscription_until=sub.subscription_until,
-            subscription_active=subscription_active(sub, is_admin),
-            referral_code=sub.referral_code or "",
         )
 
     raise HTTPException(
@@ -83,3 +80,32 @@ def require_admin(user: TelegramUser = Depends(get_current_user)) -> TelegramUse
 
 def db_session(db: Session = Depends(get_db)) -> Session:
     return db
+
+
+def _telegram_user_from_sub(
+    db: Session,
+    sub,
+    *,
+    telegram_user_id: int,
+    is_admin: bool,
+    username: str | None,
+    first_name: str | None = None,
+    last_name: str | None = None,
+) -> TelegramUser:
+    can_write, reason, days_left = review_write_access(db, sub, is_admin=is_admin)
+    return TelegramUser(
+        telegram_user_id=telegram_user_id,
+        is_admin=is_admin,
+        username=username,
+        first_name=first_name,
+        last_name=last_name,
+        notify_enabled=sub.notify_enabled,
+        subscription_until=sub.subscription_until,
+        subscription_active=subscription_active(sub, is_admin),
+        referral_code=sub.referral_code or "",
+        member_since=sub.created_at,
+        paid_subscription=has_active_paid_subscription(db, sub, is_admin),
+        can_write_review=can_write,
+        review_write_blocked_reason=reason,
+        days_until_review=days_left,
+    )

@@ -46,33 +46,38 @@ export function NewsTab({ isAdmin, onEdit, refreshKey = 0 }: Props) {
 
   return (
     <ul className="news-list">
-      {posts.map((p) => (
-        <li key={p.id} className="news-card">
-          <header className="news-card__head">
-            <div>
-              <h3>{p.title}</h3>
-              <p className="meta">
-                {formatTime(p.created_at)}
-                {p.author_display_name ? ` · ${p.author_display_name}` : ""}
-              </p>
-            </div>
-            {isAdmin && (
-              <div className="news-card__actions">
-                <button type="button" className="ghost-btn ghost-btn--sm" onClick={() => onEdit(p)}>
-                  Изм.
-                </button>
-                <button type="button" className="ghost-btn ghost-btn--sm" onClick={() => void remove(p.id)}>
-                  ✕
-                </button>
+      {posts.map((p) => {
+        const videoSrc = mediaUrl(p.video_url);
+        const imageSrc = mediaUrl(p.image_url);
+        return (
+          <li key={p.id} className="news-card">
+            <header className="news-card__head">
+              <div>
+                <h3>{p.title}</h3>
+                <p className="meta">
+                  {formatTime(p.created_at)}
+                  {p.author_display_name ? ` · ${p.author_display_name}` : ""}
+                </p>
               </div>
+              {isAdmin && (
+                <div className="news-card__actions">
+                  <button type="button" className="ghost-btn ghost-btn--sm" onClick={() => onEdit(p)}>
+                    Изм.
+                  </button>
+                  <button type="button" className="ghost-btn ghost-btn--sm" onClick={() => void remove(p.id)}>
+                    ✕
+                  </button>
+                </div>
+              )}
+            </header>
+            {imageSrc && <img className="news-card__img" src={imageSrc} alt="" loading="lazy" />}
+            {videoSrc && (
+              <video className="news-card__video" src={videoSrc} controls playsInline preload="metadata" />
             )}
-          </header>
-          {p.image_url && (
-            <img className="news-card__img" src={mediaUrl(p.image_url) ?? p.image_url} alt="" loading="lazy" />
-          )}
-          <p className="news-card__body">{p.body}</p>
-        </li>
-      ))}
+            <p className="news-card__body">{p.body}</p>
+          </li>
+        );
+      })}
     </ul>
   );
 }

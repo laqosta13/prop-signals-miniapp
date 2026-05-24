@@ -7,26 +7,46 @@ import {
   updateReview,
   type Review,
 } from "../api";
-import { authorProfile, formatTime } from "../utils";
+import { authorProfile, formatTime, mediaUrl } from "../utils";
 import { Avatar } from "./Avatar";
 
 type Props = {
   isAdmin: boolean;
+  canWriteReview: boolean;
+  reviewWriteBlockedReason: string | null;
+  daysUntilReview: number | null;
 };
 
 function stars(n: number) {
   return "★".repeat(n) + "☆".repeat(5 - n);
 }
 
-export function ReviewsTab({ isAdmin }: Props) {
+function writeBlockMessage(reason: string | null, days: number | null): string {
+  if (reason === "paid_required") return "Отзыв можно оставить только с платной подпиской (не trial).";
+  if (reason === "wait_days") return `Отзыв доступен через ${days ?? 3} дн. после первого входа в приложение.`;
+  if (reason === "subscription_required") return "Нужна активная подписка, чтобы оставить отзыв.";
+  return "Сейчас нельзя оставить отзыв.";
+}
+
+export function ReviewsTab({
+  isAdmin,
+  canWriteReview,
+  reviewWriteBlockedReason,
+  daysUntilReview,
+}: Props) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
   const [rating, setRating] = useState(5);
+  const [image, setImage] = useState<File | null>(null);
+  const [removeImage, setRemoveImage] = useState(false);
+  const [shotPreview, setShotPreview] = useState<string | null>(null);
+  const [lightbox, setLightbox] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const mine = reviews.find((r) => r.is_mine) ?? null;
+  const canEdit = canWriteReview || isAdmin;
 
   const load = useCallback(async () => {
     try {
@@ -49,8 +69,16 @@ export function ReviewsTab({ isAdmin }: Props) {
     void load();
   }, [load]);
 
+  const onScreenshot = (file: File | null) => {
+    setImage(file);
+    setRemoveImage(false);
+    if (shotPreview) URL.revokeObjectURL(shotPreview);
+    setShotPreview(file ? URL.createObjectURL(file) : null);
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canEdit) return;
     const body = text.trim();
     if (body.length < 3) {
       setErr("Минимум 3 символа");
@@ -58,13 +86,21 @@ export function ReviewsTab({ isAdmin }: Props) {
     }
     setBusy(true);
     setErr(null);
+    const fd = new FormData();
+    fd.append("text", body);
+    fd.append("rating", String(rating));
+    if (mine && removeImage) fd.append("remove_image", "true");
+    if (image) fd.append("image", image);
     try {
       if (mine) {
-        await updateReview(mine.id, { text: body, rating });
+        await updateReview(mine.id, fd);
       } else {
-        await createReview({ text: body, rating });
+        await createReview(fd);
       }
       WebApp.HapticFeedback.notificationOccurred("success");
+      setImage(null);
+      if (shotPreview) URL.revokeObjectURL(shotPreview);
+      setShotPreview(null);
       await load();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Не удалось сохранить");
@@ -81,6 +117,9 @@ export function ReviewsTab({ isAdmin }: Props) {
       if (mine?.id === id) {
         setText("");
         setRating(5);
+        setImage(null);
+        if (shotPreview) URL.revokeObjectURL(shotPreview);
+        setShotPreview(null);
       }
       WebApp.HapticFeedback.notificationOccurred("success");
       await load();
@@ -97,42 +136,67 @@ export function ReviewsTab({ isAdmin }: Props) {
     <div className="reviews-tab">
       <section className="review-form-card">
         <h3>{mine ? "Ваш отзыв" : "Оставить отзыв"}</h3>
-        <form onSubmit={submit}>
-          <label className="field-label">Оценка</label>
-          <div className="star-picker">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button
-                key={n}
-                type="button"
-                className={rating >= n ? "on" : ""}
-                onClick={() => setRating(n)}
-                aria-label={`${n} звёзд`}
-              >
-                ★
+        {!canEdit && !mine && (
+          <p className="meta review-hint">{writeBlockMessage(reviewWriteBlockedReason, daysUntilReview)}</p>
+        )}
+        {(canEdit || mine) && (
+          <form onSubmit={submit}>
+            <label className="field-label">Оценка</label>
+            <div className="star-picker">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  className={rating >= n ? "on" : ""}
+                  onClick={() => canEdit && setRating(n)}
+                  disabled={!canEdit}
+                  aria-label={`${n} звёзд`}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+            <label className="field-label">Текст</label>
+            <textarea
+              rows={4}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Расскажите о своём опыте…"
+              maxLength={2000}
+              disabled={!canEdit}
+            />
+            <label className="field-label">Скрин (необязательно)</label>
+            {mine?.image_url && !removeImage && !image && (
+              <p className="meta">
+                Скрин прикреплён.{" "}
+                {canEdit && (
+                  <button type="button" className="ghost-btn ghost-btn--sm" onClick={() => setRemoveImage(true)}>
+                    Убрать
+                  </button>
+                )}
+              </p>
+            )}
+            {canEdit && (
+              <input type="file" accept="image/*" onChange={(e) => onScreenshot(e.target.files?.[0] ?? null)} />
+            )}
+            {shotPreview && <img className="review-shot-preview" src={shotPreview} alt="" />}
+            {err && <p className="err">{err}</p>}
+            {canEdit && (
+              <button type="submit" className="submit-btn" disabled={busy}>
+                {busy ? "…" : mine ? "Сохранить" : "Опубликовать"}
               </button>
-            ))}
-          </div>
-          <label className="field-label">Текст</label>
-          <textarea
-            rows={4}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Расскажите о своём опыте…"
-            maxLength={2000}
-          />
-          {err && <p className="err">{err}</p>}
-          <button type="submit" className="submit-btn" disabled={busy}>
-            {busy ? "…" : mine ? "Сохранить" : "Опубликовать"}
-          </button>
-        </form>
+            )}
+          </form>
+        )}
       </section>
 
-      {reviews.length === 0 && <p className="meta">Пока нет отзывов — будьте первым.</p>}
+      {reviews.length === 0 && <p className="meta">Пока нет отзывов.</p>}
 
       <ul className="review-list">
         {reviews.map((r) => {
           const profile = authorProfile(r.author_display_name, r.author_username);
           const canDelete = r.is_mine || isAdmin;
+          const imgSrc = mediaUrl(r.image_url);
           return (
             <li key={r.id} className="review-card">
               <header className="review-card__head">
@@ -152,10 +216,24 @@ export function ReviewsTab({ isAdmin }: Props) {
                 {stars(r.rating)}
               </p>
               <p className="review-text">{r.text}</p>
+              {imgSrc && (
+                <button type="button" className="review-shot-btn" onClick={() => setLightbox(imgSrc)}>
+                  <img className="signal-media-img" src={imgSrc} alt="Скрин отзыва" loading="lazy" />
+                </button>
+              )}
             </li>
           );
         })}
       </ul>
+
+      {lightbox && (
+        <div className="lightbox" role="dialog" onClick={() => setLightbox(null)}>
+          <button type="button" className="lightbox__close" aria-label="Закрыть" onClick={() => setLightbox(null)}>
+            ✕
+          </button>
+          <img src={lightbox} alt="" className="lightbox__img" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
     </div>
   );
 }

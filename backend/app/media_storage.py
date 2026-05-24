@@ -19,6 +19,7 @@ def media_root() -> Path:
     (root / "signals").mkdir(exist_ok=True)
     (root / "avatars").mkdir(exist_ok=True)
     (root / "news").mkdir(exist_ok=True)
+    (root / "reviews").mkdir(exist_ok=True)
     return root
 
 
@@ -54,6 +55,14 @@ async def save_supplement_video(signal_id: int, supplement_id: int, file: Upload
 
 async def save_news_image(post_id: int, file: UploadFile) -> str:
     return await _save_upload(file, f"news/{post_id}", IMAGE_TYPES, IMAGE_EXT, settings.max_image_bytes, "cover")
+
+
+async def save_news_video(post_id: int, file: UploadFile) -> str:
+    return await _save_upload(file, f"news/{post_id}", VIDEO_TYPES, VIDEO_EXT, settings.max_video_bytes, "video")
+
+
+async def save_review_image(review_id: int, file: UploadFile) -> str:
+    return await _save_upload(file, f"reviews/{review_id}", IMAGE_TYPES, IMAGE_EXT, settings.max_image_bytes, "shot")
 
 
 async def _save_upload(

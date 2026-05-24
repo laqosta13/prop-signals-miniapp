@@ -127,6 +127,7 @@ class Review(Base):
     author_username: Mapped[str | None] = mapped_column(String(64), nullable=True)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     rating: Mapped[int] = mapped_column(Integer, default=5)
+    image_path: Mapped[str | None] = mapped_column(String(256), nullable=True)
 
 
 class NewsPost(Base):
@@ -140,4 +141,5 @@ class NewsPost(Base):
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)
     image_path: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    video_path: Mapped[str | None] = mapped_column(String(256), nullable=True)
     author_telegram_id: Mapped[int] = mapped_column(Integer, nullable=False)

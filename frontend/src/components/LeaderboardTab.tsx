@@ -13,21 +13,26 @@ export function LeaderboardTab({ traders, loading }: Props) {
     <ol className="top-list">
       {traders.map((t) => (
         <li key={t.telegram_id} className="top-card">
-          <span className="top-rank">#{t.rank}</span>
-          <Avatar url={t.avatar_url} displayName={t.display_name} username={t.username} size={44} />
-          <div className="top-body">
-            <p className="top-name">{authorProfile(t.display_name, t.username).title}</p>
-            {t.username && <p className="top-login">@{t.username}</p>}
-            <p className="top-score">
-              {t.rating_percent >= 0 ? "+" : ""}
-              {t.rating_percent.toFixed(2)}%
-            </p>
-            <p className="top-meta">
-              <span className={t.total_pnl_usd >= 0 ? "pnl-win" : "pnl-lose"}>{formatUsd(t.total_pnl_usd)}</span> · W{" "}
-              {t.wins} · L {t.losses} · WR {t.win_rate}%
-            </p>
-            <EquityCurve dailyStats={t.daily_stats} />
-            {t.daily_stats.length > 0 && (
+          <div className="top-card__head">
+            <span className="top-rank">#{t.rank}</span>
+            <Avatar url={t.avatar_url} displayName={t.display_name} username={t.username} size={44} />
+            <div className="top-body">
+              <p className="top-name">{authorProfile(t.display_name, t.username).title}</p>
+              {t.username && <p className="top-login">@{t.username}</p>}
+              <p className="top-score">
+                {t.rating_percent >= 0 ? "+" : ""}
+                {t.rating_percent.toFixed(2)}%
+              </p>
+              <p className="top-meta">
+                <span className={t.total_pnl_usd >= 0 ? "pnl-win" : "pnl-lose"}>{formatUsd(t.total_pnl_usd)}</span> · W{" "}
+                {t.wins} · L {t.losses} · WR {t.win_rate}%
+              </p>
+            </div>
+          </div>
+
+          {t.daily_stats.length > 0 && (
+            <>
+              <EquityCurve dailyStats={t.daily_stats} />
               <ul className="day-stats">
                 {t.daily_stats.map((d) => (
                   <li key={d.date}>
@@ -43,8 +48,8 @@ export function LeaderboardTab({ traders, loading }: Props) {
                   </li>
                 ))}
               </ul>
-            )}
-          </div>
+            </>
+          )}
         </li>
       ))}
     </ol>

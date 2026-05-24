@@ -48,7 +48,8 @@
 | ТОП / equity curve | ✓ | ✓ |
 | Лайки / просмотры (win/lose) | ✓ | ✓ |
 | Лайки / просмотры (active) | ✗ | ✓ |
-| Отзывы / Новости | ✓ | ✓ |
+| Отзывы / Новости (чтение) | ✓ | ✓ |
+| Отзывы (запись) | ✗ (платная + 3 дня) | ✓ |
 | Уведомления в Telegram | ✗ (кроме trial/оплаты) | ✓ |
 
 Frontend: без подписки вызывает `fetchSignalsPreview()`, с подпиской — `fetchSignals()`. Дополнительный фильтр `visibleFeedSignals()` на клиенте (двойная защита).
@@ -183,21 +184,23 @@ Frontend: `SignalCard` всегда показывает блок engagement; `c
 ## Отзывы
 
 - Таблица `reviews`: один отзыв на `author_telegram_id` (unique)
-- Поля: `text`, `rating` (1–5), профиль автора из `traders`
-- **Все** авторизованные: читать, создать/редактировать/удалить **свой** отзыв
-- **Админ:** удалить любой отзыв
-- API: `GET/POST /reviews`, `PUT/DELETE /reviews/{id}`
+- Поля: `text`, `rating` (1–5), `image_path` (скрин), профиль автора из `traders`
+- **Читать:** все авторизованные пользователи — `get_current_user` на `GET /reviews`
+- **Писать:** платная подписка (`payment_txs`) + **3 дня** с `subscribers.created_at` — `review_access.py`
+- Редактировать/удалить свой отзыв — те же правила на запись; **админ** — без ограничений
+- `/auth/me`: `can_write_review`, `review_write_blocked_reason`, `days_until_review`, `paid_subscription`
+- API: `GET /reviews`, `POST/PUT /reviews` (multipart + скрин), `DELETE /reviews/{id}`
 - UI: `ReviewsTab.tsx`
 
 ---
 
 ## Новости
 
-- Таблица `news_posts`: `title`, `body`, `image_path`, `author_telegram_id`
-- **Все** авторизованные: читать ленту
-- **Админ:** создать/редактировать/удалить; кнопка **+** в шапке на вкладке «Новости»
-- Обложка: `{MEDIA_ROOT}/news/{id}/` → `save_news_image()`
-- API: `GET/POST /news`, `PUT/DELETE /news/{id}` (multipart)
+- Таблица `news_posts`: `title`, `body`, `image_path`, `video_path`, `author_telegram_id`
+- **Читать:** все авторизованные пользователи — `GET /news`
+- **Админ:** создать/редактировать/удалить; кнопка **+** в шапке; обложка + **видео**
+- Медиа: `{MEDIA_ROOT}/news/{id}/` → `save_news_image()`, `save_news_video()`
+- API: `GET/POST/PUT/DELETE /news` (multipart)
 - UI: `NewsTab.tsx`, `NewsModal.tsx`
 
 ---
@@ -266,8 +269,8 @@ DELETE /signals/{id}                   — require_admin + require_signal_owner
 POST /signals/{id}/supplement          — require_admin + require_signal_owner
 POST /signals/{id}/view|like           — get_current_user + require_signal_engagement
 GET  /reviews                          — get_current_user
-POST /reviews                          — get_current_user (один отзыв на пользователя)
-PUT  /reviews/{id}                     — автор или админ
+POST /reviews                          — платная подписка + 3 дня (multipart)
+PUT  /reviews/{id}                     — автор + те же правила (multipart)
 DELETE /reviews/{id}                   — автор или админ
 GET  /news                             — get_current_user
 POST /news                             — require_admin (multipart)

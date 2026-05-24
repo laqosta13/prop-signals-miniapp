@@ -14,6 +14,7 @@ from app.models import PaymentTx, Subscriber
 
 TRIAL_DAYS = 3
 REFERRAL_BONUS_DAYS = 3
+REVIEW_WAIT_DAYS = 3
 WEEK_USD = 20.0
 MONTH_USD = 70.0
 WEEK_DAYS = 7

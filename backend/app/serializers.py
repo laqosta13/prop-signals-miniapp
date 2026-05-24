@@ -117,6 +117,7 @@ def review_to_read(db: Session, row: Review, viewer_id: int) -> ReviewRead:
         author_avatar_url=avatar,
         text=row.text,
         rating=row.rating,
+        image_url=public_url(row.image_path),
         is_mine=row.author_telegram_id == viewer_id,
     )
 
@@ -130,6 +131,7 @@ def news_to_read(db: Session, row: NewsPost) -> NewsRead:
         title=row.title,
         body=row.body,
         image_url=public_url(row.image_path),
+        video_url=public_url(row.video_path),
         author_telegram_id=row.author_telegram_id,
         author_display_name=display,
     )

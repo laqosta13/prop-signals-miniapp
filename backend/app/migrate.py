@@ -107,6 +107,14 @@ def run_migrations(engine: Engine) -> None:
             conn.execute(text("UPDATE traders SET rating_percent = 0.0 WHERE rating_percent IS NULL"))
             conn.execute(text("UPDATE traders SET total_pnl_usd = 0 WHERE total_pnl_usd IS NULL"))
 
+        if "reviews" in tables:
+            if not _has_column(engine, "reviews", "image_path"):
+                conn.execute(text("ALTER TABLE reviews ADD COLUMN image_path VARCHAR(256)"))
+
+        if "news_posts" in tables:
+            if not _has_column(engine, "news_posts", "video_path"):
+                conn.execute(text("ALTER TABLE news_posts ADD COLUMN video_path VARCHAR(256)"))
+
     _backfill_referral_codes(engine)
     _purge_test_data_once(engine)
     _purge_signals_reset_v3(engine)

@@ -51,6 +51,9 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [myId, setMyId] = useState<number | null>(null);
   const [subActive, setSubActive] = useState(false);
+  const [canWriteReview, setCanWriteReview] = useState(false);
+  const [reviewWriteBlockedReason, setReviewWriteBlockedReason] = useState<string | null>(null);
+  const [daysUntilReview, setDaysUntilReview] = useState<number | null>(null);
   const [notifyEnabled, setNotifyEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [showNewSignal, setShowNewSignal] = useState(false);
@@ -73,6 +76,9 @@ export default function App() {
       setError(null);
       const fullAccess = me.subscription_active || me.is_admin;
       setSubActive(me.subscription_active);
+      setCanWriteReview(me.can_write_review);
+      setReviewWriteBlockedReason(me.review_write_blocked_reason);
+      setDaysUntilReview(me.days_until_review);
       const [sig, trk] = await Promise.all([
         fullAccess ? fetchSignals() : fetchSignalsPreview(),
         fetchChallengeTrackers(),
@@ -202,8 +208,17 @@ export default function App() {
           <TrackerTab trackers={trackers} signals={signals} myId={myId} isAdmin={isAdmin} onSettings={openSettings} />
         )}
         {tab === "top" && <LeaderboardTab traders={traders} loading={loading && !traders.length} />}
-        {tab === "reviews" && <ReviewsTab isAdmin={isAdmin} />}
-        {tab === "news" && <NewsTab isAdmin={isAdmin} onEdit={openEditNews} refreshKey={newsRefreshKey} />}
+        {tab === "reviews" && (
+          <ReviewsTab
+            isAdmin={isAdmin}
+            canWriteReview={canWriteReview}
+            reviewWriteBlockedReason={reviewWriteBlockedReason}
+            daysUntilReview={daysUntilReview}
+          />
+        )}
+        {tab === "news" && (
+          <NewsTab isAdmin={isAdmin} onEdit={openEditNews} refreshKey={newsRefreshKey} />
+        )}
         {tab === "pay" && <SubscriptionTab onPaid={() => void loadMeAndSignals()} />}
       </main>
 

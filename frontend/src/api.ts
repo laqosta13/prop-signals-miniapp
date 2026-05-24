@@ -50,6 +50,11 @@ export type Me = {
   subscription_until: string | null;
   subscription_active: boolean;
   referral_code: string;
+  member_since: string | null;
+  paid_subscription: boolean;
+  can_write_review: boolean;
+  review_write_blocked_reason: string | null;
+  days_until_review: number | null;
 };
 
 export type SubscriptionInfo = {
@@ -120,6 +125,7 @@ export type Review = {
   author_avatar_url: string | null;
   text: string;
   rating: number;
+  image_url: string | null;
   is_mine: boolean;
 };
 
@@ -130,6 +136,7 @@ export type NewsPost = {
   title: string;
   body: string;
   image_url: string | null;
+  video_url: string | null;
   author_telegram_id: number;
   author_display_name: string | null;
 };
@@ -167,19 +174,9 @@ export const fetchChallengeTrackers = () => api<ChallengeDashboard[]>("/challeng
 
 export const fetchReviews = () => api<Review[]>("/reviews");
 
-export const createReview = (body: { text: string; rating: number }) =>
-  api<Review>("/reviews", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+export const createReview = (form: FormData) => sendForm<Review>("/reviews", "POST", form);
 
-export const updateReview = (id: number, body: { text: string; rating: number }) =>
-  api<Review>(`/reviews/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+export const updateReview = (id: number, form: FormData) => sendForm<Review>(`/reviews/${id}`, "PUT", form);
 
 export async function deleteReview(id: number): Promise<void> {
   const res = await fetch(`${base}/reviews/${id}`, { method: "DELETE", headers: authHeaders() });

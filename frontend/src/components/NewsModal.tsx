@@ -13,7 +13,9 @@ export function NewsModal({ open, post, onClose, onSaved }: Props) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [image, setImage] = useState<File | null>(null);
+  const [video, setVideo] = useState<File | null>(null);
   const [removeImage, setRemoveImage] = useState(false);
+  const [removeVideo, setRemoveVideo] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -22,7 +24,9 @@ export function NewsModal({ open, post, onClose, onSaved }: Props) {
     setTitle(post?.title ?? "");
     setBody(post?.body ?? "");
     setImage(null);
+    setVideo(null);
     setRemoveImage(false);
+    setRemoveVideo(false);
     setErr(null);
   }, [open, post]);
 
@@ -36,7 +40,9 @@ export function NewsModal({ open, post, onClose, onSaved }: Props) {
     fd.append("title", title.trim());
     fd.append("body", body.trim());
     if (post && removeImage) fd.append("remove_image", "true");
+    if (post && removeVideo) fd.append("remove_video", "true");
     if (image) fd.append("image", image);
+    if (video) fd.append("video", video);
     try {
       if (post) {
         await updateNewsPost(post.id, fd);
@@ -74,6 +80,21 @@ export function NewsModal({ open, post, onClose, onSaved }: Props) {
             </p>
           )}
           <input type="file" accept="image/*" onChange={(e) => setImage(e.target.files?.[0] ?? null)} />
+
+          <label className="field-label">Видео (необязательно)</label>
+          {post?.video_url && !removeVideo && !video && (
+            <p className="meta">
+              Видео прикреплено.{" "}
+              <button type="button" className="ghost-btn ghost-btn--sm" onClick={() => setRemoveVideo(true)}>
+                Убрать
+              </button>
+            </p>
+          )}
+          <input
+            type="file"
+            accept="video/mp4,video/webm,video/quicktime"
+            onChange={(e) => setVideo(e.target.files?.[0] ?? null)}
+          />
 
           {err && <p className="err">{err}</p>}
           <div className="modal-actions">
