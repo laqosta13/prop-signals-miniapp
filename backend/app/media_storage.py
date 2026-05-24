@@ -24,7 +24,11 @@ def media_root() -> Path:
 def public_url(relative: str | None) -> str | None:
     if not relative:
         return None
-    return f"/media/{relative.lstrip('/')}"
+    path = f"/media/{relative.lstrip('/')}"
+    base = (settings.public_base_url or "").rstrip("/")
+    if base:
+        return f"{base}{path}"
+    return path
 
 
 async def save_signal_image(signal_id: int, file: UploadFile) -> str:

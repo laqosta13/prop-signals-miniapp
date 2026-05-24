@@ -10,7 +10,7 @@ from app.config import settings
 from app.models import Signal, Trader
 from app.schemas import TraderDayStat, TraderRead
 from app.serializers import trader_to_read
-from app.signal_service import get_or_create_trader
+from app.signal_service import get_or_create_trader, sync_admin_avatars
 from app.trader_stats import pnl_usd_for_outcome, signal_trade_return_pct
 from app.telegram_avatar import ensure_trader_avatar
 
@@ -60,6 +60,7 @@ def build_leaderboard(db: Session) -> list[TraderRead]:
     ids = sorted(settings.admin_id_set)
     if not ids:
         return []
+    sync_admin_avatars(db)
     daily = daily_stats_map(db, ids)
     traders = {t.telegram_id: t for t in db.scalars(select(Trader).where(Trader.telegram_id.in_(ids)))}
     for aid in ids:

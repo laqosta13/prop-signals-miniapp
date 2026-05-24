@@ -12,6 +12,8 @@ from app.media_storage import media_root, save_avatar_bytes
 
 logger = logging.getLogger(__name__)
 
+_HTTP_HEADERS = {"User-Agent": "PropSignalsMiniApp/1.0"}
+
 
 def _avatar_rel(telegram_id: int) -> str:
     return f"avatars/{telegram_id}.jpg"
@@ -23,7 +25,7 @@ def _avatar_file(telegram_id: int) -> Path:
 
 def _download_bytes(url: str) -> bytes | None:
     try:
-        with httpx.Client(timeout=20.0, follow_redirects=True) as client:
+        with httpx.Client(timeout=20.0, follow_redirects=True, headers=_HTTP_HEADERS) as client:
             r = client.get(url)
             if r.status_code == 200 and r.content:
                 return r.content
@@ -36,7 +38,7 @@ def _download_bytes(url: str) -> bytes | None:
 def _download_via_bot_api(user_id: int, token: str) -> bytes | None:
     base = f"https://api.telegram.org/bot{token}"
     try:
-        with httpx.Client(timeout=20.0) as client:
+        with httpx.Client(timeout=20.0, headers=_HTTP_HEADERS) as client:
             r = client.get(f"{base}/getUserProfilePhotos", params={"user_id": user_id, "limit": 1})
             if r.status_code != 200:
                 logger.warning("getUserProfilePhotos HTTP %s user=%s", r.status_code, user_id)

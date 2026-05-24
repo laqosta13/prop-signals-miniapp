@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { recordSignalView, toggleSignalLike, type Signal } from "../api";
-import { calcRR, authorProfile, formatTakeProfits, formatTime, formatUsd } from "../utils";
+import { calcRR, authorProfile, formatTakeProfits, formatTime, formatUsd, mediaUrl } from "../utils";
 import { canEditOrDeleteSignal, canSupplementSignal } from "../utils/signalActions";
 import { Avatar } from "./Avatar";
 
 type Props = {
   signal: Signal;
   isAdmin?: boolean;
+  myId?: number | null;
   canEngage?: boolean;
   onEdit?: (signal: Signal) => void;
   onDelete?: (id: number) => void;
@@ -19,6 +20,7 @@ type Props = {
 export function SignalCard({
   signal: s,
   isAdmin,
+  myId,
   canEngage = true,
   onEdit,
   onDelete,
@@ -119,7 +121,7 @@ export function SignalCard({
         <div className="signal-card__actions">
           <span className="risk-tag">Вход {stake}%</span>
           {tracker != null && tracker > 0 && <span className="risk-tag">Трекер {formatUsd(tracker)}</span>}
-          {isAdmin && canEditOrDeleteSignal(s) && (
+          {isAdmin && canEditOrDeleteSignal(s, myId, !!isAdmin) && (
             <div className="admin-actions">
               {onEdit && (
                 <button type="button" className="edit-btn" onClick={() => onEdit(s)}>
@@ -151,12 +153,12 @@ export function SignalCard({
         </div>
       </div>
       {s.media_image_url && (
-        <button type="button" className="media-thumb" onClick={() => setLightbox(s.media_image_url)}>
-          <img src={s.media_image_url} alt="Скрин" className="signal-media-img" />
+        <button type="button" className="media-thumb" onClick={() => setLightbox(mediaUrl(s.media_image_url))}>
+          <img src={mediaUrl(s.media_image_url)!} alt="Скрин" className="signal-media-img" />
         </button>
       )}
       {s.media_video_url && (
-        <video src={s.media_video_url} controls className="signal-media-video" playsInline />
+        <video src={mediaUrl(s.media_video_url)!} controls className="signal-media-video" playsInline />
       )}
       {s.comment && <p className="signal-card__comment">{s.comment}</p>}
       {(s.supplements?.length ?? 0) > 0 && (
@@ -167,18 +169,18 @@ export function SignalCard({
               <p className="signal-supplement__time">{formatTime(sup.created_at)}</p>
               {sup.comment && <p className="signal-card__comment">{sup.comment}</p>}
               {sup.media_image_url && (
-                <button type="button" className="media-thumb" onClick={() => setLightbox(sup.media_image_url)}>
-                  <img src={sup.media_image_url} alt="Скрин дополнения" className="signal-media-img" />
+                <button type="button" className="media-thumb" onClick={() => setLightbox(mediaUrl(sup.media_image_url))}>
+                  <img src={mediaUrl(sup.media_image_url)!} alt="Скрин дополнения" className="signal-media-img" />
                 </button>
               )}
               {sup.media_video_url && (
-                <video src={sup.media_video_url} controls className="signal-media-video" playsInline />
+                <video src={mediaUrl(sup.media_video_url)!} controls className="signal-media-video" playsInline />
               )}
             </div>
           ))}
         </section>
       )}
-      {isAdmin && canSupplementSignal(s) && onSupplement && (
+      {isAdmin && canSupplementSignal(s, myId, !!isAdmin) && onSupplement && (
         <button type="button" className="supplement-btn" onClick={() => onSupplement(s)}>
           Дополнить сигнал
         </button>

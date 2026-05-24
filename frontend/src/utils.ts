@@ -119,6 +119,14 @@ export function initialsFromAuthor(displayName: string | null | undefined, usern
   return clean.slice(0, 2).toUpperCase() || "?";
 }
 
+/** Абсолютный URL для /media/... при отдельном API-домене (VITE_API_URL). */
+export function mediaUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  const base = import.meta.env.VITE_API_URL?.replace(/\/$/, "") || "";
+  return base ? `${base}${url}` : url;
+}
+
 export function calcRR(entry: string | null, stop: string | null, target: string | null): string {
   const e = parseFloat((entry || "").replace(",", "."));
   const s = parseFloat((stop || "").replace(",", "."));

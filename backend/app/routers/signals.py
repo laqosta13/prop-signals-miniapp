@@ -5,6 +5,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.deps import db_session, get_current_user, require_active_subscription, require_admin
+from app.signal_permissions import require_signal_engagement, require_signal_owner
 from app.engagement import record_view, toggle_like
 from app.media_storage import (
     delete_media_files,
@@ -24,6 +25,7 @@ from app.signal_service import (
     notify_new_signal,
     notify_signal_supplement,
     notify_updated_signal,
+    sync_admin_avatars,
     sync_pending_entry_fills,
     try_fill_entry_from_market,
     update_signal_fields,
@@ -46,9 +48,28 @@ async def list_signals(
     db: Session = Depends(db_session),
     user: TelegramUser = Depends(require_active_subscription),
 ) -> list[SignalRead]:
+    """Полная лента — только с активной подпиской (или админ)."""
     stmt = select(Signal).order_by(Signal.created_at.desc()).limit(200)
     rows = list(db.scalars(stmt).all())
     await sync_pending_entry_fills(db, rows, notify=False)
+    sync_admin_avatars(db)
+    return [signal_to_read(db, s, user.telegram_user_id) for s in rows]
+
+
+@router.get("/preview", response_model=list[SignalRead])
+async def list_signals_preview(
+    db: Session = Depends(db_session),
+    user: TelegramUser = Depends(get_current_user),
+) -> list[SignalRead]:
+    """Бесплатная лента — только отработанные сигналы (win/lose), без активных."""
+    stmt = (
+        select(Signal)
+        .where(Signal.status.in_(("win", "lose")))
+        .order_by(Signal.created_at.desc())
+        .limit(200)
+    )
+    rows = list(db.scalars(stmt).all())
+    sync_admin_avatars(db)
     return [signal_to_read(db, s, user.telegram_user_id) for s in rows]
 
 
@@ -129,6 +150,7 @@ async def update_signal(
     row = db.get(Signal, signal_id)
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")
+    require_signal_owner(row, admin)
     if not signal_awaiting_entry(row):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -193,10 +215,10 @@ async def delete_signal(
     db: Session = Depends(db_session),
     admin: TelegramUser = Depends(require_admin),
 ) -> None:
-    _ = admin
     row = db.get(Signal, signal_id)
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")
+    require_signal_owner(row, admin)
     if not signal_awaiting_entry(row):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -224,6 +246,7 @@ async def add_supplement(
     row = db.get(Signal, signal_id)
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")
+    require_signal_owner(row, admin)
     if not signal_in_trade(row):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -259,9 +282,11 @@ def add_view(
     db: Session = Depends(db_session),
     user: TelegramUser = Depends(get_current_user),
 ) -> ViewResponse:
-    count = record_view(db, signal_id, user.telegram_user_id)
-    if count == 0:
+    row = db.get(Signal, signal_id)
+    if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")
+    require_signal_engagement(row, user)
+    count = record_view(db, signal_id, user.telegram_user_id)
     db.commit()
     return ViewResponse(views_count=count)
 
@@ -272,6 +297,10 @@ def like_signal(
     db: Session = Depends(db_session),
     user: TelegramUser = Depends(get_current_user),
 ) -> LikeResponse:
+    row = db.get(Signal, signal_id)
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")
+    require_signal_engagement(row, user)
     result = toggle_like(db, signal_id, user.telegram_user_id)
     if result is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")

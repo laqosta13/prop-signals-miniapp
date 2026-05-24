@@ -1,6 +1,7 @@
 import { useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { deleteSignal, type ChallengeDashboard, type Signal } from "../api";
+import { canViewActiveSignals, visibleFeedSignals } from "../utils/signalActions";
 import { PropTrackerMini } from "./PropTrackerMini";
 import { SignalCard } from "./SignalCard";
 
@@ -9,6 +10,7 @@ type Props = {
   trackers: ChallengeDashboard[];
   loading: boolean;
   isAdmin: boolean;
+  myId: number | null;
   subscriptionActive: boolean;
   onChanged: () => void;
   onEdit: (signal: Signal) => void;
@@ -23,6 +25,7 @@ export function FeedTab({
   trackers,
   loading,
   isAdmin,
+  myId,
   subscriptionActive,
   onChanged,
   onEdit,
@@ -32,6 +35,8 @@ export function FeedTab({
   onOpenTracker,
 }: Props) {
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const hasActiveAccess = canViewActiveSignals(subscriptionActive, isAdmin);
+  const visible = visibleFeedSignals(signals, subscriptionActive, isAdmin);
 
   const handleDelete = async (id: number) => {
     if (!confirm("Удалить этот сигнал?")) return;
@@ -49,22 +54,25 @@ export function FeedTab({
 
   return (
     <>
-      {!subscriptionActive && !isAdmin && (
+      {!hasActiveAccess && (
         <div className="sub-banner">
-          <p>Нужна подписка для просмотра сигналов.</p>
+          <p>Всё бесплатно, кроме активных сигналов — они по подписке.</p>
           <button type="button" className="ghost-btn" onClick={onOpenPay}>
             Оплата и подписка →
           </button>
         </div>
       )}
       {loading && <p className="meta">Загрузка…</p>}
-      {!loading && subscriptionActive && signals.length === 0 && <p className="meta">Пока нет сигналов.</p>}
-      {signals.map((s) => (
+      {!loading && visible.length === 0 && (
+        <p className="meta">{hasActiveAccess ? "Пока нет сигналов." : "Пока нет отработанных сигналов."}</p>
+      )}
+      {visible.map((s) => (
         <SignalCard
           key={s.id}
           signal={s}
           isAdmin={isAdmin}
-          canEngage={subscriptionActive || isAdmin}
+          myId={myId}
+          canEngage={true}
           deleting={deletingId === s.id}
           onEdit={onEdit}
           onSupplement={onSupplement}

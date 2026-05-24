@@ -83,6 +83,19 @@ def get_or_create_trader(
     return trader
 
 
+def sync_admin_avatars(db: Session) -> None:
+    """Подтягивает аватары всех админов через Bot API (если ещё нет на диске)."""
+    for aid in settings.admin_id_set:
+        trader = db.get(Trader, aid)
+        get_or_create_trader(
+            db,
+            aid,
+            trader.username if trader else None,
+            first_name=trader.first_name if trader else None,
+            last_name=trader.last_name if trader else None,
+        )
+
+
 def register_subscriber(db: Session, telegram_id: int, username: str | None, start_param: str | None = None) -> Subscriber:
     return register_subscriber_with_meta(db, telegram_id, username, start_param)
 

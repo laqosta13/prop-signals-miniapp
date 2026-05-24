@@ -137,6 +137,7 @@ export const submitPayment = (plan: "week" | "month", tx_id: string) =>
 
 export const fetchMe = () => api<Me>("/auth/me");
 export const fetchSignals = () => api<Signal[]>("/signals");
+export const fetchSignalsPreview = () => api<Signal[]>("/signals/preview");
 export const fetchLeaderboard = () => api<Trader[]>("/traders/leaderboard");
 export const fetchChallengeTrackers = () => api<ChallengeDashboard[]>("/challenge/trackers");
 

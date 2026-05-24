@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { initialsFromAuthor } from "../utils";
+import { initialsFromAuthor, mediaUrl } from "../utils";
 
 type Props = {
   url: string | null | undefined;
@@ -12,12 +12,13 @@ type Props = {
 export function Avatar({ url, displayName, username, size = 40 }: Props) {
   const [broken, setBroken] = useState(false);
   const initials = initialsFromAuthor(displayName, username);
+  const src = mediaUrl(url);
 
-  if (url && !broken) {
+  if (src && !broken) {
     return (
       <img
         className="avatar"
-        src={url}
+        src={src}
         alt={displayName || username || "Аватар"}
         width={size}
         height={size}

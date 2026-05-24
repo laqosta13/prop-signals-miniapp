@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     max_image_bytes: int = 10 * 1024 * 1024
     max_video_bytes: int = 50 * 1024 * 1024
     usdt_ton_address: str = "UQDdFFYSG8sGiQfps2WWuIWFuaDPv1GAcFeRck6y5oeR_sPe"
+    public_base_url: str = ""
 
     @property
     def admin_id_set(self) -> set[int]:

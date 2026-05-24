@@ -4,6 +4,7 @@ import {
   fetchLeaderboard,
   fetchMe,
   fetchSignals,
+  fetchSignalsPreview,
   setNotifications,
   updateChallenge,
   type ChallengeDashboard,
@@ -34,7 +35,7 @@ export default function App() {
   const [trackers, setTrackers] = useState<ChallengeDashboard[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [myId, setMyId] = useState<number | null>(null);
-  const [subActive, setSubActive] = useState(true);
+  const [subActive, setSubActive] = useState(false);
   const [notifyEnabled, setNotifyEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [showNewSignal, setShowNewSignal] = useState(false);
@@ -51,25 +52,22 @@ export default function App() {
       setIsAdmin(me.is_admin);
       setMyId(me.telegram_user_id);
       setNotifyEnabled(me.notify_enabled);
-      setSubActive(me.subscription_active);
       setError(null);
-      if (me.subscription_active || me.is_admin) {
-        setSignals(await fetchSignals());
-      } else {
-        setSignals([]);
-      }
+      const fullAccess = me.subscription_active || me.is_admin;
+      setSubActive(me.subscription_active);
+      const [sig, trk] = await Promise.all([
+        fullAccess ? fetchSignals() : fetchSignalsPreview(),
+        fetchChallengeTrackers(),
+      ]);
+      setSignals(sig);
+      setTrackers(trk);
     } catch (e) {
+      setSignals([]);
+      setTrackers([]);
+      setTraders([]);
       setError(e instanceof Error ? e.message : "Ошибка загрузки");
     } finally {
       setLoading(false);
-    }
-  }, []);
-
-  const loadTrackers = useCallback(async () => {
-    try {
-      setTrackers(await fetchChallengeTrackers());
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Ошибка трекеров");
     }
   }, []);
 
@@ -83,13 +81,11 @@ export default function App() {
 
   useEffect(() => {
     void loadMeAndSignals();
-    void loadTrackers();
-  }, [loadMeAndSignals, loadTrackers]);
+  }, [loadMeAndSignals]);
 
   useEffect(() => {
-    if (tab === "feed" || tab === "tracker") void loadTrackers();
     if (tab === "top") void loadTop();
-  }, [tab, loadTrackers, loadTop]);
+  }, [tab, loadTop]);
 
   useEffect(() => {
     const id = window.setInterval(() => void loadMeAndSignals(), 45000);
@@ -107,7 +103,7 @@ export default function App() {
         stage: parseInt(stage || "1", 10),
         reset_day: true,
       });
-      await Promise.all([loadTrackers(), loadMeAndSignals()]);
+      await Promise.all([loadMeAndSignals()]);
     } catch (e) {
       alert(e instanceof Error ? e.message : "Ошибка");
     }
@@ -157,6 +153,7 @@ export default function App() {
             trackers={trackers}
             loading={loading}
             isAdmin={isAdmin}
+            myId={myId}
             subscriptionActive={subActive}
             onChanged={loadMeAndSignals}
             onEdit={setEditSignal}

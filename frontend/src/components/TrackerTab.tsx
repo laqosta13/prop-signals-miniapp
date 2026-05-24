@@ -19,7 +19,9 @@ export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Pro
         const progress = Math.min(100, Math.max(0, (d.profit_pct / d.profit_target_pct) * 100));
         const dd = Math.min(100, (d.drawdown_pct / d.max_drawdown_pct) * 100);
         const day = Math.min(100, ((d.max_daily_loss_pct - d.daily_loss_pct) / d.max_daily_loss_pct) * 100);
-        const recent = signals.filter((s) => s.author_telegram_id === d.owner_telegram_id && s.status !== "active").slice(0, 5);
+        const recent = signals
+          .filter((s) => s.author_telegram_id === d.owner_telegram_id && s.status !== "active")
+          .slice(0, 5);
         const canEdit = isAdmin && myId === d.owner_telegram_id;
 
         return (

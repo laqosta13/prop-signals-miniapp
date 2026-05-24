@@ -31,7 +31,23 @@
 ## Роли
 
 - **Админ** — публикует/редактирует/удаляет/дополняет сигналы, свой трекер, доступ без подписки
-- **Подписчик** — лента при активной подписке + уведомления в Telegram (`notify_enabled`)
+- **Подписчик** — активные сигналы при подписке (trial 3 дня = подписка) + уведомления в Telegram
+
+---
+
+## Доступ без подписки vs с подпиской
+
+| Раздел | Без подписки | С подпиской / админ |
+|---|---|---|
+| Лента: **отработанные** (win/lose) | ✓ `GET /signals/preview` | ✓ |
+| Лента: **активные** сигналы | ✗ | ✓ `GET /signals` |
+| Трекер Hash Hedge | ✓ | ✓ |
+| ТОП / equity curve | ✓ | ✓ |
+| Лайки / просмотры (win/lose) | ✓ | ✓ |
+| Лайки / просмотры (active) | ✗ | ✓ |
+| Уведомления в Telegram | ✗ (кроме trial/оплаты) | ✓ |
+
+Frontend: без подписки вызывает `fetchSignalsPreview()`, с подпиской — `fetchSignals()`. Дополнительный фильтр `visibleFeedSignals()` на клиенте.
 
 ---
 
@@ -45,6 +61,8 @@
 - **Скрин / Видео / Комментарий** (на русском)
 
 **Кнопка «+»** — в **правом верхнем углу** шапки на вкладке Лента (не FAB снизу).
+
+**Автор на карточке:** имя (Telegram `first_name` + `last_name`), строка `@username`, **аватар** слева от инструмента. Не показываем числовой `telegram_id` в UI.
 
 ---
 
@@ -81,6 +99,35 @@
 Дополнения: таблица `signal_supplements`, блок «Дополнения» в карточке.
 
 Frontend-правила: `frontend/src/utils/signalActions.ts`.
+
+---
+
+## Профиль админа (Trader) и аватары
+
+Таблица **`traders`** (PK = `telegram_id`): `username`, `first_name`, `last_name`, `avatar_path`, рейтинг и статистика.
+
+| Где показывается | Поля API |
+|---|---|
+| Карточка сигнала | `author_display_name`, `author_username`, `author_avatar_url` |
+| ТОП | `display_name`, `username`, `avatar_url` |
+| Трекер / PropTrackerMini | `owner_display_name`, `owner_username`, `owner_avatar_url` |
+
+**Отображение имени:** `trader_display_name()` — склеивает `first_name` + `last_name`; fallback на `@username`.  
+Frontend: `authorProfile()` в `frontend/src/utils.ts` (title + subtitle `@login`).
+
+**Загрузка аватара** (`backend/app/telegram_avatar.py`):
+
+1. При каждом запросе с initData админ вызывает `get_or_create_trader(..., photo_url=...)` в `deps.py`.
+2. Сначала скачивание по **`photo_url`** из Telegram Web App initData (`telegram_auth.py`).
+3. Fallback: Bot API `getUserProfilePhotos` + `getFile` (нужен **`BOT_TOKEN`**).
+4. Файл на диске: `{MEDIA_ROOT}/avatars/{telegram_id}.jpg` → URL `/media/avatars/{id}.jpg`.
+5. Если файл на диске есть, но в БД пути нет — путь восстанавливается; если файла нет — повторная загрузка.
+
+**Важно:** `get_db()` делает `commit()` при успешном завершении запроса — иначе `avatar_path` терялся после read-only запросов (лента).
+
+**UI:** компонент `Avatar.tsx` — картинка или инициалы при отсутствии/ошибке загрузки (`onError`).
+
+Админы создаются только через **`TELEGRAM_ADMIN_IDS`** (нет UI добавления админов).
 
 ---
 
@@ -153,12 +200,22 @@ Frontend-правила: `frontend/src/utils/signalActions.ts`.
 
 ---
 
+## Медиа и статика
+
+- **`MEDIA_ROOT`** (prod: `/data/media`) — скрины/видео сигналов, дополнения, аватары
+- FastAPI mount: `/media` → `StaticFiles` (`main.py`)
+- Vite dev proxy: `/media` → backend `:8000` (`vite.config.ts`)
+- Публичные URL: `public_url()` → `/media/{relative_path}` (`media_storage.py`)
+
+---
+
 ## API (основное)
 
 ```
 GET  /health
 GET  /auth/me
-GET  /signals              — + sync входов по рынку
+GET  /signals              — полная лента (подписка / админ)
+GET  /signals/preview      — только win/lose (бесплатно)
 POST /signals              — админ, multipart
 PUT  /signals/{id}         — админ, до входа
 DELETE /signals/{id}       — админ, до входа
@@ -179,6 +236,9 @@ PUT  /subscriptions/me     — notify_enabled
 | Область | Файлы |
 |---|---|
 | Модели | `backend/app/models.py` |
+| БД / сессии | `backend/app/database.py` |
+| Auth initData | `backend/app/telegram_auth.py`, `deps.py` |
+| Аватары | `telegram_avatar.py`, `media_storage.py`, `serializers.py` |
 | Сигналы API | `backend/app/routers/signals.py` |
 | Логика сигналов | `backend/app/signal_service.py`, `signal_utils.py` |
 | Цены / монитор | `price_service.py`, `price_monitor.py` |
@@ -188,13 +248,13 @@ PUT  /subscriptions/me     — notify_enabled
 | Уведомления | `telegram_notify.py` |
 | Миграции / purge | `migrate.py`, `data_cleanup.py` |
 | Frontend shell | `frontend/src/App.tsx` |
-| Лента | `FeedTab.tsx`, `SignalCard.tsx` |
+| Лента | `FeedTab.tsx`, `SignalCard.tsx`, `Avatar.tsx` |
 | Модалки | `NewSignalModal.tsx`, `EditSignalModal.tsx`, `AppendSupplementModal.tsx` |
 | ТОП | `LeaderboardTab.tsx`, `EquityCurve.tsx` |
 | Подписка UI | `SubscriptionTab.tsx` |
 | Трекер UI | `TrackerTab.tsx`, `PropTrackerMini.tsx` |
 | API клиент | `frontend/src/api.ts` |
-| Правила UI | `frontend/src/utils/signalActions.ts` |
+| Утилиты UI | `frontend/src/utils.ts`, `frontend/src/utils/signalActions.ts` |
 
 ---
 
@@ -235,9 +295,10 @@ USDT_TON_ADDRESS=UQDdFFYSG8sGiQfps2WWuIWFuaDPv1GAcFeRck6y5oeR_sPe
 6. Purge сигналов + обнуление рейтинга
 7. Автовход если цена уже прошла уровень; sync при загрузке ленты; 3 источника цен
 8. Починка уведомлений + diff при редактировании
+9. Профиль админа на карточках: имя, @username, аватар; `photo_url` из initData; commit в `get_db()`; fallback инициалов в `Avatar.tsx`
 
 ---
 
 ## Быстрое напоминание для AI
 
-> **prop-signals-miniapp** — FastAPI + React Telegram Mini App на Amvera. Админы публикуют сигналы, подписчики смотрят ленту. Hash Hedge трекеры, ТОП с equity curve, подписка USDT TON. P/L = (трекер × сумма входа %) × % движения цены. LONG: вход срабатывает если рынок ≤ уровня. Edit/delete до входа, дополнения после. Уведомления в Telegram с diff при редактировании. Полный контекст — этот файл.
+> **prop-signals-miniapp** — FastAPI + React Telegram Mini App на Amvera. Админы публикуют сигналы, подписчики смотрят ленту. На карточках — имя, @username и аватар автора. Hash Hedge трекеры, ТОП с equity curve, подписка USDT TON. P/L = (трекер × сумма входа %) × % движения цены. LONG: вход срабатывает если рынок ≤ уровня. Edit/delete до входа, дополнения после. Уведомления в Telegram с diff при редактировании. Аватары: `photo_url` из initData → `/data/media/avatars/`. Полный контекст — этот файл.
