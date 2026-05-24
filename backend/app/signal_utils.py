@@ -64,6 +64,32 @@ def price_in_entry_zone(price: float, entry_low: str | None, entry_high: str | N
     return lo <= price <= hi
 
 
+def entry_triggered(
+    price: float,
+    direction: str,
+    entry_low: str | None,
+    entry_high: str | None,
+) -> bool:
+    """Лимитный вход сработал: цена в зоне или уже прошла уровень входа."""
+    if price_in_entry_zone(price, entry_low, entry_high):
+        return True
+    a = parse_price(entry_low)
+    b = parse_price(entry_high)
+    if a is None and b is None:
+        return True
+    lo = min(a, b) if a is not None and b is not None else (a if a is not None else b)
+    hi = max(a, b) if a is not None and b is not None else lo
+    assert lo is not None and hi is not None
+    d = direction.lower()
+    # LONG: покупаем на откате — вход сработал, если цена уже на уровне или ниже
+    if d == "long":
+        return price <= hi
+    # SHORT: продаём на росте — вход сработал, если цена уже на уровне или выше
+    if d == "short":
+        return price >= lo
+    return False
+
+
 def compute_signal_points_percent(
     entry_low: str | None,
     entry_high: str | None,

@@ -24,6 +24,7 @@ from app.signal_service import (
     notify_new_signal,
     notify_signal_supplement,
     notify_updated_signal,
+    try_fill_entry_from_market,
     update_signal_fields,
 )
 from app.signal_utils import entry_zone_defined, signal_awaiting_entry, signal_in_trade
@@ -95,6 +96,7 @@ async def create_signal(
         db.commit()
         db.refresh(row)
 
+    await try_fill_entry_from_market(db, row)
     await notify_new_signal(db, row)
     return signal_to_read(db, row, admin.telegram_user_id)
 
@@ -159,6 +161,7 @@ async def update_signal(
 
     db.commit()
     db.refresh(row)
+    await try_fill_entry_from_market(db, row)
     await notify_updated_signal(db, row)
     return signal_to_read(db, row, admin.telegram_user_id)
 

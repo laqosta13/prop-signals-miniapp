@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Signal, Subscriber, Trader
-from app.signal_utils import compute_signal_points_percent, entry_zone_defined
+from app.signal_utils import compute_signal_points_percent, entry_zone_defined, entry_triggered
 from app.telegram_avatar import ensure_trader_avatar
 from app.telegram_notify import (
     format_closed_signal_message,
@@ -18,6 +18,7 @@ from app.telegram_notify import (
     notify_subscribers,
 )
 from app.challenge_service import apply_signal_to_tracker, ensure_tracker_for_new_signal
+from app.price_service import fetch_price
 from app.subscription_billing import register_subscriber_with_meta
 from app.trader_stats import apply_outcome_to_trader
 
@@ -119,6 +120,25 @@ async def notify_signal_supplement(db: Session, signal: Signal, comment: str | N
     ids = subscriber_ids_for_notify(db)
     if ids:
         await notify_subscribers(format_supplement_message(signal, comment), ids)
+
+
+async def try_fill_entry_from_market(db: Session, signal: Signal, *, notify: bool = True) -> bool:
+    """Если цена уже прошла уровень входа — сразу отмечаем сигнал активным."""
+    if signal.entry_filled_at is not None or signal.status != "active":
+        return False
+    if not entry_zone_defined(signal.entry_low, signal.entry_high):
+        return False
+    price = await fetch_price(signal.symbol)
+    if price is None:
+        return False
+    if not entry_triggered(price, signal.direction, signal.entry_low, signal.entry_high):
+        return False
+    signal.entry_filled_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(signal)
+    if notify:
+        await notify_entry_filled(db, signal)
+    return True
 
 
 def build_signal_row(

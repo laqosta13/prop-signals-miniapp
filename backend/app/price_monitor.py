@@ -12,7 +12,7 @@ from app.database import SessionLocal
 from app.models import Signal
 from app.price_service import clear_price_cache, fetch_price
 from app.signal_service import close_signal_and_notify, notify_entry_filled
-from app.signal_utils import evaluate_signal, price_in_entry_zone
+from app.signal_utils import evaluate_signal, entry_triggered
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ async def check_active_signals_once() -> int:
                 continue
 
             if signal.entry_filled_at is None:
-                if price_in_entry_zone(price, signal.entry_low, signal.entry_high):
+                if entry_triggered(price, signal.direction, signal.entry_low, signal.entry_high):
                     signal.entry_filled_at = datetime.now(timezone.utc)
                     db.commit()
                     await notify_entry_filled(db, signal)
