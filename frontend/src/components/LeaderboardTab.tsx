@@ -1,6 +1,6 @@
 import type { Trader } from "../api";
 import { EquityCurve } from "./EquityCurve";
-import { formatDayLabel, formatUsd, traderName } from "../utils";
+import { authorProfile, formatDayLabel, formatUsd } from "../utils";
 import { Avatar } from "./Avatar";
 
 type Props = { traders: Trader[]; loading: boolean };
@@ -14,9 +14,10 @@ export function LeaderboardTab({ traders, loading }: Props) {
       {traders.map((t) => (
         <li key={t.telegram_id} className="top-card">
           <span className="top-rank">#{t.rank}</span>
-          <Avatar url={t.avatar_url} username={t.username} telegramId={t.telegram_id} size={44} />
+          <Avatar url={t.avatar_url} displayName={t.display_name} username={t.username} size={44} />
           <div className="top-body">
-            <p className="top-name">{traderName(t.username, t.telegram_id)}</p>
+            <p className="top-name">{authorProfile(t.display_name, t.username).title}</p>
+            {t.username && <p className="top-login">@{t.username}</p>}
             <p className="top-score">
               {t.rating_percent >= 0 ? "+" : ""}
               {t.rating_percent.toFixed(2)}%

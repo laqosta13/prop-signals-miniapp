@@ -131,7 +131,25 @@ body {
   display: block;
   font-size: 0.72rem;
   color: var(--muted);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
+}
+
+.author-line--name {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.author-line--login {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.top-login,
+.prop-mini__login {
+  margin: 0 0 4px;
+  font-size: 0.72rem;
+  color: var(--muted);
 }
 
 .avatar {

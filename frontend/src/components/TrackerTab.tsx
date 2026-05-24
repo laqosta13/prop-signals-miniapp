@@ -1,5 +1,5 @@
 import type { ChallengeDashboard, Signal } from "../api";
-import { formatTakeProfits, formatUsd, traderName } from "../utils";
+import { authorProfile, formatTakeProfits, formatUsd } from "../utils";
 import { Avatar } from "./Avatar";
 
 type Props = {
@@ -25,9 +25,10 @@ export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Pro
         return (
           <section key={d.owner_telegram_id} className="tracker-block">
             <header className="tracker-block__head">
-              <Avatar url={d.owner_avatar_url} username={d.owner_username} telegramId={d.owner_telegram_id} size={40} />
+              <Avatar url={d.owner_avatar_url} displayName={d.owner_display_name} username={d.owner_username} size={40} />
               <div>
-                <p className="tracker-block__name">{traderName(d.owner_username, d.owner_telegram_id)}</p>
+                <p className="tracker-block__name">{authorProfile(d.owner_display_name, d.owner_username).title}</p>
+                {d.owner_username && <p className="tracker-block__sub">@{d.owner_username}</p>}
                 <p className="tracker-block__sub">Этап {d.stage}</p>
               </div>
             </header>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { recordSignalView, toggleSignalLike, type Signal } from "../api";
-import { calcRR, formatTakeProfits, formatTime, formatUsd, traderName } from "../utils";
+import { calcRR, authorProfile, formatTakeProfits, formatTime, formatUsd } from "../utils";
 import { canEditOrDeleteSignal, canSupplementSignal } from "../utils/signalActions";
 import { Avatar } from "./Avatar";
 
@@ -76,6 +76,8 @@ export function SignalCard({
     statusClass = "active-in";
   }
 
+  const author = authorProfile(s.author_display_name, s.author_username);
+
   const handleLike = async () => {
     if (liking) return;
     setLiking(true);
@@ -104,10 +106,11 @@ export function SignalCard({
       )}
       <header className="signal-card__head">
         <div className="signal-card__author">
-          <Avatar url={s.author_avatar_url} username={s.author_username} telegramId={s.author_telegram_id} size={36} />
+          <Avatar url={s.author_avatar_url} displayName={s.author_display_name} username={s.author_username} size={36} />
           <div>
             <h3>{s.symbol}</h3>
-            <span className="author-line">{traderName(s.author_username, s.author_telegram_id)}</span>
+            <span className="author-line author-line--name">{author.title}</span>
+            {author.subtitle && <span className="author-line author-line--login">{author.subtitle}</span>}
             <span className={`dir-badge ${isLong ? "long" : "short"}`}>
               {isLong ? "↑ LONG" : "↓ SHORT"}
             </span>

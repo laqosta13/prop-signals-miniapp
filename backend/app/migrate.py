@@ -98,6 +98,10 @@ def run_migrations(engine: Engine) -> None:
                 conn.execute(text("ALTER TABLE traders ADD COLUMN avatar_path VARCHAR(256)"))
             if not _has_column(engine, "traders", "total_pnl_usd"):
                 conn.execute(text("ALTER TABLE traders ADD COLUMN total_pnl_usd REAL DEFAULT 0"))
+            if not _has_column(engine, "traders", "first_name"):
+                conn.execute(text("ALTER TABLE traders ADD COLUMN first_name VARCHAR(64)"))
+            if not _has_column(engine, "traders", "last_name"):
+                conn.execute(text("ALTER TABLE traders ADD COLUMN last_name VARCHAR(64)"))
             conn.execute(text("UPDATE traders SET wins = 0 WHERE wins IS NULL"))
             conn.execute(text("UPDATE traders SET losses = 0 WHERE losses IS NULL"))
             conn.execute(text("UPDATE traders SET rating_percent = 0.0 WHERE rating_percent IS NULL"))

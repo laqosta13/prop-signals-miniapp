@@ -7,6 +7,21 @@ from app.models import Signal, SignalSupplement, Trader
 from app.schemas import SignalRead, SignalSupplementRead, TraderDayStat, TraderRead
 
 
+def trader_display_name(trader: Trader | None, username: str | None = None) -> str | None:
+    if trader:
+        parts = [trader.first_name, trader.last_name]
+        name = " ".join(p.strip() for p in parts if p and str(p).strip())
+        if name:
+            return name
+    return None
+
+
+def trader_login(trader: Trader | None, fallback_username: str | None = None) -> str | None:
+    if trader and trader.username:
+        return trader.username
+    return fallback_username
+
+
 def trader_avatar_url(trader: Trader | None) -> str | None:
     if trader and trader.avatar_path:
         return public_url(trader.avatar_path)
@@ -30,8 +45,11 @@ def _supplements_read(db: Session, signal_id: int) -> list[SignalSupplementRead]
 
 
 def signal_to_read(db: Session, signal: Signal, viewer_id: int | None = None) -> SignalRead:
-    trader = db.get(Trader, signal.author_telegram_id)
+    from app.signal_service import get_or_create_trader
+
+    trader = get_or_create_trader(db, signal.author_telegram_id, signal.author_username)
     liked = user_liked(db, signal.id, viewer_id) if viewer_id else False
+    login = trader_login(trader, signal.author_username)
     return SignalRead(
         id=signal.id,
         created_at=signal.created_at,
@@ -54,7 +72,8 @@ def signal_to_read(db: Session, signal: Signal, viewer_id: int | None = None) ->
         likes_count=signal.likes_count or 0,
         liked_by_me=liked,
         author_telegram_id=signal.author_telegram_id,
-        author_username=signal.author_username,
+        author_username=login,
+        author_display_name=trader_display_name(trader, login),
         media_image_url=public_url(signal.media_image_path),
         media_video_url=public_url(signal.media_video_path),
         author_avatar_url=trader_avatar_url(trader),
@@ -68,6 +87,7 @@ def trader_to_read(
     return TraderRead(
         telegram_id=t.telegram_id,
         username=t.username,
+        display_name=trader_display_name(t, t.username),
         rating_percent=t.rating_percent or 0.0,
         total_pnl_usd=t.total_pnl_usd or 0.0,
         wins=t.wins or 0,

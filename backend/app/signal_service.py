@@ -40,12 +40,21 @@ def _normalize_trader_stats(trader: Trader) -> None:
         trader.total_pnl_usd = 0.0
 
 
-def get_or_create_trader(db: Session, telegram_id: int, username: str | None) -> Trader:
+def get_or_create_trader(
+    db: Session,
+    telegram_id: int,
+    username: str | None,
+    *,
+    first_name: str | None = None,
+    last_name: str | None = None,
+) -> Trader:
     trader = db.get(Trader, telegram_id)
     if trader is None:
         trader = Trader(
             telegram_id=telegram_id,
             username=username,
+            first_name=first_name,
+            last_name=last_name,
             wins=0,
             losses=0,
             rating_percent=0.0,
@@ -56,10 +65,15 @@ def get_or_create_trader(db: Session, telegram_id: int, username: str | None) ->
         _normalize_trader_stats(trader)
         if username and trader.username != username:
             trader.username = username
+        if first_name and trader.first_name != first_name:
+            trader.first_name = first_name
+        if last_name and trader.last_name != last_name:
+            trader.last_name = last_name
     if not trader.avatar_path:
         path = ensure_trader_avatar(telegram_id)
         if path:
             trader.avatar_path = path
+            db.flush()
     return trader
 
 
@@ -218,9 +232,17 @@ def build_signal_row(
     leverage: int | None = None,
     risk_percent: float | None = None,
     tracker_balance: float | None = None,
+    author_first_name: str | None = None,
+    author_last_name: str | None = None,
 ) -> Signal:
     points = risk_percent if risk_percent is not None else compute_signal_points_percent(entry_low, entry_high, stop_loss)
-    get_or_create_trader(db, author_telegram_id, author_username)
+    get_or_create_trader(
+        db,
+        author_telegram_id,
+        author_username,
+        first_name=author_first_name,
+        last_name=author_last_name,
+    )
     return Signal(
         symbol=symbol,
         direction=direction,

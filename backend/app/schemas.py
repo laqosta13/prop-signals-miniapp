@@ -47,6 +47,7 @@ class SignalRead(BaseModel):
     liked_by_me: bool = False
     author_telegram_id: int
     author_username: str | None = None
+    author_display_name: str | None = None
     media_image_url: str | None = None
     media_video_url: str | None = None
     author_avatar_url: str | None = None
@@ -68,6 +69,8 @@ class TelegramUser(BaseModel):
     telegram_user_id: int
     is_admin: bool
     username: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
     notify_enabled: bool = True
     subscription_until: datetime | None = None
     subscription_active: bool = True
@@ -106,6 +109,7 @@ class TraderDayStat(BaseModel):
 class TraderRead(BaseModel):
     telegram_id: int
     username: str | None
+    display_name: str | None = None
     rating_percent: float
     total_pnl_usd: float = 0.0
     wins: int
@@ -128,6 +132,7 @@ class ChallengeUpdate(BaseModel):
 class ChallengeDashboard(BaseModel):
     owner_telegram_id: int
     owner_username: str | None = None
+    owner_display_name: str | None = None
     owner_avatar_url: str | None = None
     account_size: float
     stage: int

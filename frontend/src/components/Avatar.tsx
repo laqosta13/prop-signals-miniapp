@@ -1,22 +1,22 @@
-import { traderName } from "../utils";
+import { initialsFromAuthor } from "../utils";
 
 type Props = {
   url: string | null | undefined;
-  username: string | null;
-  telegramId: number;
+  displayName?: string | null;
+  username?: string | null;
+  telegramId?: number;
   size?: number;
 };
 
-export function Avatar({ url, username, telegramId, size = 40 }: Props) {
-  const name = traderName(username, telegramId);
-  const initials = name.replace("@", "").slice(0, 2).toUpperCase() || "?";
+export function Avatar({ url, displayName, username, size = 40 }: Props) {
+  const initials = initialsFromAuthor(displayName, username);
 
   if (url) {
     return (
       <img
         className="avatar"
         src={url}
-        alt={name}
+        alt={displayName || username || "Аватар"}
         width={size}
         height={size}
         style={{ width: size, height: size }}

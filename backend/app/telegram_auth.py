@@ -16,6 +16,8 @@ from app.config import settings
 class WebAppUser:
     id: int
     username: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
     start_param: str | None = None
 
 
@@ -25,7 +27,12 @@ def _parse_user(user_json: str) -> WebAppUser | None:
         uid = data.get("id")
         if uid is None:
             return None
-        return WebAppUser(id=int(uid), username=data.get("username"))
+        return WebAppUser(
+            id=int(uid),
+            username=data.get("username"),
+            first_name=data.get("first_name"),
+            last_name=data.get("last_name"),
+        )
     except (json.JSONDecodeError, TypeError, ValueError):
         return None
 

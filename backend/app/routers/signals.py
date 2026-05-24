@@ -81,6 +81,8 @@ async def create_signal(
         comment=comment or None,
         author_telegram_id=admin.telegram_user_id,
         author_username=admin.username,
+        author_first_name=admin.first_name,
+        author_last_name=admin.last_name,
         leverage=leverage,
         risk_percent=risk_percent,
         tracker_balance=tb,

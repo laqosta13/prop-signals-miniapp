@@ -95,8 +95,28 @@ export function formatUsd(n: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 }
 
-export function traderName(username: string | null, id: number) {
+export function traderName(username: string | null, id: number, displayName?: string | null) {
+  if (displayName) return displayName;
   return username ? `@${username}` : `id ${id}`;
+}
+
+export function authorProfile(
+  displayName: string | null | undefined,
+  username: string | null | undefined,
+): { title: string; subtitle: string | null } {
+  const login = username ? `@${username}` : null;
+  if (displayName && login) return { title: displayName, subtitle: login };
+  if (displayName) return { title: displayName, subtitle: null };
+  if (login) return { title: login, subtitle: null };
+  return { title: "Трейдер", subtitle: null };
+}
+
+export function initialsFromAuthor(displayName: string | null | undefined, username: string | null | undefined) {
+  const src = displayName || username || "?";
+  const clean = src.replace("@", "").trim();
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return clean.slice(0, 2).toUpperCase() || "?";
 }
 
 export function calcRR(entry: string | null, stop: string | null, target: string | null): string {

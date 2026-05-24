@@ -82,6 +82,8 @@ class Trader(Base):
 
     telegram_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     username: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    first_name: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    last_name: Mapped[str | None] = mapped_column(String(64), nullable=True)
     avatar_path: Mapped[str | None] = mapped_column(String(256), nullable=True)
     rating_percent: Mapped[float] = mapped_column(Float, default=0.0)
     total_pnl_usd: Mapped[float] = mapped_column(Float, default=0.0)

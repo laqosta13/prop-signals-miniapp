@@ -35,6 +35,7 @@ export type Signal = {
   liked_by_me: boolean;
   author_telegram_id: number;
   author_username: string | null;
+  author_display_name: string | null;
   media_image_url: string | null;
   media_video_url: string | null;
   author_avatar_url: string | null;
@@ -74,6 +75,7 @@ export type TraderDayStat = {
 export type Trader = {
   telegram_id: number;
   username: string | null;
+  display_name: string | null;
   rating_percent: number;
   total_pnl_usd: number;
   wins: number;
@@ -87,6 +89,7 @@ export type Trader = {
 export type ChallengeDashboard = {
   owner_telegram_id: number;
   owner_username: string | null;
+  owner_display_name: string | null;
   owner_avatar_url: string | null;
   account_size: number;
   stage: number;

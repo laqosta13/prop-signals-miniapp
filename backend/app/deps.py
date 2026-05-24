@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.schemas import TelegramUser
-from app.signal_service import register_subscriber
+from app.signal_service import get_or_create_trader, register_subscriber
 from app.subscription_billing import subscription_active
 from app.telegram_auth import validate_init_data
 
@@ -19,12 +19,22 @@ def get_current_user(
         if user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Telegram init data")
         sub = register_subscriber(db, user.id, user.username, user.start_param)
-        db.commit()
         is_admin = user.id in settings.admin_id_set
+        if is_admin:
+            get_or_create_trader(
+                db,
+                user.id,
+                user.username,
+                first_name=user.first_name,
+                last_name=user.last_name,
+            )
+        db.commit()
         return TelegramUser(
             telegram_user_id=user.id,
             is_admin=is_admin,
             username=user.username,
+            first_name=user.first_name,
+            last_name=user.last_name,
             notify_enabled=sub.notify_enabled,
             subscription_until=sub.subscription_until,
             subscription_active=subscription_active(sub, is_admin),

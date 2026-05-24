@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.hashhedge_rules import rules_for_stage
 from app.media_storage import public_url
+from app.serializers import trader_display_name, trader_login
 from app.models import Signal, Trader, UserChallenge
 from app.trader_stats import pnl_usd_for_outcome, signal_tracker_balance
 
@@ -79,16 +80,17 @@ def build_dashboard(db: Session, ch: UserChallenge, trader: Trader | None = None
 
     if trader is None:
         trader = db.get(Trader, owner_id)
-    name = (trader.username if trader else None) or db.scalar(
+    login = trader_login(trader, db.scalar(
         select(Signal.author_username)
         .where(Signal.author_telegram_id == owner_id, Signal.author_username.isnot(None))
         .order_by(Signal.created_at.desc())
         .limit(1)
-    )
+    ))
 
     return ChallengeDashboard(
         owner_telegram_id=owner_id,
-        owner_username=name,
+        owner_username=login,
+        owner_display_name=trader_display_name(trader, login),
         owner_avatar_url=public_url(trader.avatar_path) if trader and trader.avatar_path else None,
         account_size=start,
         stage=ch.stage,
@@ -115,6 +117,12 @@ def list_admin_trackers(db: Session) -> list:
     if not ids:
         return []
     traders = {t.telegram_id: t for t in db.scalars(select(Trader).where(Trader.telegram_id.in_(ids)))}
-    out = [build_dashboard(db, get_or_create_challenge(db, aid), traders.get(aid)) for aid in ids]
+    from app.signal_service import get_or_create_trader
+
+    out = []
+    for aid in ids:
+        tr = traders.get(aid)
+        tr = get_or_create_trader(db, aid, tr.username if tr else None, first_name=tr.first_name if tr else None, last_name=tr.last_name if tr else None)
+        out.append(build_dashboard(db, get_or_create_challenge(db, aid), tr))
     out.sort(key=lambda d: d.balance - d.account_size, reverse=True)
     return out
