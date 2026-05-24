@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+import logging
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -18,9 +20,11 @@ from app.telegram_notify import (
     notify_subscribers,
 )
 from app.challenge_service import apply_signal_to_tracker, ensure_tracker_for_new_signal
-from app.price_service import fetch_price
+from app.price_service import clear_price_cache, fetch_price
 from app.subscription_billing import register_subscriber_with_meta
 from app.trader_stats import apply_outcome_to_trader
+
+logger = logging.getLogger(__name__)
 
 
 def _normalize_trader_stats(trader: Trader) -> None:
@@ -130,15 +134,59 @@ async def try_fill_entry_from_market(db: Session, signal: Signal, *, notify: boo
         return False
     price = await fetch_price(signal.symbol)
     if price is None:
+        logger.warning(
+            "Нет цены для %s — вход не проверен (signal #%s)",
+            signal.symbol,
+            signal.id,
+        )
         return False
     if not entry_triggered(price, signal.direction, signal.entry_low, signal.entry_high):
         return False
     signal.entry_filled_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(signal)
+    logger.info(
+        "Вход сработал: signal #%s %s %s, market=%.4f, entry=%s/%s",
+        signal.id,
+        signal.symbol,
+        signal.direction,
+        price,
+        signal.entry_low,
+        signal.entry_high,
+    )
     if notify:
         await notify_entry_filled(db, signal)
     return True
+
+
+async def sync_pending_entry_fills(
+    db: Session,
+    signals: list[Signal] | None = None,
+    *,
+    notify: bool = False,
+) -> int:
+    """Проверить активные сигналы без входа и отметить сработавшие по рынку."""
+    if signals is None:
+        stmt = select(Signal).where(Signal.status == "active", Signal.entry_filled_at.is_(None))
+        pending = list(db.scalars(stmt).all())
+    else:
+        pending = [
+            s
+            for s in signals
+            if s.status == "active"
+            and s.entry_filled_at is None
+            and entry_zone_defined(s.entry_low, s.entry_high)
+        ]
+    if not pending:
+        return 0
+    clear_price_cache()
+    filled = 0
+    for signal in pending:
+        if await try_fill_entry_from_market(db, signal, notify=notify):
+            filled += 1
+    if filled:
+        logger.info("Синхронизировано входов: %s", filled)
+    return filled
 
 
 def build_signal_row(

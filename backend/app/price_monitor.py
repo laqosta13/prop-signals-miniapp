@@ -5,14 +5,13 @@ import logging
 from datetime import datetime, timezone
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import SessionLocal
 from app.models import Signal
-from app.price_service import clear_price_cache, fetch_price
+from app.price_service import clear_price_cache, fetch_price, normalize_symbol
 from app.signal_service import close_signal_and_notify, notify_entry_filled
-from app.signal_utils import evaluate_signal, entry_triggered
+from app.signal_utils import entry_zone_defined, evaluate_signal, entry_triggered
 
 logger = logging.getLogger(__name__)
 
@@ -25,22 +24,35 @@ async def check_active_signals_once() -> int:
     try:
         stmt = select(Signal).where(Signal.status == "active")
         active = list(db.scalars(stmt).all())
-        symbols = {s.symbol for s in active}
+        if not active:
+            return 0
+
+        symbols = {normalize_symbol(s.symbol) for s in active}
         prices: dict[str, float] = {}
         for sym in symbols:
             p = await fetch_price(sym)
             if p is not None:
-                prices[sym.upper()] = p
+                prices[sym] = p
 
         for signal in active:
-            price = prices.get(signal.symbol.upper())
+            sym = normalize_symbol(signal.symbol)
+            price = prices.get(sym)
             if price is None:
+                logger.warning("Монитор: нет цены для %s (signal #%s)", signal.symbol, signal.id)
                 continue
 
             if signal.entry_filled_at is None:
-                if entry_triggered(price, signal.direction, signal.entry_low, signal.entry_high):
+                if entry_zone_defined(signal.entry_low, signal.entry_high) and entry_triggered(
+                    price, signal.direction, signal.entry_low, signal.entry_high
+                ):
                     signal.entry_filled_at = datetime.now(timezone.utc)
                     db.commit()
+                    logger.info(
+                        "Монитор: вход signal #%s %s, market=%.4f",
+                        signal.id,
+                        signal.symbol,
+                        price,
+                    )
                     await notify_entry_filled(db, signal)
                 continue
 

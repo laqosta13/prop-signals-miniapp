@@ -25,6 +25,9 @@ media_root()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from app.price_monitor import check_active_signals_once
+
+    await check_active_signals_once()
     task = asyncio.create_task(price_monitor_loop())
     yield
     task.cancel()

@@ -24,6 +24,7 @@ from app.signal_service import (
     notify_new_signal,
     notify_signal_supplement,
     notify_updated_signal,
+    sync_pending_entry_fills,
     try_fill_entry_from_market,
     update_signal_fields,
 )
@@ -40,12 +41,13 @@ def _parse_direction(direction: str) -> str:
 
 
 @router.get("", response_model=list[SignalRead])
-def list_signals(
+async def list_signals(
     db: Session = Depends(db_session),
     user: TelegramUser = Depends(require_active_subscription),
 ) -> list[SignalRead]:
     stmt = select(Signal).order_by(Signal.created_at.desc()).limit(200)
     rows = list(db.scalars(stmt).all())
+    await sync_pending_entry_fills(db, rows, notify=False)
     return [signal_to_read(db, s, user.telegram_user_id) for s in rows]
 
 
