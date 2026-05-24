@@ -47,6 +47,7 @@ def get_or_create_trader(
     *,
     first_name: str | None = None,
     last_name: str | None = None,
+    photo_url: str | None = None,
 ) -> Trader:
     trader = db.get(Trader, telegram_id)
     if trader is None:
@@ -69,10 +70,15 @@ def get_or_create_trader(
             trader.first_name = first_name
         if last_name and trader.last_name != last_name:
             trader.last_name = last_name
-    if not trader.avatar_path:
-        path = ensure_trader_avatar(telegram_id)
-        if path:
-            trader.avatar_path = path
+    path = ensure_trader_avatar(telegram_id, photo_url)
+    if path:
+        trader.avatar_path = path
+        db.flush()
+    elif trader.avatar_path:
+        from app.media_storage import media_root
+
+        if not (media_root() / trader.avatar_path).is_file():
+            trader.avatar_path = None
             db.flush()
     return trader
 

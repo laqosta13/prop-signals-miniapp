@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { initialsFromAuthor } from "../utils";
 
 type Props = {
@@ -9,9 +10,10 @@ type Props = {
 };
 
 export function Avatar({ url, displayName, username, size = 40 }: Props) {
+  const [broken, setBroken] = useState(false);
   const initials = initialsFromAuthor(displayName, username);
 
-  if (url) {
+  if (url && !broken) {
     return (
       <img
         className="avatar"
@@ -20,6 +22,7 @@ export function Avatar({ url, displayName, username, size = 40 }: Props) {
         width={size}
         height={size}
         style={{ width: size, height: size }}
+        onError={() => setBroken(true)}
       />
     );
   }
