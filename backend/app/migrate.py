@@ -105,6 +105,29 @@ def run_migrations(engine: Engine) -> None:
 
     _backfill_referral_codes(engine)
     _purge_test_data_once(engine)
+    _purge_signals_reset_v3(engine)
+
+
+def _purge_signals_reset_v3(engine: Engine) -> None:
+    """Одноразово: удалить все сигналы и обнулить рейтинг (май 2026)."""
+    marker = _marker_path(engine, ".purged_reset_v3")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".purged_reset_v3"
+    if marker.exists():
+        return
+    from app.database import SessionLocal
+    from app.data_cleanup import purge_signals_and_reset_ratings
+
+    db = SessionLocal()
+    try:
+        purge_signals_and_reset_ratings(db)
+        db.commit()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
 
 
 def _backfill_referral_codes(engine: Engine) -> None:
