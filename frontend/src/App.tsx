@@ -8,6 +8,7 @@ import {
   setNotifications,
   updateChallenge,
   type ChallengeDashboard,
+  type NewsPost,
   type Signal,
   type Trader,
 } from "./api";
@@ -16,17 +17,31 @@ import { LeaderboardTab } from "./components/LeaderboardTab";
 import { AppendSupplementModal } from "./components/AppendSupplementModal";
 import { EditSignalModal } from "./components/EditSignalModal";
 import { NewSignalModal } from "./components/NewSignalModal";
+import { NewsModal } from "./components/NewsModal";
+import { NewsTab } from "./components/NewsTab";
+import { ReviewsTab } from "./components/ReviewsTab";
 import { SubscriptionTab } from "./components/SubscriptionTab";
 import { TrackerTab } from "./components/TrackerTab";
 
-type Tab = "feed" | "tracker" | "top" | "pay";
+type Tab = "feed" | "tracker" | "top" | "reviews" | "news" | "pay";
 
 const TITLES: Record<Tab, { title: string; sub: string }> = {
   feed: { title: "Сигналы", sub: "PROP-DESK · Hash Hedge" },
   tracker: { title: "Трекер", sub: "Админы · Hash Hedge" },
   top: { title: "ТОП трейдеров", sub: "Рейтинг по сигналам" },
+  reviews: { title: "Отзывы", sub: "Мнения подписчиков" },
+  news: { title: "Новости", sub: "Обновления PROP-DESK" },
   pay: { title: "Подписка", sub: "USDT TON · рефералы" },
 };
+
+const NAV: { id: Tab; label: string; icon: string }[] = [
+  { id: "feed", label: "Лента", icon: "📈" },
+  { id: "tracker", label: "Трекер", icon: "〰" },
+  { id: "top", label: "ТОП", icon: "🏆" },
+  { id: "reviews", label: "Отзывы", icon: "💬" },
+  { id: "news", label: "Новости", icon: "📰" },
+  { id: "pay", label: "Подписка", icon: "💳" },
+];
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("feed");
@@ -41,6 +56,9 @@ export default function App() {
   const [showNewSignal, setShowNewSignal] = useState(false);
   const [editSignal, setEditSignal] = useState<Signal | null>(null);
   const [supplementSignal, setSupplementSignal] = useState<Signal | null>(null);
+  const [newsModalOpen, setNewsModalOpen] = useState(false);
+  const [editNews, setEditNews] = useState<NewsPost | null>(null);
+  const [newsRefreshKey, setNewsRefreshKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const patchSignal = (id: number, patch: Partial<Signal>) =>
@@ -118,6 +136,18 @@ export default function App() {
     }
   };
 
+  const openNewNews = () => {
+    setEditNews(null);
+    setNewsModalOpen(true);
+  };
+
+  const openEditNews = (post: NewsPost) => {
+    setEditNews(post);
+    setNewsModalOpen(true);
+  };
+
+  const onNewsSaved = () => setNewsRefreshKey((k) => k + 1);
+
   const head = TITLES[tab];
 
   return (
@@ -130,6 +160,11 @@ export default function App() {
         <div className="topbar__actions">
           {isAdmin && tab === "feed" && (
             <button type="button" className="fab-top" onClick={() => setShowNewSignal(true)} aria-label="Новый сигнал">
+              +
+            </button>
+          )}
+          {isAdmin && tab === "news" && (
+            <button type="button" className="fab-top" onClick={openNewNews} aria-label="Новая новость">
               +
             </button>
           )}
@@ -167,14 +202,16 @@ export default function App() {
           <TrackerTab trackers={trackers} signals={signals} myId={myId} isAdmin={isAdmin} onSettings={openSettings} />
         )}
         {tab === "top" && <LeaderboardTab traders={traders} loading={loading && !traders.length} />}
+        {tab === "reviews" && <ReviewsTab isAdmin={isAdmin} />}
+        {tab === "news" && <NewsTab isAdmin={isAdmin} onEdit={openEditNews} refreshKey={newsRefreshKey} />}
         {tab === "pay" && <SubscriptionTab onPaid={() => void loadMeAndSignals()} />}
       </main>
 
       <nav className="bottom-nav">
-        {(["feed", "tracker", "top", "pay"] as const).map((t) => (
-          <button key={t} type="button" className={tab === t ? "on" : ""} onClick={() => setTab(t)}>
-            <span className="ico">{t === "feed" ? "📈" : t === "tracker" ? "〰" : t === "top" ? "🏆" : "💳"}</span>
-            {t === "feed" ? "Лента" : t === "tracker" ? "Трекер" : t === "top" ? "ТОП" : "Подписка"}
+        {NAV.map(({ id, label, icon }) => (
+          <button key={id} type="button" className={tab === id ? "on" : ""} onClick={() => setTab(id)}>
+            <span className="ico">{icon}</span>
+            {label}
           </button>
         ))}
       </nav>
@@ -195,6 +232,12 @@ export default function App() {
         signal={supplementSignal}
         onClose={() => setSupplementSignal(null)}
         onDone={loadMeAndSignals}
+      />
+      <NewsModal
+        open={newsModalOpen}
+        post={editNews}
+        onClose={() => setNewsModalOpen(false)}
+        onSaved={onNewsSaved}
       />
     </div>
   );

@@ -15,7 +15,7 @@
 | **Деплой** | Docker → Amvera Cloud, постоянный диск `/data` |
 | **Брендинг** | PROP-DESK · Hash Hedge |
 
-**Суть:** Telegram Mini App с лентой торговых сигналов. Публикуют только **админы** (`TELEGRAM_ADMIN_IDS`). Пользователи смотрят ленту по **подписке**.
+**Суть:** Telegram Mini App с лентой торговых сигналов. Публикуют только **админы** (`TELEGRAM_ADMIN_IDS`). **Активные** сигналы — по подписке; **отработанные** (win/lose), трекер и ТОП — **бесплатно** для всех авторизованных пользователей.
 
 ---
 
@@ -24,14 +24,17 @@
 1. **Лента** — сигналы, просмотры/лайки, мини-трекеры админов, галочка уведомлений
 2. **Трекер** — Hash Hedge challenge для каждого админа
 3. **ТОП** — рейтинг трейдеров + кривая доходности по дням
-4. **Подписка** — оплата USDT TON, рефералы, trial
+4. **Отзывы** — оценка 1–5 и текст; один отзыв на пользователя (редактирование своего)
+5. **Новости** — публикации админов (заголовок, текст, обложка); чтение для всех
+6. **Подписка** — оплата USDT TON, рефералы, trial
 
 ---
 
 ## Роли
 
-- **Админ** — публикует/редактирует/удаляет/дополняет сигналы, свой трекер, доступ без подписки
+- **Админ** — публикует сигналы, **редактирует/удаляет/дополняет только свои**, свой трекер, доступ без подписки
 - **Подписчик** — активные сигналы при подписке (trial 3 дня = подписка) + уведомления в Telegram
+- **Без подписки** — win/lose в ленте, трекер, ТОП, лайки/просмотры на отработанных сигналах
 
 ---
 
@@ -45,9 +48,14 @@
 | ТОП / equity curve | ✓ | ✓ |
 | Лайки / просмотры (win/lose) | ✓ | ✓ |
 | Лайки / просмотры (active) | ✗ | ✓ |
+| Отзывы / Новости | ✓ | ✓ |
 | Уведомления в Telegram | ✗ (кроме trial/оплаты) | ✓ |
 
-Frontend: без подписки вызывает `fetchSignalsPreview()`, с подпиской — `fetchSignals()`. Дополнительный фильтр `visibleFeedSignals()` на клиенте.
+Frontend: без подписки вызывает `fetchSignalsPreview()`, с подпиской — `fetchSignals()`. Дополнительный фильтр `visibleFeedSignals()` на клиенте (двойная защита).
+
+**UI без подписки:** баннер «Всё бесплатно, кроме активных сигналов» в `FeedTab.tsx`. Трекер и ТОП без paywall.
+
+**Bootstrap (`App.tsx`):** `subActive` по умолчанию `false`; при `subscription_active || is_admin` — полная лента и `fetchSignals()`.
 
 ---
 
@@ -93,12 +101,14 @@ Frontend: без подписки вызывает `fetchSignalsPreview()`, с �
 
 | Действие | Когда доступно |
 |---|---|
-| **Изменить / Удалить** | Только до срабатывания входа (`signal_awaiting_entry`) |
-| **Дополнить сигнал** | После входа в сделку (`signal_in_trade`) — комментарий, скрин, видео |
+| **Изменить / Удалить** | Только **свои** сигналы, до срабатывания входа (`signal_awaiting_entry`) |
+| **Дополнить сигнал** | Только **свои** сигналы, после входа в сделку (`signal_in_trade`) — комментарий, скрин, видео |
+
+Backend: `require_signal_owner()` в `signal_permissions.py` — PUT/DELETE/supplement возвращают **403**, если `author_telegram_id ≠ admin.telegram_user_id`.
 
 Дополнения: таблица `signal_supplements`, блок «Дополнения» в карточке.
 
-Frontend-правила: `frontend/src/utils/signalActions.ts`.
+Frontend-правила: `frontend/src/utils/signalActions.ts` — `canEditOrDeleteSignal`, `canSupplementSignal` проверяют `isSignalAuthor(s, myId)`.
 
 ---
 
@@ -153,8 +163,42 @@ Frontend: `authorProfile()` в `frontend/src/utils.ts` (title + subtitle `@login
 
 - Уникальный просмотр на пользователя (`signal_views`)
 - Лайк toggle (`signal_likes`)
-- Счётчики на карточке, `liked_by_me`
+- Счётчики на карточке: `views_count`, `likes_count`, `liked_by_me` (в т.ч. в `/signals/preview`)
 - Скрин открывается **lightbox** внутри приложения
+
+**Доступ:**
+
+| Действие | Без подписки | С подпиской / админ |
+|---|---|---|
+| Видеть счётчики на win/lose | ✓ | ✓ |
+| `POST …/view`, `POST …/like` на win/lose | ✓ | ✓ |
+| Лайк / просмотр на **active** | ✗ `403 subscription_required` | ✓ |
+
+Backend: `require_signal_engagement()` в `signal_permissions.py`; эндпоинты — `get_current_user` (не `require_active_subscription`).
+
+Frontend: `SignalCard` всегда показывает блок engagement; `canEngage={true}` в ленте — просмотр записывается при открытии карточки, лайк доступен на видимых сигналах.
+
+---
+
+## Отзывы
+
+- Таблица `reviews`: один отзыв на `author_telegram_id` (unique)
+- Поля: `text`, `rating` (1–5), профиль автора из `traders`
+- **Все** авторизованные: читать, создать/редактировать/удалить **свой** отзыв
+- **Админ:** удалить любой отзыв
+- API: `GET/POST /reviews`, `PUT/DELETE /reviews/{id}`
+- UI: `ReviewsTab.tsx`
+
+---
+
+## Новости
+
+- Таблица `news_posts`: `title`, `body`, `image_path`, `author_telegram_id`
+- **Все** авторизованные: читать ленту
+- **Админ:** создать/редактировать/удалить; кнопка **+** в шапке на вкладке «Новости»
+- Обложка: `{MEDIA_ROOT}/news/{id}/` → `save_news_image()`
+- API: `GET/POST /news`, `PUT/DELETE /news/{id}` (multipart)
+- UI: `NewsTab.tsx`, `NewsModal.tsx`
 
 ---
 
@@ -213,20 +257,28 @@ Frontend: `authorProfile()` в `frontend/src/utils.ts` (title + subtitle `@login
 
 ```
 GET  /health
-GET  /auth/me
-GET  /signals              — полная лента (подписка / админ)
-GET  /signals/preview      — только win/lose (бесплатно)
-POST /signals              — админ, multipart
-PUT  /signals/{id}         — админ, до входа
-DELETE /signals/{id}       — админ, до входа
-POST /signals/{id}/supplement — админ, после входа
-POST /signals/{id}/view|like
-GET  /traders/leaderboard
-GET  /challenge/trackers
-PUT  /challenge/settings
+GET  /auth/me                          — get_current_user
+GET  /signals                          — require_active_subscription (полная лента)
+GET  /signals/preview                  — get_current_user (только win/lose)
+POST /signals                          — require_admin
+PUT  /signals/{id}                     — require_admin + require_signal_owner
+DELETE /signals/{id}                   — require_admin + require_signal_owner
+POST /signals/{id}/supplement          — require_admin + require_signal_owner
+POST /signals/{id}/view|like           — get_current_user + require_signal_engagement
+GET  /reviews                          — get_current_user
+POST /reviews                          — get_current_user (один отзыв на пользователя)
+PUT  /reviews/{id}                     — автор или админ
+DELETE /reviews/{id}                   — автор или админ
+GET  /news                             — get_current_user
+POST /news                             — require_admin (multipart)
+PUT  /news/{id}                        — require_admin (multipart)
+DELETE /news/{id}                      — require_admin
+GET  /traders/leaderboard              — get_current_user
+GET  /challenge/trackers               — get_current_user
+PUT  /challenge/settings               — require_admin
 GET  /subscriptions/info
 POST /subscriptions/pay
-PUT  /subscriptions/me     — notify_enabled
+PUT  /subscriptions/me                   — notify_enabled
 ```
 
 ---
@@ -240,6 +292,7 @@ PUT  /subscriptions/me     — notify_enabled
 | Auth initData | `backend/app/telegram_auth.py`, `deps.py` |
 | Аватары | `telegram_avatar.py`, `media_storage.py`, `serializers.py` |
 | Сигналы API | `backend/app/routers/signals.py` |
+| Права на сигналы | `backend/app/signal_permissions.py` |
 | Логика сигналов | `backend/app/signal_service.py`, `signal_utils.py` |
 | Цены / монитор | `price_service.py`, `price_monitor.py` |
 | P/L и рейтинг | `trader_stats.py`, `leaderboard_service.py` |
@@ -252,6 +305,8 @@ PUT  /subscriptions/me     — notify_enabled
 | Модалки | `NewSignalModal.tsx`, `EditSignalModal.tsx`, `AppendSupplementModal.tsx` |
 | ТОП | `LeaderboardTab.tsx`, `EquityCurve.tsx` |
 | Подписка UI | `SubscriptionTab.tsx` |
+| Отзывы UI | `ReviewsTab.tsx` |
+| Новости UI | `NewsTab.tsx`, `NewsModal.tsx` |
 | Трекер UI | `TrackerTab.tsx`, `PropTrackerMini.tsx` |
 | API клиент | `frontend/src/api.ts` |
 | Утилиты UI | `frontend/src/utils.ts`, `frontend/src/utils/signalActions.ts` |
@@ -296,9 +351,13 @@ USDT_TON_ADDRESS=UQDdFFYSG8sGiQfps2WWuIWFuaDPv1GAcFeRck6y5oeR_sPe
 7. Автовход если цена уже прошла уровень; sync при загрузке ленты; 3 источника цен
 8. Починка уведомлений + diff при редактировании
 9. Профиль админа на карточках: имя, @username, аватар; `photo_url` из initData; commit в `get_db()`; fallback инициалов в `Avatar.tsx`
+10. Freemium: `/signals/preview`, трекер и ТОП без подписки; баннер в ленте; `visibleFeedSignals()` + `canViewActiveSignals()`
+11. Админ меняет только **свои** сигналы: `require_signal_owner()` (backend) + `isSignalAuthor` (frontend)
+12. Лайки/просмотры без подписки на win/lose: `require_signal_engagement()`, `canEngage={true}` в ленте
+13. Вкладки **Отзывы** и **Новости**: таблицы `reviews`, `news_posts`; API `/reviews`, `/news`
 
 ---
 
 ## Быстрое напоминание для AI
 
-> **prop-signals-miniapp** — FastAPI + React Telegram Mini App на Amvera. Админы публикуют сигналы, подписчики смотрят ленту. На карточках — имя, @username и аватар автора. Hash Hedge трекеры, ТОП с equity curve, подписка USDT TON. P/L = (трекер × сумма входа %) × % движения цены. LONG: вход срабатывает если рынок ≤ уровня. Edit/delete до входа, дополнения после. Уведомления в Telegram с diff при редактировании. Аватары: `photo_url` из initData → `/data/media/avatars/`. Полный контекст — этот файл.
+> **prop-signals-miniapp** — FastAPI + React Telegram Mini App на Amvera. Админы публикуют сигналы; **активные** — по подписке, **win/lose + трекер + ТОП** — бесплатно. Админ редактирует только свои сигналы. Лайки/просмотры на отработанных — без подписки. На карточках — имя, @username и аватар автора. Hash Hedge трекеры, ТОП с equity curve, подписка USDT TON. P/L = (трекер × сумма входа %) × % движения цены. LONG: вход срабатывает если рынок ≤ уровня. Edit/delete до входа, дополнения после. Уведомления в Telegram с diff при редактировании. Полный контекст — этот файл.

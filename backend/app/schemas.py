@@ -151,3 +151,37 @@ class ChallengeDashboard(BaseModel):
     winrate: float
     total_pnl: float
     max_leverage: str
+
+
+class ReviewCreate(BaseModel):
+    text: str = Field(..., min_length=3, max_length=2000)
+    rating: int = Field(5, ge=1, le=5)
+
+
+class ReviewUpdate(BaseModel):
+    text: str = Field(..., min_length=3, max_length=2000)
+    rating: int = Field(..., ge=1, le=5)
+
+
+class ReviewRead(BaseModel):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    author_telegram_id: int
+    author_username: str | None = None
+    author_display_name: str | None = None
+    author_avatar_url: str | None = None
+    text: str
+    rating: int
+    is_mine: bool = False
+
+
+class NewsRead(BaseModel):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    title: str
+    body: str
+    image_url: str | None = None
+    author_telegram_id: int
+    author_display_name: str | None = None

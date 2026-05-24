@@ -110,6 +110,30 @@ export type ChallengeDashboard = {
   max_leverage: string;
 };
 
+export type Review = {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  author_telegram_id: number;
+  author_username: string | null;
+  author_display_name: string | null;
+  author_avatar_url: string | null;
+  text: string;
+  rating: number;
+  is_mine: boolean;
+};
+
+export type NewsPost = {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  title: string;
+  body: string;
+  image_url: string | null;
+  author_telegram_id: number;
+  author_display_name: string | null;
+};
+
 function authHeaders(): HeadersInit {
   const h: Record<string, string> = {};
   const initData = WebApp.initData;
@@ -141,19 +165,51 @@ export const fetchSignalsPreview = () => api<Signal[]>("/signals/preview");
 export const fetchLeaderboard = () => api<Trader[]>("/traders/leaderboard");
 export const fetchChallengeTrackers = () => api<ChallengeDashboard[]>("/challenge/trackers");
 
-async function sendForm(path: string, method: string, form: FormData): Promise<Signal> {
+export const fetchReviews = () => api<Review[]>("/reviews");
+
+export const createReview = (body: { text: string; rating: number }) =>
+  api<Review>("/reviews", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+export const updateReview = (id: number, body: { text: string; rating: number }) =>
+  api<Review>(`/reviews/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+export async function deleteReview(id: number): Promise<void> {
+  const res = await fetch(`${base}/reviews/${id}`, { method: "DELETE", headers: authHeaders() });
+  if (!res.ok) throw new Error(await res.text());
+}
+
+export const fetchNews = () => api<NewsPost[]>("/news");
+
+export const createNewsPost = (form: FormData) => sendForm<NewsPost>("/news", "POST", form);
+
+export const updateNewsPost = (id: number, form: FormData) => sendForm<NewsPost>(`/news/${id}`, "PUT", form);
+
+export async function deleteNewsPost(id: number): Promise<void> {
+  const res = await fetch(`${base}/news/${id}`, { method: "DELETE", headers: authHeaders() });
+  if (!res.ok) throw new Error(await res.text());
+}
+
+async function sendForm<T>(path: string, method: string, form: FormData): Promise<T> {
   const res = await fetch(`${base}${path}`, { method, headers: authHeaders(), body: form });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
 
-export const createSignalWithMedia = (form: FormData) => sendForm("/signals", "POST", form);
+export const createSignalWithMedia = (form: FormData) => sendForm<Signal>("/signals", "POST", form);
 
 export const updateSignalWithMedia = (signalId: number, form: FormData) =>
-  sendForm(`/signals/${signalId}`, "PUT", form);
+  sendForm<Signal>(`/signals/${signalId}`, "PUT", form);
 
 export const appendSignalSupplement = (signalId: number, form: FormData) =>
-  sendForm(`/signals/${signalId}/supplement`, "POST", form);
+  sendForm<Signal>(`/signals/${signalId}/supplement`, "POST", form);
 
 export const recordSignalView = (signalId: number) =>
   api<{ views_count: number }>(`/signals/${signalId}/view`, { method: "POST" });

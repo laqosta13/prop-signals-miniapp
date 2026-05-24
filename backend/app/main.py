@@ -14,7 +14,7 @@ from app.media_storage import media_root
 from app.database import Base, engine
 from app.migrate import run_migrations
 from app.price_monitor import price_monitor_loop
-from app.routers import auth, challenge, signals, subscriptions, traders
+from app.routers import auth, challenge, news, reviews, signals, subscriptions, traders
 
 logging.basicConfig(level=logging.INFO)
 
@@ -53,6 +53,8 @@ app.include_router(challenge.router)
 app.include_router(signals.router)
 app.include_router(traders.router)
 app.include_router(subscriptions.router)
+app.include_router(reviews.router)
+app.include_router(news.router)
 
 
 @app.get("/health")

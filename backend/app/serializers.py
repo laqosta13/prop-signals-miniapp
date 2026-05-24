@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 
 from app.engagement import user_liked
 from app.media_storage import public_url
-from app.models import Signal, SignalSupplement, Trader
-from app.schemas import SignalRead, SignalSupplementRead, TraderDayStat, TraderRead
+from app.models import NewsPost, Review, Signal, SignalSupplement, Trader
+from app.schemas import NewsRead, ReviewRead, SignalRead, SignalSupplementRead, TraderDayStat, TraderRead
 
 
 def trader_display_name(trader: Trader | None, username: str | None = None) -> str | None:
@@ -96,4 +96,40 @@ def trader_to_read(
         win_rate=win_rate,
         avatar_url=trader_avatar_url(t),
         daily_stats=daily_stats or [],
+    )
+
+
+def _author_profile(db: Session, telegram_id: int, fallback_username: str | None) -> tuple[str | None, str | None, str | None]:
+    trader = db.get(Trader, telegram_id)
+    login = trader_login(trader, fallback_username)
+    return trader_display_name(trader, login), login, trader_avatar_url(trader)
+
+
+def review_to_read(db: Session, row: Review, viewer_id: int) -> ReviewRead:
+    display, login, avatar = _author_profile(db, row.author_telegram_id, row.author_username)
+    return ReviewRead(
+        id=row.id,
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+        author_telegram_id=row.author_telegram_id,
+        author_username=login,
+        author_display_name=display,
+        author_avatar_url=avatar,
+        text=row.text,
+        rating=row.rating,
+        is_mine=row.author_telegram_id == viewer_id,
+    )
+
+
+def news_to_read(db: Session, row: NewsPost) -> NewsRead:
+    display, _, _ = _author_profile(db, row.author_telegram_id, None)
+    return NewsRead(
+        id=row.id,
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+        title=row.title,
+        body=row.body,
+        image_url=public_url(row.image_path),
+        author_telegram_id=row.author_telegram_id,
+        author_display_name=display,
     )
