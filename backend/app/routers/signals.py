@@ -28,6 +28,7 @@ from app.signal_service import (
     try_fill_entry_from_market,
     update_signal_fields,
 )
+from app.telegram_notify import snapshot_signal, diff_signal_changes
 from app.signal_utils import entry_zone_defined, signal_awaiting_entry, signal_in_trade
 
 router = APIRouter(prefix="/signals", tags=["signals"])
@@ -132,6 +133,10 @@ async def update_signal(
             detail="Редактировать можно только до срабатывания входа",
         )
 
+    before = snapshot_signal(row)
+    had_image = bool(row.media_image_path)
+    had_video = bool(row.media_video_path)
+
     update_signal_fields(
         row,
         symbol=symbol.strip().upper(),
@@ -164,7 +169,19 @@ async def update_signal(
     db.commit()
     db.refresh(row)
     await try_fill_entry_from_market(db, row)
-    await notify_updated_signal(db, row)
+    changes = diff_signal_changes(
+        before,
+        row,
+        image_added=bool(row.media_image_path) and not before.has_image,
+        image_removed=before.has_image and not row.media_image_path,
+        video_added=bool(row.media_video_path) and not before.has_video,
+        video_removed=before.has_video and not row.media_video_path,
+    )
+    if screenshot and screenshot.filename and had_image and "• Скрин: добавлен" not in changes:
+        changes.append("• Скрин: обновлён")
+    if video and video.filename and had_video and "• Видео: добавлено" not in changes:
+        changes.append("• Видео: обновлено")
+    await notify_updated_signal(db, row, changes)
     return signal_to_read(db, row, admin.telegram_user_id)
 
 
@@ -224,7 +241,13 @@ async def add_supplement(
 
     db.commit()
     db.refresh(row)
-    await notify_signal_supplement(db, row, sup.comment)
+    await notify_signal_supplement(
+        db,
+        row,
+        sup.comment,
+        has_image=bool(sup.media_image_path),
+        has_video=bool(sup.media_video_path),
+    )
     return signal_to_read(db, row, admin.telegram_user_id)
 
 

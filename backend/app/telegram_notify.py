@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import html
 import logging
+from dataclasses import dataclass
 
 import httpx
 
@@ -14,22 +16,112 @@ logger = logging.getLogger(__name__)
 API = "https://api.telegram.org/bot{token}/{method}"
 
 
+def _esc(value: object | None) -> str:
+    if value is None or value == "":
+        return "—"
+    return html.escape(str(value))
+
+
 def _format_take_profits(raw: str | None) -> str:
     levels = parse_take_profit_levels(raw)
     if not levels:
         return "—"
-    return ", ".join(str(x) for x in levels)
+    return ", ".join(_esc(x) for x in levels)
+
+
+def _entry_label(entry_low: str | None, entry_high: str | None) -> str:
+    low, high = entry_low, entry_high
+    if low and high and low != high:
+        return f"{_esc(low)} – {_esc(high)}"
+    return _esc(low or high)
+
+
+@dataclass
+class SignalSnapshot:
+    symbol: str
+    direction: str
+    entry_low: str | None
+    entry_high: str | None
+    stop_loss: str | None
+    take_profits: str | None
+    comment: str | None
+    leverage: int | None
+    risk_percent: float | None
+    has_image: bool
+    has_video: bool
+
+
+def snapshot_signal(signal: Signal) -> SignalSnapshot:
+    return SignalSnapshot(
+        symbol=signal.symbol,
+        direction=signal.direction,
+        entry_low=signal.entry_low,
+        entry_high=signal.entry_high,
+        stop_loss=signal.stop_loss,
+        take_profits=signal.take_profits,
+        comment=signal.comment,
+        leverage=signal.leverage,
+        risk_percent=signal.risk_percent,
+        has_image=bool(signal.media_image_path),
+        has_video=bool(signal.media_video_path),
+    )
+
+
+def diff_signal_changes(
+    before: SignalSnapshot,
+    after: Signal,
+    *,
+    image_added: bool = False,
+    image_removed: bool = False,
+    video_added: bool = False,
+    video_removed: bool = False,
+) -> list[str]:
+    lines: list[str] = []
+    after_snap = snapshot_signal(after)
+
+    def _cmp(label: str, old: object | None, new: object | None, fmt=_esc) -> None:
+        o, n = fmt(old), fmt(new)
+        if o != n:
+            lines.append(f"• {label}: {o} → {n}")
+
+    _cmp("Инструмент", before.symbol, after_snap.symbol)
+    if before.direction != after_snap.direction:
+        lines.append(f"• Направление: {_esc(before.direction.upper())} → {_esc(after_snap.direction.upper())}")
+
+    before_entry = _entry_label(before.entry_low, before.entry_high)
+    after_entry = _entry_label(after_snap.entry_low, after_snap.entry_high)
+    if before_entry != after_entry:
+        lines.append(f"• Вход: {before_entry} → {after_entry}")
+
+    _cmp("Стоп", before.stop_loss, after_snap.stop_loss)
+    _cmp("Цель", _format_take_profits(before.take_profits), _format_take_profits(after_snap.take_profits), fmt=str)
+    _cmp("Плечо", before.leverage, after_snap.leverage)
+    if before.risk_percent != after_snap.risk_percent:
+        lines.append(f"• Сумма входа %: {_esc(before.risk_percent)} → {_esc(after_snap.risk_percent)}")
+    if (before.comment or "") != (after_snap.comment or ""):
+        lines.append(f"• Комментарий: {_esc(before.comment)} → {_esc(after_snap.comment)}")
+
+    if image_removed:
+        lines.append("• Скрин: удалён")
+    elif image_added:
+        lines.append("• Скрин: добавлен")
+    if video_removed:
+        lines.append("• Видео: удалено")
+    elif video_added:
+        lines.append("• Видео: добавлено")
+
+    return lines
 
 
 def _signal_summary(signal: Signal) -> str:
-    author = f"@{signal.author_username}" if signal.author_username else f"id {signal.author_telegram_id}"
+    author = f"@{_esc(signal.author_username)}" if signal.author_username else f"id {signal.author_telegram_id}"
     stake = signal_entry_stake_pct(signal)
     stake_usd = signal_entry_stake_usd(signal)
     tracker = signal_tracker_balance(signal)
     return (
-        f"{signal.symbol} · <b>{signal.direction.upper()}</b>\n"
-        f"Вход: {signal.entry_low or signal.entry_high or '—'}\n"
-        f"Стоп: {signal.stop_loss or '—'}\n"
+        f"{_esc(signal.symbol)} · <b>{_esc(signal.direction.upper())}</b>\n"
+        f"Вход: {_entry_label(signal.entry_low, signal.entry_high)}\n"
+        f"Стоп: {_esc(signal.stop_loss)}\n"
         f"Цель: {_format_take_profits(signal.take_profits)}\n"
         f"Сумма входа: {stake}% (${stake_usd:,.0f}) · Трекер: ${tracker:,.0f}\n"
         f"Автор: {author}"
@@ -38,6 +130,7 @@ def _signal_summary(signal: Signal) -> str:
 
 async def _send_message(chat_id: int, text: str) -> None:
     if not settings.bot_token:
+        logger.warning("BOT_TOKEN не задан — уведомление не отправлено")
         return
     url = API.format(token=settings.bot_token, method="sendMessage")
     payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
@@ -45,12 +138,16 @@ async def _send_message(chat_id: int, text: str) -> None:
         async with httpx.AsyncClient(timeout=15.0) as client:
             r = await client.post(url, json=payload)
             if r.status_code != 200:
-                logger.warning("Telegram sendMessage %s: %s", r.status_code, r.text[:200])
+                logger.warning("Telegram sendMessage %s chat=%s: %s", r.status_code, chat_id, r.text[:300])
     except Exception as e:
-        logger.warning("Telegram notify failed: %s", e)
+        logger.warning("Telegram notify failed chat=%s: %s", chat_id, e)
 
 
 async def notify_subscribers(text: str, subscriber_ids: list[int]) -> None:
+    if not subscriber_ids:
+        logger.info("Нет подписчиков для уведомления")
+        return
+    logger.info("Отправка уведомления %s подписчикам", len(subscriber_ids))
     for uid in subscriber_ids:
         await _send_message(uid, text)
 
@@ -59,8 +156,13 @@ def format_new_signal_message(signal: Signal) -> str:
     return f"📢 <b>Новый сигнал</b>\n{_signal_summary(signal)}"
 
 
-def format_updated_signal_message(signal: Signal) -> str:
-    return f"✏️ <b>Сигнал обновлён</b>\n{_signal_summary(signal)}"
+def format_updated_signal_message(signal: Signal, changes: list[str]) -> str:
+    header = f"✏️ <b>Сигнал обновлён</b>\n{_esc(signal.symbol)} · <b>{_esc(signal.direction.upper())}</b>\n"
+    if changes:
+        body = "<b>Изменения:</b>\n" + "\n".join(changes)
+    else:
+        body = "Обновлены параметры сигнала."
+    return header + body
 
 
 def format_deleted_signal_message(signal: Signal) -> str:
@@ -75,26 +177,38 @@ def format_closed_signal_message(signal: Signal) -> str:
     sign = "+" if ret >= 0 else ""
     return (
         f"{emoji} <b>Сигнал {label}</b>\n"
-        f"{signal.symbol} · {signal.direction.upper()}\n"
+        f"{_esc(signal.symbol)} · {_esc(signal.direction.upper())}\n"
         f"Доходность: {sign}{ret:.2f}% · P/L: {pnl:+.0f}$\n"
         f"Трекер сигнала: ${signal_tracker_balance(signal):,.0f}"
     )
 
 
-def format_supplement_message(signal: Signal, comment: str | None) -> str:
-    text = comment.strip() if comment else "—"
-    return (
-        f"➕ <b>Дополнение к сигналу</b>\n"
-        f"{signal.symbol} · {signal.direction.upper()}\n"
-        f"{text}"
-    )
+def format_supplement_message(
+    signal: Signal,
+    comment: str | None,
+    *,
+    has_image: bool = False,
+    has_video: bool = False,
+) -> str:
+    parts = [f"➕ <b>Дополнение к сигналу</b>\n{_esc(signal.symbol)} · {_esc(signal.direction.upper())}"]
+    if comment and comment.strip():
+        parts.append(f"\n{_esc(comment.strip())}")
+    media: list[str] = []
+    if has_image:
+        media.append("скрин")
+    if has_video:
+        media.append("видео")
+    if media:
+        parts.append(f"\n<b>Добавлено:</b> {', '.join(media)}")
+    return "".join(parts)
 
 
 def format_entry_filled_message(signal: Signal) -> str:
-    author = f"@{signal.author_username}" if signal.author_username else f"id {signal.author_telegram_id}"
+    author = f"@{_esc(signal.author_username)}" if signal.author_username else f"id {signal.author_telegram_id}"
     return (
         f"🎯 <b>Вход в зоне</b>\n"
-        f"{signal.symbol} · <b>{signal.direction.upper()}</b>\n"
+        f"{_esc(signal.symbol)} · <b>{_esc(signal.direction.upper())}</b>\n"
         f"Цена достигла уровня входа — позиция в работе.\n"
+        f"Вход: {_entry_label(signal.entry_low, signal.entry_high)}\n"
         f"Автор: {author}"
     )

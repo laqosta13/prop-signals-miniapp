@@ -7,7 +7,9 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.models import Signal, Subscriber, Trader
+from app.subscription_billing import subscription_active
 from app.signal_utils import compute_signal_points_percent, entry_zone_defined, entry_triggered
 from app.telegram_avatar import ensure_trader_avatar
 from app.telegram_notify import (
@@ -66,14 +68,16 @@ def register_subscriber(db: Session, telegram_id: int, username: str | None, sta
 
 
 def subscriber_ids_for_notify(db: Session) -> list[int]:
-    now = datetime.now(timezone.utc)
-    stmt = (
-        select(Subscriber.telegram_user_id)
-        .where(Subscriber.notify_enabled.is_(True))
-        .where(Subscriber.subscription_until.is_not(None))
-        .where(Subscriber.subscription_until > now)
-    )
-    return list(db.scalars(stmt).all())
+    """Подписчики с активной подпиской и включёнными уведомлениями."""
+    admin_ids = settings.admin_id_set
+    subs = db.scalars(select(Subscriber).where(Subscriber.notify_enabled.is_(True))).all()
+    ids: list[int] = []
+    for sub in subs:
+        if subscription_active(sub, sub.telegram_user_id in admin_ids):
+            ids.append(sub.telegram_user_id)
+    if not ids:
+        logger.info("subscriber_ids_for_notify: 0 получателей (notify_enabled + активная подписка)")
+    return ids
 
 
 async def notify_new_signal(db: Session, signal: Signal) -> None:
@@ -82,10 +86,10 @@ async def notify_new_signal(db: Session, signal: Signal) -> None:
         await notify_subscribers(format_new_signal_message(signal), ids)
 
 
-async def notify_updated_signal(db: Session, signal: Signal) -> None:
+async def notify_updated_signal(db: Session, signal: Signal, changes: list[str]) -> None:
     ids = subscriber_ids_for_notify(db)
     if ids:
-        await notify_subscribers(format_updated_signal_message(signal), ids)
+        await notify_subscribers(format_updated_signal_message(signal, changes), ids)
 
 
 async def notify_deleted_signal(db: Session, signal: Signal) -> None:
@@ -120,10 +124,20 @@ async def notify_entry_filled(db: Session, signal: Signal) -> None:
         await notify_subscribers(format_entry_filled_message(signal), ids)
 
 
-async def notify_signal_supplement(db: Session, signal: Signal, comment: str | None) -> None:
+async def notify_signal_supplement(
+    db: Session,
+    signal: Signal,
+    comment: str | None,
+    *,
+    has_image: bool = False,
+    has_video: bool = False,
+) -> None:
     ids = subscriber_ids_for_notify(db)
     if ids:
-        await notify_subscribers(format_supplement_message(signal, comment), ids)
+        await notify_subscribers(
+            format_supplement_message(signal, comment, has_image=has_image, has_video=has_video),
+            ids,
+        )
 
 
 async def try_fill_entry_from_market(db: Session, signal: Signal, *, notify: bool = True) -> bool:
