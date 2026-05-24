@@ -7,9 +7,10 @@ type Props = {
   signal: Signal | null;
   onClose: () => void;
   onUpdated: () => void;
+  trackerBalance?: number | null;
 };
 
-export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
+export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [symbol, setSymbol] = useState("");
@@ -17,9 +18,8 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
   const [entry, setEntry] = useState("");
   const [stop, setStop] = useState("");
   const [target, setTarget] = useState("");
-  const [leverage, setLeverage] = useState("5");
+  const [leverage, setLeverage] = useState("1");
   const [risk, setRisk] = useState("10");
-  const [tracker, setTracker] = useState("5000");
   const [comment, setComment] = useState("");
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [video, setVideo] = useState<File | null>(null);
@@ -34,9 +34,8 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
     setEntry(signal.entry_low || signal.entry_high || "");
     setStop(signal.stop_loss || "");
     setTarget(formatTakeProfits(signal.take_profits));
-    setLeverage(String(signal.leverage ?? 5));
+    setLeverage(String(signal.leverage ?? 1));
     setRisk(String(signal.risk_percent ?? signal.points_percent ?? 10));
-    setTracker(String(signal.tracker_balance ?? 5000));
     setComment(signal.comment || "");
     setScreenshot(null);
     setVideo(null);
@@ -48,6 +47,8 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
   }, [signal]);
 
   if (!signal) return null;
+
+  const tracker = trackerBalance ?? signal.tracker_balance ?? 0;
 
   const onScreenshot = (file: File | null) => {
     setScreenshot(file);
@@ -72,9 +73,8 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
       const tp = normalizeTakeProfits(target);
       if (tp) fd.append("take_profits", tp);
       fd.append("comment", comment);
-      fd.append("leverage", String(parseInt(leverage, 10) || 5));
+      fd.append("leverage", String(parseInt(leverage, 10) || 1));
       fd.append("risk_percent", String(parseFloat(risk) || 10));
-      fd.append("tracker_balance", String(parseFloat(tracker) || 5000));
       fd.append("remove_screenshot", removeScreenshot ? "true" : "false");
       fd.append("remove_video", removeVideo ? "true" : "false");
       if (screenshot) fd.append("screenshot", screenshot);
@@ -145,7 +145,11 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
           </div>
           <div>
             <label className="field-label">Трекер $</label>
-            <input value={tracker} onChange={(e) => setTracker(e.target.value)} />
+            <input
+              value={tracker > 0 ? String(Math.round(tracker)) : "—"}
+              readOnly
+              className="readonly"
+            />
           </div>
         </div>
 

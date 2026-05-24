@@ -805,6 +805,63 @@ body {
   margin: 0;
 }
 
+.equity-curve {
+  margin-top: 10px;
+}
+
+.equity-curve__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 0 4px;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.equity-curve__svg {
+  width: 100%;
+  height: 72px;
+  display: block;
+}
+
+.equity-curve__zero {
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.equity-curve__area {
+  opacity: 0.25;
+}
+
+.equity-curve__area--up {
+  fill: var(--green);
+}
+
+.equity-curve__area--down {
+  fill: var(--red);
+}
+
+.equity-curve__line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.equity-curve__line--up {
+  stroke: var(--green);
+}
+
+.equity-curve__line--down {
+  stroke: var(--red);
+}
+
+input.readonly {
+  opacity: 0.85;
+  cursor: default;
+}
+
 /* Bottom nav + FAB */
 .bottom-nav {
   position: fixed;

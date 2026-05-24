@@ -7,7 +7,7 @@ import httpx
 from app.config import settings
 from app.models import Signal
 from app.signal_utils import parse_take_profit_levels
-from app.trader_stats import signal_entry_stake_pct, signal_tracker_balance
+from app.trader_stats import signal_entry_stake_pct, signal_entry_stake_usd, signal_tracker_balance, signal_trade_return_pct
 
 logger = logging.getLogger(__name__)
 
@@ -24,13 +24,14 @@ def _format_take_profits(raw: str | None) -> str:
 def _signal_summary(signal: Signal) -> str:
     author = f"@{signal.author_username}" if signal.author_username else f"id {signal.author_telegram_id}"
     stake = signal_entry_stake_pct(signal)
+    stake_usd = signal_entry_stake_usd(signal)
     tracker = signal_tracker_balance(signal)
     return (
         f"{signal.symbol} · <b>{signal.direction.upper()}</b>\n"
         f"Вход: {signal.entry_low or signal.entry_high or '—'}\n"
         f"Стоп: {signal.stop_loss or '—'}\n"
         f"Цель: {_format_take_profits(signal.take_profits)}\n"
-        f"Сумма входа: {stake}% · Трекер: ${tracker:,.0f}\n"
+        f"Сумма входа: {stake}% (${stake_usd:,.0f}) · Трекер: ${tracker:,.0f}\n"
         f"Автор: {author}"
     )
 
@@ -69,13 +70,13 @@ def format_deleted_signal_message(signal: Signal) -> str:
 def format_closed_signal_message(signal: Signal) -> str:
     emoji = "✅" if signal.status == "win" else "❌"
     label = "WIN" if signal.status == "win" else "LOSE"
-    stake = signal_entry_stake_pct(signal)
-    sign = "+" if signal.status == "win" else "−"
+    ret = signal_trade_return_pct(signal, signal.status)
     pnl = signal.realized_pnl or 0
+    sign = "+" if ret >= 0 else ""
     return (
         f"{emoji} <b>Сигнал {label}</b>\n"
         f"{signal.symbol} · {signal.direction.upper()}\n"
-        f"Рейтинг: {sign}{stake}% · P/L: {pnl:+.0f}$\n"
+        f"Доходность: {sign}{ret:.2f}% · P/L: {pnl:+.0f}$\n"
         f"Трекер сигнала: ${signal_tracker_balance(signal):,.0f}"
     )
 

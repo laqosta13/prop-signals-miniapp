@@ -182,8 +182,18 @@ export default function App() {
         ))}
       </nav>
 
-      <NewSignalModal open={showNewSignal} onClose={() => setShowNewSignal(false)} onCreated={loadMeAndSignals} />
-      <EditSignalModal signal={editSignal} onClose={() => setEditSignal(null)} onUpdated={loadMeAndSignals} />
+      <NewSignalModal
+        open={showNewSignal}
+        onClose={() => setShowNewSignal(false)}
+        onCreated={loadMeAndSignals}
+        trackerBalance={trackers.find((t) => t.owner_telegram_id === myId)?.balance ?? null}
+      />
+      <EditSignalModal
+        signal={editSignal}
+        onClose={() => setEditSignal(null)}
+        onUpdated={loadMeAndSignals}
+        trackerBalance={trackers.find((t) => t.owner_telegram_id === myId)?.balance ?? null}
+      />
       <AppendSupplementModal
         signal={supplementSignal}
         onClose={() => setSupplementSignal(null)}

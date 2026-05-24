@@ -17,7 +17,7 @@ from app.media_storage import (
 from app.models import Signal, SignalSupplement
 from app.schemas import LikeResponse, SignalRead, TelegramUser, ViewResponse
 from app.serializers import signal_to_read
-from app.challenge_service import ensure_tracker_for_new_signal
+from app.challenge_service import admin_tracker_balance, ensure_tracker_for_new_signal
 from app.signal_service import (
     build_signal_row,
     notify_deleted_signal,
@@ -65,6 +65,7 @@ async def create_signal(
     db: Session = Depends(db_session),
     admin: TelegramUser = Depends(require_admin),
 ) -> SignalRead:
+    tb = admin_tracker_balance(db, admin.telegram_user_id)
     row = build_signal_row(
         db,
         symbol=symbol.strip().upper(),
@@ -78,7 +79,7 @@ async def create_signal(
         author_username=admin.username,
         leverage=leverage,
         risk_percent=risk_percent,
-        tracker_balance=tracker_balance,
+        tracker_balance=tb,
     )
     db.add(row)
     db.flush()
@@ -138,7 +139,7 @@ async def update_signal(
         comment=comment or None,
         leverage=leverage,
         risk_percent=risk_percent,
-        tracker_balance=tracker_balance,
+        tracker_balance=admin_tracker_balance(db, admin.telegram_user_id),
     )
 
     if remove_screenshot and row.media_image_path:

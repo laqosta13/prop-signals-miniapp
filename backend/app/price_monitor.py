@@ -46,7 +46,7 @@ async def check_active_signals_once() -> int:
 
             outcome = evaluate_signal(price, signal.direction, signal.stop_loss, signal.take_profits)
             if outcome in ("win", "lose"):
-                await close_signal_and_notify(db, signal, outcome)
+                await close_signal_and_notify(db, signal, outcome, exit_price=price)
                 closed += 1
     except Exception as e:
         logger.exception("price monitor error: %s", e)

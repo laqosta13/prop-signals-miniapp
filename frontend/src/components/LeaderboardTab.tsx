@@ -1,4 +1,5 @@
 import type { Trader } from "../api";
+import { EquityCurve } from "./EquityCurve";
 import { formatDayLabel, formatUsd, traderName } from "../utils";
 import { Avatar } from "./Avatar";
 
@@ -16,11 +17,15 @@ export function LeaderboardTab({ traders, loading }: Props) {
           <Avatar url={t.avatar_url} username={t.username} telegramId={t.telegram_id} size={44} />
           <div className="top-body">
             <p className="top-name">{traderName(t.username, t.telegram_id)}</p>
-            <p className="top-score">{t.rating_percent.toFixed(1)}%</p>
+            <p className="top-score">
+              {t.rating_percent >= 0 ? "+" : ""}
+              {t.rating_percent.toFixed(2)}%
+            </p>
             <p className="top-meta">
               <span className={t.total_pnl_usd >= 0 ? "pnl-win" : "pnl-lose"}>{formatUsd(t.total_pnl_usd)}</span> · W{" "}
               {t.wins} · L {t.losses} · WR {t.win_rate}%
             </p>
+            <EquityCurve dailyStats={t.daily_stats} />
             {t.daily_stats.length > 0 && (
               <ul className="day-stats">
                 {t.daily_stats.map((d) => (
@@ -32,7 +37,7 @@ export function LeaderboardTab({ traders, loading }: Props) {
                     </span>
                     <span className={d.rating_delta >= 0 ? "pnl-win" : "pnl-lose"}>
                       {d.rating_delta >= 0 ? "+" : ""}
-                      {d.rating_delta.toFixed(1)}%
+                      {d.rating_delta.toFixed(2)}%
                     </span>
                   </li>
                 ))}

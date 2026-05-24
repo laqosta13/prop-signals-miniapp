@@ -11,7 +11,7 @@ from app.models import Signal, Trader
 from app.schemas import TraderDayStat, TraderRead
 from app.serializers import trader_to_read
 from app.signal_service import get_or_create_trader
-from app.trader_stats import pnl_usd_for_outcome, signal_risk_percent
+from app.trader_stats import pnl_usd_for_outcome, signal_trade_return_pct
 from app.telegram_avatar import ensure_trader_avatar
 
 
@@ -36,11 +36,11 @@ def daily_stats_map(db: Session, admin_ids: list[int]) -> dict[int, list[TraderD
 
     for s in rows:
         pnl = s.realized_pnl if s.realized_pnl is not None else pnl_usd_for_outcome(s, s.status)
-        risk = signal_risk_percent(s)
+        ret = signal_trade_return_pct(s, s.status)
         day = _day_key(s.closed_at)
         b = buckets[s.author_telegram_id][day]
         b["pnl"] = round(b["pnl"] + pnl, 2)
-        b["rating"] = round(b["rating"] + (risk if s.status == "win" else -risk), 2)
+        b["rating"] = round(b["rating"] + ret, 2)
         if s.status == "win":
             b["w"] += 1
         else:

@@ -32,6 +32,11 @@ def get_or_create_challenge(db: Session, admin_id: int) -> UserChallenge:
     return row
 
 
+def admin_tracker_balance(db: Session, admin_id: int) -> float:
+    """Текущий баланс трекера админа на момент публикации сигнала."""
+    return get_or_create_challenge(db, admin_id).balance
+
+
 def ensure_tracker_for_new_signal(db: Session, signal: Signal) -> None:
     if signal.author_telegram_id not in settings.admin_id_set:
         return

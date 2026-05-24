@@ -113,3 +113,53 @@ def evaluate_signal(price: float, direction: str, stop_loss: str | None, take_pr
         if tps and any(price <= tp for tp in tps):
             return "win"
     return None
+
+
+def exit_price_for_outcome(
+    outcome: str,
+    *,
+    stop_loss: str | None,
+    take_profits: str | None,
+    direction: str,
+) -> float | None:
+    """Уровень выхода по стопу или первой достигнутой цели."""
+    if outcome == "lose":
+        return parse_price(stop_loss)
+    if outcome != "win":
+        return None
+    tps = parse_take_profit_levels(take_profits)
+    if not tps:
+        return parse_price(take_profits)
+    d = direction.lower()
+    if d == "long":
+        return min(tps)
+    if d == "short":
+        return max(tps)
+    return tps[0]
+
+
+def trade_move_pct(
+    entry_low: str | None,
+    entry_high: str | None,
+    direction: str,
+    outcome: str,
+    *,
+    exit_price: float | None = None,
+    stop_loss: str | None = None,
+    take_profits: str | None = None,
+) -> float:
+    """% изменения цены от входа до выхода (положительный = профит для направления)."""
+    entry = entry_mid(entry_low, entry_high)
+    if exit_price is None:
+        exit_price = exit_price_for_outcome(
+            outcome, stop_loss=stop_loss, take_profits=take_profits, direction=direction
+        )
+    if entry is None or entry <= 0 or exit_price is None:
+        return 0.0
+
+    d = direction.lower()
+    if d == "long":
+        return round((exit_price - entry) / entry * 100.0, 2)
+    if d == "short":
+        return round((entry - exit_price) / entry * 100.0, 2)
+    return 0.0

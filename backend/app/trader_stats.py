@@ -1,6 +1,7 @@
-"""Рейтинг: ±% поля «сумма входа»; P/L $ = трекер × этот % / 100."""
+"""P/L и рейтинг: номинал = трекер × сумма входа %; результат = % движения цены × номинал."""
 
 from app.models import Signal, Trader
+from app.signal_utils import trade_move_pct
 
 
 def signal_entry_stake_pct(signal: Signal) -> float:
@@ -12,7 +13,6 @@ def signal_entry_stake_pct(signal: Signal) -> float:
     return 1.0
 
 
-# alias для совместимости
 def signal_risk_percent(signal: Signal) -> float:
     return signal_entry_stake_pct(signal)
 
@@ -28,15 +28,35 @@ def signal_entry_stake_usd(signal: Signal) -> float:
     return round(signal_tracker_balance(signal) * signal_entry_stake_pct(signal) / 100.0, 2)
 
 
-def pnl_usd_for_outcome(signal: Signal, outcome: str) -> float:
+def signal_trade_return_pct(signal: Signal, outcome: str, exit_price: float | None = None) -> float:
+    """Доходность сделки в % от номинала (движение цены вход→выход)."""
+    return trade_move_pct(
+        signal.entry_low,
+        signal.entry_high,
+        signal.direction,
+        outcome,
+        exit_price=exit_price,
+        stop_loss=signal.stop_loss,
+        take_profits=signal.take_profits,
+    )
+
+
+def pnl_usd_for_outcome(signal: Signal, outcome: str, exit_price: float | None = None) -> float:
+    move = signal_trade_return_pct(signal, outcome, exit_price)
     base = signal_entry_stake_usd(signal)
-    return round(base if outcome == "win" else -base, 2)
+    return round(base * move / 100.0, 2)
 
 
-def apply_outcome_to_trader(trader: Trader, signal: Signal, outcome: str) -> None:
-    risk_pct = signal_entry_stake_pct(signal)
-    pnl = pnl_usd_for_outcome(signal, outcome)
+def apply_outcome_to_trader(
+    trader: Trader,
+    signal: Signal,
+    outcome: str,
+    exit_price: float | None = None,
+) -> None:
+    move_pct = signal_trade_return_pct(signal, outcome, exit_price)
+    pnl = pnl_usd_for_outcome(signal, outcome, exit_price)
     signal.realized_pnl = pnl
+
     if trader.total_pnl_usd is None:
         trader.total_pnl_usd = 0.0
     if trader.rating_percent is None:
@@ -48,9 +68,8 @@ def apply_outcome_to_trader(trader: Trader, signal: Signal, outcome: str) -> Non
 
     if outcome == "win":
         trader.wins += 1
-        trader.rating_percent = round(trader.rating_percent + risk_pct, 2)
-        trader.total_pnl_usd = round(trader.total_pnl_usd + pnl, 2)
     else:
         trader.losses += 1
-        trader.rating_percent = round(trader.rating_percent - risk_pct, 2)
-        trader.total_pnl_usd = round(trader.total_pnl_usd + pnl, 2)
+
+    trader.rating_percent = round(trader.rating_percent + move_pct, 2)
+    trader.total_pnl_usd = round(trader.total_pnl_usd + pnl, 2)

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { createSignalWithMedia } from "../api";
 import { normalizeTakeProfits } from "../utils";
@@ -7,9 +7,10 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
+  trackerBalance?: number | null;
 };
 
-export function NewSignalModal({ open, onClose, onCreated }: Props) {
+export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [symbol, setSymbol] = useState("BTCUSDT");
@@ -17,15 +18,22 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
   const [entry, setEntry] = useState("");
   const [stop, setStop] = useState("");
   const [target, setTarget] = useState("");
-  const [leverage, setLeverage] = useState("5");
+  const [leverage, setLeverage] = useState("1");
   const [risk, setRisk] = useState("10");
-  const [tracker, setTracker] = useState("5000");
   const [comment, setComment] = useState("");
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [video, setVideo] = useState<File | null>(null);
   const [shotPreview, setShotPreview] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!open) return;
+    setError(null);
+  }, [open, trackerBalance]);
+
   if (!open) return null;
+
+  const tracker = trackerBalance ?? 0;
+  const stakeUsd = tracker > 0 ? (tracker * (parseFloat(risk) || 0)) / 100 : 0;
 
   const onScreenshot = (file: File | null) => {
     setScreenshot(file);
@@ -49,9 +57,8 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
       const tp = normalizeTakeProfits(target);
       if (tp) fd.append("take_profits", tp);
       if (comment) fd.append("comment", comment);
-      fd.append("leverage", String(parseInt(leverage, 10) || 5));
+      fd.append("leverage", String(parseInt(leverage, 10) || 1));
       fd.append("risk_percent", String(parseFloat(risk) || 10));
-      fd.append("tracker_balance", String(parseFloat(tracker) || 5000));
       if (screenshot) fd.append("screenshot", screenshot);
       if (video) fd.append("video", video);
 
@@ -118,9 +125,14 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
           </div>
           <div>
             <label className="field-label">Трекер $</label>
-            <input value={tracker} onChange={(e) => setTracker(e.target.value)} />
+            <input value={tracker > 0 ? String(Math.round(tracker)) : "—"} readOnly className="readonly" />
           </div>
         </div>
+        {tracker > 0 && (
+          <p className="meta">
+            Номинал позиции: ${stakeUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })} ({risk}% от трекера)
+          </p>
+        )}
 
         <label className="field-label">Скрин сетапа</label>
         <input

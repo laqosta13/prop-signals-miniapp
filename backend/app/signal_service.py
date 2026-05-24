@@ -89,21 +89,21 @@ async def notify_deleted_signal(db: Session, signal: Signal) -> None:
         await notify_subscribers(format_deleted_signal_message(signal), ids)
 
 
-def close_signal(db: Session, signal: Signal, outcome: str) -> None:
+def close_signal(db: Session, signal: Signal, outcome: str, exit_price: float | None = None) -> None:
     if signal.status != "active":
         return
     signal.status = outcome
     signal.closed_at = datetime.now(timezone.utc)
     trader = get_or_create_trader(db, signal.author_telegram_id, signal.author_username)
     _normalize_trader_stats(trader)
-    apply_outcome_to_trader(trader, signal, outcome)
+    apply_outcome_to_trader(trader, signal, outcome, exit_price)
     apply_signal_to_tracker(db, signal)
     db.commit()
     db.refresh(signal)
 
 
-async def close_signal_and_notify(db: Session, signal: Signal, outcome: str) -> None:
-    close_signal(db, signal, outcome)
+async def close_signal_and_notify(db: Session, signal: Signal, outcome: str, exit_price: float | None = None) -> None:
+    close_signal(db, signal, outcome, exit_price)
     ids = subscriber_ids_for_notify(db)
     if ids:
         await notify_subscribers(format_closed_signal_message(signal), ids)
