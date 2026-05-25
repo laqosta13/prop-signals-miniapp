@@ -278,6 +278,10 @@ POST /news                             — require_admin (multipart)
 PUT  /news/{id}                        — require_admin (multipart)
 DELETE /news/{id}                      — require_admin
 GET  /traders/leaderboard              — get_current_user
+GET  /traders/{id}/rank                — get_current_user (профиль ранга админа)
+GET  /traders/me/rank-pending          — require_admin (нужно подтверждение?)
+POST /traders/me/rank/confirm          — require_admin
+POST /traders/me/rank/shield           — require_admin (страховка 1×/мес)
 GET  /challenge/trackers               — get_current_user
 PUT  /challenge/settings               — require_admin
 GET  /subscriptions/info
@@ -307,7 +311,7 @@ PUT  /subscriptions/me                   — notify_enabled
 | Frontend shell | `frontend/src/App.tsx` |
 | Лента | `FeedTab.tsx`, `SignalCard.tsx`, `Avatar.tsx` |
 | Модалки | `NewSignalModal.tsx`, `EditSignalModal.tsx`, `AppendSupplementModal.tsx` |
-| ТОП | `LeaderboardTab.tsx`, `EquityCurve.tsx` |
+| ТОП / ранги | `LeaderboardTab.tsx`, `EquityCurve.tsx`, `RankBadge.tsx`, `RankConfirmModal.tsx`, `TraderProfileModal.tsx`, `rank_service.py`, `rank_scheduler.py` |
 | Подписка UI | `SubscriptionTab.tsx` |
 | Отзывы UI | `ReviewsTab.tsx` |
 | Новости UI | `NewsTab.tsx`, `NewsModal.tsx` |
@@ -359,6 +363,7 @@ USDT_TON_ADDRESS=UQDdFFYSG8sGiQfps2WWuIWFuaDPv1GAcFeRck6y5oeR_sPe
 11. Админ меняет только **свои** сигналы: `require_signal_owner()` (backend) + `isSignalAuthor` (frontend)
 12. Лайки/просмотры без подписки на win/lose: `require_signal_engagement()`, `canEngage={true}` в ленте
 13. Вкладки **Отзывы** и **Новости**: таблицы `reviews`, `news_posts`; API `/reviews`, `/news`
+14. **Система рангов** (8 уровней): `rank_constants.py`, `rank_service.py`, поля в `traders`, API `/traders/me/rank/*`, бейджи в ТОП, модал подтверждения, профиль, понедельничный cron
 
 ---
 

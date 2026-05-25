@@ -11,6 +11,7 @@ from app.models import Signal, Trader
 from app.schemas import TraderDayStat, TraderRead
 from app.serializers import trader_to_read
 from app.signal_service import get_or_create_trader, sync_admin_avatars
+from app.rank_service import ensure_rank_fields
 from app.trader_stats import pnl_usd_for_outcome, signal_trade_return_pct
 from app.telegram_avatar import ensure_trader_avatar
 
@@ -73,6 +74,7 @@ def build_leaderboard(db: Session) -> list[TraderRead]:
     )
     result: list[TraderRead] = []
     for rank, t in enumerate(ranked, start=1):
+        ensure_rank_fields(t)
         if not t.avatar_path:
             path = ensure_trader_avatar(t.telegram_id)
             if path:

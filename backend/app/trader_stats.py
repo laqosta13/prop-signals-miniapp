@@ -73,3 +73,7 @@ def apply_outcome_to_trader(
 
     trader.rating_percent = round(trader.rating_percent + move_pct, 2)
     trader.total_pnl_usd = round(trader.total_pnl_usd + pnl, 2)
+
+    from app.rank_service import add_weekly_pct
+
+    add_weekly_pct(trader, move_pct)

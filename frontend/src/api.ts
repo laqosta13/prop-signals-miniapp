@@ -78,6 +78,28 @@ export type TraderDayStat = {
   losses: number;
 };
 
+export type RankHistoryEntry = {
+  week_label: string;
+  weekly_pct: number;
+  rank_id: number;
+  rank_name: string;
+  confirmed: boolean;
+};
+
+export type TraderRank = {
+  current_rank_id: number;
+  current_rank_name: string;
+  weekly_pct: number;
+  is_confirmed: boolean;
+  confirm_deadline: string | null;
+  consecutive_loss_weeks: number;
+  shield_used_this_month: boolean;
+  shield_active: boolean;
+  rank_applied_this_week: boolean;
+  pending_rank_penalty: boolean;
+  rank_history: RankHistoryEntry[];
+};
+
 export type Trader = {
   telegram_id: number;
   username: string | null;
@@ -90,6 +112,7 @@ export type Trader = {
   win_rate: number;
   avatar_url: string | null;
   daily_stats: TraderDayStat[];
+  trader_rank: TraderRank | null;
 };
 
 export type ChallengeDashboard = {
@@ -171,6 +194,11 @@ export const fetchMe = () => api<Me>("/auth/me");
 export const fetchSignals = () => api<Signal[]>("/signals");
 export const fetchSignalsPreview = () => api<Signal[]>("/signals/preview");
 export const fetchLeaderboard = () => api<Trader[]>("/traders/leaderboard");
+export const fetchTraderRank = (telegramId: number) => api<TraderRank>(`/traders/${telegramId}/rank`);
+export const fetchRankPending = () =>
+  api<{ needs_confirm: boolean; rank: TraderRank }>("/traders/me/rank-pending");
+export const confirmMyRank = () => api<TraderRank>("/traders/me/rank/confirm", { method: "POST" });
+export const activateRankShield = () => api<TraderRank>("/traders/me/rank/shield", { method: "POST" });
 export const fetchChallengeTrackers = () => api<ChallengeDashboard[]>("/challenge/trackers");
 
 export const fetchReviews = () => api<Review[]>("/reviews");

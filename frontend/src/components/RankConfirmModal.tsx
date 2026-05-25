@@ -1,0 +1,48 @@
+import { useState } from "react";
+import type { TraderRank } from "../api";
+import { confirmMyRank } from "../api";
+import { rankStyle } from "../utils/ranks";
+
+type Props = {
+  rank: TraderRank;
+  onDone: () => void;
+};
+
+export function RankConfirmModal({ rank, onDone }: Props) {
+  const [busy, setBusy] = useState(false);
+  const st = rankStyle(rank.current_rank_id);
+  const pct = rank.weekly_pct;
+  const pctLabel = `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`;
+
+  const submit = async () => {
+    setBusy(true);
+    try {
+      await confirmMyRank();
+      onDone();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Ошибка");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true">
+      <div className="rank-confirm-sheet">
+        <h2>Подтверди свой ранг</h2>
+        <div className="rank-confirm-sheet__hero" style={{ background: st.bg, color: st.color }}>
+          {st.icon && <span className="rank-confirm-sheet__icon">{st.icon}</span>}
+          <span className="rank-confirm-sheet__name">{rank.current_rank_name}</span>
+          <span className="rank-confirm-sheet__pct">{pctLabel}</span>
+          <span className="rank-confirm-sheet__sub">за неделю</span>
+        </div>
+        <button type="button" className="btn-primary" disabled={busy} onClick={() => void submit()}>
+          {busy ? "…" : "Подтвердить результат"}
+        </button>
+        <p className="rank-confirm-sheet__hint">
+          До воскресенья 23:59 — иначе ранг понизится автоматически
+        </p>
+      </div>
+    </div>
+  );
+}

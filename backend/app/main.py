@@ -14,6 +14,7 @@ from app.media_storage import media_root
 from app.database import Base, engine
 from app.migrate import run_migrations
 from app.price_monitor import price_monitor_loop
+from app.rank_scheduler import rank_scheduler_loop
 from app.routers import auth, challenge, news, reviews, signals, subscriptions, traders
 
 logging.basicConfig(level=logging.INFO)
@@ -28,13 +29,15 @@ async def lifespan(app: FastAPI):
     from app.price_monitor import check_active_signals_once
 
     await check_active_signals_once()
-    task = asyncio.create_task(price_monitor_loop())
+    price_task = asyncio.create_task(price_monitor_loop())
+    rank_task = asyncio.create_task(rank_scheduler_loop())
     yield
-    task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass
+    for task in (price_task, rank_task):
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(title="Prop Signals API", version="0.2.0", lifespan=lifespan)

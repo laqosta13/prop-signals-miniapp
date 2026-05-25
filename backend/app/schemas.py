@@ -113,6 +113,28 @@ class TraderDayStat(BaseModel):
     losses: int
 
 
+class RankHistoryEntryRead(BaseModel):
+    week_label: str
+    weekly_pct: float
+    rank_id: int
+    rank_name: str
+    confirmed: bool
+
+
+class TraderRankRead(BaseModel):
+    current_rank_id: int
+    current_rank_name: str
+    weekly_pct: float
+    is_confirmed: bool
+    confirm_deadline: datetime | None = None
+    consecutive_loss_weeks: int = 0
+    shield_used_this_month: bool = False
+    shield_active: bool = False
+    rank_applied_this_week: bool = False
+    pending_rank_penalty: bool = False
+    rank_history: list[RankHistoryEntryRead] = []
+
+
 class TraderRead(BaseModel):
     telegram_id: int
     username: str | None
@@ -125,6 +147,7 @@ class TraderRead(BaseModel):
     win_rate: float = 0.0
     avatar_url: str | None = None
     daily_stats: list[TraderDayStat] = []
+    trader_rank: TraderRankRead | None = None
 
     model_config = {"from_attributes": True}
 

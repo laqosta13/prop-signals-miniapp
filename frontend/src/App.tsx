@@ -3,9 +3,11 @@ import {
   fetchChallengeTrackers,
   fetchLeaderboard,
   fetchMe,
+  fetchRankPending,
   fetchSignals,
   fetchSignalsPreview,
   setNotifications,
+  type TraderRank,
   updateChallenge,
   type ChallengeDashboard,
   type NewsPost,
@@ -22,6 +24,7 @@ import { NewsTab } from "./components/NewsTab";
 import { ReviewsTab } from "./components/ReviewsTab";
 import { SubscriptionTab } from "./components/SubscriptionTab";
 import { TrackerTab } from "./components/TrackerTab";
+import { RankConfirmModal } from "./components/RankConfirmModal";
 
 type Tab = "feed" | "tracker" | "top" | "reviews" | "news" | "pay";
 
@@ -65,6 +68,7 @@ export default function App() {
   const [editNews, setEditNews] = useState<NewsPost | null>(null);
   const [newsRefreshKey, setNewsRefreshKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [rankPending, setRankPending] = useState<TraderRank | null>(null);
 
   const patchSignal = (id: number, patch: Partial<Signal>) =>
     setSignals((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
@@ -83,6 +87,16 @@ export default function App() {
       setCanWriteReview(me.can_write_review);
       setReviewWriteBlockedReason(me.review_write_blocked_reason);
       setDaysUntilReview(me.days_until_review);
+      if (me.is_admin) {
+        try {
+          const pending = await fetchRankPending();
+          setRankPending(pending.needs_confirm ? pending.rank : null);
+        } catch {
+          setRankPending(null);
+        }
+      } else {
+        setRankPending(null);
+      }
       const [sig, trk] = await Promise.all([
         fullAccess ? fetchSignals() : fetchSignalsPreview(),
         fetchChallengeTrackers(),
@@ -230,7 +244,9 @@ export default function App() {
         {tab === "tracker" && (
           <TrackerTab trackers={trackers} signals={signals} myId={myId} isAdmin={isAdmin} onSettings={openSettings} />
         )}
-        {tab === "top" && <LeaderboardTab traders={traders} loading={loading && !traders.length} />}
+        {tab === "top" && (
+          <LeaderboardTab traders={traders} loading={loading && !traders.length} myId={myId} />
+        )}
         {tab === "reviews" && (
           <ReviewsTab
             isAdmin={isAdmin}
@@ -288,6 +304,16 @@ export default function App() {
         onClose={() => setNewsModalOpen(false)}
         onSaved={onNewsSaved}
       />
+
+      {rankPending && (
+        <RankConfirmModal
+          rank={rankPending}
+          onDone={() => {
+            setRankPending(null);
+            if (tab === "top") void loadTop();
+          }}
+        />
+      )}
     </div>
   );
 }

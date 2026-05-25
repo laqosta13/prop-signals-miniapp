@@ -862,6 +862,206 @@ body {
   margin: 0;
 }
 
+.top-card--btn {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.top-card--btn:active {
+  opacity: 0.92;
+}
+
+.top-meta--ranks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rank-badge__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.rank-badge--compact .rank-badge__pill {
+  font-size: 0.68rem;
+  padding: 2px 8px;
+}
+
+.rank-badge__icon {
+  font-size: 0.85em;
+}
+
+.rank-badge__shield {
+  margin-left: 2px;
+}
+
+.rank-badge__warn {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #2a0a0a;
+  color: #e24b4a;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.rank-confirm-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  padding: 20px 18px calc(20px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  border: 1px solid var(--border);
+  animation: rank-sheet-in 0.25s ease;
+}
+
+.rank-confirm-sheet h2 {
+  margin: 0 0 14px;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.rank-confirm-sheet__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 20px 16px;
+  border-radius: 14px;
+  margin-bottom: 16px;
+}
+
+.rank-confirm-sheet__icon {
+  font-size: 2rem;
+}
+
+.rank-confirm-sheet__name {
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.rank-confirm-sheet__pct {
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.rank-confirm-sheet__sub {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+.rank-confirm-sheet__hint {
+  margin: 12px 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.trader-profile-sheet {
+  position: relative;
+  width: min(100%, 420px);
+  max-height: 85vh;
+  overflow-y: auto;
+  margin: auto;
+  padding: 20px 18px;
+  background: var(--surface);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+}
+
+.trader-profile-sheet__head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.trader-profile-sheet__name {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.trader-profile-sheet__login {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.trader-profile-sheet__rank-block {
+  padding: 14px;
+  border-radius: 14px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.trader-profile-sheet__weekly {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.rank-history h3 {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.rank-history ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rank-history li {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 8px;
+  font-size: 0.82rem;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.rank-history__status {
+  color: var(--muted);
+  text-align: right;
+}
+
+@keyframes rank-sheet-in {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 .equity-curve {
   margin-top: 2px;
 }

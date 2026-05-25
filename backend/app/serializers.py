@@ -4,7 +4,17 @@ from sqlalchemy.orm import Session
 from app.engagement import user_liked
 from app.media_storage import public_url
 from app.models import NewsPost, Review, Signal, SignalSupplement, Trader
-from app.schemas import NewsRead, ReviewRead, SignalRead, SignalSupplementRead, TraderDayStat, TraderRead
+from app.rank_service import trader_rank_payload
+from app.schemas import (
+    NewsRead,
+    RankHistoryEntryRead,
+    ReviewRead,
+    SignalRead,
+    SignalSupplementRead,
+    TraderDayStat,
+    TraderRankRead,
+    TraderRead,
+)
 
 
 def trader_display_name(trader: Trader | None, username: str | None = None) -> str | None:
@@ -81,6 +91,24 @@ def signal_to_read(db: Session, signal: Signal, viewer_id: int | None = None) ->
     )
 
 
+def _trader_rank_read(t: Trader) -> TraderRankRead:
+    p = trader_rank_payload(t)
+    history = [RankHistoryEntryRead(**h) for h in p.get("rank_history", [])]
+    return TraderRankRead(
+        current_rank_id=p["current_rank_id"],
+        current_rank_name=p["current_rank_name"],
+        weekly_pct=p["weekly_pct"],
+        is_confirmed=p["is_confirmed"],
+        confirm_deadline=p.get("confirm_deadline"),
+        consecutive_loss_weeks=p["consecutive_loss_weeks"],
+        shield_used_this_month=p["shield_used_this_month"],
+        shield_active=p["shield_active"],
+        rank_applied_this_week=p["rank_applied_this_week"],
+        pending_rank_penalty=p["pending_rank_penalty"],
+        rank_history=history,
+    )
+
+
 def trader_to_read(
     t: Trader, rank: int, win_rate: float, daily_stats: list[TraderDayStat] | None = None
 ) -> TraderRead:
@@ -96,6 +124,7 @@ def trader_to_read(
         win_rate=win_rate,
         avatar_url=trader_avatar_url(t),
         daily_stats=daily_stats or [],
+        trader_rank=_trader_rank_read(t),
     )
 
 

@@ -89,6 +89,15 @@ class Trader(Base):
     total_pnl_usd: Mapped[float] = mapped_column(Float, default=0.0)
     wins: Mapped[int] = mapped_column(Integer, default=0)
     losses: Mapped[int] = mapped_column(Integer, default=0)
+    current_rank_id: Mapped[int] = mapped_column(Integer, default=8)
+    weekly_pct: Mapped[float] = mapped_column(Float, default=0.0)
+    is_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
+    confirm_deadline: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    consecutive_loss_weeks: Mapped[int] = mapped_column(Integer, default=0)
+    shield_used_this_month: Mapped[bool] = mapped_column(Boolean, default=False)
+    shield_active: Mapped[bool] = mapped_column(Boolean, default=False)
+    rank_applied_this_week: Mapped[bool] = mapped_column(Boolean, default=False)
+    rank_history_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
