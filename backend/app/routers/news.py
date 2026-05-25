@@ -7,6 +7,7 @@ from app.media_storage import delete_media_files, save_news_image, save_news_vid
 from app.models import NewsPost
 from app.schemas import NewsRead, TelegramUser
 from app.serializers import news_to_read
+from app.signal_service import notify_new_news
 
 router = APIRouter(prefix="/news", tags=["news"])
 
@@ -48,6 +49,7 @@ async def create_news(
         row.video_path = await save_news_video(row.id, video)
     db.commit()
     db.refresh(row)
+    await notify_new_news(db, row)
     return news_to_read(db, row)
 
 

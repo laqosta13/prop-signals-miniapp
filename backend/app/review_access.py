@@ -5,29 +5,14 @@ from __future__ import annotations
 import math
 from datetime import timedelta
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import PaymentTx, Subscriber
-from app.subscription_billing import REVIEW_WAIT_DAYS, _now, subscription_active
+from app.models import Subscriber
+from app.subscription_billing import REVIEW_WAIT_DAYS, _now, has_paid_subscription, subscription_active
 
 REVIEW_BLOCK_PAID = "paid_required"
 REVIEW_BLOCK_WAIT = "wait_days"
 REVIEW_BLOCK_SUB = "subscription_required"
-
-
-def has_paid_subscription(db: Session, telegram_user_id: int) -> bool:
-    return (
-        db.scalar(select(PaymentTx.id).where(PaymentTx.telegram_user_id == telegram_user_id).limit(1)) is not None
-    )
-
-
-def has_active_paid_subscription(db: Session, sub: Subscriber, is_admin: bool) -> bool:
-    if is_admin:
-        return True
-    if not subscription_active(sub, is_admin):
-        return False
-    return has_paid_subscription(db, sub.telegram_user_id)
 
 
 def review_write_access(

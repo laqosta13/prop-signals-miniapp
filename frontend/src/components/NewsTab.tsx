@@ -70,7 +70,11 @@ export function NewsTab({ isAdmin, onEdit, refreshKey = 0 }: Props) {
                 </div>
               )}
             </header>
-            {imageSrc && <img className="news-card__img" src={imageSrc} alt="" loading="lazy" />}
+            {imageSrc && (
+              <div className="news-card__cover">
+                <img className="news-card__img" src={imageSrc} alt="" loading="lazy" />
+              </div>
+            )}
             {videoSrc && (
               <video className="news-card__video" src={videoSrc} controls playsInline preload="metadata" />
             )}

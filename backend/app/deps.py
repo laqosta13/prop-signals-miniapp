@@ -5,7 +5,8 @@ from app.config import settings
 from app.database import get_db
 from app.schemas import TelegramUser
 from app.signal_service import get_or_create_trader, register_subscriber
-from app.review_access import has_active_paid_subscription, review_write_access
+from app.review_access import review_write_access
+from app.subscription_billing import has_active_paid_subscription
 from app.subscription_billing import subscription_active
 from app.telegram_auth import validate_init_data
 
@@ -100,6 +101,7 @@ def _telegram_user_from_sub(
         first_name=first_name,
         last_name=last_name,
         notify_enabled=sub.notify_enabled,
+        notify_news_enabled=bool(sub.notify_news_enabled),
         subscription_until=sub.subscription_until,
         subscription_active=subscription_active(sub, is_admin),
         referral_code=sub.referral_code or "",

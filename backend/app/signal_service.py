@@ -8,14 +8,15 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import Signal, Subscriber, Trader
-from app.subscription_billing import subscription_active
+from app.models import NewsPost, Signal, Subscriber, Trader
+from app.subscription_billing import subscriber_ids_for_news_notify, subscription_active_strict
 from app.signal_utils import compute_signal_points_percent, entry_zone_defined, entry_triggered
 from app.telegram_avatar import ensure_trader_avatar
 from app.telegram_notify import (
     format_closed_signal_message,
     format_deleted_signal_message,
     format_entry_filled_message,
+    format_new_news_message,
     format_new_signal_message,
     format_supplement_message,
     format_updated_signal_message,
@@ -101,12 +102,13 @@ def register_subscriber(db: Session, telegram_id: int, username: str | None, sta
 
 
 def subscriber_ids_for_notify(db: Session) -> list[int]:
-    """Подписчики с активной подпиской и включёнными уведомлениями."""
+    """Подписчики с notify_enabled и действующей подпиской (trial или платной)."""
     admin_ids = settings.admin_id_set
     subs = db.scalars(select(Subscriber).where(Subscriber.notify_enabled.is_(True))).all()
     ids: list[int] = []
     for sub in subs:
-        if subscription_active(sub, sub.telegram_user_id in admin_ids):
+        is_admin = sub.telegram_user_id in admin_ids
+        if subscription_active_strict(sub, is_admin=is_admin):
             ids.append(sub.telegram_user_id)
     if not ids:
         logger.info("subscriber_ids_for_notify: 0 получателей (notify_enabled + активная подписка)")
@@ -117,6 +119,25 @@ async def notify_new_signal(db: Session, signal: Signal) -> None:
     ids = subscriber_ids_for_notify(db)
     if ids:
         await notify_subscribers(format_new_signal_message(signal), ids)
+
+
+async def notify_new_news(db: Session, post: NewsPost) -> None:
+    ids = subscriber_ids_for_news_notify(db)
+    if not ids:
+        logger.info("notify_new_news: 0 получателей (платная подписка + notify_enabled)")
+        return
+    logger.info("notify_new_news: %s получателей", len(ids))
+    trader = db.get(Trader, post.author_telegram_id)
+    author = None
+    if trader:
+        from app.serializers import trader_display_name
+
+        author = trader_display_name(trader, trader.username)
+    await notify_subscribers(
+        format_new_news_message(post, author_label=author),
+        ids,
+        photo_rel_path=post.image_path,
+    )
 
 
 async def notify_updated_signal(db: Session, signal: Signal, changes: list[str]) -> None:

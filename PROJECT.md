@@ -198,6 +198,7 @@ Frontend: `SignalCard` всегда показывает блок engagement; `c
 
 - Таблица `news_posts`: `title`, `body`, `image_path`, `video_path`, `author_telegram_id`
 - **Читать:** все авторизованные пользователи — `GET /news`
+- **Уведомления в Telegram:** отдельная галочка `notify_news_enabled` + платная оплата + активная подписка (`subscriber_ids_for_news_notify`)
 - **Админ:** создать/редактировать/удалить; кнопка **+** в шапке; обложка + **видео**
 - Медиа: `{MEDIA_ROOT}/news/{id}/` → `save_news_image()`, `save_news_video()`
 - API: `GET/POST/PUT/DELETE /news` (multipart)
@@ -231,8 +232,8 @@ Frontend: `SignalCard` всегда показывает блок engagement; `c
 
 ## Telegram-уведомления
 
-Получатели: `notify_enabled=true` + активная подписка (админы всегда активны).  
-Выбор через `subscription_active()` в Python (`signal_service.subscriber_ids_for_notify`).
+Получатели: `notify_enabled=true` + активная подписка (trial/платная; админы всегда).  
+Выбор: сигналы — `subscriber_ids_for_notify()`; новости — `subscriber_ids_for_news_notify()` (строже: только платные).
 
 | Событие | Содержание |
 |---|---|

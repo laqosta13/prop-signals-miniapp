@@ -55,6 +55,8 @@ export default function App() {
   const [reviewWriteBlockedReason, setReviewWriteBlockedReason] = useState<string | null>(null);
   const [daysUntilReview, setDaysUntilReview] = useState<number | null>(null);
   const [notifyEnabled, setNotifyEnabled] = useState(true);
+  const [notifyNewsEnabled, setNotifyNewsEnabled] = useState(false);
+  const [paidSub, setPaidSub] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showNewSignal, setShowNewSignal] = useState(false);
   const [editSignal, setEditSignal] = useState<Signal | null>(null);
@@ -73,6 +75,8 @@ export default function App() {
       setIsAdmin(me.is_admin);
       setMyId(me.telegram_user_id);
       setNotifyEnabled(me.notify_enabled);
+      setNotifyNewsEnabled(me.notify_news_enabled);
+      setPaidSub(me.paid_subscription);
       setError(null);
       const fullAccess = me.subscription_active || me.is_admin;
       setSubActive(me.subscription_active);
@@ -133,12 +137,25 @@ export default function App() {
     }
   };
 
-  const toggleNotify = async () => {
+  const toggleSignalNotify = async () => {
     try {
-      const me = await setNotifications(!notifyEnabled);
+      const me = await setNotifications({ notify_enabled: !notifyEnabled });
       setNotifyEnabled(me.notify_enabled);
     } catch {
       /* */
+    }
+  };
+
+  const toggleNewsNotify = async () => {
+    if (!paidSub) {
+      alert("Уведомления о новостях доступны только с платной подпиской.");
+      return;
+    }
+    try {
+      const me = await setNotifications({ notify_news_enabled: !notifyNewsEnabled });
+      setNotifyNewsEnabled(me.notify_news_enabled);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Не удалось сохранить");
     }
   };
 
@@ -164,11 +181,6 @@ export default function App() {
           <p>{head.sub}</p>
         </div>
         <div className="topbar__actions">
-          {isAdmin && tab === "feed" && (
-            <button type="button" className="fab-top" onClick={() => setShowNewSignal(true)} aria-label="Новый сигнал">
-              +
-            </button>
-          )}
           {isAdmin && tab === "news" && (
             <button type="button" className="fab-top" onClick={openNewNews} aria-label="Новая новость">
               +
@@ -180,8 +192,19 @@ export default function App() {
 
       {tab === "feed" && (
         <label className="notify-row">
-          <input type="checkbox" checked={notifyEnabled} onChange={() => void toggleNotify()} />
-          Уведомления в Telegram
+          <input type="checkbox" checked={notifyEnabled} onChange={() => void toggleSignalNotify()} />
+          Уведомления о сигналах в Telegram
+        </label>
+      )}
+      {tab === "news" && (
+        <label className={`notify-row${!paidSub ? " notify-row--disabled" : ""}`}>
+          <input
+            type="checkbox"
+            checked={notifyNewsEnabled}
+            disabled={!paidSub}
+            onChange={() => void toggleNewsNotify()}
+          />
+          Уведомления о новостях {paidSub ? "" : "(только платная подписка)"}
         </label>
       )}
 
@@ -221,6 +244,17 @@ export default function App() {
         )}
         {tab === "pay" && <SubscriptionTab onPaid={() => void loadMeAndSignals()} />}
       </main>
+
+      {isAdmin && tab === "feed" && (
+        <button
+          type="button"
+          className="fab-bottom"
+          onClick={() => setShowNewSignal(true)}
+          aria-label="Новый сигнал"
+        >
+          +
+        </button>
+      )}
 
       <nav className="bottom-nav">
         {NAV.map(({ id, label, icon }) => (

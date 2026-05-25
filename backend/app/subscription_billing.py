@@ -29,17 +29,61 @@ def usdt_pay_address() -> str:
     return getattr(settings, "usdt_ton_address", None) or "UQDdFFYSG8sGiQfps2WWuIWFuaDPv1GAcFeRck6y5oeR_sPe"
 
 
-def subscription_active(sub: Subscriber | None, is_admin: bool) -> bool:
-    if is_admin:
-        return True
-    if not settings.bot_token:
-        return True
+def _subscription_until_active(sub: Subscriber | None) -> bool:
     if sub is None or sub.subscription_until is None:
         return False
     until = sub.subscription_until
     if until.tzinfo is None:
         until = until.replace(tzinfo=timezone.utc)
     return until > _now()
+
+
+def subscription_active(sub: Subscriber | None, is_admin: bool) -> bool:
+    if is_admin:
+        return True
+    if not settings.bot_token:
+        return True
+    return _subscription_until_active(sub)
+
+
+def subscription_active_strict(sub: Subscriber | None, *, is_admin: bool = False) -> bool:
+    """Для push-уведомлений — без dev-bypass, только реальная подписка или админ."""
+    if is_admin:
+        return True
+    return _subscription_until_active(sub)
+
+
+def has_paid_subscription(db: Session, telegram_user_id: int) -> bool:
+    return (
+        db.scalar(select(PaymentTx.id).where(PaymentTx.telegram_user_id == telegram_user_id).limit(1))
+        is not None
+    )
+
+
+def has_active_paid_subscription(db: Session, sub: Subscriber, is_admin: bool) -> bool:
+    if is_admin:
+        return True
+    if not _subscription_until_active(sub):
+        return False
+    return has_paid_subscription(db, sub.telegram_user_id)
+
+
+def can_enable_news_notify(db: Session, sub: Subscriber, *, is_admin: bool) -> bool:
+    """Включить галочку «новости» — только платная активная подписка."""
+    return has_active_paid_subscription(db, sub, is_admin)
+
+
+def subscriber_ids_for_news_notify(db: Session) -> list[int]:
+    """Только явно включённые notify_news_enabled + платная оплата + активная подписка."""
+    subs = db.scalars(select(Subscriber).where(Subscriber.notify_news_enabled.is_(True))).all()
+    ids: list[int] = []
+    for sub in subs:
+        if not _subscription_until_active(sub):
+            continue
+        if not has_paid_subscription(db, sub.telegram_user_id):
+            continue
+        ids.append(sub.telegram_user_id)
+    return ids
 
 
 def _gen_referral_code(db: Session) -> str:
@@ -82,6 +126,7 @@ def register_subscriber_with_meta(
         telegram_user_id=telegram_id,
         username=username,
         notify_enabled=True,
+        notify_news_enabled=False,
         subscription_until=_now() + timedelta(days=TRIAL_DAYS),
         referral_code=_gen_referral_code(db),
         referred_by_telegram_id=referrer_id if referrer_id and referrer_id != telegram_id else None,

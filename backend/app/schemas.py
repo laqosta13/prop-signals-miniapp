@@ -72,6 +72,7 @@ class TelegramUser(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     notify_enabled: bool = True
+    notify_news_enabled: bool = False
     subscription_until: datetime | None = None
     subscription_active: bool = False
     referral_code: str = ""
@@ -83,7 +84,8 @@ class TelegramUser(BaseModel):
 
 
 class SubscriptionUpdate(BaseModel):
-    notify_enabled: bool
+    notify_enabled: bool | None = None
+    notify_news_enabled: bool | None = None
 
 
 class PaymentSubmit(BaseModel):

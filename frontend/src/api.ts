@@ -47,6 +47,7 @@ export type Me = {
   is_admin: boolean;
   username: string | null;
   notify_enabled: boolean;
+  notify_news_enabled: boolean;
   subscription_until: string | null;
   subscription_active: boolean;
   referral_code: string;
@@ -222,11 +223,11 @@ export async function deleteSignal(signalId: number): Promise<void> {
   if (!res.ok) throw new Error(await res.text());
 }
 
-export const setNotifications = (enabled: boolean) =>
+export const setNotifications = (patch: { notify_enabled?: boolean; notify_news_enabled?: boolean }) =>
   api<Me>("/subscriptions/me", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ notify_enabled: enabled }),
+    body: JSON.stringify(patch),
   });
 
 export const updateChallenge = (body: {

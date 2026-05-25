@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.deps import db_session, get_current_user
+from app.deps import _telegram_user_from_sub, db_session, get_current_user
 from app.models import Subscriber
 from app.schemas import PaymentSubmit, SubscriptionInfo, SubscriptionUpdate, TelegramUser
 from app.signal_service import register_subscriber
@@ -10,6 +10,7 @@ from app.subscription_billing import (
     REFERRAL_BONUS_DAYS,
     TRIAL_DAYS,
     WEEK_USD,
+    can_enable_news_notify,
     record_payment,
     subscription_active,
     usdt_pay_address,
@@ -50,17 +51,25 @@ def update_subscription(
     user: TelegramUser = Depends(get_current_user),
 ) -> TelegramUser:
     sub = register_subscriber(db, user.telegram_user_id, user.username, None)
-    sub.notify_enabled = body.notify_enabled
+    if body.notify_enabled is not None:
+        sub.notify_enabled = body.notify_enabled
+    if body.notify_news_enabled is not None:
+        if body.notify_news_enabled and not can_enable_news_notify(db, sub, is_admin=user.is_admin):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="paid_subscription_required_for_news_notify",
+            )
+        sub.notify_news_enabled = body.notify_news_enabled
     db.commit()
-    is_admin = user.is_admin
-    return TelegramUser(
+    db.refresh(sub)
+    return _telegram_user_from_sub(
+        db,
+        sub,
         telegram_user_id=user.telegram_user_id,
-        is_admin=is_admin,
+        is_admin=user.is_admin,
         username=user.username,
-        notify_enabled=sub.notify_enabled,
-        subscription_until=sub.subscription_until,
-        subscription_active=subscription_active(sub, is_admin),
-        referral_code=sub.referral_code or "",
+        first_name=user.first_name,
+        last_name=user.last_name,
     )
 
 
@@ -78,13 +87,13 @@ def submit_payment(
     sub = db.get(Subscriber, user.telegram_user_id)
     if sub is None:
         raise HTTPException(status_code=500, detail="subscriber missing")
-    u2 = TelegramUser(
+    u2 = _telegram_user_from_sub(
+        db,
+        sub,
         telegram_user_id=user.telegram_user_id,
         is_admin=user.is_admin,
         username=user.username,
-        notify_enabled=sub.notify_enabled,
-        subscription_until=sub.subscription_until,
-        subscription_active=subscription_active(sub, user.is_admin),
-        referral_code=sub.referral_code or "",
+        first_name=user.first_name,
+        last_name=user.last_name,
     )
     return _info(db, u2)

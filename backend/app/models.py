@@ -98,6 +98,7 @@ class Subscriber(Base):
     telegram_user_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     username: Mapped[str | None] = mapped_column(String(64), nullable=True)
     notify_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    notify_news_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     subscription_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     referral_code: Mapped[str | None] = mapped_column(String(16), nullable=True, unique=True)
     referred_by_telegram_id: Mapped[int | None] = mapped_column(Integer, nullable=True)

@@ -53,6 +53,9 @@ def run_migrations(engine: Engine) -> None:
                 conn.execute(text("ALTER TABLE subscribers ADD COLUMN referral_code VARCHAR(16)"))
             if not _has_column(engine, "subscribers", "referred_by_telegram_id"):
                 conn.execute(text("ALTER TABLE subscribers ADD COLUMN referred_by_telegram_id INTEGER"))
+            if not _has_column(engine, "subscribers", "notify_news_enabled"):
+                conn.execute(text("ALTER TABLE subscribers ADD COLUMN notify_news_enabled BOOLEAN DEFAULT 0"))
+                conn.execute(text("UPDATE subscribers SET notify_news_enabled = 0 WHERE notify_news_enabled IS NULL"))
             conn.execute(
                 text(
                     "UPDATE subscribers SET subscription_until = datetime('now', '+3 days') "

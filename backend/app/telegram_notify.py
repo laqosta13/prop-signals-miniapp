@@ -3,11 +3,13 @@ from __future__ import annotations
 import html
 import logging
 from dataclasses import dataclass
+from pathlib import Path
 
 import httpx
 
 from app.config import settings
-from app.models import Signal
+from app.media_storage import media_root
+from app.models import NewsPost, Signal
 from app.signal_utils import parse_take_profit_levels
 from app.trader_stats import signal_entry_stake_pct, signal_entry_stake_usd, signal_tracker_balance, signal_trade_return_pct
 
@@ -143,13 +145,42 @@ async def _send_message(chat_id: int, text: str) -> None:
         logger.warning("Telegram notify failed chat=%s: %s", chat_id, e)
 
 
-async def notify_subscribers(text: str, subscriber_ids: list[int]) -> None:
+async def _send_photo(chat_id: int, image_path: Path, caption: str) -> None:
+    if not settings.bot_token:
+        logger.warning("BOT_TOKEN не задан — фото не отправлено")
+        return
+    url = API.format(token=settings.bot_token, method="sendPhoto")
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            with image_path.open("rb") as f:
+                r = await client.post(
+                    url,
+                    data={"chat_id": str(chat_id), "caption": caption, "parse_mode": "HTML"},
+                    files={"photo": (image_path.name, f, "image/jpeg")},
+                )
+            if r.status_code != 200:
+                logger.warning("Telegram sendPhoto %s chat=%s: %s", r.status_code, chat_id, r.text[:300])
+                await _send_message(chat_id, caption)
+    except Exception as e:
+        logger.warning("Telegram photo failed chat=%s: %s", chat_id, e)
+        await _send_message(chat_id, caption)
+
+
+async def notify_subscribers(text: str, subscriber_ids: list[int], *, photo_rel_path: str | None = None) -> None:
     if not subscriber_ids:
         logger.info("Нет подписчиков для уведомления")
         return
+    photo_file: Path | None = None
+    if photo_rel_path:
+        candidate = media_root() / photo_rel_path
+        if candidate.is_file():
+            photo_file = candidate
     logger.info("Отправка уведомления %s подписчикам", len(subscriber_ids))
     for uid in subscriber_ids:
-        await _send_message(uid, text)
+        if photo_file:
+            await _send_photo(uid, photo_file, text)
+        else:
+            await _send_message(uid, text)
 
 
 def format_new_signal_message(signal: Signal) -> str:
@@ -201,6 +232,20 @@ def format_supplement_message(
     if media:
         parts.append(f"\n<b>Добавлено:</b> {', '.join(media)}")
     return "".join(parts)
+
+
+def format_new_news_message(post: NewsPost, *, author_label: str | None = None) -> str:
+    body = (post.body or "").strip()
+    if len(body) > 280:
+        body = body[:277] + "…"
+    lines = [f"📰 <b>Новость</b>", f"<b>{_esc(post.title)}</b>"]
+    if body:
+        lines.append(_esc(body))
+    if post.video_path:
+        lines.append("🎬 Есть видео в приложении")
+    if author_label:
+        lines.append(f"Автор: {_esc(author_label)}")
+    return "\n".join(lines)
 
 
 def format_entry_filled_message(signal: Signal) -> str:
