@@ -205,7 +205,7 @@ async def update_signal(
         changes.append("• Скрин: обновлён")
     if video and video.filename and had_video and "• Видео: добавлено" not in changes:
         changes.append("• Видео: обновлено")
-    await notify_updated_signal(db, row, changes)
+    await notify_updated_signal(db, row, changes, actor=admin)
     return signal_to_read(db, row, admin.telegram_user_id)
 
 
@@ -224,7 +224,7 @@ async def delete_signal(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Удалить можно только до срабатывания входа",
         )
-    await notify_deleted_signal(db, row)
+    await notify_deleted_signal(db, row, actor=admin)
     for sup in db.scalars(select(SignalSupplement).where(SignalSupplement.signal_id == signal_id)).all():
         delete_media_files(sup.media_image_path, sup.media_video_path)
     db.execute(delete(SignalSupplement).where(SignalSupplement.signal_id == signal_id))
@@ -270,6 +270,7 @@ async def add_supplement(
         db,
         row,
         sup.comment,
+        actor=admin,
         has_image=bool(sup.media_image_path),
         has_video=bool(sup.media_video_path),
     )

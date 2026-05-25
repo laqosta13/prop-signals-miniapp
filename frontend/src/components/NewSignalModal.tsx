@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { createSignalWithMedia } from "../api";
+import type { UploadProgress } from "../api";
 import { normalizeTakeProfits } from "../utils";
+import { formatUploadSize } from "../utils/upload";
+import { UploadProgressBar } from "./UploadProgressBar";
 
 type Props = {
   open: boolean;
@@ -24,6 +27,7 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [video, setVideo] = useState<File | null>(null);
   const [shotPreview, setShotPreview] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -45,6 +49,8 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
     e.preventDefault();
     setSubmitting(true);
     setError(null);
+    setUploadProgress(null);
+    const hasMedia = !!(video || screenshot);
     try {
       const fd = new FormData();
       fd.append("symbol", symbol);
@@ -62,7 +68,12 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
       if (screenshot) fd.append("screenshot", screenshot);
       if (video) fd.append("video", video);
 
-      await createSignalWithMedia(fd);
+      await createSignalWithMedia(
+        fd,
+        hasMedia
+          ? (p) => setUploadProgress(p)
+          : undefined,
+      );
       WebApp.HapticFeedback.notificationOccurred("success");
       onCreated();
       onClose();
@@ -70,6 +81,7 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
       setError(err instanceof Error ? err.message : "Ошибка");
     } finally {
       setSubmitting(false);
+      setUploadProgress(null);
     }
   };
 
@@ -148,15 +160,32 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
           accept="video/mp4,video/webm,video/quicktime"
           onChange={(e) => setVideo(e.target.files?.[0] ?? null)}
         />
-        {video && <p className="meta">Видео: {video.name}</p>}
+        {video && (
+          <p className="meta">
+            Видео: {video.name} ({formatUploadSize(video.size)})
+          </p>
+        )}
 
         <label className="field-label">Комментарий (на русском)</label>
         <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Краткий анализ по-русски…" />
 
         {error && <p className="err">{error}</p>}
 
+        {submitting && uploadProgress && uploadProgress.percent >= 0 && (
+          <UploadProgressBar
+            percent={uploadProgress.percent}
+            loaded={uploadProgress.loaded}
+            total={uploadProgress.total}
+            label={video ? "Загрузка видео и публикация сигнала" : "Загрузка файлов и публикация"}
+          />
+        )}
+
         <button type="submit" className="submit-btn" disabled={submitting}>
-          {submitting ? "Публикация…" : "Опубликовать сигнал"}
+          {submitting && uploadProgress && uploadProgress.percent >= 0
+            ? `Загрузка… ${uploadProgress.percent}%`
+            : submitting
+              ? "Публикация…"
+              : "Опубликовать сигнал"}
         </button>
       </form>
     </div>

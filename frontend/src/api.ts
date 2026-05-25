@@ -229,10 +229,77 @@ async function sendForm<T>(path: string, method: string, form: FormData): Promis
   return res.json();
 }
 
-export const createSignalWithMedia = (form: FormData) => sendForm<Signal>("/signals", "POST", form);
+import type { UploadProgress } from "./utils/upload";
 
-export const updateSignalWithMedia = (signalId: number, form: FormData) =>
-  sendForm<Signal>(`/signals/${signalId}`, "PUT", form);
+export type { UploadProgress };
+
+function sendFormWithProgress<T>(
+  path: string,
+  method: string,
+  form: FormData,
+  onProgress?: (p: UploadProgress) => void,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(method, `${base}${path}`);
+
+    const headers = authHeaders();
+    if (headers instanceof Headers) {
+      headers.forEach((v, k) => xhr.setRequestHeader(k, v));
+    } else if (Array.isArray(headers)) {
+      for (const [k, v] of headers) xhr.setRequestHeader(k, v);
+    } else {
+      for (const [k, v] of Object.entries(headers)) {
+        if (v != null) xhr.setRequestHeader(k, String(v));
+      }
+    }
+
+    xhr.upload.onprogress = (ev) => {
+      if (!onProgress) return;
+      if (ev.lengthComputable && ev.total > 0) {
+        onProgress({
+          loaded: ev.loaded,
+          total: ev.total,
+          percent: Math.min(100, Math.round((ev.loaded / ev.total) * 100)),
+        });
+      } else {
+        onProgress({ loaded: ev.loaded, total: 0, percent: ev.loaded > 0 ? 1 : 0 });
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText) as T);
+        } catch {
+          reject(new Error("Неверный ответ сервера"));
+        }
+        return;
+      }
+      reject(new Error(xhr.responseText || `HTTP ${xhr.status}`));
+    };
+    xhr.onerror = () => reject(new Error("Ошибка сети при загрузке"));
+    xhr.onabort = () => reject(new Error("Загрузка отменена"));
+    xhr.send(form);
+  });
+}
+
+export const createSignalWithMedia = (
+  form: FormData,
+  onProgress?: (p: UploadProgress) => void,
+) =>
+  onProgress
+    ? sendFormWithProgress<Signal>("/signals", "POST", form, onProgress)
+    : sendForm<Signal>("/signals", "POST", form);
+
+export const updateSignalWithMedia = (
+  signalId: number,
+  form: FormData,
+  onProgress?: (p: UploadProgress) => void,
+) =>
+  onProgress
+    ? sendFormWithProgress<Signal>(`/signals/${signalId}`, "PUT", form, onProgress)
+    : sendForm<Signal>(`/signals/${signalId}`, "PUT", form);
 
 export const appendSignalSupplement = (signalId: number, form: FormData) =>
   sendForm<Signal>(`/signals/${signalId}/supplement`, "POST", form);

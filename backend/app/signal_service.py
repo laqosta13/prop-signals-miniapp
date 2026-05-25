@@ -12,7 +12,10 @@ from app.models import NewsPost, Signal, Subscriber, Trader
 from app.subscription_billing import subscriber_ids_for_news_notify, subscription_active_strict
 from app.signal_utils import compute_signal_points_percent, entry_zone_defined, entry_triggered
 from app.telegram_avatar import ensure_trader_avatar
+from app.schemas import TelegramUser
+from app.serializers import trader_display_name
 from app.telegram_notify import (
+    format_actor_label,
     format_closed_signal_message,
     format_deleted_signal_message,
     format_entry_filled_message,
@@ -101,6 +104,22 @@ def register_subscriber(db: Session, telegram_id: int, username: str | None, sta
     return register_subscriber_with_meta(db, telegram_id, username, start_param)
 
 
+def resolve_actor_label(db: Session, actor: TelegramUser) -> str:
+    trader = get_or_create_trader(
+        db,
+        actor.telegram_user_id,
+        actor.username,
+        first_name=actor.first_name,
+        last_name=actor.last_name,
+    )
+    display = trader_display_name(trader, actor.username or trader.username)
+    return format_actor_label(
+        display_name=display,
+        username=actor.username or trader.username,
+        telegram_id=actor.telegram_user_id,
+    )
+
+
 def subscriber_ids_for_notify(db: Session) -> list[int]:
     """Подписчики с notify_enabled и действующей подпиской (trial или платной)."""
     admin_ids = settings.admin_id_set
@@ -140,16 +159,24 @@ async def notify_new_news(db: Session, post: NewsPost) -> None:
     )
 
 
-async def notify_updated_signal(db: Session, signal: Signal, changes: list[str]) -> None:
+async def notify_updated_signal(
+    db: Session,
+    signal: Signal,
+    changes: list[str],
+    *,
+    actor: TelegramUser,
+) -> None:
     ids = subscriber_ids_for_notify(db)
     if ids:
-        await notify_subscribers(format_updated_signal_message(signal, changes), ids)
+        label = resolve_actor_label(db, actor)
+        await notify_subscribers(format_updated_signal_message(signal, changes, actor_label=label), ids)
 
 
-async def notify_deleted_signal(db: Session, signal: Signal) -> None:
+async def notify_deleted_signal(db: Session, signal: Signal, *, actor: TelegramUser) -> None:
     ids = subscriber_ids_for_notify(db)
     if ids:
-        await notify_subscribers(format_deleted_signal_message(signal), ids)
+        label = resolve_actor_label(db, actor)
+        await notify_subscribers(format_deleted_signal_message(signal, actor_label=label), ids)
 
 
 def close_signal(db: Session, signal: Signal, outcome: str, exit_price: float | None = None) -> None:
@@ -183,13 +210,21 @@ async def notify_signal_supplement(
     signal: Signal,
     comment: str | None,
     *,
+    actor: TelegramUser,
     has_image: bool = False,
     has_video: bool = False,
 ) -> None:
     ids = subscriber_ids_for_notify(db)
     if ids:
+        label = resolve_actor_label(db, actor)
         await notify_subscribers(
-            format_supplement_message(signal, comment, has_image=has_image, has_video=has_video),
+            format_supplement_message(
+                signal,
+                comment,
+                has_image=has_image,
+                has_video=has_video,
+                actor_label=label,
+            ),
             ids,
         )
 

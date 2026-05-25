@@ -115,8 +115,32 @@ def diff_signal_changes(
     return lines
 
 
+def format_actor_label(
+    *,
+    display_name: str | None = None,
+    username: str | None = None,
+    telegram_id: int | None = None,
+) -> str:
+    """Человекочитаемое имя автора действия (дополнение / правка / удаление)."""
+    login = (username or "").strip().lstrip("@")
+    name = (display_name or "").strip()
+    if name and login:
+        return f"{name} (@{login})"
+    if name:
+        return name
+    if login:
+        return f"@{login}"
+    if telegram_id is not None:
+        return f"id {telegram_id}"
+    return "—"
+
+
+def _signal_author_label(signal: Signal) -> str:
+    return format_actor_label(username=signal.author_username, telegram_id=signal.author_telegram_id)
+
+
 def _signal_summary(signal: Signal) -> str:
-    author = f"@{_esc(signal.author_username)}" if signal.author_username else f"id {signal.author_telegram_id}"
+    author = _esc(_signal_author_label(signal))
     stake = signal_entry_stake_pct(signal)
     stake_usd = signal_entry_stake_usd(signal)
     tracker = signal_tracker_balance(signal)
@@ -187,8 +211,10 @@ def format_new_signal_message(signal: Signal) -> str:
     return f"📢 <b>Новый сигнал</b>\n{_signal_summary(signal)}"
 
 
-def format_updated_signal_message(signal: Signal, changes: list[str]) -> str:
+def format_updated_signal_message(signal: Signal, changes: list[str], *, actor_label: str | None = None) -> str:
     header = f"✏️ <b>Сигнал обновлён</b>\n{_esc(signal.symbol)} · <b>{_esc(signal.direction.upper())}</b>\n"
+    if actor_label:
+        header += f"<b>Изменил:</b> {_esc(actor_label)}\n"
     if changes:
         body = "<b>Изменения:</b>\n" + "\n".join(changes)
     else:
@@ -196,8 +222,11 @@ def format_updated_signal_message(signal: Signal, changes: list[str]) -> str:
     return header + body
 
 
-def format_deleted_signal_message(signal: Signal) -> str:
-    return f"🗑 <b>Сигнал удалён</b>\n{_signal_summary(signal)}"
+def format_deleted_signal_message(signal: Signal, *, actor_label: str | None = None) -> str:
+    head = "🗑 <b>Сигнал удалён</b>\n"
+    if actor_label:
+        head += f"<b>Удалил:</b> {_esc(actor_label)}\n"
+    return head + _signal_summary(signal)
 
 
 def format_closed_signal_message(signal: Signal) -> str:
@@ -210,7 +239,8 @@ def format_closed_signal_message(signal: Signal) -> str:
         f"{emoji} <b>Сигнал {label}</b>\n"
         f"{_esc(signal.symbol)} · {_esc(signal.direction.upper())}\n"
         f"Доходность: {sign}{ret:.2f}% · P/L: {pnl:+.0f}$\n"
-        f"Трекер сигнала: ${signal_tracker_balance(signal):,.0f}"
+        f"Трекер сигнала: ${signal_tracker_balance(signal):,.0f}\n"
+        f"Автор: {_esc(_signal_author_label(signal))}"
     )
 
 
@@ -220,8 +250,11 @@ def format_supplement_message(
     *,
     has_image: bool = False,
     has_video: bool = False,
+    actor_label: str | None = None,
 ) -> str:
     parts = [f"➕ <b>Дополнение к сигналу</b>\n{_esc(signal.symbol)} · {_esc(signal.direction.upper())}"]
+    if actor_label:
+        parts.append(f"\n<b>Дополнил:</b> {_esc(actor_label)}")
     if comment and comment.strip():
         parts.append(f"\n{_esc(comment.strip())}")
     media: list[str] = []
@@ -249,7 +282,7 @@ def format_new_news_message(post: NewsPost, *, author_label: str | None = None) 
 
 
 def format_entry_filled_message(signal: Signal) -> str:
-    author = f"@{_esc(signal.author_username)}" if signal.author_username else f"id {signal.author_telegram_id}"
+    author = _esc(_signal_author_label(signal))
     return (
         f"🎯 <b>Вход в зоне</b>\n"
         f"{_esc(signal.symbol)} · <b>{_esc(signal.direction.upper())}</b>\n"

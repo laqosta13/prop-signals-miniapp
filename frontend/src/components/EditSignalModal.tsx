@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
-import { updateSignalWithMedia, type Signal } from "../api";
+import { updateSignalWithMedia, type Signal, type UploadProgress } from "../api";
 import { formatTakeProfits, normalizeTakeProfits } from "../utils";
+import { formatUploadSize } from "../utils/upload";
+import { UploadProgressBar } from "./UploadProgressBar";
 
 type Props = {
   signal: Signal | null;
@@ -26,6 +28,7 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
   const [shotPreview, setShotPreview] = useState<string | null>(null);
   const [removeScreenshot, setRemoveScreenshot] = useState(false);
   const [removeVideo, setRemoveVideo] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
 
   useEffect(() => {
     if (!signal) return;
@@ -61,6 +64,8 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
     e.preventDefault();
     setSubmitting(true);
     setError(null);
+    setUploadProgress(null);
+    const hasMedia = !!(video || screenshot);
     try {
       const fd = new FormData();
       fd.append("symbol", symbol);
@@ -80,7 +85,11 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
       if (screenshot) fd.append("screenshot", screenshot);
       if (video) fd.append("video", video);
 
-      await updateSignalWithMedia(signal.id, fd);
+      await updateSignalWithMedia(
+        signal.id,
+        fd,
+        hasMedia ? (p) => setUploadProgress(p) : undefined,
+      );
       WebApp.HapticFeedback.notificationOccurred("success");
       onUpdated();
       onClose();
@@ -88,6 +97,7 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
       setError(err instanceof Error ? err.message : "Ошибка");
     } finally {
       setSubmitting(false);
+      setUploadProgress(null);
     }
   };
 
@@ -182,15 +192,32 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
             setRemoveVideo(false);
           }}
         />
-        {video && <p className="meta">Видео: {video.name}</p>}
+        {video && (
+          <p className="meta">
+            Видео: {video.name} ({formatUploadSize(video.size)})
+          </p>
+        )}
 
         <label className="field-label">Комментарий (на русском)</label>
         <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Краткий анализ по-русски…" />
 
         {error && <p className="err">{error}</p>}
 
+        {submitting && uploadProgress && uploadProgress.percent >= 0 && (
+          <UploadProgressBar
+            percent={uploadProgress.percent}
+            loaded={uploadProgress.loaded}
+            total={uploadProgress.total}
+            label={video ? "Загрузка видео и сохранение" : "Загрузка файлов и сохранение"}
+          />
+        )}
+
         <button type="submit" className="submit-btn" disabled={submitting}>
-          {submitting ? "Сохранение…" : "Сохранить изменения"}
+          {submitting && uploadProgress && uploadProgress.percent >= 0
+            ? `Загрузка… ${uploadProgress.percent}%`
+            : submitting
+              ? "Сохранение…"
+              : "Сохранить изменения"}
         </button>
       </form>
     </div>
