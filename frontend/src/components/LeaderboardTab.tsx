@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Trader } from "../api";
 import { EquityCurve } from "./EquityCurve";
 import { RankBadge } from "./RankBadge";
+import { RankGuide } from "./RankGuide";
 import { TraderProfileModal } from "./TraderProfileModal";
 import { authorProfile, formatDayLabel, formatUsd } from "../utils";
 import { Avatar } from "./Avatar";
@@ -16,10 +17,12 @@ export function LeaderboardTab({ traders, loading, myId }: Props) {
   const [profileTrader, setProfileTrader] = useState<Trader | null>(null);
 
   if (loading) return <p className="meta">Загрузка…</p>;
-  if (!traders.length) return <p className="meta">Рейтинг появится после закрытых сигналов.</p>;
 
   return (
     <>
+      {!traders.length && <p className="meta">Рейтинг появится после закрытых сигналов.</p>}
+
+      {traders.length > 0 && (
       <ol className="top-list">
         {traders.map((t) => (
           <li key={t.telegram_id}>
@@ -67,6 +70,9 @@ export function LeaderboardTab({ traders, loading, myId }: Props) {
           </li>
         ))}
       </ol>
+      )}
+
+      <RankGuide />
 
       {profileTrader && (
         <TraderProfileModal
