@@ -1,6 +1,6 @@
 import WebApp from "@twa-dev/sdk";
 import type { UploadProgress } from "./utils/upload";
-import { mediaBytesInForm } from "./utils/upload";
+import { mediaBytesInForm, parseUploadError } from "./utils/upload";
 
 export type { UploadProgress };
 
@@ -258,9 +258,17 @@ export async function deleteNewsPost(id: number): Promise<void> {
 }
 
 async function sendForm<T>(path: string, method: string, form: FormData): Promise<T> {
-  const res = await fetch(`${base}${path}`, { method, headers: authHeaders(), body: form });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  try {
+    const res = await fetch(`${base}${path}`, { method, headers: authHeaders(), body: form });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(parseUploadError(text, res.status));
+    }
+    return res.json();
+  } catch (e) {
+    if (e instanceof Error) throw new Error(parseUploadError(e.message));
+    throw new Error(parseUploadError("Load failed"));
+  }
 }
 
 function applyAuthHeaders(xhr: XMLHttpRequest) {
@@ -302,6 +310,7 @@ function sendFormWithProgress<T>(
 
     const xhr = new XMLHttpRequest();
     xhr.open(method, `${base}${path}`);
+    xhr.timeout = 600_000;
     applyAuthHeaders(xhr);
 
     xhr.upload.onloadstart = () => report(0, fileBytes, "upload");
@@ -323,9 +332,10 @@ function sendFormWithProgress<T>(
         }
         return;
       }
-      reject(new Error(xhr.responseText || `HTTP ${xhr.status}`));
+      reject(new Error(parseUploadError(xhr.responseText || "", xhr.status)));
     };
-    xhr.onerror = () => reject(new Error("Ошибка сети при загрузке"));
+    xhr.onerror = () => reject(new Error(parseUploadError("Load failed")));
+    xhr.ontimeout = () => reject(new Error("Превышено время загрузки (10 мин). Попробуйте видео меньшего размера."));
     xhr.onabort = () => reject(new Error("Загрузка отменена"));
     xhr.send(form);
   });
@@ -345,8 +355,15 @@ export const updateSignalWithMedia = (
   return sendForm<Signal>(`/signals/${signalId}`, "PUT", form);
 };
 
-export const appendSignalSupplement = (signalId: number, form: FormData) =>
-  sendForm<Signal>(`/signals/${signalId}/supplement`, "POST", form);
+export const appendSignalSupplement = (
+  signalId: number,
+  form: FormData,
+  onProgress?: (p: UploadProgress) => void,
+) => {
+  const path = `/signals/${signalId}/supplement`;
+  if (onProgress) return sendFormWithProgress<Signal>(path, "POST", form, onProgress);
+  return sendForm<Signal>(path, "POST", form);
+};
 
 export const recordSignalView = (signalId: number) =>
   api<{ views_count: number }>(`/signals/${signalId}/view`, { method: "POST" });

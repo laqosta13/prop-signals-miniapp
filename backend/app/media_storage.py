@@ -84,7 +84,11 @@ async def _save_upload(
 
     data = await file.read()
     if len(data) > max_bytes:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Файл слишком большой")
+        limit_mb = max(1, max_bytes // (1024 * 1024))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Файл слишком большой (максимум {limit_mb} МБ)",
+        )
     if len(data) == 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Пустой файл")
 

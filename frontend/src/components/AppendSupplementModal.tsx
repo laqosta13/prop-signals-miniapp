@@ -1,6 +1,13 @@
 import { useState } from "react";
 import WebApp from "@twa-dev/sdk";
-import { appendSignalSupplement, type Signal } from "../api";
+import { appendSignalSupplement, type Signal, type UploadProgress } from "../api";
+import {
+  formatUploadSize,
+  initialUploadProgress,
+  mediaBytesInForm,
+  uploadProgressLabel,
+} from "../utils/upload";
+import { UploadProgressBar } from "./UploadProgressBar";
 
 type Props = {
   signal: Signal | null;
@@ -15,13 +22,20 @@ export function AppendSupplementModal({ signal, onClose, onDone }: Props) {
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [video, setVideo] = useState<File | null>(null);
   const [shotPreview, setShotPreview] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
 
   if (!signal) return null;
 
   const onScreenshot = (file: File | null) => {
     setScreenshot(file);
+    setError(null);
     if (shotPreview) URL.revokeObjectURL(shotPreview);
     setShotPreview(file ? URL.createObjectURL(file) : null);
+  };
+
+  const onVideo = (file: File | null) => {
+    setVideo(file);
+    setError(null);
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -37,7 +51,16 @@ export function AppendSupplementModal({ signal, onClose, onDone }: Props) {
       if (comment.trim()) fd.append("comment", comment.trim());
       if (screenshot) fd.append("screenshot", screenshot);
       if (video) fd.append("video", video);
-      await appendSignalSupplement(signal.id, fd);
+
+      const uploadBytes = mediaBytesInForm(fd);
+      const trackUpload = uploadBytes > 0;
+      if (trackUpload) {
+        setUploadProgress(initialUploadProgress(uploadBytes));
+      } else {
+        setUploadProgress(null);
+      }
+
+      await appendSignalSupplement(signal.id, fd, trackUpload ? (p) => setUploadProgress(p) : undefined);
       WebApp.HapticFeedback.notificationOccurred("success");
       onDone();
       onClose();
@@ -45,6 +68,7 @@ export function AppendSupplementModal({ signal, onClose, onDone }: Props) {
       setError(err instanceof Error ? err.message : "Ошибка");
     } finally {
       setSubmitting(false);
+      setUploadProgress(null);
     }
   };
 
@@ -78,14 +102,31 @@ export function AppendSupplementModal({ signal, onClose, onDone }: Props) {
         <input
           type="file"
           accept="video/mp4,video/webm,video/quicktime"
-          onChange={(e) => setVideo(e.target.files?.[0] ?? null)}
+          onChange={(e) => onVideo(e.target.files?.[0] ?? null)}
         />
-        {video && <p className="meta">Видео: {video.name}</p>}
+        {video && (
+          <p className="meta">
+            Видео: {video.name} ({formatUploadSize(video.size)})
+          </p>
+        )}
 
         {error && <p className="err">{error}</p>}
 
+        {submitting && uploadProgress && (
+          <UploadProgressBar
+            progress={uploadProgress}
+            label={uploadProgressLabel(!!video, uploadProgress.phase, true)}
+          />
+        )}
+
         <button type="submit" className="submit-btn" disabled={submitting}>
-          {submitting ? "Отправка…" : "Опубликовать дополнение"}
+          {submitting && uploadProgress
+            ? uploadProgress.phase === "processing"
+              ? "Сохранение…"
+              : `Загрузка… ${uploadProgress.percent}%`
+            : submitting
+              ? "Отправка…"
+              : "Опубликовать дополнение"}
         </button>
       </form>
     </div>
