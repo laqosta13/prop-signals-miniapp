@@ -1,4 +1,8 @@
 import WebApp from "@twa-dev/sdk";
+import type { UploadProgress } from "./utils/upload";
+import { mediaBytesInForm } from "./utils/upload";
+
+export type { UploadProgress };
 
 const base =
   import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
@@ -259,43 +263,56 @@ async function sendForm<T>(path: string, method: string, form: FormData): Promis
   return res.json();
 }
 
-import type { UploadProgress } from "./utils/upload";
-
-export type { UploadProgress };
+function applyAuthHeaders(xhr: XMLHttpRequest) {
+  const headers = authHeaders();
+  if (headers instanceof Headers) {
+    headers.forEach((v, k) => xhr.setRequestHeader(k, v));
+  } else if (Array.isArray(headers)) {
+    for (const [k, v] of headers) xhr.setRequestHeader(k, v);
+  } else {
+    for (const [k, v] of Object.entries(headers)) {
+      if (v != null) xhr.setRequestHeader(k, String(v));
+    }
+  }
+}
 
 function sendFormWithProgress<T>(
   path: string,
   method: string,
   form: FormData,
-  onProgress?: (p: UploadProgress) => void,
+  onProgress: (p: UploadProgress) => void,
 ): Promise<T> {
+  const fileBytes = mediaBytesInForm(form);
+
   return new Promise((resolve, reject) => {
+    const report = (loaded: number, total: number, phase: UploadProgress["phase"]) => {
+      const basis = total > 0 ? total : fileBytes;
+      let percent = 0;
+      if (phase === "processing") {
+        percent = 100;
+      } else if (basis > 0) {
+        percent = Math.min(99, Math.round((loaded / basis) * 100));
+      } else if (loaded > 0) {
+        percent = 1;
+      }
+      onProgress({ loaded, total: basis, percent, phase });
+    };
+
+    report(0, fileBytes, "upload");
+
     const xhr = new XMLHttpRequest();
     xhr.open(method, `${base}${path}`);
+    applyAuthHeaders(xhr);
 
-    const headers = authHeaders();
-    if (headers instanceof Headers) {
-      headers.forEach((v, k) => xhr.setRequestHeader(k, v));
-    } else if (Array.isArray(headers)) {
-      for (const [k, v] of headers) xhr.setRequestHeader(k, v);
-    } else {
-      for (const [k, v] of Object.entries(headers)) {
-        if (v != null) xhr.setRequestHeader(k, String(v));
-      }
-    }
+    xhr.upload.onloadstart = () => report(0, fileBytes, "upload");
 
     xhr.upload.onprogress = (ev) => {
-      if (!onProgress) return;
-      if (ev.lengthComputable && ev.total > 0) {
-        onProgress({
-          loaded: ev.loaded,
-          total: ev.total,
-          percent: Math.min(100, Math.round((ev.loaded / ev.total) * 100)),
-        });
-      } else {
-        onProgress({ loaded: ev.loaded, total: 0, percent: ev.loaded > 0 ? 1 : 0 });
-      }
+      const total =
+        ev.lengthComputable && ev.total > 0 ? Math.max(ev.total, fileBytes) : fileBytes;
+      report(ev.loaded, total, "upload");
     };
+
+    xhr.upload.onload = () => report(fileBytes, fileBytes, "processing");
 
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
@@ -314,22 +331,19 @@ function sendFormWithProgress<T>(
   });
 }
 
-export const createSignalWithMedia = (
-  form: FormData,
-  onProgress?: (p: UploadProgress) => void,
-) =>
-  onProgress
-    ? sendFormWithProgress<Signal>("/signals", "POST", form, onProgress)
-    : sendForm<Signal>("/signals", "POST", form);
+export const createSignalWithMedia = (form: FormData, onProgress?: (p: UploadProgress) => void) => {
+  if (onProgress) return sendFormWithProgress<Signal>("/signals", "POST", form, onProgress);
+  return sendForm<Signal>("/signals", "POST", form);
+};
 
 export const updateSignalWithMedia = (
   signalId: number,
   form: FormData,
   onProgress?: (p: UploadProgress) => void,
-) =>
-  onProgress
-    ? sendFormWithProgress<Signal>(`/signals/${signalId}`, "PUT", form, onProgress)
-    : sendForm<Signal>(`/signals/${signalId}`, "PUT", form);
+) => {
+  if (onProgress) return sendFormWithProgress<Signal>(`/signals/${signalId}`, "PUT", form, onProgress);
+  return sendForm<Signal>(`/signals/${signalId}`, "PUT", form);
+};
 
 export const appendSignalSupplement = (signalId: number, form: FormData) =>
   sendForm<Signal>(`/signals/${signalId}/supplement`, "POST", form);

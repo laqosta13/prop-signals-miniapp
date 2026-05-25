@@ -3,7 +3,12 @@ import WebApp from "@twa-dev/sdk";
 import { createSignalWithMedia } from "../api";
 import type { UploadProgress } from "../api";
 import { normalizeTakeProfits } from "../utils";
-import { formatUploadSize } from "../utils/upload";
+import {
+  formatUploadSize,
+  initialUploadProgress,
+  mediaBytesInForm,
+  uploadProgressLabel,
+} from "../utils/upload";
 import { UploadProgressBar } from "./UploadProgressBar";
 
 type Props = {
@@ -49,8 +54,6 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    setUploadProgress(null);
-    const hasMedia = !!(video || screenshot);
     try {
       const fd = new FormData();
       fd.append("symbol", symbol);
@@ -68,12 +71,15 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
       if (screenshot) fd.append("screenshot", screenshot);
       if (video) fd.append("video", video);
 
-      await createSignalWithMedia(
-        fd,
-        hasMedia
-          ? (p) => setUploadProgress(p)
-          : undefined,
-      );
+      const uploadBytes = mediaBytesInForm(fd);
+      const trackUpload = uploadBytes > 0;
+      if (trackUpload) {
+        setUploadProgress(initialUploadProgress(uploadBytes));
+      } else {
+        setUploadProgress(null);
+      }
+
+      await createSignalWithMedia(fd, trackUpload ? (p) => setUploadProgress(p) : undefined);
       WebApp.HapticFeedback.notificationOccurred("success");
       onCreated();
       onClose();
@@ -171,18 +177,18 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
 
         {error && <p className="err">{error}</p>}
 
-        {submitting && uploadProgress && uploadProgress.percent >= 0 && (
+        {submitting && uploadProgress && (
           <UploadProgressBar
-            percent={uploadProgress.percent}
-            loaded={uploadProgress.loaded}
-            total={uploadProgress.total}
-            label={video ? "Загрузка видео и публикация сигнала" : "Загрузка файлов и публикация"}
+            progress={uploadProgress}
+            label={uploadProgressLabel(!!video, uploadProgress.phase)}
           />
         )}
 
         <button type="submit" className="submit-btn" disabled={submitting}>
-          {submitting && uploadProgress && uploadProgress.percent >= 0
-            ? `Загрузка… ${uploadProgress.percent}%`
+          {submitting && uploadProgress
+            ? uploadProgress.phase === "processing"
+              ? "Сохранение…"
+              : `Загрузка… ${uploadProgress.percent}%`
             : submitting
               ? "Публикация…"
               : "Опубликовать сигнал"}

@@ -1670,6 +1670,7 @@ input.readonly {
 }
 
 .upload-progress__track {
+  position: relative;
   height: 8px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
@@ -1681,6 +1682,35 @@ input.readonly {
   border-radius: 999px;
   background: linear-gradient(90deg, var(--accent), #c8f542);
   transition: width 0.15s ease-out;
+}
+
+.upload-progress__fill--processing {
+  background: linear-gradient(90deg, #7a8f2e, var(--accent));
+  animation: upload-pulse 1.2s ease-in-out infinite;
+}
+
+.upload-progress__track--busy .upload-progress__fill {
+  width: 35% !important;
+  animation: upload-indeterminate 1.1s ease-in-out infinite;
+}
+
+@keyframes upload-indeterminate {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+
+@keyframes upload-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.65;
+  }
 }
 
 .upload-progress__meta {
