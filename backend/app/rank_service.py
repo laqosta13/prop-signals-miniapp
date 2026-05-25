@@ -224,7 +224,7 @@ def process_monday_rollover(db: Session) -> int:
     return processed
 
 
-def trader_rank_payload(trader: Trader) -> dict:
+def trader_rank_payload(trader: Trader, *, include_history: bool = True) -> dict:
     ensure_rank_fields(trader)
     rid = trader.current_rank_id or DEFAULT_RANK_ID
     weekly = trader.weekly_pct or 0.0
@@ -240,7 +240,7 @@ def trader_rank_payload(trader: Trader) -> dict:
         "shield_active": bool(trader.shield_active),
         "rank_applied_this_week": bool(trader.rank_applied_this_week),
         "pending_rank_penalty": pending_penalty,
-        "rank_history": _load_history(trader),
+        "rank_history": _load_history(trader) if include_history else [],
     }
 
 

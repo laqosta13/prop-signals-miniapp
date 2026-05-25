@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { fetchChallengeRules, type ChallengeDashboard, type HashHedgeRules, type Signal } from "../api";
+import type { ChallengeDashboard, Signal } from "../api";
+import { HASHHEDGE_RULES } from "../data/hashhedgeRules";
 import { authorProfile, formatTakeProfits, formatUsd } from "../utils";
 import { Avatar } from "./Avatar";
 import { HashHedgeRulesTable } from "./HashHedgeRulesTable";
@@ -13,30 +13,9 @@ type Props = {
 };
 
 export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Props) {
-  const [rules, setRules] = useState<HashHedgeRules | null>(null);
-  const [rulesLoading, setRulesLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    setRulesLoading(true);
-    fetchChallengeRules()
-      .then((r) => {
-        if (!cancelled) setRules(r);
-      })
-      .catch(() => {
-        if (!cancelled) setRules(null);
-      })
-      .finally(() => {
-        if (!cancelled) setRulesLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   return (
     <>
-      <HashHedgeRulesTable rules={rules} loading={rulesLoading} />
+      <HashHedgeRulesTable rules={HASHHEDGE_RULES} />
 
       {!trackers.length && (
         <p className="meta tracker-empty">Трекеры админов появятся после настройки TELEGRAM_ADMIN_IDS.</p>

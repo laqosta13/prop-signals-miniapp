@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { recordSignalView, toggleSignalLike, type Signal } from "../api";
 import { calcRR, authorProfile, formatTakeProfits, formatTime, formatUsd, mediaUrl } from "../utils";
@@ -33,6 +33,8 @@ export function SignalCard({
   const [liked, setLiked] = useState(s.liked_by_me);
   const [liking, setLiking] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const cardRef = useRef<HTMLElement>(null);
+  const viewRecorded = useRef(false);
 
   useEffect(() => {
     setViews(s.views_count);
@@ -41,19 +43,29 @@ export function SignalCard({
   }, [s.views_count, s.likes_count, s.liked_by_me]);
 
   useEffect(() => {
-    if (!canEngage) return;
-    let cancelled = false;
-    void recordSignalView(s.id)
-      .then((r) => {
-        if (cancelled) return;
-        setViews(r.views_count);
-        onPatch?.(s.id, { views_count: r.views_count });
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [s.id, canEngage]);
+    viewRecorded.current = false;
+  }, [s.id]);
+
+  useEffect(() => {
+    if (!canEngage || viewRecorded.current) return;
+    const el = cardRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting || viewRecorded.current) return;
+        viewRecorded.current = true;
+        void recordSignalView(s.id)
+          .then((r) => {
+            setViews(r.views_count);
+            onPatch?.(s.id, { views_count: r.views_count });
+          })
+          .catch(() => {});
+      },
+      { threshold: 0.2, rootMargin: "40px 0px" },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [s.id, canEngage, onPatch]);
 
   const entry = s.entry_low || s.entry_high || "—";
   const target = formatTakeProfits(s.take_profits);
@@ -97,7 +109,7 @@ export function SignalCard({
   };
 
   return (
-    <article className="signal-card">
+    <article ref={cardRef} className="signal-card">
       {lightbox && (
         <div className="lightbox" role="dialog" onClick={() => setLightbox(null)}>
           <button type="button" className="lightbox__close" aria-label="Закрыть" onClick={() => setLightbox(null)}>

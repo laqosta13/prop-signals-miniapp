@@ -17,6 +17,7 @@ from app.media_storage import (
 )
 from app.models import Signal, SignalSupplement
 from app.schemas import LikeResponse, SignalRead, TelegramUser, ViewResponse
+from app.feed_serializers import FEED_SIGNAL_LIMIT, signals_list_read
 from app.serializers import signal_to_read
 from app.challenge_service import admin_tracker_balance, ensure_tracker_for_new_signal
 from app.signal_service import (
@@ -25,8 +26,6 @@ from app.signal_service import (
     notify_new_signal,
     notify_signal_supplement,
     notify_updated_signal,
-    sync_admin_avatars,
-    sync_pending_entry_fills,
     try_fill_entry_from_market,
     update_signal_fields,
 )
@@ -49,11 +48,9 @@ async def list_signals(
     user: TelegramUser = Depends(require_active_subscription),
 ) -> list[SignalRead]:
     """Полная лента — только с активной подпиской (или админ)."""
-    stmt = select(Signal).order_by(Signal.created_at.desc()).limit(200)
+    stmt = select(Signal).order_by(Signal.created_at.desc()).limit(FEED_SIGNAL_LIMIT)
     rows = list(db.scalars(stmt).all())
-    await sync_pending_entry_fills(db, rows, notify=False)
-    sync_admin_avatars(db)
-    return [signal_to_read(db, s, user.telegram_user_id) for s in rows]
+    return signals_list_read(db, rows, user.telegram_user_id)
 
 
 @router.get("/preview", response_model=list[SignalRead])
@@ -66,11 +63,10 @@ async def list_signals_preview(
         select(Signal)
         .where(Signal.status.in_(("win", "lose")))
         .order_by(Signal.created_at.desc())
-        .limit(200)
+        .limit(FEED_SIGNAL_LIMIT)
     )
     rows = list(db.scalars(stmt).all())
-    sync_admin_avatars(db)
-    return [signal_to_read(db, s, user.telegram_user_id) for s in rows]
+    return signals_list_read(db, rows, user.telegram_user_id)
 
 
 @router.post("", response_model=SignalRead)

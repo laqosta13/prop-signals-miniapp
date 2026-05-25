@@ -6,6 +6,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app import models  # noqa: F401
@@ -41,6 +42,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Prop Signals API", version="0.2.0", lifespan=lifespan)
+app.add_middleware(GZipMiddleware, minimum_size=800)
 
 origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
 app.add_middleware(

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import {
   fetchChallengeTrackers,
   fetchLeaderboard,
@@ -15,18 +15,29 @@ import {
   type Trader,
 } from "./api";
 import { FeedTab } from "./components/FeedTab";
-import { LeaderboardTab } from "./components/LeaderboardTab";
 import { AppendSupplementModal } from "./components/AppendSupplementModal";
 import { EditSignalModal } from "./components/EditSignalModal";
 import { NewSignalModal } from "./components/NewSignalModal";
 import { NewsModal } from "./components/NewsModal";
-import { NewsTab } from "./components/NewsTab";
-import { ReviewsTab } from "./components/ReviewsTab";
-import { SubscriptionTab } from "./components/SubscriptionTab";
-import { TrackerTab } from "./components/TrackerTab";
 import { RankConfirmModal } from "./components/RankConfirmModal";
 
+const TrackerTab = lazy(() =>
+  import("./components/TrackerTab").then((m) => ({ default: m.TrackerTab })),
+);
+const LeaderboardTab = lazy(() =>
+  import("./components/LeaderboardTab").then((m) => ({ default: m.LeaderboardTab })),
+);
+const ReviewsTab = lazy(() =>
+  import("./components/ReviewsTab").then((m) => ({ default: m.ReviewsTab })),
+);
+const NewsTab = lazy(() => import("./components/NewsTab").then((m) => ({ default: m.NewsTab })));
+const SubscriptionTab = lazy(() =>
+  import("./components/SubscriptionTab").then((m) => ({ default: m.SubscriptionTab })),
+);
+
 type Tab = "feed" | "tracker" | "top" | "reviews" | "news" | "pay";
+
+const FEED_POLL_MS = 60_000;
 
 const TITLES: Record<Tab, { title: string; sub: string }> = {
   feed: { title: "Сигналы", sub: "PROP-DESK · Hash Hedge" },
@@ -45,6 +56,10 @@ const NAV: { id: Tab; label: string; icon: string }[] = [
   { id: "news", label: "Новости", icon: "📰" },
   { id: "pay", label: "Подписка", icon: "💳" },
 ];
+
+function TabFallback() {
+  return <p className="meta">Загрузка…</p>;
+}
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("feed");
@@ -70,10 +85,30 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [rankPending, setRankPending] = useState<TraderRank | null>(null);
 
+  const fullAccessRef = useRef(false);
+  const trackersFetchedRef = useRef(false);
+
   const patchSignal = (id: number, patch: Partial<Signal>) =>
     setSignals((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
 
-  const loadMeAndSignals = useCallback(async () => {
+  const loadTrackers = useCallback(async () => {
+    try {
+      setTrackers(await fetchChallengeTrackers());
+    } catch {
+      setTrackers([]);
+    }
+  }, []);
+
+  const refreshSignalsOnly = useCallback(async () => {
+    try {
+      const sig = fullAccessRef.current ? await fetchSignals() : await fetchSignalsPreview();
+      setSignals(sig);
+    } catch {
+      /* keep previous feed on poll errors */
+    }
+  }, []);
+
+  const loadBootstrap = useCallback(async () => {
     try {
       const me = await fetchMe();
       setIsAdmin(me.is_admin);
@@ -83,6 +118,7 @@ export default function App() {
       setPaidSub(me.paid_subscription);
       setError(null);
       const fullAccess = me.subscription_active || me.is_admin;
+      fullAccessRef.current = fullAccess;
       setSubActive(me.subscription_active);
       setCanWriteReview(me.can_write_review);
       setReviewWriteBlockedReason(me.review_write_blocked_reason);
@@ -97,12 +133,8 @@ export default function App() {
       } else {
         setRankPending(null);
       }
-      const [sig, trk] = await Promise.all([
-        fullAccess ? fetchSignals() : fetchSignalsPreview(),
-        fetchChallengeTrackers(),
-      ]);
+      const sig = fullAccess ? await fetchSignals() : await fetchSignalsPreview();
       setSignals(sig);
-      setTrackers(trk);
     } catch (e) {
       setSignals([]);
       setTrackers([]);
@@ -113,6 +145,11 @@ export default function App() {
     }
   }, []);
 
+  const reloadAfterSignalChange = useCallback(async () => {
+    await refreshSignalsOnly();
+    if (trackersFetchedRef.current) await loadTrackers();
+  }, [refreshSignalsOnly, loadTrackers]);
+
   const loadTop = useCallback(async () => {
     try {
       setTraders(await fetchLeaderboard());
@@ -122,17 +159,25 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    void loadMeAndSignals();
-  }, [loadMeAndSignals]);
+    void loadBootstrap();
+  }, [loadBootstrap]);
+
+  useEffect(() => {
+    if (tab !== "feed" && tab !== "tracker") return;
+    if (trackersFetchedRef.current) return;
+    trackersFetchedRef.current = true;
+    void loadTrackers();
+  }, [tab, loadTrackers]);
 
   useEffect(() => {
     if (tab === "top") void loadTop();
   }, [tab, loadTop]);
 
   useEffect(() => {
-    const id = window.setInterval(() => void loadMeAndSignals(), 45000);
+    if (tab !== "feed" || loading) return;
+    const id = window.setInterval(() => void refreshSignalsOnly(), FEED_POLL_MS);
     return () => clearInterval(id);
-  }, [loadMeAndSignals]);
+  }, [tab, loading, refreshSignalsOnly]);
 
   const openSettings = async () => {
     const mine = trackers.find((t) => t.owner_telegram_id === myId);
@@ -145,7 +190,7 @@ export default function App() {
         stage: parseInt(stage || "1", 10),
         reset_day: true,
       });
-      await Promise.all([loadMeAndSignals()]);
+      await loadTrackers();
     } catch (e) {
       alert(e instanceof Error ? e.message : "Ошибка");
     }
@@ -233,7 +278,7 @@ export default function App() {
             isAdmin={isAdmin}
             myId={myId}
             subscriptionActive={subActive}
-            onChanged={loadMeAndSignals}
+            onChanged={reloadAfterSignalChange}
             onEdit={setEditSignal}
             onSupplement={setSupplementSignal}
             onPatch={patchSignal}
@@ -242,23 +287,41 @@ export default function App() {
           />
         )}
         {tab === "tracker" && (
-          <TrackerTab trackers={trackers} signals={signals} myId={myId} isAdmin={isAdmin} onSettings={openSettings} />
+          <Suspense fallback={<TabFallback />}>
+            <TrackerTab
+              trackers={trackers}
+              signals={signals}
+              myId={myId}
+              isAdmin={isAdmin}
+              onSettings={openSettings}
+            />
+          </Suspense>
         )}
         {tab === "top" && (
-          <LeaderboardTab traders={traders} loading={loading && !traders.length} myId={myId} />
+          <Suspense fallback={<TabFallback />}>
+            <LeaderboardTab traders={traders} loading={loading && !traders.length} myId={myId} />
+          </Suspense>
         )}
         {tab === "reviews" && (
-          <ReviewsTab
-            isAdmin={isAdmin}
-            canWriteReview={canWriteReview}
-            reviewWriteBlockedReason={reviewWriteBlockedReason}
-            daysUntilReview={daysUntilReview}
-          />
+          <Suspense fallback={<TabFallback />}>
+            <ReviewsTab
+              isAdmin={isAdmin}
+              canWriteReview={canWriteReview}
+              reviewWriteBlockedReason={reviewWriteBlockedReason}
+              daysUntilReview={daysUntilReview}
+            />
+          </Suspense>
         )}
         {tab === "news" && (
-          <NewsTab isAdmin={isAdmin} onEdit={openEditNews} refreshKey={newsRefreshKey} />
+          <Suspense fallback={<TabFallback />}>
+            <NewsTab isAdmin={isAdmin} onEdit={openEditNews} refreshKey={newsRefreshKey} />
+          </Suspense>
         )}
-        {tab === "pay" && <SubscriptionTab onPaid={() => void loadMeAndSignals()} />}
+        {tab === "pay" && (
+          <Suspense fallback={<TabFallback />}>
+            <SubscriptionTab onPaid={() => void loadBootstrap()} />
+          </Suspense>
+        )}
       </main>
 
       {isAdmin && tab === "feed" && (
@@ -284,19 +347,19 @@ export default function App() {
       <NewSignalModal
         open={showNewSignal}
         onClose={() => setShowNewSignal(false)}
-        onCreated={loadMeAndSignals}
+        onCreated={reloadAfterSignalChange}
         trackerBalance={trackers.find((t) => t.owner_telegram_id === myId)?.balance ?? null}
       />
       <EditSignalModal
         signal={editSignal}
         onClose={() => setEditSignal(null)}
-        onUpdated={loadMeAndSignals}
+        onUpdated={reloadAfterSignalChange}
         trackerBalance={trackers.find((t) => t.owner_telegram_id === myId)?.balance ?? null}
       />
       <AppendSupplementModal
         signal={supplementSignal}
         onClose={() => setSupplementSignal(null)}
-        onDone={loadMeAndSignals}
+        onDone={reloadAfterSignalChange}
       />
       <NewsModal
         open={newsModalOpen}

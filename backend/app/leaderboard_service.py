@@ -10,10 +10,9 @@ from app.config import settings
 from app.models import Signal, Trader
 from app.schemas import TraderDayStat, TraderRead
 from app.serializers import trader_to_read
-from app.signal_service import get_or_create_trader, sync_admin_avatars
+from app.signal_service import get_or_create_trader
 from app.rank_service import ensure_rank_fields
 from app.trader_stats import pnl_usd_for_outcome, signal_trade_return_pct
-from app.telegram_avatar import ensure_trader_avatar
 
 
 def _day_key(closed_at: datetime | None) -> str:
@@ -53,7 +52,7 @@ def daily_stats_map(db: Session, admin_ids: list[int]) -> dict[int, list[TraderD
             TraderDayStat(date=d, pnl_usd=v["pnl"], rating_delta=v["rating"], wins=v["w"], losses=v["l"])
             for d, v in sorted(days.items(), reverse=True)
         ]
-        out[tid] = stats[:30]
+        out[tid] = stats[:14]
     return out
 
 
@@ -61,7 +60,6 @@ def build_leaderboard(db: Session) -> list[TraderRead]:
     ids = sorted(settings.admin_id_set)
     if not ids:
         return []
-    sync_admin_avatars(db)
     daily = daily_stats_map(db, ids)
     traders = {t.telegram_id: t for t in db.scalars(select(Trader).where(Trader.telegram_id.in_(ids)))}
     for aid in ids:
@@ -75,10 +73,6 @@ def build_leaderboard(db: Session) -> list[TraderRead]:
     result: list[TraderRead] = []
     for rank, t in enumerate(ranked, start=1):
         ensure_rank_fields(t)
-        if not t.avatar_path:
-            path = ensure_trader_avatar(t.telegram_id)
-            if path:
-                t.avatar_path = path
         total = (t.wins or 0) + (t.losses or 0)
         wr = round((t.wins or 0) / total * 100, 1) if total else 0.0
         result.append(trader_to_read(t, rank, wr, daily.get(t.telegram_id, [])))

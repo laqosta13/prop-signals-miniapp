@@ -91,8 +91,8 @@ def signal_to_read(db: Session, signal: Signal, viewer_id: int | None = None) ->
     )
 
 
-def _trader_rank_read(t: Trader) -> TraderRankRead:
-    p = trader_rank_payload(t)
+def _trader_rank_read(t: Trader, *, include_history: bool = False) -> TraderRankRead:
+    p = trader_rank_payload(t, include_history=include_history)
     history = [RankHistoryEntryRead(**h) for h in p.get("rank_history", [])]
     return TraderRankRead(
         current_rank_id=p["current_rank_id"],
