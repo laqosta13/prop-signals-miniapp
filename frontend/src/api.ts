@@ -125,6 +125,7 @@ export type ChallengeDashboard = {
   balance: number;
   profit_pct: number;
   profit_target_pct: number;
+  profit_target_unlimited?: boolean;
   drawdown_pct: number;
   max_drawdown_pct: number;
   daily_loss_pct: number;
@@ -132,11 +133,39 @@ export type ChallengeDashboard = {
   daily_remaining_usd: number;
   trading_days: number;
   min_trading_days: number;
+  min_trading_days_unlimited?: boolean;
   goal_balance: number;
   trades_count: number;
   winrate: number;
   total_pnl: number;
   max_leverage: string;
+};
+
+export type HashHedgeStageRules = {
+  stage: number;
+  profit_target_pct: number | null;
+  profit_target_unlimited: boolean;
+  max_daily_loss_pct: number;
+  max_drawdown_pct: number;
+  min_trading_days: number | null;
+  min_trading_days_unlimited: boolean;
+  trading_period_unlimited: boolean;
+  max_leverage: string;
+};
+
+export type HashHedgeRuleRow = {
+  id: string;
+  label: string;
+  hint: string;
+  values: string[];
+};
+
+export type HashHedgeRules = {
+  firm: string;
+  url: string;
+  account_sizes: number[];
+  stages: HashHedgeStageRules[];
+  table_rows: HashHedgeRuleRow[];
 };
 
 export type Review = {
@@ -200,6 +229,7 @@ export const fetchRankPending = () =>
 export const confirmMyRank = () => api<TraderRank>("/traders/me/rank/confirm", { method: "POST" });
 export const activateRankShield = () => api<TraderRank>("/traders/me/rank/shield", { method: "POST" });
 export const fetchChallengeTrackers = () => api<ChallengeDashboard[]>("/challenge/trackers");
+export const fetchChallengeRules = () => api<HashHedgeRules>("/challenge/rules");
 
 export const fetchReviews = () => api<Review[]>("/reviews");
 

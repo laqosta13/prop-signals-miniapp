@@ -169,6 +169,7 @@ class ChallengeDashboard(BaseModel):
     balance: float
     profit_pct: float
     profit_target_pct: float
+    profit_target_unlimited: bool = False
     drawdown_pct: float
     max_drawdown_pct: float
     daily_loss_pct: float
@@ -176,6 +177,7 @@ class ChallengeDashboard(BaseModel):
     daily_remaining_usd: float
     trading_days: int
     min_trading_days: int
+    min_trading_days_unlimited: bool = False
     goal_balance: float
     trades_count: int
     winrate: float

@@ -324,6 +324,118 @@ body {
   color: var(--muted);
 }
 
+.hashhedge-rules {
+  margin-bottom: 14px;
+}
+
+.hashhedge-rules__loading {
+  margin: 0 0 12px;
+}
+
+.hashhedge-rules__table {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #141416;
+}
+
+.hashhedge-rules__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) repeat(3, minmax(0, 1fr));
+  align-items: center;
+}
+
+.hashhedge-rules__row--head {
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hashhedge-rules__row:not(.hashhedge-rules__row--head) {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.hashhedge-rules__row-group:last-child .hashhedge-rules__row {
+  border-bottom: none;
+}
+
+.hashhedge-rules__cell {
+  padding: 12px 10px;
+  font-size: 0.8rem;
+}
+
+.hashhedge-rules__cell--label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  padding-left: 12px;
+}
+
+.hashhedge-rules__cell--stage {
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: #fff;
+}
+
+.hashhedge-rules__cell--val {
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.hashhedge-rules__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  color: #fff;
+}
+
+.hashhedge-rules__logo {
+  color: var(--accent);
+  font-size: 1rem;
+}
+
+.hashhedge-rules__info {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.hashhedge-rules__info[aria-expanded="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.hashhedge-rules__hint {
+  margin: 0;
+  padding: 8px 12px 12px 42px;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--muted);
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tracker-empty {
+  margin-top: 8px;
+}
+
 .tracker-block {
   background: var(--surface);
   border-radius: 16px;
@@ -746,9 +858,24 @@ body {
 
 .stats-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   margin-bottom: 12px;
+}
+
+@media (max-width: 380px) {
+  .stats-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .hashhedge-rules__cell {
+    padding: 10px 6px;
+    font-size: 0.72rem;
+  }
+
+  .hashhedge-rules__cell--label {
+    padding-left: 8px;
+  }
 }
 
 .stat {

@@ -87,6 +87,11 @@ def build_dashboard(db: Session, ch: UserChallenge, trader: Trader | None = None
         .limit(1)
     ))
 
+    profit_unlimited = rules.profit_target_pct is None
+    min_days_unlimited = rules.min_trading_days is None
+    target_pct = rules.profit_target_pct or 0.0
+    goal = balance if profit_unlimited else round(start * (1 + target_pct / 100.0), 2)
+
     return ChallengeDashboard(
         owner_telegram_id=owner_id,
         owner_username=login,
@@ -96,15 +101,17 @@ def build_dashboard(db: Session, ch: UserChallenge, trader: Trader | None = None
         stage=ch.stage,
         balance=balance,
         profit_pct=round(profit_pct, 2),
-        profit_target_pct=rules.profit_target_pct,
+        profit_target_pct=target_pct,
+        profit_target_unlimited=profit_unlimited,
         drawdown_pct=round(drawdown_pct, 2),
         max_drawdown_pct=rules.max_drawdown_pct,
         daily_loss_pct=round(daily_loss_pct, 2),
         max_daily_loss_pct=rules.max_daily_loss_pct,
         daily_remaining_usd=round(max(0.0, max_daily_usd - daily_loss_usd), 2),
         trading_days=ch.trading_days,
-        min_trading_days=rules.min_trading_days,
-        goal_balance=round(start * (1 + rules.profit_target_pct / 100.0), 2),
+        min_trading_days=rules.min_trading_days or 0,
+        min_trading_days_unlimited=min_days_unlimited,
+        goal_balance=goal,
         trades_count=total,
         winrate=round(wins / total * 100, 1) if total else 0.0,
         total_pnl=round(balance - start, 2),

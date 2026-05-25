@@ -1,6 +1,8 @@
-import type { ChallengeDashboard, Signal } from "../api";
+import { useEffect, useState } from "react";
+import { fetchChallengeRules, type ChallengeDashboard, type HashHedgeRules, type Signal } from "../api";
 import { authorProfile, formatTakeProfits, formatUsd } from "../utils";
 import { Avatar } from "./Avatar";
+import { HashHedgeRulesTable } from "./HashHedgeRulesTable";
 
 type Props = {
   trackers: ChallengeDashboard[];
@@ -11,18 +13,47 @@ type Props = {
 };
 
 export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Props) {
-  if (!trackers.length) return <p className="meta">Трекеры админов появятся после настройки TELEGRAM_ADMIN_IDS.</p>;
+  const [rules, setRules] = useState<HashHedgeRules | null>(null);
+  const [rulesLoading, setRulesLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setRulesLoading(true);
+    fetchChallengeRules()
+      .then((r) => {
+        if (!cancelled) setRules(r);
+      })
+      .catch(() => {
+        if (!cancelled) setRules(null);
+      })
+      .finally(() => {
+        if (!cancelled) setRulesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <>
+      <HashHedgeRulesTable rules={rules} loading={rulesLoading} />
+
+      {!trackers.length && (
+        <p className="meta tracker-empty">Трекеры админов появятся после настройки TELEGRAM_ADMIN_IDS.</p>
+      )}
+
       {trackers.map((d) => {
-        const progress = Math.min(100, Math.max(0, (d.profit_pct / d.profit_target_pct) * 100));
+        const profitUnlimited = !!d.profit_target_unlimited;
+        const progress = profitUnlimited
+          ? Math.min(100, Math.max(0, d.profit_pct > 0 ? 100 : 0))
+          : Math.min(100, Math.max(0, (d.profit_pct / d.profit_target_pct) * 100));
         const dd = Math.min(100, (d.drawdown_pct / d.max_drawdown_pct) * 100);
         const day = Math.min(100, ((d.max_daily_loss_pct - d.daily_loss_pct) / d.max_daily_loss_pct) * 100);
         const recent = signals
           .filter((s) => s.author_telegram_id === d.owner_telegram_id && s.status !== "active")
           .slice(0, 5);
         const canEdit = isAdmin && myId === d.owner_telegram_id;
+        const minDaysLabel = d.min_trading_days_unlimited ? "∞" : String(d.min_trading_days);
 
         return (
           <section key={d.owner_telegram_id} className="tracker-block">
@@ -31,7 +62,9 @@ export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Pro
               <div>
                 <p className="tracker-block__name">{authorProfile(d.owner_display_name, d.owner_username).title}</p>
                 {d.owner_username && <p className="tracker-block__sub">@{d.owner_username}</p>}
-                <p className="tracker-block__sub">Этап {d.stage}</p>
+                <p className="tracker-block__sub">
+                  Этап {d.stage} · плечо {d.max_leverage}
+                </p>
               </div>
             </header>
 
@@ -42,12 +75,17 @@ export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Pro
                 {d.profit_pct >= 0 ? "+" : ""}
                 {d.profit_pct.toFixed(2)}%
               </p>
-              <div className="progress large">
-                <span className="progress__fill" style={{ width: `${progress}%` }} />
-              </div>
+              {!profitUnlimited && (
+                <div className="progress large">
+                  <span className="progress__fill" style={{ width: `${progress}%` }} />
+                </div>
+              )}
               <div className="tracker-hero__row">
                 <span>Старт {formatUsd(d.account_size)}</span>
-                <span>Цель {formatUsd(d.goal_balance)}</span>
+                <span>
+                  Цель {profitUnlimited ? "∞" : formatUsd(d.goal_balance)} (
+                  {profitUnlimited ? "∞" : `${d.profit_target_pct}%`})
+                </span>
               </div>
             </div>
 
@@ -71,6 +109,12 @@ export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Pro
             </div>
 
             <div className="stats-row">
+              <div className="stat">
+                <span>Торговые дни</span>
+                <strong>
+                  {d.trading_days} / {minDaysLabel}
+                </strong>
+              </div>
               <div className="stat">
                 <span>Сделок</span>
                 <strong>{d.trades_count}</strong>
