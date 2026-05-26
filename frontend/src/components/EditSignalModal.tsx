@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { updateSignalWithMedia, type Signal, type UploadProgress } from "../api";
 import { formatTakeProfits, normalizeTakeProfits } from "../utils";
+import { entryNominalUsd, onLeverageFieldChange, parseRiskPercent } from "../utils/signalForm";
 import {
   formatUploadSize,
   initialUploadProgress,
@@ -57,6 +58,8 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
   if (!signal) return null;
 
   const tracker = trackerBalance ?? signal.tracker_balance ?? 0;
+  const stakeUsd = entryNominalUsd(tracker, parseRiskPercent(risk));
+  const lev = parseInt(leverage, 10) || 1;
 
   const onScreenshot = (file: File | null) => {
     setScreenshot(file);
@@ -154,7 +157,14 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
         <div className="triple">
           <div>
             <label className="field-label">Плечо</label>
-            <input value={leverage} onChange={(e) => setLeverage(e.target.value)} />
+            <input
+              value={leverage}
+              onChange={(e) => {
+                const next = onLeverageFieldChange(e.target.value, leverage, risk);
+                setLeverage(next.leverage);
+                setRisk(next.risk);
+              }}
+            />
           </div>
           <div>
             <label className="field-label">Сумма входа %</label>
@@ -169,6 +179,12 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
             />
           </div>
         </div>
+        {tracker > 0 && (
+          <p className="meta">
+            Номинал позиции: ${stakeUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })} ({risk}% от трекера
+            {lev > 1 ? ` · плечо ${lev}x` : ""})
+          </p>
+        )}
 
         <label className="field-label">Скрин сетапа</label>
         {signal.media_image_url && !removeScreenshot && !screenshot && (

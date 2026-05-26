@@ -3,6 +3,7 @@ import WebApp from "@twa-dev/sdk";
 import { createSignalWithMedia } from "../api";
 import type { UploadProgress } from "../api";
 import { normalizeTakeProfits } from "../utils";
+import { entryNominalUsd, onLeverageFieldChange, parseRiskPercent } from "../utils/signalForm";
 import {
   formatUploadSize,
   initialUploadProgress,
@@ -42,7 +43,8 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
   if (!open) return null;
 
   const tracker = trackerBalance ?? 0;
-  const stakeUsd = tracker > 0 ? (tracker * (parseFloat(risk) || 0)) / 100 : 0;
+  const stakeUsd = entryNominalUsd(tracker, parseRiskPercent(risk));
+  const lev = parseInt(leverage, 10) || 1;
 
   const onScreenshot = (file: File | null) => {
     setScreenshot(file);
@@ -135,7 +137,14 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
         <div className="triple">
           <div>
             <label className="field-label">Плечо</label>
-            <input value={leverage} onChange={(e) => setLeverage(e.target.value)} />
+            <input
+              value={leverage}
+              onChange={(e) => {
+                const next = onLeverageFieldChange(e.target.value, leverage, risk);
+                setLeverage(next.leverage);
+                setRisk(next.risk);
+              }}
+            />
           </div>
           <div>
             <label className="field-label">Сумма входа %</label>
@@ -148,7 +157,8 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
         </div>
         {tracker > 0 && (
           <p className="meta">
-            Номинал позиции: ${stakeUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })} ({risk}% от трекера)
+            Номинал позиции: ${stakeUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })} ({risk}% от трекера
+            {lev > 1 ? ` · плечо ${lev}x` : ""})
           </p>
         )}
 
