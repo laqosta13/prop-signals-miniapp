@@ -1615,6 +1615,59 @@ input.readonly {
   margin: 12px 0 6px;
 }
 
+.signal-media-picker {
+  margin-bottom: 4px;
+}
+
+.signal-media-picker__input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.signal-media-picker__btn {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px dashed rgba(224, 175, 255, 0.35);
+  background: rgba(224, 175, 255, 0.06);
+  color: #ead6ff;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+
+.signal-media-picker__btn:active {
+  transform: scale(0.99);
+}
+
+.signal-media-picker__list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.signal-media-picker__item .media-preview {
+  margin-bottom: 6px;
+}
+
+.signal-media-picker__remove {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 0.72rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .modal input,
 .modal textarea {
   width: 100%;

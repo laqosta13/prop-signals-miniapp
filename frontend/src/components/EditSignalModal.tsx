@@ -4,7 +4,6 @@ import { updateSignalWithMedia, type Signal, type UploadProgress } from "../api"
 import { formatTakeProfits, normalizeTakeProfits } from "../utils";
 import { entryNominalUsd, parseLeverage, parseRiskPercent } from "../utils/signalForm";
 import {
-  formatUploadSize,
   initialUploadProgress,
   mediaBytesInForm,
   uploadProgressLabel,
@@ -12,6 +11,7 @@ import {
 import { UploadProgressBar } from "./UploadProgressBar";
 import { LeveragePicker } from "./LeveragePicker";
 import { RiskPercentSlider } from "./RiskPercentSlider";
+import { SignalMediaPicker } from "./SignalMediaPicker";
 
 type Props = {
   signal: Signal | null;
@@ -70,6 +70,11 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
     setShotPreview(file ? URL.createObjectURL(file) : null);
   };
 
+  const onVideo = (file: File | null) => {
+    setVideo(file);
+    setRemoveVideo(false);
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -112,8 +117,6 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
       setUploadProgress(null);
     }
   };
-
-  const imageSrc = shotPreview || (removeScreenshot ? null : signal.media_image_url);
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -179,40 +182,19 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
           </p>
         )}
 
-        <label className="field-label">Скрин сетапа</label>
-        {signal.media_image_url && !removeScreenshot && !screenshot && (
-          <label className="check-row">
-            <input type="checkbox" checked={removeScreenshot} onChange={(e) => setRemoveScreenshot(e.target.checked)} />
-            Удалить текущий скрин
-          </label>
-        )}
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          onChange={(e) => onScreenshot(e.target.files?.[0] ?? null)}
+        <SignalMediaPicker
+          screenshot={screenshot}
+          video={video}
+          shotPreview={shotPreview}
+          onScreenshot={onScreenshot}
+          onVideo={onVideo}
+          existingImageUrl={signal.media_image_url}
+          existingVideoUrl={signal.media_video_url}
+          removeScreenshot={removeScreenshot}
+          removeVideo={removeVideo}
+          onRemoveScreenshot={setRemoveScreenshot}
+          onRemoveVideo={setRemoveVideo}
         />
-        {imageSrc && <img src={imageSrc} alt="Превью" className="media-preview" />}
-
-        <label className="field-label">Видео</label>
-        {signal.media_video_url && !removeVideo && !video && (
-          <label className="check-row">
-            <input type="checkbox" checked={removeVideo} onChange={(e) => setRemoveVideo(e.target.checked)} />
-            Удалить текущее видео
-          </label>
-        )}
-        <input
-          type="file"
-          accept="video/mp4,video/webm,video/quicktime"
-          onChange={(e) => {
-            setVideo(e.target.files?.[0] ?? null);
-            setRemoveVideo(false);
-          }}
-        />
-        {video && (
-          <p className="meta">
-            Видео: {video.name} ({formatUploadSize(video.size)})
-          </p>
-        )}
 
         <label className="field-label">Комментарий (на русском)</label>
         <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Краткий анализ по-русски…" />

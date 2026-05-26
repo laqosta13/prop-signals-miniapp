@@ -1,12 +1,8 @@
 import { useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { appendSignalSupplement, type Signal, type UploadProgress } from "../api";
-import {
-  formatUploadSize,
-  initialUploadProgress,
-  mediaBytesInForm,
-  uploadProgressLabel,
-} from "../utils/upload";
+import { initialUploadProgress, mediaBytesInForm, uploadProgressLabel } from "../utils/upload";
+import { SignalMediaPicker } from "./SignalMediaPicker";
 import { UploadProgressBar } from "./UploadProgressBar";
 
 type Props = {
@@ -90,25 +86,13 @@ export function AppendSupplementModal({ signal, onClose, onDone }: Props) {
         <label className="field-label">Комментарий (на русском)</label>
         <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Обновление по сделке…" />
 
-        <label className="field-label">Скрин</label>
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          onChange={(e) => onScreenshot(e.target.files?.[0] ?? null)}
+        <SignalMediaPicker
+          screenshot={screenshot}
+          video={video}
+          shotPreview={shotPreview}
+          onScreenshot={onScreenshot}
+          onVideo={onVideo}
         />
-        {shotPreview && <img src={shotPreview} alt="Превью" className="media-preview" />}
-
-        <label className="field-label">Видео</label>
-        <input
-          type="file"
-          accept="video/mp4,video/webm,video/quicktime"
-          onChange={(e) => onVideo(e.target.files?.[0] ?? null)}
-        />
-        {video && (
-          <p className="meta">
-            Видео: {video.name} ({formatUploadSize(video.size)})
-          </p>
-        )}
 
         {error && <p className="err">{error}</p>}
 

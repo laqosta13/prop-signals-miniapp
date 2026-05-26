@@ -5,7 +5,6 @@ import type { UploadProgress } from "../api";
 import { normalizeTakeProfits } from "../utils";
 import { entryNominalUsd, parseLeverage, parseRiskPercent } from "../utils/signalForm";
 import {
-  formatUploadSize,
   initialUploadProgress,
   mediaBytesInForm,
   uploadProgressLabel,
@@ -13,6 +12,7 @@ import {
 import { UploadProgressBar } from "./UploadProgressBar";
 import { LeveragePicker } from "./LeveragePicker";
 import { RiskPercentSlider } from "./RiskPercentSlider";
+import { SignalMediaPicker } from "./SignalMediaPicker";
 
 type Props = {
   open: boolean;
@@ -52,6 +52,10 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
     setScreenshot(file);
     if (shotPreview) URL.revokeObjectURL(shotPreview);
     setShotPreview(file ? URL.createObjectURL(file) : null);
+  };
+
+  const onVideo = (file: File | null) => {
+    setVideo(file);
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -155,25 +159,13 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
           </p>
         )}
 
-        <label className="field-label">Скрин сетапа</label>
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          onChange={(e) => onScreenshot(e.target.files?.[0] ?? null)}
+        <SignalMediaPicker
+          screenshot={screenshot}
+          video={video}
+          shotPreview={shotPreview}
+          onScreenshot={onScreenshot}
+          onVideo={onVideo}
         />
-        {shotPreview && <img src={shotPreview} alt="Превью" className="media-preview" />}
-
-        <label className="field-label">Видео</label>
-        <input
-          type="file"
-          accept="video/mp4,video/webm,video/quicktime"
-          onChange={(e) => setVideo(e.target.files?.[0] ?? null)}
-        />
-        {video && (
-          <p className="meta">
-            Видео: {video.name} ({formatUploadSize(video.size)})
-          </p>
-        )}
 
         <label className="field-label">Комментарий (на русском)</label>
         <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Краткий анализ по-русски…" />
