@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.models import NewsPost, Signal, Subscriber, Trader
 from app.subscription_billing import subscriber_ids_for_news_notify, subscription_active_strict
-from app.signal_utils import compute_signal_points_percent, entry_zone_defined, entry_triggered
+from app.signal_utils import compute_signal_points_percent, entry_zone_defined
 from app.telegram_avatar import ensure_trader_avatar
 from app.schemas import TelegramUser
 from app.serializers import trader_display_name
@@ -26,7 +26,7 @@ from app.telegram_notify import (
     notify_subscribers,
 )
 from app.challenge_service import apply_signal_to_tracker, ensure_tracker_for_new_signal
-from app.price_service import clear_price_cache, fetch_price
+from app.price_service import PriceQuote, clear_price_cache, fetch_market_quotes, first_entry_quote
 from app.subscription_billing import register_subscriber_with_meta
 from app.trader_stats import apply_outcome_to_trader
 
@@ -229,31 +229,87 @@ async def notify_signal_supplement(
         )
 
 
+async def stamp_signal_at_publication(
+    db: Session,
+    signal: Signal,
+    *,
+    notify_entry: bool = True,
+) -> None:
+    """Запрос цены на биржах в момент публикации и фиксация времени размещения."""
+    clear_price_cache()
+    published_at = datetime.now(timezone.utc)
+    quotes = await fetch_market_quotes(signal.symbol)
+
+    signal.created_at = published_at
+    entry_hit: PriceQuote | None = None
+
+    if quotes:
+        signal.published_market_price = quotes[0].price
+        signal.published_market_source = quotes[0].source
+        if entry_zone_defined(signal.entry_low, signal.entry_high):
+            entry_hit = first_entry_quote(quotes, signal.direction, signal.entry_low, signal.entry_high)
+            if entry_hit:
+                signal.entry_filled_at = published_at
+                signal.published_market_price = entry_hit.price
+                signal.published_market_source = entry_hit.source
+        else:
+            signal.entry_filled_at = published_at
+    elif not entry_zone_defined(signal.entry_low, signal.entry_high):
+        signal.entry_filled_at = published_at
+
+    db.commit()
+    db.refresh(signal)
+
+    if entry_hit:
+        logger.info(
+            "Публикация signal #%s %s: %s=%.4f, вход сразу",
+            signal.id,
+            signal.symbol,
+            entry_hit.source,
+            entry_hit.price,
+        )
+    elif signal.published_market_price is not None:
+        logger.info(
+            "Публикация signal #%s %s: %s=%.4f",
+            signal.id,
+            signal.symbol,
+            signal.published_market_source,
+            signal.published_market_price,
+        )
+    else:
+        logger.warning("Публикация signal #%s %s: цена бирж не получена", signal.id, signal.symbol)
+
+    if notify_entry and entry_hit:
+        await notify_entry_filled(db, signal)
+
+
 async def try_fill_entry_from_market(db: Session, signal: Signal, *, notify: bool = True) -> bool:
     """Если цена уже прошла уровень входа — сразу отмечаем сигнал активным."""
     if signal.entry_filled_at is not None or signal.status != "active":
         return False
     if not entry_zone_defined(signal.entry_low, signal.entry_high):
         return False
-    price = await fetch_price(signal.symbol)
-    if price is None:
+    quotes = await fetch_market_quotes(signal.symbol)
+    if not quotes:
         logger.warning(
             "Нет цены для %s — вход не проверен (signal #%s)",
             signal.symbol,
             signal.id,
         )
         return False
-    if not entry_triggered(price, signal.direction, signal.entry_low, signal.entry_high):
+    hit = first_entry_quote(quotes, signal.direction, signal.entry_low, signal.entry_high)
+    if hit is None:
         return False
     signal.entry_filled_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(signal)
     logger.info(
-        "Вход сработал: signal #%s %s %s, market=%.4f, entry=%s/%s",
+        "Вход сработал: signal #%s %s %s, %s=%.4f, entry=%s/%s",
         signal.id,
         signal.symbol,
         signal.direction,
-        price,
+        hit.source,
+        hit.price,
         signal.entry_low,
         signal.entry_high,
     )
@@ -327,7 +383,7 @@ def build_signal_row(
         take_profits=take_profits,
         comment=comment,
         status="active",
-        entry_filled_at=None if entry_zone_defined(entry_low, entry_high) else datetime.now(timezone.utc),
+        entry_filled_at=None,
         points_percent=points,
         leverage=leverage,
         risk_percent=risk_percent or points,

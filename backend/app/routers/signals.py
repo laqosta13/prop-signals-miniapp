@@ -26,6 +26,7 @@ from app.signal_service import (
     notify_new_signal,
     notify_signal_supplement,
     notify_updated_signal,
+    stamp_signal_at_publication,
     try_fill_entry_from_market,
     update_signal_fields,
 )
@@ -107,18 +108,13 @@ async def create_signal(
     db.add(row)
     db.flush()
     ensure_tracker_for_new_signal(db, row)
-    db.commit()
-    db.refresh(row)
 
     if screenshot and screenshot.filename:
         row.media_image_path = await save_signal_image(row.id, screenshot)
     if video and video.filename:
         row.media_video_path = await save_signal_video(row.id, video)
-    if row.media_image_path or row.media_video_path:
-        db.commit()
-        db.refresh(row)
 
-    await try_fill_entry_from_market(db, row)
+    await stamp_signal_at_publication(db, row)
     await notify_new_signal(db, row)
     return signal_to_read(db, row, admin.telegram_user_id)
 

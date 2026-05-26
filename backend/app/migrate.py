@@ -39,6 +39,8 @@ def run_migrations(engine: Engine) -> None:
                 ("views_count", "ALTER TABLE signals ADD COLUMN views_count INTEGER DEFAULT 0"),
                 ("likes_count", "ALTER TABLE signals ADD COLUMN likes_count INTEGER DEFAULT 0"),
                 ("entry_filled_at", "ALTER TABLE signals ADD COLUMN entry_filled_at DATETIME"),
+                ("published_market_price", "ALTER TABLE signals ADD COLUMN published_market_price REAL"),
+                ("published_market_source", "ALTER TABLE signals ADD COLUMN published_market_source VARCHAR(32)"),
             ):
                 if not _has_column(engine, "signals", col):
                     conn.execute(text(ddl))

@@ -34,6 +34,8 @@ export type Signal = {
   tracker_balance: number | null;
   realized_pnl: number | null;
   entry_filled_at?: string | null;
+  published_market_price?: number | null;
+  published_market_source?: string | null;
   views_count: number;
   likes_count: number;
   liked_by_me: boolean;

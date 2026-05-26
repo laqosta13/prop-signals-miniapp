@@ -139,19 +139,38 @@ def _signal_author_label(signal: Signal) -> str:
     return format_actor_label(username=signal.author_username, telegram_id=signal.author_telegram_id)
 
 
+def _market_source_label(source: str | None) -> str:
+    if not source:
+        return ""
+    labels = {
+        "binance_spot": "Binance spot",
+        "binance_perp": "Binance perp",
+        "bybit_spot": "Bybit spot",
+        "bybit_perp": "Bybit perp",
+        "bingx_spot": "BingX spot",
+        "bingx_perp": "BingX perp",
+    }
+    return labels.get(source, source)
+
+
 def _signal_summary(signal: Signal) -> str:
     author = _esc(_signal_author_label(signal))
     stake = signal_entry_stake_pct(signal)
     stake_usd = signal_entry_stake_usd(signal)
     tracker = signal_tracker_balance(signal)
-    return (
-        f"{_esc(signal.symbol)} · <b>{_esc(signal.direction.upper())}</b>\n"
-        f"Вход: {_entry_label(signal.entry_low, signal.entry_high)}\n"
-        f"Стоп: {_esc(signal.stop_loss)}\n"
-        f"Цель: {_format_take_profits(signal.take_profits)}\n"
-        f"Сумма входа: {stake}% (${stake_usd:,.0f}) · Трекер: ${tracker:,.0f}\n"
-        f"Автор: {author}"
-    )
+    lines = [
+        f"{_esc(signal.symbol)} · <b>{_esc(signal.direction.upper())}</b>",
+        f"Вход: {_entry_label(signal.entry_low, signal.entry_high)}",
+        f"Стоп: {_esc(signal.stop_loss)}",
+        f"Цель: {_format_take_profits(signal.take_profits)}",
+        f"Сумма входа: {stake}% (${stake_usd:,.0f}) · Трекер: ${tracker:,.0f}",
+    ]
+    if signal.published_market_price is not None:
+        src = _market_source_label(signal.published_market_source)
+        src_part = f" ({src})" if src else ""
+        lines.append(f"Рынок при публикации: {signal.published_market_price:g}{src_part}")
+    lines.append(f"Автор: {author}")
+    return "\n".join(lines)
 
 
 async def _send_message(chat_id: int, text: str) -> None:

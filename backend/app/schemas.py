@@ -42,6 +42,8 @@ class SignalRead(BaseModel):
     tracker_balance: float | None = None
     realized_pnl: float | None = None
     entry_filled_at: datetime | None = None
+    published_market_price: float | None = None
+    published_market_source: str | None = None
     views_count: int = 0
     likes_count: int = 0
     liked_by_me: bool = False

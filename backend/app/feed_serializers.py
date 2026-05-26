@@ -80,6 +80,8 @@ def signals_list_read(db: Session, signals: list[Signal], viewer_id: int | None)
                 tracker_balance=s.tracker_balance,
                 realized_pnl=s.realized_pnl,
                 entry_filled_at=s.entry_filled_at,
+                published_market_price=s.published_market_price,
+                published_market_source=s.published_market_source,
                 views_count=s.views_count or 0,
                 likes_count=s.likes_count or 0,
                 liked_by_me=s.id in liked_ids,

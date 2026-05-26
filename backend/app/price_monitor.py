@@ -1,3 +1,5 @@
+"""Мониторинг активных сигналов: вход/выход по первой бирже, где достигнут уровень."""
+
 from __future__ import annotations
 
 import asyncio
@@ -9,15 +11,21 @@ from sqlalchemy import select
 from app.config import settings
 from app.database import SessionLocal
 from app.models import Signal
-from app.price_service import clear_price_cache, fetch_price, normalize_symbol
+from app.price_service import (
+    clear_price_cache,
+    fetch_market_quotes,
+    first_entry_quote,
+    first_outcome_quote,
+    normalize_symbol,
+)
 from app.signal_service import close_signal_and_notify, notify_entry_filled
-from app.signal_utils import entry_zone_defined, evaluate_signal, entry_triggered
+from app.signal_utils import entry_zone_defined
 
 logger = logging.getLogger(__name__)
 
 
 async def check_active_signals_once() -> int:
-    """Закрытие сигналов и отметка входа в зоне. Возвращает число закрытий."""
+    """Закрытие сигналов и отметка входа. Возвращает число закрытий."""
     closed = 0
     clear_price_cache()
     db = SessionLocal()
@@ -28,37 +36,51 @@ async def check_active_signals_once() -> int:
             return 0
 
         symbols = {normalize_symbol(s.symbol) for s in active}
-        prices: dict[str, float] = {}
+        quotes_by_symbol: dict[str, list] = {}
         for sym in symbols:
-            p = await fetch_price(sym)
-            if p is not None:
-                prices[sym] = p
+            quotes_by_symbol[sym] = await fetch_market_quotes(sym)
 
         for signal in active:
             sym = normalize_symbol(signal.symbol)
-            price = prices.get(sym)
-            if price is None:
-                logger.warning("Монитор: нет цены для %s (signal #%s)", signal.symbol, signal.id)
+            quotes = quotes_by_symbol.get(sym) or []
+            if not quotes:
+                logger.warning("Монитор: нет цен для %s (signal #%s)", signal.symbol, signal.id)
                 continue
 
             if signal.entry_filled_at is None:
-                if entry_zone_defined(signal.entry_low, signal.entry_high) and entry_triggered(
-                    price, signal.direction, signal.entry_low, signal.entry_high
-                ):
-                    signal.entry_filled_at = datetime.now(timezone.utc)
-                    db.commit()
-                    logger.info(
-                        "Монитор: вход signal #%s %s, market=%.4f",
-                        signal.id,
-                        signal.symbol,
-                        price,
-                    )
-                    await notify_entry_filled(db, signal)
+                if not entry_zone_defined(signal.entry_low, signal.entry_high):
+                    continue
+                hit = first_entry_quote(quotes, signal.direction, signal.entry_low, signal.entry_high)
+                if hit is None:
+                    continue
+                signal.entry_filled_at = datetime.now(timezone.utc)
+                db.commit()
+                logger.info(
+                    "Монитор: вход signal #%s %s, %s=%.4f",
+                    signal.id,
+                    signal.symbol,
+                    hit.source,
+                    hit.price,
+                )
+                await notify_entry_filled(db, signal)
                 continue
 
-            outcome = evaluate_signal(price, signal.direction, signal.stop_loss, signal.take_profits)
+            outcome_hit = first_outcome_quote(
+                quotes, signal.direction, signal.stop_loss, signal.take_profits
+            )
+            if outcome_hit is None:
+                continue
+            outcome, hit = outcome_hit
             if outcome in ("win", "lose"):
-                await close_signal_and_notify(db, signal, outcome, exit_price=price)
+                logger.info(
+                    "Монитор: %s signal #%s %s, %s=%.4f",
+                    outcome,
+                    signal.id,
+                    signal.symbol,
+                    hit.source,
+                    hit.price,
+                )
+                await close_signal_and_notify(db, signal, outcome, exit_price=hit.price)
                 closed += 1
     except Exception as e:
         logger.exception("price monitor error: %s", e)

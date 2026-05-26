@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { recordSignalView, toggleSignalLike, type Signal } from "../api";
-import { calcRR, authorProfile, formatTakeProfits, formatTime, formatUsd, mediaUrl } from "../utils";
+import { calcRR, authorProfile, formatMarketSource, formatTakeProfits, formatTime, formatUsd, mediaUrl } from "../utils";
 import { canEditOrDeleteSignal, canSupplementSignal } from "../utils/signalActions";
 import { Avatar } from "./Avatar";
 
@@ -150,6 +150,12 @@ export function SignalCard({
         </div>
       </header>
       <p className="signal-card__time">{formatTime(s.created_at)}</p>
+      {s.published_market_price != null && (
+        <p className="signal-card__market meta">
+          Рынок при публикации: {s.published_market_price}
+          {s.published_market_source ? ` (${formatMarketSource(s.published_market_source)})` : ""}
+        </p>
+      )}
       <div className="levels-grid">
         <div>
           <span>вход</span>
@@ -193,9 +199,14 @@ export function SignalCard({
         </section>
       )}
       {isAdmin && canSupplementSignal(s, myId, !!isAdmin) && onSupplement && (
-        <button type="button" className="supplement-btn" onClick={() => onSupplement(s)}>
-          Дополнить сигнал
-        </button>
+        <div className="supplement-btn-wrap">
+          <button type="button" className="supplement-btn" onClick={() => onSupplement(s)}>
+            <span className="supplement-btn__icon" aria-hidden>
+              ＋
+            </span>
+            Дополнить сигнал
+          </button>
+        </div>
       )}
       <div className="signal-engagement">
         <span className="engagement-stat" title="Просмотры">

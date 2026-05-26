@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     default_signal_points_percent: float = 1.0
     max_signal_points_percent: float = 10.0
     price_check_interval_seconds: int = 60
+    price_http_timeout_seconds: float = 10.0
     mini_app_url: str = ""
     media_root: str = "./media"
     max_image_bytes: int = 10 * 1024 * 1024

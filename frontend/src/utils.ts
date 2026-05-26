@@ -137,3 +137,16 @@ export function calcRR(entry: string | null, stop: string | null, target: string
   if (risk === 0) return "—";
   return `1:${(reward / risk).toFixed(1)}`;
 }
+
+const MARKET_SOURCE_LABELS: Record<string, string> = {
+  binance_spot: "Binance spot",
+  binance_perp: "Binance perp",
+  bybit_spot: "Bybit spot",
+  bybit_perp: "Bybit perp",
+  bingx_spot: "BingX spot",
+  bingx_perp: "BingX perp",
+};
+
+export function formatMarketSource(source: string): string {
+  return MARKET_SOURCE_LABELS[source] ?? source;
+}
