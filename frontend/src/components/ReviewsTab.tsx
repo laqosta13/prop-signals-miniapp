@@ -15,6 +15,7 @@ type Props = {
   canWriteReview: boolean;
   reviewWriteBlockedReason: string | null;
   daysUntilReview: number | null;
+  refreshKey?: number;
 };
 
 function stars(n: number) {
@@ -33,6 +34,7 @@ export function ReviewsTab({
   canWriteReview,
   reviewWriteBlockedReason,
   daysUntilReview,
+  refreshKey = 0,
 }: Props) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +69,7 @@ export function ReviewsTab({
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, refreshKey]);
 
   const onScreenshot = (file: File | null) => {
     setImage(file);

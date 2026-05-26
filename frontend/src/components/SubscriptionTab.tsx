@@ -3,7 +3,7 @@ import WebApp from "@twa-dev/sdk";
 import { fetchSubscriptionInfo, submitPayment, type SubscriptionInfo } from "../api";
 import { copyToClipboard } from "../utils";
 
-export function SubscriptionTab({ onPaid }: { onPaid: () => void }) {
+export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void; refreshKey?: number }) {
   const [info, setInfo] = useState<SubscriptionInfo | null>(null);
   const [tx, setTx] = useState("");
   const [plan, setPlan] = useState<"week" | "month">("week");
@@ -22,7 +22,7 @@ export function SubscriptionTab({ onPaid }: { onPaid: () => void }) {
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, refreshKey]);
 
   const pay = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +57,7 @@ export function SubscriptionTab({ onPaid }: { onPaid: () => void }) {
 
   return (
     <div className="sub-pay">
-      <p className="sub-pay__status">
+      <p className={`sub-pay__status ${info.subscription_active ? "on" : "off"}`}>
         {info.subscription_active ? (
           <>Подписка активна до {info.subscription_until ? new Date(info.subscription_until).toLocaleString() : "—"}</>
         ) : (
@@ -65,30 +65,41 @@ export function SubscriptionTab({ onPaid }: { onPaid: () => void }) {
         )}
       </p>
 
-      <section className="sub-card">
-        <h3>Оплата USDT (TON)</h3>
-        <p className="meta">Неделя — ${info.week_usd}, 30 дней — ${info.month_usd}</p>
+      <section className="sub-card sub-card--pay">
+        <h3>Оплата USDT в сети TON</h3>
+        <p className="meta">TXID проверяется on-chain и засчитывается только после подтверждений сети.</p>
         <div className="pay-addr-row">
-          <code className="pay-addr">{info.usdt_ton_address}</code>
+          <code className="pay-addr" title={info.usdt_ton_address}>
+            {info.usdt_ton_address}
+          </code>
           <button type="button" className={`copy-btn${copied ? " copied" : ""}`} onClick={() => void copyWallet()}>
             {copied ? "Скопировано ✓" : "Копировать адрес"}
           </button>
         </div>
+
+        <div className="sub-price-grid">
+          <button type="button" className={`sub-plan${plan === "week" ? " on" : ""}`} onClick={() => setPlan("week")}>
+            <span>Неделя</span>
+            <strong>${info.week_usd}</strong>
+          </button>
+          <button type="button" className={`sub-plan${plan === "month" ? " on" : ""}`} onClick={() => setPlan("month")}>
+            <span>30 дней</span>
+            <strong>${info.month_usd}</strong>
+          </button>
+        </div>
+
         <form onSubmit={pay} className="pay-form">
-          <label className="field-label">Тариф</label>
-          <div className="dir-toggle">
-            <button type="button" className={plan === "week" ? "active long" : ""} onClick={() => setPlan("week")}>
-              Неделя ${info.week_usd}
-            </button>
-            <button type="button" className={plan === "month" ? "active short" : ""} onClick={() => setPlan("month")}>
-              30 дней ${info.month_usd}
-            </button>
-          </div>
           <label className="field-label">TXID транзакции</label>
-          <input value={tx} onChange={(e) => setTx(e.target.value)} placeholder="Вставьте хеш / TXID" required />
+          <input
+            value={tx}
+            onChange={(e) => setTx(e.target.value)}
+            placeholder="Вставьте hash транзакции TON"
+            required
+          />
+          <p className="meta small">Убедитесь, что оплата отправлена именно в USDT (TON) на адрес выше.</p>
           {err && <p className="err">{err}</p>}
           <button type="submit" className="submit-btn" disabled={busy}>
-            {busy ? "Отправка…" : "Подтвердить оплату"}
+            {busy ? "Проверяем в сети…" : "Проверить TXID и активировать"}
           </button>
         </form>
       </section>

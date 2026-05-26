@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import WebApp from "@twa-dev/sdk";
 import {
   fetchChallengeTrackers,
   fetchLeaderboard,
@@ -82,6 +83,9 @@ export default function App() {
   const [newsModalOpen, setNewsModalOpen] = useState(false);
   const [editNews, setEditNews] = useState<NewsPost | null>(null);
   const [newsRefreshKey, setNewsRefreshKey] = useState(0);
+  const [reviewsRefreshKey, setReviewsRefreshKey] = useState(0);
+  const [payRefreshKey, setPayRefreshKey] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rankPending, setRankPending] = useState<TraderRank | null>(null);
 
@@ -157,6 +161,29 @@ export default function App() {
       setError(e instanceof Error ? e.message : "Ошибка рейтинга");
     }
   }, []);
+
+  const handleRefresh = useCallback(async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      if (tab === "feed") {
+        await Promise.all([refreshSignalsOnly(), loadTrackers()]);
+      } else if (tab === "tracker") {
+        await Promise.all([loadTrackers(), refreshSignalsOnly()]);
+      } else if (tab === "top") {
+        await loadTop();
+      } else if (tab === "news") {
+        setNewsRefreshKey((k) => k + 1);
+      } else if (tab === "reviews") {
+        setReviewsRefreshKey((k) => k + 1);
+      } else if (tab === "pay") {
+        setPayRefreshKey((k) => k + 1);
+      }
+      WebApp.HapticFeedback.impactOccurred("light");
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshing, tab, refreshSignalsOnly, loadTrackers, loadTop]);
 
   useEffect(() => {
     void loadBootstrap();
@@ -245,7 +272,17 @@ export default function App() {
               +
             </button>
           )}
-          <span className="status-dot" title="online" />
+          <button
+            type="button"
+            className={`refresh-btn${refreshing ? " refresh-btn--spin" : ""}`}
+            onClick={() => void handleRefresh()}
+            disabled={refreshing}
+            aria-label="Обновить"
+          >
+            <span className="refresh-btn__icon" aria-hidden>
+              ↻
+            </span>
+          </button>
         </div>
       </header>
 
@@ -309,6 +346,7 @@ export default function App() {
               canWriteReview={canWriteReview}
               reviewWriteBlockedReason={reviewWriteBlockedReason}
               daysUntilReview={daysUntilReview}
+              refreshKey={reviewsRefreshKey}
             />
           </Suspense>
         )}
@@ -319,7 +357,7 @@ export default function App() {
         )}
         {tab === "pay" && (
           <Suspense fallback={<TabFallback />}>
-            <SubscriptionTab onPaid={() => void loadBootstrap()} />
+            <SubscriptionTab onPaid={() => void loadBootstrap()} refreshKey={payRefreshKey} />
           </Suspense>
         )}
       </main>

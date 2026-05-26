@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import PaymentTx, Subscriber
+from app.ton_payments import TonPaymentError, verify_usdt_ton_payment
 
 TRIAL_DAYS = 3
 REFERRAL_BONUS_DAYS = 3
@@ -156,16 +157,25 @@ def extend_subscription(db: Session, sub: Subscriber, days: int) -> None:
 
 
 def record_payment(db: Session, telegram_user_id: int, plan: str, tx_id: str) -> None:
-    tx_id = tx_id.strip()
-    if len(tx_id) < 8:
-        raise ValueError("TXID слишком короткий")
-    if db.scalar(select(PaymentTx.id).where(PaymentTx.tx_id == tx_id)):
-        raise ValueError("Этот TXID уже зарегистрирован")
-    days = WEEK_DAYS if plan == "week" else MONTH_DAYS
     if plan not in ("week", "month"):
         raise ValueError("plan: week или month")
+    expected_usd = WEEK_USD if plan == "week" else MONTH_USD
+    try:
+        check = verify_usdt_ton_payment(tx_id, expected_usd)
+    except TonPaymentError as e:
+        raise ValueError(str(e)) from e
+    if db.scalar(select(PaymentTx.id).where(PaymentTx.tx_id == check.tx_hash_hex)):
+        raise ValueError("Этот TXID уже зарегистрирован")
+    days = WEEK_DAYS if plan == "week" else MONTH_DAYS
     sub = db.get(Subscriber, telegram_user_id)
     if sub is None:
         raise ValueError("Подписчик не найден")
     extend_subscription(db, sub, days)
-    db.add(PaymentTx(telegram_user_id=telegram_user_id, tx_id=tx_id, plan=plan, amount_usd=WEEK_USD if plan == "week" else MONTH_USD))
+    db.add(
+        PaymentTx(
+            telegram_user_id=telegram_user_id,
+            tx_id=check.tx_hash_hex,
+            plan=plan,
+            amount_usd=expected_usd,
+        )
+    )

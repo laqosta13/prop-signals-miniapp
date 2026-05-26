@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     max_image_bytes: int = 10 * 1024 * 1024
     max_video_bytes: int = 100 * 1024 * 1024
     usdt_ton_address: str = "UQDdFFYSG8sGiQfps2WWuIWFuaDPv1GAcFeRck6y5oeR_sPe"
+    usdt_ton_jetton_master: str = "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs"
+    toncenter_api_base: str = "https://toncenter.com/api/v3"
+    toncenter_api_key: str = ""
+    ton_payment_min_confirmations: int = 3
     public_base_url: str = ""
 
     @property
