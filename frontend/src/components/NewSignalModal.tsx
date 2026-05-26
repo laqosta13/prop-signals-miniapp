@@ -3,7 +3,7 @@ import WebApp from "@twa-dev/sdk";
 import { createSignalWithMedia } from "../api";
 import type { UploadProgress } from "../api";
 import { normalizeTakeProfits } from "../utils";
-import { entryNominalUsd, onLeverageFieldChange, parseRiskPercent } from "../utils/signalForm";
+import { entryNominalUsd, parseLeverage, parseRiskPercent } from "../utils/signalForm";
 import {
   formatUploadSize,
   initialUploadProgress,
@@ -11,6 +11,8 @@ import {
   uploadProgressLabel,
 } from "../utils/upload";
 import { UploadProgressBar } from "./UploadProgressBar";
+import { LeveragePicker } from "./LeveragePicker";
+import { RiskPercentSlider } from "./RiskPercentSlider";
 
 type Props = {
   open: boolean;
@@ -68,8 +70,8 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
       const tp = normalizeTakeProfits(target);
       if (tp) fd.append("take_profits", tp);
       if (comment) fd.append("comment", comment);
-      fd.append("leverage", String(parseInt(leverage, 10) || 1));
-      fd.append("risk_percent", String(parseFloat(risk) || 10));
+      fd.append("leverage", String(parseLeverage(leverage)));
+      fd.append("risk_percent", String(parseRiskPercent(risk)));
       if (screenshot) fd.append("screenshot", screenshot);
       if (video) fd.append("video", video);
 
@@ -134,27 +136,20 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
           </div>
         </div>
 
-        <div className="triple">
-          <div>
-            <label className="field-label">Плечо</label>
-            <input
-              value={leverage}
-              onChange={(e) => {
-                const next = onLeverageFieldChange(e.target.value, leverage, risk);
-                setLeverage(next.leverage);
-                setRisk(next.risk);
-              }}
-            />
-          </div>
-          <div>
-            <label className="field-label">Сумма входа %</label>
-            <input value={risk} onChange={(e) => setRisk(e.target.value)} />
-          </div>
-          <div>
-            <label className="field-label">Трекер $</label>
-            <input value={tracker > 0 ? String(Math.round(tracker)) : "—"} readOnly className="readonly" />
-          </div>
-        </div>
+        <label className="field-label">Плечо</label>
+        <LeveragePicker
+          leverage={leverage}
+          risk={risk}
+          onLeverageChange={(nextLev, nextRisk) => {
+            setLeverage(nextLev);
+            setRisk(nextRisk);
+          }}
+        />
+
+        <RiskPercentSlider value={risk} onChange={setRisk} />
+
+        <label className="field-label">Трекер $</label>
+        <input value={tracker > 0 ? String(Math.round(tracker)) : "—"} readOnly className="readonly" />
         {tracker > 0 && (
           <p className="meta">
             Номинал позиции: ${stakeUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })} ({risk}% от трекера

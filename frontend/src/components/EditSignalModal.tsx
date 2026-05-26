@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { updateSignalWithMedia, type Signal, type UploadProgress } from "../api";
 import { formatTakeProfits, normalizeTakeProfits } from "../utils";
-import { entryNominalUsd, onLeverageFieldChange, parseRiskPercent } from "../utils/signalForm";
+import { entryNominalUsd, parseLeverage, parseRiskPercent } from "../utils/signalForm";
 import {
   formatUploadSize,
   initialUploadProgress,
@@ -10,6 +10,8 @@ import {
   uploadProgressLabel,
 } from "../utils/upload";
 import { UploadProgressBar } from "./UploadProgressBar";
+import { LeveragePicker } from "./LeveragePicker";
+import { RiskPercentSlider } from "./RiskPercentSlider";
 
 type Props = {
   signal: Signal | null;
@@ -43,7 +45,7 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
     setEntry(signal.entry_low || signal.entry_high || "");
     setStop(signal.stop_loss || "");
     setTarget(formatTakeProfits(signal.take_profits));
-    setLeverage(String(signal.leverage ?? 1));
+    setLeverage(String(parseLeverage(String(signal.leverage ?? 1))));
     setRisk(String(signal.risk_percent ?? signal.points_percent ?? 10));
     setComment(signal.comment || "");
     setScreenshot(null);
@@ -84,8 +86,8 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
       const tp = normalizeTakeProfits(target);
       if (tp) fd.append("take_profits", tp);
       fd.append("comment", comment);
-      fd.append("leverage", String(parseInt(leverage, 10) || 1));
-      fd.append("risk_percent", String(parseFloat(risk) || 10));
+      fd.append("leverage", String(parseLeverage(leverage)));
+      fd.append("risk_percent", String(parseRiskPercent(risk)));
       fd.append("remove_screenshot", removeScreenshot ? "true" : "false");
       fd.append("remove_video", removeVideo ? "true" : "false");
       if (screenshot) fd.append("screenshot", screenshot);
@@ -154,31 +156,24 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
           </div>
         </div>
 
-        <div className="triple">
-          <div>
-            <label className="field-label">Плечо</label>
-            <input
-              value={leverage}
-              onChange={(e) => {
-                const next = onLeverageFieldChange(e.target.value, leverage, risk);
-                setLeverage(next.leverage);
-                setRisk(next.risk);
-              }}
-            />
-          </div>
-          <div>
-            <label className="field-label">Сумма входа %</label>
-            <input value={risk} onChange={(e) => setRisk(e.target.value)} />
-          </div>
-          <div>
-            <label className="field-label">Трекер $</label>
-            <input
-              value={tracker > 0 ? String(Math.round(tracker)) : "—"}
-              readOnly
-              className="readonly"
-            />
-          </div>
-        </div>
+        <label className="field-label">Плечо</label>
+        <LeveragePicker
+          leverage={leverage}
+          risk={risk}
+          onLeverageChange={(nextLev, nextRisk) => {
+            setLeverage(nextLev);
+            setRisk(nextRisk);
+          }}
+        />
+
+        <RiskPercentSlider value={risk} onChange={setRisk} />
+
+        <label className="field-label">Трекер $</label>
+        <input
+          value={tracker > 0 ? String(Math.round(tracker)) : "—"}
+          readOnly
+          className="readonly"
+        />
         {tracker > 0 && (
           <p className="meta">
             Номинал позиции: ${stakeUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })} ({risk}% от трекера

@@ -11,8 +11,8 @@ class SignalCreate(BaseModel):
     stop_loss: str | None = None
     take_profits: str | None = None
     comment: str | None = None
-    leverage: int | None = Field(None, ge=1, le=50)
-    risk_percent: float | None = Field(None, ge=0.1, le=100.0)
+    leverage: int | None = Field(None, ge=1, le=5)
+    risk_percent: float | None = Field(None, ge=0, le=100.0)
     tracker_balance: float | None = Field(None, ge=100)
 
 
