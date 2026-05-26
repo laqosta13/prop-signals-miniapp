@@ -2,6 +2,8 @@ import { useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { closeSignalAtMarket, deleteSignal, type ChallengeDashboard, type Signal } from "../api";
 import { canViewActiveSignals, visibleFeedSignals } from "../utils/signalActions";
+import { useOutcomeReveal } from "../hooks/useOutcomeReveal";
+import { OutcomeReveal } from "./OutcomeReveal";
 import { PropTrackerMini } from "./PropTrackerMini";
 import { SignalCard } from "./SignalCard";
 
@@ -38,6 +40,7 @@ export function FeedTab({
   const [closingId, setClosingId] = useState<number | null>(null);
   const hasActiveAccess = canViewActiveSignals(subscriptionActive, isAdmin);
   const visible = visibleFeedSignals(signals, subscriptionActive, isAdmin);
+  const { revealSignal, clearReveal } = useOutcomeReveal(signals, loading, myId);
 
   const handleDelete = async (id: number) => {
     if (!confirm("Удалить этот сигнал?")) return;
@@ -69,6 +72,9 @@ export function FeedTab({
 
   return (
     <>
+      {revealSignal && myId != null && (
+        <OutcomeReveal signal={revealSignal} userId={myId} onDone={clearReveal} />
+      )}
       {!hasActiveAccess && (
         <div className="sub-banner">
           <p>Всё бесплатно, кроме активных сигналов — они по подписке.</p>

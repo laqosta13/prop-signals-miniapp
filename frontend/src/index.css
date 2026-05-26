@@ -626,6 +626,215 @@ body {
   color: #e0afff;
 }
 
+.outcome--reveal-pop {
+  animation: outcome-badge-pop 0.75s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.35);
+}
+
+@keyframes outcome-badge-pop {
+  0% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.outcome-reveal {
+  position: fixed;
+  inset: 0;
+  z-index: 2998;
+  pointer-events: none;
+}
+
+.outcome-reveal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  animation: outcome-reveal-fade 0.2s ease;
+}
+
+.outcome-reveal__backdrop.win {
+  background: radial-gradient(circle at 50% 40%, rgba(61, 255, 138, 0.22), rgba(0, 0, 0, 0.92) 65%);
+}
+
+.outcome-reveal__backdrop.lose {
+  background: radial-gradient(circle at 50% 40%, rgba(255, 70, 70, 0.2), rgba(0, 0, 0, 0.94) 65%);
+}
+
+.outcome-reveal__shake {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.outcome-reveal__shake.on {
+  animation: outcome-reveal-shake 0.5s ease;
+}
+
+.outcome-reveal__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.outcome-reveal__flash {
+  position: absolute;
+  width: 120vmax;
+  height: 120vmax;
+  border-radius: 50%;
+  opacity: 0;
+  animation: outcome-reveal-flash 0.55s ease;
+}
+
+.outcome-reveal__flash.win {
+  background: radial-gradient(circle, rgba(125, 255, 170, 0.45), transparent 62%);
+}
+
+.outcome-reveal__flash.lose {
+  background: radial-gradient(circle, rgba(255, 90, 90, 0.4), transparent 62%);
+}
+
+.outcome-reveal__word {
+  position: relative;
+  margin: 0;
+  font-family: Impact, "Arial Black", Haettenschweiler, sans-serif;
+  font-size: clamp(3.4rem, 20vw, 6.8rem);
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+  -webkit-text-stroke: 2px #000;
+  animation: outcome-reveal-slam 0.55s cubic-bezier(0.2, 1.35, 0.25, 1);
+}
+
+.outcome-reveal__word.win {
+  color: #8dff6a;
+  text-shadow:
+    0 0 28px rgba(61, 255, 138, 0.95),
+    0 0 60px rgba(61, 255, 138, 0.45),
+    4px 5px 0 #1f5f2f;
+}
+
+.outcome-reveal__word.lose {
+  color: #ff5a5a;
+  text-shadow:
+    0 0 28px rgba(255, 80, 80, 0.95),
+    0 0 60px rgba(255, 80, 80, 0.4),
+    4px 5px 0 #5f1f1f;
+}
+
+.outcome-reveal__sub {
+  margin: 0;
+  font-size: 0.9rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+  animation: outcome-reveal-sub 0.6s ease 0.15s both;
+}
+
+.outcome-reveal__fly {
+  position: fixed;
+  z-index: 3000;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: none;
+}
+
+.outcome-reveal__fly span {
+  display: block;
+  font-family: Impact, "Arial Black", Haettenschweiler, sans-serif;
+  font-size: clamp(3rem, 18vw, 5.5rem);
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  -webkit-text-stroke: 2px #000;
+}
+
+.outcome-reveal__fly.win span {
+  color: #8dff6a;
+  text-shadow: 0 0 24px rgba(61, 255, 138, 0.9);
+}
+
+.outcome-reveal__fly.lose span {
+  color: #ff5a5a;
+  text-shadow: 0 0 24px rgba(255, 80, 80, 0.9);
+}
+
+@keyframes outcome-reveal-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes outcome-reveal-slam {
+  0% {
+    transform: scale(2.8) skewX(-10deg);
+    opacity: 0;
+    filter: blur(10px);
+  }
+  65% {
+    transform: scale(1.06) skewX(-4deg);
+    opacity: 1;
+    filter: blur(0);
+  }
+  100% {
+    transform: scale(1) skewX(-3deg);
+  }
+}
+
+@keyframes outcome-reveal-sub {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes outcome-reveal-shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(-6px, 2px);
+  }
+  40% {
+    transform: translate(6px, -2px);
+  }
+  60% {
+    transform: translate(-4px, -1px);
+  }
+  80% {
+    transform: translate(4px, 1px);
+  }
+}
+
+@keyframes outcome-reveal-flash {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  30% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.2);
+  }
+}
+
 .media-thumb {
   display: block;
   width: 100%;

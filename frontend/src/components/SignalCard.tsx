@@ -246,7 +246,9 @@ export function SignalCard({
             {formatUsd(pnl)}
           </span>
         )}
-        <span className={`outcome ${statusClass}`}>{statusBadge}</span>
+        <span className={`outcome ${statusClass}`} data-outcome-badge={s.id}>
+          {statusBadge}
+        </span>
       </footer>
     </article>
   );
