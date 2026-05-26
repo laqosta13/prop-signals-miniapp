@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
-import { createSignalWithMedia } from "../api";
+import { createSignalWithMedia, fetchMarketPrice } from "../api";
 import type { UploadProgress } from "../api";
 import { normalizeTakeProfits } from "../utils";
 import { entryNominalUsd, parseLeverage, parseRiskPercent } from "../utils/signalForm";
+import { defaultLevelsFromEntry, stopTargetFromEntry } from "../utils/signalLevels";
 import {
   initialUploadProgress,
   mediaBytesInForm,
@@ -21,10 +22,13 @@ type Props = {
   trackerBalance?: number | null;
 };
 
+const DEFAULT_SYMBOL = "BTCUSDT";
+
 export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [symbol, setSymbol] = useState("BTCUSDT");
+  const [priceLoading, setPriceLoading] = useState(false);
+  const [symbol, setSymbol] = useState(DEFAULT_SYMBOL);
   const [direction, setDirection] = useState<"long" | "short">("long");
   const [entry, setEntry] = useState("");
   const [stop, setStop] = useState("");
@@ -36,11 +40,70 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
   const [video, setVideo] = useState<File | null>(null);
   const [shotPreview, setShotPreview] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const directionRef = useRef(direction);
+
+  directionRef.current = direction;
+
+  const applyMarketPrice = useCallback((price: number, dir: "long" | "short") => {
+    const levels = defaultLevelsFromEntry(price, dir);
+    setEntry(levels.entry);
+    setStop(levels.stop);
+    setTarget(levels.target);
+  }, []);
+
+  const loadMarketPrice = useCallback(
+    async (sym: string) => {
+      const normalized = sym.trim().toUpperCase();
+      if (!normalized) return;
+      setPriceLoading(true);
+      try {
+        const { price } = await fetchMarketPrice(normalized);
+        applyMarketPrice(price, directionRef.current);
+        setError(null);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Не удалось загрузить курс");
+      } finally {
+        setPriceLoading(false);
+      }
+    },
+    [applyMarketPrice],
+  );
 
   useEffect(() => {
     if (!open) return;
     setError(null);
-  }, [open, trackerBalance]);
+    setSymbol(DEFAULT_SYMBOL);
+    setDirection("long");
+    setLeverage("1");
+    setRisk("10");
+    setComment("");
+    setEntry("");
+    setStop("");
+    setTarget("");
+    setScreenshot(null);
+    setVideo(null);
+    setShotPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const t = window.setTimeout(() => {
+      void loadMarketPrice(symbol);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [symbol, open, loadMarketPrice]);
+
+  const setDirectionAndLevels = (dir: "long" | "short") => {
+    setDirection(dir);
+    const next = stopTargetFromEntry(entry, dir);
+    if (next) {
+      setStop(next.stop);
+      setTarget(next.target);
+    }
+  };
 
   if (!open) return null;
 
@@ -113,14 +176,14 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
         </header>
 
         <label className="field-label">Инструмент</label>
-        <input value={symbol} onChange={(e) => setSymbol(e.target.value)} required />
+        <input value={symbol} onChange={(e) => setSymbol(e.target.value.toUpperCase())} required />
 
         <label className="field-label">Направление</label>
         <div className="dir-toggle">
-          <button type="button" className={direction === "long" ? "active long" : ""} onClick={() => setDirection("long")}>
+          <button type="button" className={direction === "long" ? "active long" : ""} onClick={() => setDirectionAndLevels("long")}>
             LONG
           </button>
-          <button type="button" className={direction === "short" ? "active short" : ""} onClick={() => setDirection("short")}>
+          <button type="button" className={direction === "short" ? "active short" : ""} onClick={() => setDirectionAndLevels("short")}>
             SHORT
           </button>
         </div>
@@ -128,17 +191,23 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
         <div className="triple">
           <div>
             <label className="field-label">Вход</label>
-            <input value={entry} onChange={(e) => setEntry(e.target.value)} placeholder="0.00" />
+            <input
+              value={entry}
+              onChange={(e) => setEntry(e.target.value)}
+              placeholder={priceLoading ? "Загрузка…" : "0.00"}
+              disabled={priceLoading}
+            />
           </div>
           <div>
             <label className="field-label">Стоп</label>
-            <input value={stop} onChange={(e) => setStop(e.target.value)} placeholder="0.00" />
+            <input value={stop} onChange={(e) => setStop(e.target.value)} placeholder="−1%" />
           </div>
           <div>
             <label className="field-label">Цель</label>
-            <input value={target} onChange={(e) => setTarget(e.target.value)} placeholder="0.00" />
+            <input value={target} onChange={(e) => setTarget(e.target.value)} placeholder="+1%" />
           </div>
         </div>
+        {priceLoading && <p className="meta">Загрузка курса…</p>}
 
         <label className="field-label">Плечо</label>
         <LeveragePicker
@@ -154,8 +223,12 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
         <label className="field-label">Трекер $</label>
         <input value={tracker > 0 ? String(Math.round(tracker)) : "—"} readOnly className="readonly" />
         {tracker > 0 && (
-          <p className="meta">
-            Номинал позиции: ${stakeUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })} ({risk}% × {lev}x)
+          <p className="meta signal-nominal">
+            Номинал позиции:{" "}
+            <span className="signal-nominal__usd">
+              ${stakeUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+            </span>{" "}
+            (<span className="signal-nominal__pct">{risk}%</span> × <span className="signal-nominal__lev">{lev}x</span>)
           </p>
         )}
 
@@ -179,7 +252,7 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
           />
         )}
 
-        <button type="submit" className="submit-btn" disabled={submitting}>
+        <button type="submit" className="submit-btn" disabled={submitting || priceLoading}>
           {submitting && uploadProgress
             ? uploadProgress.phase === "processing"
               ? "Сохранение…"

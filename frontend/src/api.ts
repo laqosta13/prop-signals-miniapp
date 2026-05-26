@@ -228,6 +228,11 @@ export const submitPayment = (plan: "week" | "month", tx_id: string) =>
 export const fetchMe = () => api<Me>("/auth/me");
 export const fetchSignals = () => api<Signal[]>("/signals");
 export const fetchSignalsPreview = () => api<Signal[]>("/signals/preview");
+
+export type MarketPrice = { symbol: string; price: number };
+
+export const fetchMarketPrice = (symbol: string) =>
+  api<MarketPrice>(`/signals/market-price?symbol=${encodeURIComponent(symbol.trim())}`);
 export const fetchLeaderboard = () => api<Trader[]>("/traders/leaderboard");
 export const fetchTraderRank = (telegramId: number) => api<TraderRank>(`/traders/${telegramId}/rank`);
 export const fetchRankPending = () =>
@@ -380,6 +385,9 @@ export async function deleteSignal(signalId: number): Promise<void> {
   });
   if (!res.ok) throw new Error(await res.text());
 }
+
+export const closeSignalAtMarket = (signalId: number) =>
+  api<Signal>(`/signals/${signalId}/close-market`, { method: "POST" });
 
 export const setNotifications = (patch: { notify_enabled?: boolean; notify_news_enabled?: boolean }) =>
   api<Me>("/subscriptions/me", {

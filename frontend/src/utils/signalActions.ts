@@ -11,6 +11,11 @@ export function canEditOrDeleteSignal(s: Signal, myId: number | null | undefined
 
 /** Дополнение — только свои сигналы, после входа в сделку. */
 export function canSupplementSignal(s: Signal, myId: number | null | undefined, isAdmin: boolean): boolean {
+  return canCloseAtMarketSignal(s, myId, isAdmin);
+}
+
+/** Закрытие по рынку — только свои активные сигналы после входа. */
+export function canCloseAtMarketSignal(s: Signal, myId: number | null | undefined, isAdmin: boolean): boolean {
   if (!isAdmin || !isSignalAuthor(s, myId)) return false;
   if (s.status !== "active") return false;
   if (s.entry_filled_at) return true;

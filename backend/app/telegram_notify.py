@@ -254,14 +254,25 @@ def format_deleted_signal_message(signal: Signal, *, actor_label: str | None = N
     return head + _signal_summary(signal)
 
 
-def format_closed_signal_message(signal: Signal) -> str:
-    emoji = "✅" if signal.status == "win" else "❌"
-    label = "WIN" if signal.status == "win" else "LOSE"
-    ret = signal_price_move_pct(signal, signal.status)
+def _closed_price_move_pct(signal: Signal) -> float:
+    nominal = signal_entry_stake_usd(signal)
+    if signal.realized_pnl is not None and nominal > 0:
+        return round(signal.realized_pnl / nominal * 100.0, 2)
+    return signal_price_move_pct(signal, signal.status)
+
+
+def format_closed_signal_message(signal: Signal, *, market_close: bool = False) -> str:
+    ret = _closed_price_move_pct(signal)
     pnl = signal.realized_pnl or 0
     sign = "+" if ret >= 0 else ""
     lev = signal_leverage(signal)
     lev_note = f" · {lev}x" if lev > 1 else ""
+    if market_close:
+        emoji = "📤"
+        label = "ЗАКРЫТ ПО РЫНКУ"
+    else:
+        emoji = "✅" if signal.status == "win" else "❌"
+        label = "WIN" if signal.status == "win" else "LOSE"
     return (
         f"{emoji} <b>Сигнал {label}</b>\n"
         f"{_esc(signal.symbol)} · {_esc(signal.direction.upper())}\n"

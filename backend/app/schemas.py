@@ -58,6 +58,11 @@ class SignalRead(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class MarketPriceRead(BaseModel):
+    symbol: str
+    price: float
+
+
 class LikeResponse(BaseModel):
     liked: bool
     likes_count: int

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import WebApp from "@twa-dev/sdk";
-import { deleteSignal, type ChallengeDashboard, type Signal } from "../api";
+import { closeSignalAtMarket, deleteSignal, type ChallengeDashboard, type Signal } from "../api";
 import { canViewActiveSignals, visibleFeedSignals } from "../utils/signalActions";
 import { PropTrackerMini } from "./PropTrackerMini";
 import { SignalCard } from "./SignalCard";
@@ -35,6 +35,7 @@ export function FeedTab({
   onOpenTracker,
 }: Props) {
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [closingId, setClosingId] = useState<number | null>(null);
   const hasActiveAccess = canViewActiveSignals(subscriptionActive, isAdmin);
   const visible = visibleFeedSignals(signals, subscriptionActive, isAdmin);
 
@@ -49,6 +50,20 @@ export function FeedTab({
       alert(e instanceof Error ? e.message : "Не удалось удалить");
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleCloseAtMarket = async (id: number) => {
+    if (!confirm("Закрыть сигнал по текущей рыночной цене?")) return;
+    setClosingId(id);
+    try {
+      await closeSignalAtMarket(id);
+      WebApp.HapticFeedback.notificationOccurred("success");
+      onChanged();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Не удалось закрыть");
+    } finally {
+      setClosingId(null);
     }
   };
 
@@ -74,8 +89,10 @@ export function FeedTab({
           myId={myId}
           canEngage={true}
           deleting={deletingId === s.id}
+          closing={closingId === s.id}
           onEdit={onEdit}
           onSupplement={onSupplement}
+          onCloseAtMarket={handleCloseAtMarket}
           onDelete={handleDelete}
           onPatch={onPatch}
         />

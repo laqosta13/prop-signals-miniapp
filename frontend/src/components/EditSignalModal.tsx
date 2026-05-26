@@ -177,8 +177,12 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
           className="readonly"
         />
         {tracker > 0 && (
-          <p className="meta">
-            Номинал позиции: ${stakeUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })} ({risk}% × {lev}x)
+          <p className="meta signal-nominal">
+            Номинал позиции:{" "}
+            <span className="signal-nominal__usd">
+              ${stakeUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+            </span>{" "}
+            (<span className="signal-nominal__pct">{risk}%</span> × <span className="signal-nominal__lev">{lev}x</span>)
           </p>
         )}
 

@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.models import NewsPost, Signal, Subscriber, Trader
 from app.subscription_billing import subscriber_ids_for_news_notify, subscription_active_strict
-from app.signal_utils import compute_signal_points_percent, entry_zone_defined
+from app.signal_utils import compute_signal_points_percent, entry_zone_defined, signal_in_trade, trade_move_pct
 from app.telegram_avatar import ensure_trader_avatar
 from app.schemas import TelegramUser
 from app.serializers import trader_display_name
@@ -26,7 +26,7 @@ from app.telegram_notify import (
     notify_subscribers,
 )
 from app.challenge_service import apply_signal_to_tracker, ensure_tracker_for_new_signal
-from app.price_service import PriceQuote, clear_price_cache, fetch_market_quotes, first_entry_quote
+from app.price_service import PriceQuote, clear_price_cache, fetch_market_quotes, fetch_price, first_entry_quote
 from app.subscription_billing import register_subscriber_with_meta
 from app.trader_stats import apply_outcome_to_trader
 
@@ -192,11 +192,37 @@ def close_signal(db: Session, signal: Signal, outcome: str, exit_price: float | 
     db.refresh(signal)
 
 
-async def close_signal_and_notify(db: Session, signal: Signal, outcome: str, exit_price: float | None = None) -> None:
+async def close_signal_and_notify(
+    db: Session,
+    signal: Signal,
+    outcome: str,
+    exit_price: float | None = None,
+    *,
+    market_close: bool = False,
+) -> None:
     close_signal(db, signal, outcome, exit_price)
     ids = subscriber_ids_for_notify(db)
     if ids:
-        await notify_subscribers(format_closed_signal_message(signal), ids)
+        await notify_subscribers(format_closed_signal_message(signal, market_close=market_close), ids)
+
+
+async def close_signal_at_market(db: Session, signal: Signal) -> None:
+    """Ручное закрытие активного сигнала по текущей рыночной цене."""
+    if not signal_in_trade(signal):
+        raise ValueError("not_in_trade")
+    clear_price_cache()
+    exit_price = await fetch_price(signal.symbol)
+    if exit_price is None:
+        raise ValueError("no_price")
+    move = trade_move_pct(
+        signal.entry_low,
+        signal.entry_high,
+        signal.direction,
+        "win",
+        exit_price=exit_price,
+    )
+    outcome = "win" if move > 0 else "lose"
+    await close_signal_and_notify(db, signal, outcome, exit_price=exit_price, market_close=True)
 
 
 async def notify_entry_filled(db: Session, signal: Signal) -> None:

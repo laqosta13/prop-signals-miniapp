@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { recordSignalView, toggleSignalLike, type Signal } from "../api";
 import { calcRR, authorProfile, formatMarketSource, formatTakeProfits, formatTime, formatUsd, mediaUrl } from "../utils";
-import { canEditOrDeleteSignal, canSupplementSignal } from "../utils/signalActions";
+import { canEditOrDeleteSignal, canCloseAtMarketSignal, canSupplementSignal } from "../utils/signalActions";
 import { Avatar } from "./Avatar";
 
 type Props = {
@@ -13,7 +13,9 @@ type Props = {
   onEdit?: (signal: Signal) => void;
   onDelete?: (id: number) => void;
   onSupplement?: (signal: Signal) => void;
+  onCloseAtMarket?: (id: number) => void;
   deleting?: boolean;
+  closing?: boolean;
   onPatch?: (id: number, patch: Partial<Signal>) => void;
 };
 
@@ -25,7 +27,9 @@ export function SignalCard({
   onEdit,
   onDelete,
   onSupplement,
+  onCloseAtMarket,
   deleting,
+  closing,
   onPatch,
 }: Props) {
   const [views, setViews] = useState(s.views_count);
@@ -205,6 +209,18 @@ export function SignalCard({
               ＋
             </span>
             Дополнить сигнал
+          </button>
+        </div>
+      )}
+      {isAdmin && canCloseAtMarketSignal(s, myId, !!isAdmin) && onCloseAtMarket && (
+        <div className="close-market-btn-wrap">
+          <button
+            type="button"
+            className="close-market-btn"
+            disabled={closing}
+            onClick={() => onCloseAtMarket(s.id)}
+          >
+            Закрыть по рынку
           </button>
         </div>
       )}

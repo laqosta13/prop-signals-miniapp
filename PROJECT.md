@@ -65,16 +65,21 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 
 - **Инструмент**, **LONG/SHORT**
 - **Вход / Стоп / Цель**
-- **Плечо** (по умолчанию **1**)
-- **Сумма входа %** — доля от баланса трекера; **при смене плеча пересчитывается пропорционально** (`frontend/src/utils/signalForm.ts`)
+- **Плечо** (кнопки 1–5x, по умолчанию **1**)
+- **Сумма входа %** — бегунок 0–25–50–75–100; **при смене плеча сбрасывается на 10%** (`onLeveragePick` в `signalForm.ts`)
+- **Номинал позиции** = трекер × сумма входа % × плечо / 100 — в форме **выделен цветом** (сумма зелёным, % и плечо фиолетовым)
 - **Трекер $** — только чтение, баланс Hash Hedge трекера админа
 - **Скрин / Видео / Комментарий** (на русском)
 - **Рынок при публикации** — `published_market_price` + `published_market_source` на карточке
 
 **Кнопка «+» новый сигнал** — **FAB снизу** на вкладке Лента (`fab-bottom`).  
+При открытии формы: **`GET /signals/market-price`** → вход = текущий курс (по умолчанию BTCUSDT), стоп/цель **±1%** от входа; смена LONG/SHORT пересчитывает стоп и цель (`utils/signalLevels.ts`).
+
 **Кнопка «+» новость** — **FAB сверху** на вкладке Новости (`fab-top`).
 
 **Кнопка «Дополнить сигнал»** — компактная pill по центру (фиолетовый градиент, тонкая рамка).
+
+**Кнопка «Закрыть по рынку»** — оранжевая pill под дополнением; только **свои** активные сигналы **после входа**; подтверждение → `POST /signals/{id}/close-market`.
 
 **Автор на карточке:** имя, `@username`, аватар слева.
 
@@ -137,6 +142,7 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 |---|---|
 | **Изменить / Удалить** | Только **свои** сигналы, до срабатывания входа |
 | **Дополнить сигнал** | Только **свои**, после входа — комментарий, скрин, видео |
+| **Закрыть по рынку** | Только **свои**, после входа (`signal_in_trade`) — ручное закрытие по текущей цене с бирж |
 
 Backend: `require_signal_owner()` — 403 если не автор.
 
@@ -146,9 +152,11 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 ## P/L, трекер и рейтинг
 
-**Номинал позиции** = `трекер × сумма входа % / 100`  
+**Номинал позиции** = `трекер × сумма входа % × плечо / 100`  
 **P/L $** = номинал × **% движения цены** (вход → выход) / 100  
-**Рейтинг** = сумма **% движения цены** по сделкам.
+**Рейтинг (ТОП)** = сумма **чистого % движения цены** по сделкам (**без плеча**).
+
+**Закрытие по рынку:** P/L и win/lose по фактическому движению вход→рыночная цена; в Telegram — «ЗАКРЫТ ПО РЫНКУ».
 
 Логика: `trader_stats.py`, `leaderboard_service.py`.  
 ТОП: equity curve (`EquityCurve.tsx`), daily stats **14 дней** (не 30), без скачивания аватаров на каждый запрос.
@@ -207,6 +215,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 | Удаление | **Кто удалил** |
 | Вход в зоне | Позиция в работе |
 | WIN / LOSE | Доходность + P/L $ |
+| Закрыт по рынку | 📤 «ЗАКРЫТ ПО РЫНКУ» + движение и P/L |
 
 Новости: `notify_news_enabled` только для **платной** подписки (`subscriber_ids_for_news_notify`).
 
@@ -253,10 +262,12 @@ GET  /health
 GET  /auth/me
 GET  /signals                    — require_active_subscription, batch read, limit 80
 GET  /signals/preview            — win/lose only
+GET  /signals/market-price       — require_admin, курс для формы нового сигнала
 POST /signals                    — require_admin → stamp_signal_at_publication
 PUT  /signals/{id}               — require_admin + owner
 DELETE /signals/{id}             — require_admin + owner
 POST /signals/{id}/supplement    — require_admin + owner (multipart, XHR на фронте)
+POST /signals/{id}/close-market  — require_admin + owner, после входа
 POST /signals/{id}/view|like     — engagement rules
 GET  /reviews | POST/PUT/DELETE /reviews
 GET  /news | POST/PUT/DELETE /news
@@ -288,7 +299,8 @@ GET  /subscriptions/info | POST /subscriptions/pay | PUT /subscriptions/me
 | Уведомления | `telegram_notify.py` |
 | Frontend shell | `App.tsx` |
 | Лента | `FeedTab.tsx`, `SignalCard.tsx` |
-| Форма сигнала | `NewSignalModal.tsx`, `EditSignalModal.tsx`, `utils/signalForm.ts` |
+| Форма сигнала | `NewSignalModal.tsx`, `EditSignalModal.tsx`, `utils/signalForm.ts`, `utils/signalLevels.ts` |
+| Права на сигнал | `utils/signalActions.ts` (`canCloseAtMarketSignal`, …) |
 | Дополнения | `AppendSupplementModal.tsx` |
 | Трекер UI | `TrackerTab.tsx`, `HashHedgeRulesTable.tsx`, `data/hashhedgeRules.ts` |
 | ТОП | `LeaderboardTab.tsx`, `RankGuide.tsx`, `EquityCurve.tsx` |
@@ -345,10 +357,12 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 6. **Upload progress** (XHR), автор в push (дополнил/изменил/удалил)
 7. **Perf:** batch лента, gzip, lazy tabs, polling только сигналов, IntersectionObserver views
 8. **Цены:** 6 бирж spot+perp, первый достигший уровень; snapshot при публикации
-9. UI: кнопка «Дополнить» pill; **плечо ↔ сумма входа %** в форме
+9. UI: кнопка «Дополнить» pill; **плечо + бегунок суммы входа %**; номинал с плечом
+10. **Форма нового сигнала:** автозаполнение курса, стоп/цель ±1%, подсветка номинала
+11. **Закрыть по рынку** — ручное закрытие активного сигнала после входа
 
 ---
 
 ## Быстрое напоминание для AI
 
-> **prop-signals-miniapp** — FastAPI + React Telegram Mini App на Amvera (SQLite, `/data`). Админы публикуют сигналы; активные — по подписке, win/lose + трекер + ТОП — бесплатно. Цены: Binance/Bybit/BingX spot+perp, вход/выход по первой бирже на уровне. При публикации — snapshot цены и `created_at`. P/L = (трекер × сумма входа %) × % движения. Edit/delete до входа, дополнения после. Уведомления с diff и автором действия. Perf: batch `/signals`, lazy tabs, poll 60s. Полный контекст — этот файл.
+> **prop-signals-miniapp** — FastAPI + React Telegram Mini App на Amvera (SQLite, `/data`). Админы публикуют сигналы; активные — по подписке, win/lose + трекер + ТОП — бесплатно. Цены: Binance/Bybit/BingX spot+perp, вход/выход по первой бирже на уровне. При публикации — snapshot цены и `created_at`. P/L = (трекер × сумма входа % × плечо) × % движения; ТОП — без плеча. Edit/delete до входа, дополнения и **закрытие по рынку** после входа. Уведомления с diff и автором действия. Perf: batch `/signals`, lazy tabs, poll 60s. Полный контекст — этот файл.

@@ -16,12 +16,14 @@ from app.media_storage import (
     save_supplement_video,
 )
 from app.models import Signal, SignalSupplement
-from app.schemas import LikeResponse, SignalRead, TelegramUser, ViewResponse
+from app.schemas import LikeResponse, MarketPriceRead, SignalRead, TelegramUser, ViewResponse
 from app.feed_serializers import FEED_SIGNAL_LIMIT, signals_list_read
 from app.serializers import signal_to_read
+from app.price_service import fetch_price, normalize_symbol
 from app.challenge_service import admin_tracker_balance, ensure_tracker_for_new_signal
 from app.signal_service import (
     build_signal_row,
+    close_signal_at_market,
     notify_deleted_signal,
     notify_new_signal,
     notify_signal_supplement,
@@ -68,6 +70,21 @@ async def list_signals_preview(
     )
     rows = list(db.scalars(stmt).all())
     return signals_list_read(db, rows, user.telegram_user_id)
+
+
+@router.get("/market-price", response_model=MarketPriceRead)
+async def market_price(
+    symbol: str,
+    _admin: TelegramUser = Depends(require_admin),
+) -> MarketPriceRead:
+    """Текущий курс для формы нового сигнала (админ)."""
+    sym = normalize_symbol(symbol)
+    if not sym:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="symbol required")
+    price = await fetch_price(sym)
+    if price is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Не удалось получить цену для {sym}")
+    return MarketPriceRead(symbol=sym, price=price)
 
 
 @router.post("", response_model=SignalRead)
@@ -266,6 +283,34 @@ async def add_supplement(
         has_image=bool(sup.media_image_path),
         has_video=bool(sup.media_video_path),
     )
+    return signal_to_read(db, row, admin.telegram_user_id)
+
+
+@router.post("/{signal_id}/close-market", response_model=SignalRead)
+async def close_market(
+    signal_id: int,
+    db: Session = Depends(db_session),
+    admin: TelegramUser = Depends(require_admin),
+) -> SignalRead:
+    row = db.get(Signal, signal_id)
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")
+    require_signal_owner(row, admin)
+    if not signal_in_trade(row):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Закрыть по рынку можно только активный сигнал после входа",
+        )
+    try:
+        await close_signal_at_market(db, row)
+    except ValueError as e:
+        if str(e) == "no_price":
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"Не удалось получить цену для {row.symbol}",
+            ) from e
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Сигнал нельзя закрыть") from e
+    db.refresh(row)
     return signal_to_read(db, row, admin.telegram_user_id)
 
 
