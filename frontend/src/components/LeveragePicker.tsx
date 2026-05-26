@@ -1,16 +1,16 @@
-import { LEVERAGE_OPTIONS, onLeverageFieldChange, parseLeverage } from "../utils/signalForm";
+import { LEVERAGE_OPTIONS, onLeveragePick, parseLeverage } from "../utils/signalForm";
 
 type Props = {
   leverage: string;
-  risk: string;
   onLeverageChange: (leverage: string, risk: string) => void;
 };
 
-export function LeveragePicker({ leverage, risk, onLeverageChange }: Props) {
+export function LeveragePicker({ leverage, onLeverageChange }: Props) {
   const current = parseLeverage(leverage);
 
   const pick = (lev: number) => {
-    const next = onLeverageFieldChange(String(lev), leverage, risk);
+    if (lev === current) return;
+    const next = onLeveragePick(lev);
     onLeverageChange(next.leverage, next.risk);
   };
 

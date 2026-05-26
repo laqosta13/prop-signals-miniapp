@@ -11,7 +11,13 @@ from app.config import settings
 from app.media_storage import media_root
 from app.models import NewsPost, Signal
 from app.signal_utils import parse_take_profit_levels
-from app.trader_stats import signal_entry_stake_pct, signal_entry_stake_usd, signal_tracker_balance, signal_trade_return_pct
+from app.trader_stats import (
+    signal_entry_stake_pct,
+    signal_entry_stake_usd,
+    signal_leverage,
+    signal_price_move_pct,
+    signal_tracker_balance,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -163,7 +169,7 @@ def _signal_summary(signal: Signal) -> str:
         f"Вход: {_entry_label(signal.entry_low, signal.entry_high)}",
         f"Стоп: {_esc(signal.stop_loss)}",
         f"Цель: {_format_take_profits(signal.take_profits)}",
-        f"Сумма входа: {stake}% (${stake_usd:,.0f}) · Трекер: ${tracker:,.0f}",
+        f"Сумма входа: {stake}% × {signal_leverage(signal)}x (${stake_usd:,.0f}) · Трекер: ${tracker:,.0f}",
     ]
     if signal.published_market_price is not None:
         src = _market_source_label(signal.published_market_source)
@@ -251,13 +257,15 @@ def format_deleted_signal_message(signal: Signal, *, actor_label: str | None = N
 def format_closed_signal_message(signal: Signal) -> str:
     emoji = "✅" if signal.status == "win" else "❌"
     label = "WIN" if signal.status == "win" else "LOSE"
-    ret = signal_trade_return_pct(signal, signal.status)
+    ret = signal_price_move_pct(signal, signal.status)
     pnl = signal.realized_pnl or 0
     sign = "+" if ret >= 0 else ""
+    lev = signal_leverage(signal)
+    lev_note = f" · {lev}x" if lev > 1 else ""
     return (
         f"{emoji} <b>Сигнал {label}</b>\n"
         f"{_esc(signal.symbol)} · {_esc(signal.direction.upper())}\n"
-        f"Доходность: {sign}{ret:.2f}% · P/L: {pnl:+.0f}$\n"
+        f"Движение цены: {sign}{ret:.2f}% · P/L трекера{lev_note}: {pnl:+.0f}$\n"
         f"Трекер сигнала: ${signal_tracker_balance(signal):,.0f}\n"
         f"Автор: {_esc(_signal_author_label(signal))}"
     )

@@ -45,8 +45,8 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
   if (!open) return null;
 
   const tracker = trackerBalance ?? 0;
-  const stakeUsd = entryNominalUsd(tracker, parseRiskPercent(risk));
-  const lev = parseInt(leverage, 10) || 1;
+  const lev = parseLeverage(leverage);
+  const stakeUsd = entryNominalUsd(tracker, parseRiskPercent(risk), lev);
 
   const onScreenshot = (file: File | null) => {
     setScreenshot(file);
@@ -139,7 +139,6 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
         <label className="field-label">Плечо</label>
         <LeveragePicker
           leverage={leverage}
-          risk={risk}
           onLeverageChange={(nextLev, nextRisk) => {
             setLeverage(nextLev);
             setRisk(nextRisk);
@@ -152,8 +151,7 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
         <input value={tracker > 0 ? String(Math.round(tracker)) : "—"} readOnly className="readonly" />
         {tracker > 0 && (
           <p className="meta">
-            Номинал позиции: ${stakeUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })} ({risk}% от трекера
-            {lev > 1 ? ` · плечо ${lev}x` : ""})
+            Номинал позиции: ${stakeUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })} ({risk}% × {lev}x)
           </p>
         )}
 

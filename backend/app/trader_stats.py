@@ -1,11 +1,22 @@
-"""P/L и рейтинг: номинал = трекер × сумма входа %; результат = % движения цены × номинал."""
+"""P/L и рейтинг.
+
+ТОП / rating_percent / weekly rank — чистый % движения цены (без плеча).
+Трекер / realized_pnl — номинал с плечом × движение цены.
+"""
 
 from app.models import Signal, Trader
 from app.signal_utils import trade_move_pct
 
 
+def signal_leverage(signal: Signal) -> int:
+    lev = signal.leverage
+    if lev is None or lev < 1:
+        return 1
+    return min(int(lev), 5)
+
+
 def signal_entry_stake_pct(signal: Signal) -> float:
-    """Доля входа от трекера, % (хранится в risk_percent)."""
+    """Маржа входа от трекера, % (хранится в risk_percent)."""
     if signal.risk_percent is not None:
         return float(signal.risk_percent)
     if signal.points_percent is not None:
@@ -24,12 +35,15 @@ def signal_tracker_balance(signal: Signal) -> float:
 
 
 def signal_entry_stake_usd(signal: Signal) -> float:
-    """Номинал позиции в $: трекер × сумма входа % / 100."""
-    return round(signal_tracker_balance(signal) * signal_entry_stake_pct(signal) / 100.0, 2)
+    """Номинал позиции в $ (с плечом): трекер × сумма входа % × плечо / 100."""
+    return round(
+        signal_tracker_balance(signal) * signal_entry_stake_pct(signal) / 100.0 * signal_leverage(signal),
+        2,
+    )
 
 
-def signal_trade_return_pct(signal: Signal, outcome: str, exit_price: float | None = None) -> float:
-    """Доходность сделки в % от номинала (движение цены вход→выход)."""
+def signal_price_move_pct(signal: Signal, outcome: str, exit_price: float | None = None) -> float:
+    """Чистый % движения цены вход→выход. Плечо не учитывается — для ТОП и рангов."""
     return trade_move_pct(
         signal.entry_low,
         signal.entry_high,
@@ -41,10 +55,16 @@ def signal_trade_return_pct(signal: Signal, outcome: str, exit_price: float | No
     )
 
 
+def signal_trade_return_pct(signal: Signal, outcome: str, exit_price: float | None = None) -> float:
+    """Alias для signal_price_move_pct (обратная совместимость)."""
+    return signal_price_move_pct(signal, outcome, exit_price=exit_price)
+
+
 def pnl_usd_for_outcome(signal: Signal, outcome: str, exit_price: float | None = None) -> float:
-    move = signal_trade_return_pct(signal, outcome, exit_price)
-    base = signal_entry_stake_usd(signal)
-    return round(base * move / 100.0, 2)
+    """P/L в $ на трекер: номинал с плечом × чистое движение цены / 100."""
+    move = signal_price_move_pct(signal, outcome, exit_price)
+    nominal = signal_entry_stake_usd(signal)
+    return round(nominal * move / 100.0, 2)
 
 
 def apply_outcome_to_trader(
@@ -53,7 +73,7 @@ def apply_outcome_to_trader(
     outcome: str,
     exit_price: float | None = None,
 ) -> None:
-    move_pct = signal_trade_return_pct(signal, outcome, exit_price)
+    rating_delta = signal_price_move_pct(signal, outcome, exit_price)
     pnl = pnl_usd_for_outcome(signal, outcome, exit_price)
     signal.realized_pnl = pnl
 
@@ -71,9 +91,9 @@ def apply_outcome_to_trader(
     else:
         trader.losses += 1
 
-    trader.rating_percent = round(trader.rating_percent + move_pct, 2)
+    trader.rating_percent = round(trader.rating_percent + rating_delta, 2)
     trader.total_pnl_usd = round(trader.total_pnl_usd + pnl, 2)
 
     from app.rank_service import add_weekly_pct
 
-    add_weekly_pct(trader, move_pct)
+    add_weekly_pct(trader, rating_delta)
