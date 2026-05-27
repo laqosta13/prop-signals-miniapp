@@ -836,11 +836,11 @@ body {
 }
 
 .signal-chart {
-  margin: 10px 0 12px;
-  border-radius: 14px;
+  margin: 8px 0 10px;
+  border-radius: 12px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: #0c0c12;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+  background: var(--surface);
 }
 
 .signal-chart__head {
@@ -848,9 +848,9 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 8px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: transparent;
 }
 
 .signal-chart__tf {
@@ -877,9 +877,13 @@ body {
 
 .signal-chart__tv-link {
   font-size: 0.68rem;
-  color: #9ecbff;
+  color: var(--muted);
   text-decoration: none;
   white-space: nowrap;
+}
+
+.signal-chart__tv-link:active {
+  color: var(--text);
 }
 
 .signal-chart__body {
@@ -904,8 +908,8 @@ body {
 .signal-chart__legend {
   display: flex;
   gap: 12px;
-  padding: 8px 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 6px 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
   font-size: 0.68rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -2021,10 +2025,17 @@ input.readonly {
   margin-bottom: 2px;
 }
 
-.supplement-btn-wrap {
+.signal-admin-actions {
   display: flex;
-  justify-content: center;
+  align-items: stretch;
+  gap: 8px;
   margin-top: 10px;
+}
+
+.signal-admin-actions .supplement-btn,
+.signal-admin-actions .close-market-btn {
+  flex: 1;
+  min-width: 0;
 }
 
 .supplement-btn {
@@ -2032,7 +2043,7 @@ input.readonly {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 6px 13px;
+  padding: 6px 10px;
   border-radius: 999px;
   border: none;
   box-shadow: inset 0 0 0 0.5px rgba(224, 175, 255, 0.35);
@@ -2067,17 +2078,11 @@ input.readonly {
   background: linear-gradient(135deg, rgba(224, 175, 255, 0.2), rgba(61, 255, 138, 0.1));
 }
 
-.close-market-btn-wrap {
-  display: flex;
-  justify-content: center;
-  margin-top: 8px;
-}
-
 .close-market-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 14px;
+  padding: 6px 10px;
   border-radius: 999px;
   border: none;
   box-shadow: inset 0 0 0 0.5px rgba(255, 180, 120, 0.45);

@@ -126,16 +126,16 @@ export function SignalChart({ symbol, entryLow, entryHigh, stopLoss, takeProfits
 
     const chart = createChart(chartRef.current, {
       layout: {
-        background: { type: ColorType.Solid, color: "#0c0c12" },
-        textColor: "#9ca3af",
+        background: { type: ColorType.Solid, color: "#141416" },
+        textColor: "#8a8a93",
       },
       grid: {
-        vertLines: { color: "rgba(255,255,255,0.04)" },
-        horzLines: { color: "rgba(255,255,255,0.06)" },
+        vertLines: { visible: false },
+        horzLines: { visible: false },
       },
       crosshair: { mode: CrosshairMode.Normal },
-      rightPriceScale: { borderColor: "rgba(255,255,255,0.08)" },
-      timeScale: { borderColor: "rgba(255,255,255,0.08)", timeVisible: true, secondsVisible: false },
+      rightPriceScale: { borderVisible: false },
+      timeScale: { borderVisible: false, timeVisible: true, secondsVisible: false },
       width: chartRef.current.clientWidth,
       height: 240,
     });

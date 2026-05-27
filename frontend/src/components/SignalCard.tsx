@@ -204,28 +204,30 @@ export function SignalCard({
           ))}
         </section>
       )}
-      {isAdmin && canSupplementSignal(s, myId, !!isAdmin) && onSupplement && (
-        <div className="supplement-btn-wrap">
-          <button type="button" className="supplement-btn" onClick={() => onSupplement(s)}>
-            <span className="supplement-btn__icon" aria-hidden>
-              ＋
-            </span>
-            Дополнить сигнал
-          </button>
-        </div>
-      )}
-      {isAdmin && canCloseAtMarketSignal(s, myId, !!isAdmin) && onCloseAtMarket && (
-        <div className="close-market-btn-wrap">
-          <button
-            type="button"
-            className="close-market-btn"
-            disabled={closing}
-            onClick={() => onCloseAtMarket(s.id)}
-          >
-            Закрыть по рынку
-          </button>
-        </div>
-      )}
+      {isAdmin &&
+        ((canSupplementSignal(s, myId, !!isAdmin) && onSupplement) ||
+          (canCloseAtMarketSignal(s, myId, !!isAdmin) && onCloseAtMarket)) && (
+          <div className="signal-admin-actions">
+            {canSupplementSignal(s, myId, !!isAdmin) && onSupplement && (
+              <button type="button" className="supplement-btn" onClick={() => onSupplement(s)}>
+                <span className="supplement-btn__icon" aria-hidden>
+                  ＋
+                </span>
+                Дополнить
+              </button>
+            )}
+            {canCloseAtMarketSignal(s, myId, !!isAdmin) && onCloseAtMarket && (
+              <button
+                type="button"
+                className="close-market-btn"
+                disabled={closing}
+                onClick={() => onCloseAtMarket(s.id)}
+              >
+                Закрыть по рынку
+              </button>
+            )}
+          </div>
+        )}
       <div className="signal-engagement">
         <span className="engagement-stat" title="Просмотры">
           👁 {views}

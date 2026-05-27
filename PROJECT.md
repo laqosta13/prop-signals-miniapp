@@ -22,12 +22,14 @@
 
 ## Вкладки приложения
 
-1. **Лента** — сигналы, просмотры/лайки, мини-трекеры админов, галочка уведомлений
+1. **Лента** — сигналы, график на карточке, просмотры/лайки, мини-трекеры админов, галочка уведомлений, **одноразовая анимация WIN/LOSE** при заходе
 2. **Трекер** — Hash Hedge challenge для каждого админа + таблица правил по этапам
 3. **ТОП** — рейтинг трейдеров, equity curve, **описание рангов** (раскрывающийся блок)
 4. **Отзывы** — оценка 1–5 и текст; один отзыв на пользователя
 5. **Новости** — публикации админов; чтение для всех
-6. **Подписка** — оплата USDT TON, рефералы, trial
+6. **Подписка** — оплата USDT TON (проверка TXID в блокчейне), реферальные ссылки, trial
+
+**Шапка:** круглая кнопка **↻** (ручное обновление ленты/трекера/ТОП в зависимости от вкладки) вместо зелёной точки статуса.
 
 **Lazy-load:** вкладки Трекер, ТОП, Отзывы, Новости, Подписка подгружаются через `React.lazy`.
 
@@ -70,7 +72,8 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 - **Номинал позиции** = трекер × сумма входа % × плечо / 100 — в форме **выделен цветом** (сумма зелёным, % и плечо фиолетовым)
 - **Трекер $** — только чтение, баланс Hash Hedge трекера админа
 - **Скрин / Видео / Комментарий** (на русском)
-- **Рынок при публикации** — `published_market_price` + `published_market_source` на карточке
+- **График на карточке** — `SignalChart.tsx`: свечи Binance (1m / 5m / 15m), линии входа / стопа / целей (`lightweight-charts` **v4**, `addCandlestickSeries`); lazy-load при появлении в viewport; ссылка TradingView ↗
+- **Рынок при публикации** — `published_market_price` / `published_market_source` сохраняются в БД и в **Telegram** при новом сигнале; **на карточке не показываются** (вместо них график)
 
 **Кнопка «+» новый сигнал** — **FAB снизу** на вкладке Лента (`fab-bottom`).  
 При открытии формы: **`GET /signals/market-price`** → вход = текущий курс (по умолчанию BTCUSDT), стоп/цель **±1%** от входа; смена LONG/SHORT пересчитывает стоп и цель (`utils/signalLevels.ts`).
@@ -181,6 +184,15 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 ---
 
+## WIN / LOSE reveal (лента)
+
+- При заходе на **Ленту** один раз показывается полноэкранная анимация по последнему непоказанному **win/lose** (`OutcomeReveal.tsx`, `useOutcomeReveal.ts`)
+- Уже показанные сигналы — в `localStorage` per user (`outcomeRevealStorage.ts`)
+- Звуки: `outcomeSounds.ts` (Web Audio)
+
+---
+
+
 ## Hash Hedge трекер
 
 - Только **админы** (`UserChallenge`)
@@ -199,9 +211,11 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 | Месяц | $70 | 30 дней |
 | Trial | — | 3 дня при первом входе |
 
-- USDT TON: `UQDdFFYSG8sGiQfps2WWuIWFuaDPv1GAcFeRck6y5oeR_sPe`
-- Подтверждение по **TXID** (`payment_txs`) — **без проверки в блокчейне** (слабое место безопасности/фрода)
-- Рефералы: **+3 дня** рефереру; ссылка `https://t.me/Бот?startapp=КОД`, кнопки «Пригласить» / «Переслать» в Mini App
+- USDT TON (jetton): `USDT_TON_ADDRESS` в env
+- **TXID** проверяется **on-chain** через Toncenter (`ton_payments.py`): USDT jetton, сумма ≥ плана, подтверждения; дубликаты TXID отклоняются (`subscription_billing.py` → `record_payment`)
+- Опционально: `TONCENTER_API_KEY`, `TONCENTER_API_BASE`
+- UI: `SubscriptionTab.tsx` — копирование кошелька, ввод TXID, обновление по `refreshKey` из шапки
+- **Рефералы:** у каждого подписчика `referral_code`; ссылка `https://t.me/{bot}?startapp={код}` (`referral_links.py`); **+3 дня** рефереру при первой оплате приглашённого; кнопки «Пригласить» / «Скопировать» (`referralShare.ts`, `telegramShareUrl`)
 
 ---
 
@@ -243,7 +257,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 | Dev bypass | Только без `BOT_TOKEN` локально — **никогда на проде** |
 | Секреты | Только env Amvera, не в Git (`.gitignore`) |
 | Публичный Git | Код виден; сервер защищён токеном, не репозиторием |
-| Оплата TXID | Принимается без on-chain проверки — доработать при росте |
+| Оплата TXID | On-chain через Toncenter; лимит API / подделка initData — следить при росте |
 
 ---
 
@@ -298,7 +312,9 @@ GET  /subscriptions/info | POST /subscriptions/pay | PUT /subscriptions/me
 | Трекер | `challenge_service.py`, `hashhedge_rules.py` |
 | Уведомления | `telegram_notify.py` |
 | Frontend shell | `App.tsx` |
-| Лента | `FeedTab.tsx`, `SignalCard.tsx` |
+| Лента | `FeedTab.tsx`, `SignalCard.tsx`, `SignalChart.tsx`, `utils/signalChartLevels.ts` |
+| WIN/LOSE reveal | `OutcomeReveal.tsx`, `hooks/useOutcomeReveal.ts`, `utils/outcomeRevealStorage.ts`, `utils/outcomeSounds.ts` |
+| Подписка / рефералы | `SubscriptionTab.tsx`, `subscription_billing.py`, `ton_payments.py`, `referral_links.py`, `utils/referralShare.ts` |
 | Форма сигнала | `NewSignalModal.tsx`, `EditSignalModal.tsx`, `utils/signalForm.ts`, `utils/signalLevels.ts` |
 | Права на сигнал | `utils/signalActions.ts` (`canCloseAtMarketSignal`, …) |
 | Дополнения | `AppendSupplementModal.tsx` |
@@ -313,12 +329,15 @@ GET  /subscriptions/info | POST /subscriptions/pay | PUT /subscriptions/me
 
 ```env
 BOT_TOKEN=...
+TELEGRAM_BOT_USERNAME=PropDeskBot   # для реферальных startapp-ссылок
 TELEGRAM_ADMIN_IDS=123456789,...
 DATABASE_URL=sqlite:////data/signals.db
 MEDIA_ROOT=/data/media
 PRICE_CHECK_INTERVAL_SECONDS=60
 PRICE_HTTP_TIMEOUT_SECONDS=10
 USDT_TON_ADDRESS=UQDdFFYSG8sGiQfps2WWuIWFuaDPv1GAcFeRck6y5oeR_sPe
+TONCENTER_API_KEY=          # опционально, выше лимиты Toncenter
+TONCENTER_API_BASE=https://toncenter.com/api/v2
 ```
 
 **Деплой в терминале:**
@@ -360,9 +379,14 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 9. UI: кнопка «Дополнить» pill; **плечо + бегунок суммы входа %**; номинал с плечом
 10. **Форма нового сигнала:** автозаполнение курса, стоп/цель ±1%, подсветка номинала
 11. **Закрыть по рынку** — ручное закрытие активного сигнала после входа
+12. **USDT TON on-chain** — проверка TXID через Toncenter; обновлён UI подписки
+13. **Реферальная программа** — `startapp`-ссылки, share/copy в Mini App
+14. **WIN/LOSE reveal** — одноразовая анимация на ленте, localStorage
+15. **График на карточке** — Binance klines 1m/5m/15m, уровни вход/стоп/цель; `lightweight-charts` v4 API
+16. **Кнопка ↻** в шапке — ручной refresh вкладки
 
 ---
 
 ## Быстрое напоминание для AI
 
-> **prop-signals-miniapp** — FastAPI + React Telegram Mini App на Amvera (SQLite, `/data`). Админы публикуют сигналы; активные — по подписке, win/lose + трекер + ТОП — бесплатно. Цены: Binance/Bybit/BingX spot+perp, вход/выход по первой бирже на уровне. При публикации — snapshot цены и `created_at`. P/L = (трекер × сумма входа % × плечо) × % движения; ТОП — без плеча. Edit/delete до входа, дополнения и **закрытие по рынку** после входа. Уведомления с diff и автором действия. Perf: batch `/signals`, lazy tabs, poll 60s. Полный контекст — этот файл.
+> **prop-signals-miniapp** — FastAPI + React Telegram Mini App на Amvera (SQLite, `/data`). Админы публикуют сигналы; активные — по подписке, win/lose + трекер + ТОП — бесплатно. Цены: Binance/Bybit/BingX spot+perp, вход/выход по первой бирже на уровне. При публикации — snapshot цены в БД/Telegram; на карточке — **график** (не текст «рынок»). P/L = (трекер × сумма входа % × плечо) × % движения; ТОП — без плеча. Edit/delete до входа, дополнения и **закрытие по рынку** после входа. Оплата: USDT jetton + Toncenter. Рефералы +3 дня. WIN/LOSE reveal один раз. Perf: batch `/signals`, lazy tabs, poll 60s, ↻ refresh. Полный контекст — этот файл.
