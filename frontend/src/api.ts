@@ -73,6 +73,9 @@ export type SubscriptionInfo = {
   subscription_until: string | null;
   subscription_active: boolean;
   referral_code: string;
+  referral_link: string;
+  referral_share_text: string;
+  bot_username: string;
   referral_link_hint: string;
 };
 

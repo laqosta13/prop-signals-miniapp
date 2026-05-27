@@ -5,6 +5,7 @@ from app.deps import _telegram_user_from_sub, db_session, get_current_user
 from app.models import Subscriber
 from app.schemas import PaymentSubmit, SubscriptionInfo, SubscriptionUpdate, TelegramUser
 from app.signal_service import register_subscriber
+from app.referral_links import build_referral_link, referral_share_text, telegram_bot_username
 from app.subscription_billing import (
     MONTH_USD,
     REFERRAL_BONUS_DAYS,
@@ -22,7 +23,17 @@ router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
 def _info(db, user: TelegramUser) -> SubscriptionInfo:
     sub = db.get(Subscriber, user.telegram_user_id)
     code = (sub.referral_code if sub else None) or user.referral_code or ""
-    hint = f"Откройте приложение по ссылке бота с параметром startapp={code}" if code else ""
+    bot = telegram_bot_username()
+    link = build_referral_link(code)
+    if link:
+        hint = "Отправьте ссылку другу — он откроет Mini App, вы получите бонусные дни."
+    elif code:
+        hint = (
+            "Задайте TELEGRAM_BOT_USERNAME в env (или BOT_TOKEN для автоопределения), "
+            "чтобы сгенерировать ссылку приглашения."
+        )
+    else:
+        hint = ""
     return SubscriptionInfo(
         usdt_ton_address=usdt_pay_address(),
         week_usd=WEEK_USD,
@@ -32,6 +43,9 @@ def _info(db, user: TelegramUser) -> SubscriptionInfo:
         subscription_until=sub.subscription_until if sub else None,
         subscription_active=user.subscription_active,
         referral_code=code,
+        referral_link=link,
+        referral_share_text=referral_share_text(bonus_days=REFERRAL_BONUS_DAYS) if link else "",
+        bot_username=bot,
         referral_link_hint=hint,
     )
 

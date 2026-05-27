@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { fetchSubscriptionInfo, submitPayment, type SubscriptionInfo } from "../api";
 import { copyToClipboard } from "../utils";
+import { copyReferralLink, openReferralShare } from "../utils/referralShare";
 
 export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void; refreshKey?: number }) {
   const [info, setInfo] = useState<SubscriptionInfo | null>(null);
@@ -10,6 +11,7 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [refCopied, setRefCopied] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -53,7 +55,30 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void
     }
   };
 
+  const shareReferral = () => {
+    if (!info?.referral_link) return;
+    openReferralShare(info.referral_link, info.referral_share_text || "PROP-DESK");
+    WebApp.HapticFeedback.impactOccurred("medium");
+  };
+
+  const copyReferral = async () => {
+    if (!info?.referral_link) return;
+    const ok = await copyReferralLink(
+      info.referral_link,
+      info.referral_share_text || "PROP-DESK — торговые сигналы",
+    );
+    WebApp.HapticFeedback.notificationOccurred(ok ? "success" : "error");
+    if (ok) {
+      setRefCopied(true);
+      window.setTimeout(() => setRefCopied(false), 2000);
+    } else {
+      WebApp.showAlert("Не удалось скопировать ссылку.");
+    }
+  };
+
   if (!info) return <p className="meta">{err || "Загрузка…"}</p>;
+
+  const hasReferralLink = Boolean(info.referral_link);
 
   return (
     <div className="sub-pay">
@@ -104,11 +129,68 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void
         </form>
       </section>
 
-      <section className="sub-card">
-        <h3>Реферальная программа</h3>
-        <p className="meta">За каждого приведённого пользователя — +{info.referral_bonus_days} дня подписки.</p>
-        <p className="ref-code">Ваш код: <strong>{info.referral_code || "—"}</strong></p>
-        <p className="meta small">{info.referral_link_hint}</p>
+      <section className="sub-card sub-card--referral">
+        <div className="referral-head">
+          <h3>Реферальная программа</h3>
+          <span className="referral-bonus-pill">+{info.referral_bonus_days} дня за друга</span>
+        </div>
+        <p className="meta">Пригласите друга в PROP-DESK — после первого входа по вашей ссылке подписка продлится.</p>
+
+        <div className="referral-code-box">
+          <span className="referral-code-box__label">Ваш код</span>
+          <strong className="referral-code-box__code">{info.referral_code || "—"}</strong>
+        </div>
+
+        {hasReferralLink ? (
+          <>
+            <code className="referral-link" title={info.referral_link}>
+              {info.referral_link}
+            </code>
+            <div className="referral-actions">
+              <button type="button" className="referral-btn referral-btn--primary" onClick={shareReferral}>
+                Пригласить друга
+              </button>
+              <button type="button" className="referral-btn referral-btn--secondary" onClick={shareReferral}>
+                Переслать
+              </button>
+              <button
+                type="button"
+                className={`referral-btn referral-btn--ghost${refCopied ? " copied" : ""}`}
+                onClick={() => void copyReferral()}
+              >
+                {refCopied ? "Скопировано ✓" : "Копировать ссылку"}
+              </button>
+            </div>
+            <ol className="referral-steps">
+              <li>Нажмите «Пригласить» или «Переслать» и выберите чат.</li>
+              <li>Друг открывает Mini App по ссылке (параметр startapp).</li>
+              <li>Вам начисляется +{info.referral_bonus_days} дня подписки.</li>
+            </ol>
+          </>
+        ) : (
+          <p className="meta referral-warn">{info.referral_link_hint}</p>
+        )}
+
+        <details className="referral-setup">
+          <summary>Как настроить ссылку (админ / деплой)</summary>
+          <ol className="referral-setup__list">
+            <li>
+              В{" "}
+              <a href="https://t.me/BotFather" target="_blank" rel="noreferrer">
+                @BotFather
+              </a>
+              : создайте бота, в <strong>Configure Mini App</strong> укажите HTTPS-URL приложения (Amvera).
+            </li>
+            <li>
+              В env backend: <code>BOT_TOKEN</code> от BotFather. Опционально <code>TELEGRAM_BOT_USERNAME</code> (без @) —
+              иначе имя бота подтянется из токена автоматически.
+            </li>
+            <li>
+              Ссылка: <code>https://t.me/ИмяБота?startapp=КОД</code> — код уникален у каждого пользователя.
+            </li>
+            <li>Бонус начисляется, когда друг впервые открыл Mini App именно по вашей ссылке.</li>
+          </ol>
+        </details>
       </section>
     </div>
   );

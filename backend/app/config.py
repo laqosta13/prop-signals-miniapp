@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     bot_token: str = ""
+    telegram_bot_username: str = ""
     telegram_admin_ids: str = ""
     database_url: str = "sqlite:///./signals.db"
     cors_origins: str = "http://localhost:5173"

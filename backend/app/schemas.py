@@ -109,6 +109,9 @@ class SubscriptionInfo(BaseModel):
     subscription_until: datetime | None
     subscription_active: bool
     referral_code: str
+    referral_link: str = ""
+    referral_share_text: str = ""
+    bot_username: str = ""
     referral_link_hint: str
 
 

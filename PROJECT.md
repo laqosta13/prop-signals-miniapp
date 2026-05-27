@@ -201,7 +201,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 - USDT TON: `UQDdFFYSG8sGiQfps2WWuIWFuaDPv1GAcFeRck6y5oeR_sPe`
 - Подтверждение по **TXID** (`payment_txs`) — **без проверки в блокчейне** (слабое место безопасности/фрода)
-- Рефералы: **+3 дня** рефереру
+- Рефералы: **+3 дня** рефереру; ссылка `https://t.me/Бот?startapp=КОД`, кнопки «Пригласить» / «Переслать» в Mini App
 
 ---
 
