@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import math
 from dataclasses import dataclass
@@ -14,6 +15,9 @@ from app.signal_utils import entry_triggered, evaluate_signal
 logger = logging.getLogger(__name__)
 
 _cache: dict[str, list[PriceQuote]] = {}
+_http_client: httpx.AsyncClient | None = None
+_PRICE_FETCH_RETRIES = 3
+_PRICE_FETCH_RETRY_DELAY = 0.5
 
 
 @dataclass(frozen=True)
@@ -49,18 +53,41 @@ def _valid_price(value: float | None) -> float | None:
     return value
 
 
+def _http_client() -> httpx.AsyncClient:
+    global _http_client
+    if _http_client is None or _http_client.is_closed:
+        _http_client = httpx.AsyncClient(timeout=settings.price_http_timeout_seconds)
+    return _http_client
+
+
 async def _get_json(url: str) -> dict | list | None:
-    timeout = settings.price_http_timeout_seconds
-    try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            r = await client.get(url)
+    for attempt in range(1, _PRICE_FETCH_RETRIES + 1):
+        try:
+            r = await _http_client().get(url)
             if r.status_code != 200:
                 logger.warning("price HTTP %s for %s", r.status_code, url[:96])
                 return None
             return r.json()
-    except Exception as e:
-        logger.warning("price fetch error %s: %s", url[:72], e)
-        return None
+        except Exception as e:
+            if attempt >= _PRICE_FETCH_RETRIES:
+                logger.warning(
+                    "price fetch error %s after %s attempts: %s: %s",
+                    url[:72],
+                    attempt,
+                    type(e).__name__,
+                    e or "(no message)",
+                )
+                return None
+            logger.info(
+                "price fetch retry %s/%s %s: %s: %s",
+                attempt,
+                _PRICE_FETCH_RETRIES,
+                url[:72],
+                type(e).__name__,
+                e or "(no message)",
+            )
+            await asyncio.sleep(_PRICE_FETCH_RETRY_DELAY * attempt)
+    return None
 
 
 def _parse_binance_ticker(data: dict | list | None) -> float | None:
