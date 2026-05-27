@@ -144,6 +144,7 @@ def run_migrations(engine: Engine) -> None:
     _purge_test_data_once(engine)
     _purge_signals_reset_v3(engine)
     _purge_all_published_may2026(engine)
+    _purge_all_published_may2026_v2(engine)
     _sync_news_notify_flags_v1(engine)
     _reset_news_notify_opt_in_v2(engine)
 
@@ -201,6 +202,28 @@ def _purge_all_published_may2026(engine: Engine) -> None:
         from app.media_storage import media_root
 
         marker = media_root() / ".purged_all_published_may2026"
+    if marker.exists():
+        return
+    from app.database import SessionLocal
+    from app.data_cleanup import purge_all_published_content
+
+    db = SessionLocal()
+    try:
+        purge_all_published_content(db)
+        db.commit()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
+
+
+def _purge_all_published_may2026_v2(engine: Engine) -> None:
+    """Одноразово: повторная очистка сигналов, новостей и отзывов (май 2026)."""
+    marker = _marker_path(engine, ".purged_all_published_may2026_v2")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".purged_all_published_may2026_v2"
     if marker.exists():
         return
     from app.database import SessionLocal
