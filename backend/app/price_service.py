@@ -15,7 +15,7 @@ from app.signal_utils import entry_triggered, evaluate_signal
 logger = logging.getLogger(__name__)
 
 _cache: dict[str, list[PriceQuote]] = {}
-_http_client: httpx.AsyncClient | None = None
+_price_httpx: httpx.AsyncClient | None = None
 _PRICE_FETCH_RETRIES = 3
 _PRICE_FETCH_RETRY_DELAY = 0.5
 
@@ -59,17 +59,17 @@ def _valid_price(value: float | None) -> float | None:
     return value
 
 
-def _http_client() -> httpx.AsyncClient:
-    global _http_client
-    if _http_client is None or _http_client.is_closed:
-        _http_client = httpx.AsyncClient(timeout=settings.price_http_timeout_seconds)
-    return _http_client
+def _get_http_client() -> httpx.AsyncClient:
+    global _price_httpx
+    if _price_httpx is None or _price_httpx.is_closed:
+        _price_httpx = httpx.AsyncClient(timeout=settings.price_http_timeout_seconds)
+    return _price_httpx
 
 
 async def _get_json(url: str) -> dict | list | None:
     for attempt in range(1, _PRICE_FETCH_RETRIES + 1):
         try:
-            r = await _http_client().get(url)
+            r = await _get_http_client().get(url)
             if r.status_code != 200:
                 logger.warning("price HTTP %s for %s", r.status_code, url[:96])
                 return None
