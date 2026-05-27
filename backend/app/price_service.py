@@ -1,8 +1,7 @@
-"""Цены: Binance / Bybit / BingX (spot + perp). Вход/выход — по первой бирже, где уровень достигнут."""
+"""Цены: Bybit USDT perpetual (linear). Вход/выход — по котировке Bybit."""
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import math
 from dataclasses import dataclass
@@ -154,22 +153,8 @@ async def _fetch_gold_usd() -> float | None:
 
 
 async def _fetch_crypto_quotes(pair: str) -> list[PriceQuote]:
-    fetchers = (
-        _fetch_binance_spot,
-        _fetch_binance_futures,
-        _fetch_bybit_spot,
-        _fetch_bybit_linear,
-        _fetch_bingx_spot,
-        _fetch_bingx_swap,
-    )
-    results = await asyncio.gather(*(fn(pair) for fn in fetchers), return_exceptions=True)
-    quotes: list[PriceQuote] = []
-    for item in results:
-        if isinstance(item, PriceQuote):
-            quotes.append(item)
-        elif isinstance(item, Exception):
-            logger.debug("price source error: %s", item)
-    return quotes
+    q = await _fetch_bybit_linear(pair)
+    return [q] if q is not None else []
 
 
 def first_entry_quote(
@@ -230,11 +215,11 @@ async def fetch_market_quotes(symbol: str) -> list[PriceQuote]:
 
 
 async def fetch_price(symbol: str) -> float | None:
-    """Средняя цена по доступным биржам (для логов/совместимости)."""
+    """Текущая цена (Bybit perp для крипто)."""
     quotes = await fetch_market_quotes(symbol)
     if not quotes:
         return None
-    return sum(q.price for q in quotes) / len(quotes)
+    return quotes[0].price
 
 
 def clear_price_cache() -> None:

@@ -836,11 +836,19 @@ body {
 }
 
 .signal-chart {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
   margin: 8px 0 10px;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border, rgba(255, 255, 255, 0.06));
   background: var(--surface);
+}
+
+.signal-chart__tf button:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .signal-chart__head {
@@ -892,6 +900,8 @@ body {
 }
 
 .signal-chart__canvas {
+  position: relative;
+  z-index: 0;
   width: 100%;
   height: 240px;
 }
@@ -1990,6 +2000,7 @@ input.readonly {
 /* Bottom nav + FAB */
 .bottom-nav {
   position: fixed;
+  z-index: 200;
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
@@ -2030,6 +2041,7 @@ input.readonly {
   align-items: stretch;
   gap: 8px;
   margin-top: 10px;
+  margin-bottom: 14px;
 }
 
 .signal-admin-actions .supplement-btn,

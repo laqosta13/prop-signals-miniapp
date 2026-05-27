@@ -10,7 +10,7 @@ import {
 } from "lightweight-charts";
 import {
   CHART_INTERVALS,
-  binanceSymbol,
+  bybitSymbol,
   levelsFromSignal,
   tradingViewSymbol,
   type ChartInterval,
@@ -24,20 +24,33 @@ type Props = {
   entryHigh: string | null;
   stopLoss: string | null;
   takeProfits: string | null;
+  /** win/lose — один раз загрузить свечи и не обновлять */
+  frozen?: boolean;
 };
 
-async function fetchBinanceKlines(pair: string, interval: string): Promise<Candle[]> {
-  const url = `https://api.binance.com/api/v3/klines?symbol=${pair}&interval=${interval}&limit=180`;
-  const res = await fetch(url);
+async function fetchBybitKlines(pair: string, interval: string): Promise<Candle[]> {
+  const params = new URLSearchParams({
+    category: "linear",
+    symbol: pair,
+    interval,
+    limit: "180",
+  });
+  const res = await fetch(`https://api.bybit.com/v5/market/kline?${params}`);
   if (!res.ok) throw new Error("Не удалось загрузить свечи");
-  const raw = (await res.json()) as unknown[][];
-  return raw.map((k) => ({
-    time: Math.floor(Number(k[0]) / 1000) as UTCTimestamp,
-    open: Number(k[1]),
-    high: Number(k[2]),
-    low: Number(k[3]),
-    close: Number(k[4]),
-  }));
+  const body = (await res.json()) as { retCode?: number; result?: { list?: string[][] } };
+  if (body.retCode !== 0) throw new Error("Bybit: нет данных по паре");
+  const rows = body.result?.list ?? [];
+  const candles = rows
+    .map((k) => ({
+      time: Math.floor(Number(k[0]) / 1000) as UTCTimestamp,
+      open: Number(k[1]),
+      high: Number(k[2]),
+      low: Number(k[3]),
+      close: Number(k[4]),
+    }))
+    .filter((c) => Number.isFinite(c.close));
+  candles.reverse();
+  return candles;
 }
 
 function applyLevelLines(series: ISeriesApi<"Candlestick">, levels: ReturnType<typeof levelsFromSignal>) {
@@ -97,18 +110,30 @@ function applyLevelLines(series: ISeriesApi<"Candlestick">, levels: ReturnType<t
   });
 }
 
-export function SignalChart({ symbol, entryLow, entryHigh, stopLoss, takeProfits }: Props) {
+export function SignalChart({
+  symbol,
+  entryLow,
+  entryHigh,
+  stopLoss,
+  takeProfits,
+  frozen = false,
+}: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   const chartApi = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const loadedRef = useRef(false);
   const [interval, setInterval] = useState<ChartInterval>("5");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
 
-  const pair = binanceSymbol(symbol);
+  const pair = bybitSymbol(symbol);
   const tvLink = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tradingViewSymbol(symbol))}`;
+
+  useEffect(() => {
+    loadedRef.current = false;
+  }, [symbol, frozen]);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -150,18 +175,21 @@ export function SignalChart({ symbol, entryLow, entryHigh, stopLoss, takeProfits
       chart.remove();
       chartApi.current = null;
       seriesRef.current = null;
+      loadedRef.current = false;
     };
   }, [visible]);
 
   useEffect(() => {
     if (!visible || !pair || !chartApi.current) return;
-    const binanceIv = CHART_INTERVALS.find((x) => x.id === interval)?.binance ?? "5m";
+    if (frozen && loadedRef.current) return;
+
+    const bybitIv = CHART_INTERVALS.find((x) => x.id === interval)?.bybit ?? "5";
     const ac = new AbortController();
     setLoading(true);
     setErr(null);
     const lv = levelsFromSignal(entryLow, entryHigh, stopLoss, takeProfits);
 
-    void fetchBinanceKlines(pair, binanceIv)
+    void fetchBybitKlines(pair, bybitIv)
       .then((candles) => {
         if (ac.signal.aborted) return;
         const chart = chartApi.current;
@@ -178,6 +206,7 @@ export function SignalChart({ symbol, entryLow, entryHigh, stopLoss, takeProfits
         series.setData(candles);
         applyLevelLines(series, lv);
         chart.timeScale().fitContent();
+        loadedRef.current = true;
       })
       .catch((e) => {
         if (!ac.signal.aborted) setErr(e instanceof Error ? e.message : "Ошибка графика");
@@ -187,12 +216,12 @@ export function SignalChart({ symbol, entryLow, entryHigh, stopLoss, takeProfits
       });
 
     return () => ac.abort();
-  }, [visible, pair, interval, entryLow, entryHigh, stopLoss, takeProfits]);
+  }, [visible, pair, interval, entryLow, entryHigh, stopLoss, takeProfits, frozen]);
 
   if (!pair) return null;
 
   return (
-    <section ref={wrapRef} className="signal-chart">
+    <section ref={wrapRef} className={`signal-chart${frozen ? " signal-chart--frozen" : ""}`}>
       <div className="signal-chart__head">
         <div className="signal-chart__tf">
           {CHART_INTERVALS.map((tf) => (
@@ -200,6 +229,7 @@ export function SignalChart({ symbol, entryLow, entryHigh, stopLoss, takeProfits
               key={tf.id}
               type="button"
               className={interval === tf.id ? "on" : ""}
+              disabled={frozen}
               onClick={() => setInterval(tf.id)}
             >
               {tf.label}

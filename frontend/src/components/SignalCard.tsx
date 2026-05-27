@@ -161,6 +161,7 @@ export function SignalCard({
         entryHigh={s.entry_high}
         stopLoss={s.stop_loss}
         takeProfits={s.take_profits}
+        frozen={s.status === "win" || s.status === "lose"}
       />
       <div className="levels-grid">
         <div>

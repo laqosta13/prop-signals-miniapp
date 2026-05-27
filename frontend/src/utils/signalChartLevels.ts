@@ -30,7 +30,8 @@ export function parseTakeProfitPrices(raw: string | null | undefined): number[] 
     .filter((p): p is number => p != null);
 }
 
-export function binanceSymbol(symbol: string): string | null {
+/** Символ пары USDT perpetual на Bybit (linear). */
+export function bybitSymbol(symbol: string): string | null {
   const s = symbol.toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (!s) return null;
   if (s.endsWith("USDT")) return s;
@@ -39,17 +40,17 @@ export function binanceSymbol(symbol: string): string | null {
 }
 
 export function tradingViewSymbol(symbol: string): string {
-  const pair = binanceSymbol(symbol);
-  if (!pair) return "BINANCE:BTCUSDT";
-  return `BINANCE:${pair}`;
+  const pair = bybitSymbol(symbol);
+  if (!pair) return "BYBIT:BTCUSDT";
+  return `BYBIT:${pair}`;
 }
 
 export type ChartInterval = "1" | "5" | "15";
 
-export const CHART_INTERVALS: { id: ChartInterval; label: string; binance: string }[] = [
-  { id: "1", label: "1м", binance: "1m" },
-  { id: "5", label: "5м", binance: "5m" },
-  { id: "15", label: "15м", binance: "15m" },
+export const CHART_INTERVALS: { id: ChartInterval; label: string; bybit: string }[] = [
+  { id: "1", label: "1м", bybit: "1" },
+  { id: "5", label: "5м", bybit: "5" },
+  { id: "15", label: "15м", bybit: "15" },
 ];
 
 export type SignalChartLevels = {
