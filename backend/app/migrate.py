@@ -143,6 +143,7 @@ def run_migrations(engine: Engine) -> None:
     _backfill_referral_codes(engine)
     _purge_test_data_once(engine)
     _purge_signals_reset_v3(engine)
+    _purge_all_published_may2026(engine)
 
 
 def _purge_signals_reset_v3(engine: Engine) -> None:
@@ -187,6 +188,28 @@ def _backfill_referral_codes(engine: Engine) -> None:
                     db.execute(text("UPDATE subscribers SET referral_code = :c WHERE telegram_user_id = :t"), {"c": code, "t": tid})
                     break
         db.commit()
+    finally:
+        db.close()
+
+
+def _purge_all_published_may2026(engine: Engine) -> None:
+    """Одноразово: сигналы, новости, отзывы и сброс рейтинга/трекеров (май 2026)."""
+    marker = _marker_path(engine, ".purged_all_published_may2026")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".purged_all_published_may2026"
+    if marker.exists():
+        return
+    from app.database import SessionLocal
+    from app.data_cleanup import purge_all_published_content
+
+    db = SessionLocal()
+    try:
+        purge_all_published_content(db)
+        db.commit()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
     finally:
         db.close()
 
