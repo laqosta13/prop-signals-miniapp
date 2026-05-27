@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  CandlestickSeries,
   ColorType,
   CrosshairMode,
   LineStyle,
@@ -168,7 +167,7 @@ export function SignalChart({ symbol, entryLow, entryHigh, stopLoss, takeProfits
         const chart = chartApi.current;
         if (!chart) return;
         if (seriesRef.current) chart.removeSeries(seriesRef.current);
-        const series = chart.addSeries(CandlestickSeries, {
+        const series = chart.addCandlestickSeries({
           upColor: "#3dff8a",
           downColor: "#ff6b6b",
           borderVisible: false,
