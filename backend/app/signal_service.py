@@ -26,7 +26,14 @@ from app.telegram_notify import (
     notify_subscribers,
 )
 from app.challenge_service import apply_signal_to_tracker, ensure_tracker_for_new_signal
-from app.price_service import PriceQuote, clear_price_cache, fetch_market_quotes, fetch_price, first_entry_quote
+from app.price_service import (
+    PriceQuote,
+    clear_price_cache,
+    fetch_bybit_perp_quote,
+    fetch_market_quotes,
+    fetch_price,
+    first_entry_quote,
+)
 from app.subscription_billing import register_subscriber_with_meta
 from app.trader_stats import apply_outcome_to_trader
 
@@ -261,10 +268,11 @@ async def stamp_signal_at_publication(
     *,
     notify_entry: bool = True,
 ) -> None:
-    """Запрос цены на биржах в момент публикации и фиксация времени размещения."""
+    """Цена Bybit USDT perpetual в момент публикации и фиксация времени размещения."""
     clear_price_cache()
     published_at = datetime.now(timezone.utc)
-    quotes = await fetch_market_quotes(signal.symbol)
+    perp = await fetch_bybit_perp_quote(signal.symbol)
+    quotes: list[PriceQuote] = [perp] if perp is not None else []
 
     signal.created_at = published_at
     entry_hit: PriceQuote | None = None

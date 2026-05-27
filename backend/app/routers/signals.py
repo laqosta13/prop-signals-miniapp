@@ -19,7 +19,7 @@ from app.models import Signal, SignalSupplement
 from app.schemas import LikeResponse, MarketPriceRead, SignalRead, TelegramUser, ViewResponse
 from app.feed_serializers import FEED_SIGNAL_LIMIT, signals_list_read
 from app.serializers import signal_to_read
-from app.price_service import fetch_price, normalize_symbol
+from app.price_service import fetch_bybit_perp_quote, normalize_symbol
 from app.challenge_service import admin_tracker_balance, ensure_tracker_for_new_signal
 from app.signal_service import (
     build_signal_row,
@@ -77,14 +77,17 @@ async def market_price(
     symbol: str,
     _admin: TelegramUser = Depends(require_admin),
 ) -> MarketPriceRead:
-    """Текущий курс для формы нового сигнала (админ)."""
+    """Текущий курс Bybit USDT perpetual для формы нового сигнала (админ)."""
     sym = normalize_symbol(symbol)
     if not sym:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="symbol required")
-    price = await fetch_price(sym)
-    if price is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Не удалось получить цену для {sym}")
-    return MarketPriceRead(symbol=sym, price=price)
+    quote = await fetch_bybit_perp_quote(sym)
+    if quote is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Не удалось получить цену Bybit (бессрочный) для {sym}",
+        )
+    return MarketPriceRead(symbol=sym, price=quote.price, source=quote.source)
 
 
 @router.post("", response_model=SignalRead)

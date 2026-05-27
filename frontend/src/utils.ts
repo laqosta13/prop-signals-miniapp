@@ -142,7 +142,7 @@ const MARKET_SOURCE_LABELS: Record<string, string> = {
   binance_spot: "Binance spot",
   binance_perp: "Binance perp",
   bybit_spot: "Bybit spot",
-  bybit_perp: "Bybit perp",
+  bybit_perp: "Bybit бессрочный",
   bingx_spot: "BingX spot",
   bingx_perp: "BingX perp",
 };

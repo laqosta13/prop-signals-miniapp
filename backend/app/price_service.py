@@ -31,11 +31,17 @@ def normalize_symbol(symbol: str) -> str:
 
 
 def _crypto_usdt_pair(sym: str) -> str | None:
+    """Пара для Bybit linear (USDT perpetual)."""
     s = normalize_symbol(sym)
+    if not s:
+        return None
     if s.endswith("USDT"):
         return s
     if s.endswith("USD") and len(s) > 3:
         return s[:-3] + "USDT"
+    # BTC, ETH, TON → …USDT; 6 букв (EURUSD) — форекс, не крипто
+    if 2 <= len(s) <= 10 and s.isalnum() and not (len(s) == 6 and s.isalpha()):
+        return f"{s}USDT"
     return None
 
 
@@ -179,9 +185,12 @@ async def _fetch_gold_usd() -> float | None:
     return _valid_price(float(raw)) if raw is not None else None
 
 
-async def _fetch_crypto_quotes(pair: str) -> list[PriceQuote]:
-    q = await _fetch_bybit_linear(pair)
-    return [q] if q is not None else []
+async def fetch_bybit_perp_quote(symbol: str) -> PriceQuote | None:
+    """Котировка Bybit USDT perpetual (category=linear)."""
+    pair = _crypto_usdt_pair(symbol)
+    if not pair:
+        return None
+    return await _fetch_bybit_linear(pair)
 
 
 def first_entry_quote(
@@ -224,7 +233,8 @@ async def fetch_market_quotes(symbol: str) -> list[PriceQuote]:
     quotes: list[PriceQuote] = []
     pair = _crypto_usdt_pair(sym)
     if pair:
-        quotes = await _fetch_crypto_quotes(pair)
+        q = await fetch_bybit_perp_quote(sym)
+        quotes = [q] if q is not None else []
     elif sym in ("XAUUSD", "GOLD", "XAU"):
         p = await _fetch_gold_usd()
         if p is not None:
@@ -242,7 +252,10 @@ async def fetch_market_quotes(symbol: str) -> list[PriceQuote]:
 
 
 async def fetch_price(symbol: str) -> float | None:
-    """Текущая цена (Bybit perp для крипто)."""
+    """Текущая цена (Bybit USDT perpetual для крипто)."""
+    q = await fetch_bybit_perp_quote(symbol)
+    if q is not None:
+        return q.price
     quotes = await fetch_market_quotes(symbol)
     if not quotes:
         return None

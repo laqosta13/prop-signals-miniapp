@@ -28,6 +28,7 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [priceLoading, setPriceLoading] = useState(false);
+  const [priceSource, setPriceSource] = useState<string | null>(null);
   const [symbol, setSymbol] = useState(DEFAULT_SYMBOL);
   const [direction, setDirection] = useState<"long" | "short">("long");
   const [entry, setEntry] = useState("");
@@ -57,8 +58,9 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
       if (!normalized) return;
       setPriceLoading(true);
       try {
-        const { price } = await fetchMarketPrice(normalized);
+        const { price, source } = await fetchMarketPrice(normalized);
         applyMarketPrice(price, directionRef.current);
+        setPriceSource(source ?? "bybit_perp");
         setError(null);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Не удалось загрузить курс");
@@ -80,6 +82,7 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
     setEntry("");
     setStop("");
     setTarget("");
+    setPriceSource(null);
     setScreenshot(null);
     setVideo(null);
     setShotPreview((prev) => {
@@ -207,7 +210,10 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
             <input value={target} onChange={(e) => setTarget(e.target.value)} placeholder="+1%" />
           </div>
         </div>
-        {priceLoading && <p className="meta">Загрузка курса…</p>}
+        {priceLoading && <p className="meta">Загрузка курса Bybit (бессрочный)…</p>}
+        {!priceLoading && priceSource && entry && (
+          <p className="meta">Курс: Bybit USDT perpetual · вход {entry}</p>
+        )}
 
         <label className="field-label">Плечо</label>
         <LeveragePicker

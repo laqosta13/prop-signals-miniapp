@@ -152,7 +152,7 @@ def _market_source_label(source: str | None) -> str:
         "binance_spot": "Binance spot",
         "binance_perp": "Binance perp",
         "bybit_spot": "Bybit spot",
-        "bybit_perp": "Bybit perp",
+        "bybit_perp": "Bybit бессрочный",
         "bingx_spot": "BingX spot",
         "bingx_perp": "BingX perp",
     }

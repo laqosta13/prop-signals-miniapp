@@ -232,7 +232,7 @@ export const fetchMe = () => api<Me>("/auth/me");
 export const fetchSignals = () => api<Signal[]>("/signals");
 export const fetchSignalsPreview = () => api<Signal[]>("/signals/preview");
 
-export type MarketPrice = { symbol: string; price: number };
+export type MarketPrice = { symbol: string; price: number; source?: string };
 
 export const fetchMarketPrice = (symbol: string) =>
   api<MarketPrice>(`/signals/market-price?symbol=${encodeURIComponent(symbol.trim())}`);

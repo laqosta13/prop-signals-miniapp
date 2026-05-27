@@ -61,6 +61,7 @@ class SignalRead(BaseModel):
 class MarketPriceRead(BaseModel):
     symbol: str
     price: float
+    source: str = "bybit_perp"
 
 
 class LikeResponse(BaseModel):
