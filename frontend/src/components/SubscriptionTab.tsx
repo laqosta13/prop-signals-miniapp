@@ -170,27 +170,6 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void
         ) : (
           <p className="meta referral-warn">{info.referral_link_hint}</p>
         )}
-
-        <details className="referral-setup">
-          <summary>Как настроить ссылку (админ / деплой)</summary>
-          <ol className="referral-setup__list">
-            <li>
-              В{" "}
-              <a href="https://t.me/BotFather" target="_blank" rel="noreferrer">
-                @BotFather
-              </a>
-              : создайте бота, в <strong>Configure Mini App</strong> укажите HTTPS-URL приложения (Amvera).
-            </li>
-            <li>
-              В env backend: <code>BOT_TOKEN</code> от BotFather. Опционально <code>TELEGRAM_BOT_USERNAME</code> (без @) —
-              иначе имя бота подтянется из токена автоматически.
-            </li>
-            <li>
-              Ссылка: <code>https://t.me/ИмяБота?startapp=КОД</code> — код уникален у каждого пользователя.
-            </li>
-            <li>Бонус начисляется, когда друг впервые открыл Mini App именно по вашей ссылке.</li>
-          </ol>
-        </details>
       </section>
     </div>
   );

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { recordSignalView, toggleSignalLike, type Signal } from "../api";
-import { calcRR, authorProfile, formatMarketSource, formatTakeProfits, formatTime, formatUsd, mediaUrl } from "../utils";
+import { calcRR, authorProfile, formatTakeProfits, formatTime, formatUsd, mediaUrl } from "../utils";
 import { canEditOrDeleteSignal, canCloseAtMarketSignal, canSupplementSignal } from "../utils/signalActions";
 import { Avatar } from "./Avatar";
+import { SignalChart } from "./SignalChart";
 
 type Props = {
   signal: Signal;
@@ -154,12 +155,13 @@ export function SignalCard({
         </div>
       </header>
       <p className="signal-card__time">{formatTime(s.created_at)}</p>
-      {s.published_market_price != null && (
-        <p className="signal-card__market meta">
-          Рынок при публикации: {s.published_market_price}
-          {s.published_market_source ? ` (${formatMarketSource(s.published_market_source)})` : ""}
-        </p>
-      )}
+      <SignalChart
+        symbol={s.symbol}
+        entryLow={s.entry_low}
+        entryHigh={s.entry_high}
+        stopLoss={s.stop_loss}
+        takeProfits={s.take_profits}
+      />
       <div className="levels-grid">
         <div>
           <span>вход</span>
