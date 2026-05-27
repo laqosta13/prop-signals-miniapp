@@ -76,6 +76,7 @@ export default function App() {
   const [notifyEnabled, setNotifyEnabled] = useState(true);
   const [notifyNewsEnabled, setNotifyNewsEnabled] = useState(false);
   const [paidSub, setPaidSub] = useState(false);
+  const [memberSince, setMemberSince] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showNewSignal, setShowNewSignal] = useState(false);
   const [editSignal, setEditSignal] = useState<Signal | null>(null);
@@ -117,6 +118,7 @@ export default function App() {
       const me = await fetchMe();
       setIsAdmin(me.is_admin);
       setMyId(me.telegram_user_id);
+      setMemberSince(me.member_since);
       setNotifyEnabled(me.notify_enabled);
       setNotifyNewsEnabled(me.notify_news_enabled);
       setPaidSub(me.paid_subscription);
@@ -233,10 +235,6 @@ export default function App() {
   };
 
   const toggleNewsNotify = async () => {
-    if (!paidSub) {
-      alert("Уведомления о новостях доступны только с платной подпиской.");
-      return;
-    }
     try {
       const me = await setNotifications({ notify_news_enabled: !notifyNewsEnabled });
       setNotifyNewsEnabled(me.notify_news_enabled);
@@ -293,14 +291,13 @@ export default function App() {
         </label>
       )}
       {tab === "news" && (
-        <label className={`notify-row${!paidSub ? " notify-row--disabled" : ""}`}>
+        <label className="notify-row">
           <input
             type="checkbox"
             checked={notifyNewsEnabled}
-            disabled={!paidSub}
             onChange={() => void toggleNewsNotify()}
           />
-          Уведомления о новостях {paidSub ? "" : "(только платная подписка)"}
+          Уведомления о новостях в Telegram
         </label>
       )}
 
@@ -314,6 +311,7 @@ export default function App() {
             loading={loading}
             isAdmin={isAdmin}
             myId={myId}
+            memberSince={memberSince}
             subscriptionActive={subActive}
             onChanged={reloadAfterSignalChange}
             onEdit={setEditSignal}

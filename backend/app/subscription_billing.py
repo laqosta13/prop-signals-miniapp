@@ -69,22 +69,20 @@ def has_active_paid_subscription(db: Session, sub: Subscriber, is_admin: bool) -
     return has_paid_subscription(db, sub.telegram_user_id)
 
 
-def can_enable_news_notify(db: Session, sub: Subscriber, *, is_admin: bool) -> bool:
-    """Включить галочку «новости» — только платная активная подписка."""
-    return has_active_paid_subscription(db, sub, is_admin)
+def can_enable_news_notify(db: Session, sub: Subscriber, *, is_admin: bool = False) -> bool:
+    """Любой пользователь mini app может включить галочку «новости»."""
+    _ = db, sub, is_admin
+    return True
+
+
+def sync_subscriber_notification_flags(db: Session, sub: Subscriber, *, is_admin: bool = False) -> None:
+    """Новости не привязаны к подписке — флаги не сбрасываем."""
+    _ = db, sub, is_admin
 
 
 def subscriber_ids_for_news_notify(db: Session) -> list[int]:
-    """Только явно включённые notify_news_enabled + платная оплата + активная подписка."""
-    subs = db.scalars(select(Subscriber).where(Subscriber.notify_news_enabled.is_(True))).all()
-    ids: list[int] = []
-    for sub in subs:
-        if not _subscription_until_active(sub):
-            continue
-        if not has_paid_subscription(db, sub.telegram_user_id):
-            continue
-        ids.append(sub.telegram_user_id)
-    return ids
+    """Все зарегистрированные пользователи — подписка и оплата не проверяются."""
+    return list(db.scalars(select(Subscriber.telegram_user_id)).all())
 
 
 def _gen_referral_code(db: Session) -> str:
@@ -105,6 +103,17 @@ def grant_referrer_bonus(db: Session, referrer_id: int) -> None:
     if ref_sub.subscription_until and ref_sub.subscription_until > base:
         base = ref_sub.subscription_until
     ref_sub.subscription_until = base + timedelta(days=REFERRAL_BONUS_DAYS)
+
+
+def grant_referrer_bonus_on_first_payment(db: Session, sub: Subscriber) -> None:
+    """+3 дня рефереру, когда приглашённый впервые оплатил неделю или месяц."""
+    referrer_id = sub.referred_by_telegram_id
+    if not referrer_id or referrer_id == sub.telegram_user_id:
+        return
+    paid_rows = db.scalars(select(PaymentTx.id).where(PaymentTx.telegram_user_id == sub.telegram_user_id)).all()
+    if len(paid_rows) != 1:
+        return
+    grant_referrer_bonus(db, referrer_id)
 
 
 def register_subscriber_with_meta(
@@ -144,8 +153,6 @@ def register_subscriber_with_meta(
             raise
     if username and sub.username != username:
         sub.username = username
-    if created and sub.referred_by_telegram_id:
-        grant_referrer_bonus(db, sub.referred_by_telegram_id)
     return sub
 
 
@@ -179,3 +186,5 @@ def record_payment(db: Session, telegram_user_id: int, plan: str, tx_id: str) ->
             amount_usd=expected_usd,
         )
     )
+    db.flush()
+    grant_referrer_bonus_on_first_payment(db, sub)

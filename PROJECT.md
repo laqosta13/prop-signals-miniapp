@@ -72,17 +72,16 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 - **Номинал позиции** = трекер × сумма входа % × плечо / 100 — в форме **выделен цветом** (сумма зелёным, % и плечо фиолетовым)
 - **Трекер $** — только чтение, баланс Hash Hedge трекера админа
 - **Скрин / Видео / Комментарий** (на русском)
-- **График на карточке** — `SignalChart.tsx`: свечи Binance (1m / 5m / 15m), линии входа / стопа / целей (`lightweight-charts` **v4**, `addCandlestickSeries`); lazy-load при появлении в viewport; ссылка TradingView ↗
-- **Рынок при публикации** — `published_market_price` / `published_market_source` сохраняются в БД и в **Telegram** при новом сигнале; **на карточке не показываются** (вместо них график)
+- **График на карточке** — `SignalChart.tsx`: свечи **Bybit USDT perpetual (linear)** 1m / 5m / 15m, линии входа / стопа / целей (`lightweight-charts` **v4**, `addCandlestickSeries`); lazy-load в viewport; TradingView `BYBIT:…` ↗; фон как у карточки, **без сетки**; **`z-index` ниже нижней панели** (график не перекрывает вкладки)
+- **График после win/lose** — `frozen`: свечи грузятся **один раз**, таймфреймы отключены, повторных запросов нет
+- **Рынок при публикации** — `published_market_price` / `published_market_source` (`bybit_perp`) в БД и **Telegram**; на карточке — график, не текст
 
 **Кнопка «+» новый сигнал** — **FAB снизу** на вкладке Лента (`fab-bottom`).  
-При открытии формы: **`GET /signals/market-price`** → вход = текущий курс (по умолчанию BTCUSDT), стоп/цель **±1%** от входа; смена LONG/SHORT пересчитывает стоп и цель (`utils/signalLevels.ts`).
+При открытии формы: **`GET /signals/market-price`** → курс **Bybit perp**, стоп/цель **±1%**; смена LONG/SHORT пересчитывает уровни (`utils/signalLevels.ts`).
 
 **Кнопка «+» новость** — **FAB сверху** на вкладке Новости (`fab-top`).
 
-**Кнопка «Дополнить сигнал»** — компактная pill по центру (фиолетовый градиент, тонкая рамка).
-
-**Кнопка «Закрыть по рынку»** — оранжевая pill под дополнением; только **свои** активные сигналы **после входа**; подтверждение → `POST /signals/{id}/close-market`.
+**«Дополнить» и «Закрыть по рынку»** — в **один ряд** (`signal-admin-actions`), отступ до блока лайков; только **свои** сигналы после входа; закрытие → `POST /signals/{id}/close-market`.
 
 **Автор на карточке:** имя, `@username`, аватар слева.
 
@@ -110,18 +109,14 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 - **LONG**: рынок **≤** уровня входа → вход сработал
 - **SHORT**: рынок **≥** уровня входа → вход сработал
 
-### Источники цен (6 котировок параллельно)
+### Источник цен — Bybit perpetual
 
 `backend/app/price_service.py`:
 
-| Биржа | Spot | Бессрочные |
-|---|---|---|
-| Binance | ✓ | ✓ (fapi) |
-| Bybit | ✓ | ✓ (linear) |
-| BingX | ✓ | ✓ (swap) |
-
-**Правило:** вход и закрытие (win/lose) — по **первой бирже**, где цена достигла уровня в цикле мониторинга.  
-Если одновременно стоп и цель на разных биржах — **стоп важнее**.
+- Крипто USDT: только **`bybit_perp`** (Bybit v5 `category=linear`)
+- Форекс / золото: Frankfurter / gold-api (как раньше)
+- Мониторинг входа, win/lose, публикация, `GET /signals/market-price` — одна котировка Bybit
+- На фронте график: публичный API `GET /v5/market/kline?category=linear` (без бэкенда)
 
 ### Публикация сигнала
 
@@ -186,12 +181,12 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 ## WIN / LOSE reveal (лента)
 
-- При заходе на **Ленту** один раз показывается полноэкранная анимация по последнему непоказанному **win/lose** (`OutcomeReveal.tsx`, `useOutcomeReveal.ts`)
-- Уже показанные сигналы — в `localStorage` per user (`outcomeRevealStorage.ts`)
+- При заходе на **Ленту** — полноэкранная анимация по **последнему** win/lose, который пользователь ещё не видел
+- **Только сигналы, закрытые после `member_since`** (`subscribers.created_at` из `/auth/me`) — новому подписчику **не** показывается история до регистрации
+- Уже показанные — `localStorage` per user (`outcomeRevealStorage.ts`); при новом закрытии (poll 60 с) анимация снова может появиться
 - Звуки: `outcomeSounds.ts` (Web Audio)
 
 ---
-
 
 ## Hash Hedge трекер
 
@@ -215,7 +210,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 - **TXID** проверяется **on-chain** через Toncenter (`ton_payments.py`): USDT jetton, сумма ≥ плана, подтверждения; дубликаты TXID отклоняются (`subscription_billing.py` → `record_payment`)
 - Опционально: `TONCENTER_API_KEY`, `TONCENTER_API_BASE`
 - UI: `SubscriptionTab.tsx` — копирование кошелька, ввод TXID, обновление по `refreshKey` из шапки
-- **Рефералы:** у каждого подписчика `referral_code`; ссылка `https://t.me/{bot}?startapp={код}` (`referral_links.py`); **+3 дня** рефереру при первой оплате приглашённого; кнопки «Пригласить» / «Скопировать» (`referralShare.ts`, `telegramShareUrl`)
+- **Рефералы:** `referral_code`; ссылка `startapp`; **+3 дня рефереру после первой оплаты** приглашённого (неделя или месяц), не при регистрации
 
 ---
 
@@ -231,7 +226,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 | WIN / LOSE | Доходность + P/L $ |
 | Закрыт по рынку | 📤 «ЗАКРЫТ ПО РЫНКУ» + движение и P/L |
 
-Новости: `notify_news_enabled` только для **платной** подписки (`subscriber_ids_for_news_notify`).
+Новости: push **всем** зарегистрированным пользователям mini app при публикации — подписка и оплата не проверяются; галочка на вкладке «Новости» — для UI (рассылка идёт всем в БД)
 
 ---
 
@@ -245,6 +240,22 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 | Трекеры | Lazy fetch при первом открытии Лента/Трекер |
 | Вкладки | Code-splitting (`React.lazy`, chunks vendor/telegram) |
 | Просмотры | IntersectionObserver, не N POST при загрузке ленты |
+| Нижняя панель | `z-index: 200`; график `z-index: 0` + `isolation` |
+
+---
+
+## Очистка опубликованного контента
+
+`data_cleanup.py` → `purge_all_published_content()`:
+
+- Удаляет **сигналы**, **новости**, **отзывы** + медиа; сброс ТОП и трекеров админов ($10k)
+- **Не** трогает подписчиков, trial, `payment_txs`
+
+| Способ | Как |
+|---|---|
+| Одноразово при деплое | маркер `/data/.purged_all_published_may2026` в `migrate.py` |
+| Вручную (админ) | `POST /admin/purge-published` |
+| Скрипт на сервере | `python backend/scripts/purge_published.py` |
 
 ---
 
@@ -292,6 +303,7 @@ GET  /challenge/trackers
 GET  /challenge/rules
 PUT  /challenge/settings
 GET  /subscriptions/info | POST /subscriptions/pay | PUT /subscriptions/me
+POST /admin/purge-published      — require_admin, полная очистка ленты/новостей/отзывов
 ```
 
 ---
@@ -307,6 +319,7 @@ GET  /subscriptions/info | POST /subscriptions/pay | PUT /subscriptions/me
 | Лента (batch) | `feed_serializers.py` |
 | Сигналы логика | `signal_service.py`, `signal_utils.py`, `signal_permissions.py` |
 | Цены | `price_service.py`, `price_monitor.py` |
+| Очистка данных | `data_cleanup.py`, `routers/admin.py`, `scripts/purge_published.py` |
 | P/L, ТОП | `trader_stats.py`, `leaderboard_service.py` |
 | Ранги | `rank_service.py`, `rank_scheduler.py`, `rank_constants.py` |
 | Трекер | `challenge_service.py`, `hashhedge_rules.py` |
@@ -360,7 +373,7 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 
 ## Одноразовые миграции (маркеры на диске)
 
-- `.purged_test_v2`, `.purged_reset_v3` — purge через `data_cleanup.py` / `migrate.py`
+- `.purged_test_v2`, `.purged_reset_v3`, `.purged_all_published_may2026` — purge через `data_cleanup.py` / `migrate.py`
 
 Новые колонки через `migrate.py`: `published_market_price`, `published_market_source`, rank fields и др.
 
@@ -375,18 +388,20 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 5. Hash Hedge таблица правил, трекер по этапам
 6. **Upload progress** (XHR), автор в push (дополнил/изменил/удалил)
 7. **Perf:** batch лента, gzip, lazy tabs, polling только сигналов, IntersectionObserver views
-8. **Цены:** 6 бирж spot+perp, первый достигший уровень; snapshot при публикации
+8. **Цены:** snapshot при публикации (сейчас только **Bybit perp**)
 9. UI: кнопка «Дополнить» pill; **плечо + бегунок суммы входа %**; номинал с плечом
 10. **Форма нового сигнала:** автозаполнение курса, стоп/цель ±1%, подсветка номинала
 11. **Закрыть по рынку** — ручное закрытие активного сигнала после входа
 12. **USDT TON on-chain** — проверка TXID через Toncenter; обновлён UI подписки
 13. **Реферальная программа** — `startapp`-ссылки, share/copy в Mini App
 14. **WIN/LOSE reveal** — одноразовая анимация на ленте, localStorage
-15. **График на карточке** — Binance klines 1m/5m/15m, уровни вход/стоп/цель; `lightweight-charts` v4 API
+15. **График на карточке** — Bybit klines, уровни, `lightweight-charts` v4; UI: ряд админ-кнопок, z-index ленты
 16. **Кнопка ↻** в шапке — ручной refresh вкладки
+17. **Purge published** — сигналы + новости + отзывы; API `/admin/purge-published`
+18. **Только Bybit perp** — мониторинг и график; график **frozen** после win/lose
 
 ---
 
 ## Быстрое напоминание для AI
 
-> **prop-signals-miniapp** — FastAPI + React Telegram Mini App на Amvera (SQLite, `/data`). Админы публикуют сигналы; активные — по подписке, win/lose + трекер + ТОП — бесплатно. Цены: Binance/Bybit/BingX spot+perp, вход/выход по первой бирже на уровне. При публикации — snapshot цены в БД/Telegram; на карточке — **график** (не текст «рынок»). P/L = (трекер × сумма входа % × плечо) × % движения; ТОП — без плеча. Edit/delete до входа, дополнения и **закрытие по рынку** после входа. Оплата: USDT jetton + Toncenter. Рефералы +3 дня. WIN/LOSE reveal один раз. Perf: batch `/signals`, lazy tabs, poll 60s, ↻ refresh. Полный контекст — этот файл.
+> **prop-signals-miniapp** — FastAPI + React Telegram Mini App на Amvera (SQLite, `/data`). Админы публикуют сигналы; активные — по подписке, win/lose + трекер + ТОП — бесплатно. **Цены и график: Bybit USDT perp (linear).** После win/lose график не обновляется. На карточке — график + уровни; snapshot в Telegram. P/L = (трекер × сумма входа % × плечо) × % движения; ТОП — без плеча. Дополнить/закрыть по рынку — один ряд. Оплата: USDT + Toncenter. Рефералы +3 дня. WIN/LOSE reveal. Purge: `POST /admin/purge-published`. Perf: batch `/signals`, lazy tabs, poll 60s, bottom nav поверх графика. Полный контекст — этот файл.

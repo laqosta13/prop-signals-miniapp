@@ -11,9 +11,7 @@ from app.subscription_billing import (
     REFERRAL_BONUS_DAYS,
     TRIAL_DAYS,
     WEEK_USD,
-    can_enable_news_notify,
     record_payment,
-    subscription_active,
     usdt_pay_address,
 )
 
@@ -26,7 +24,7 @@ def _info(db, user: TelegramUser) -> SubscriptionInfo:
     bot = telegram_bot_username()
     link = build_referral_link(code)
     if link:
-        hint = "Отправьте ссылку другу — он откроет Mini App, вы получите бонусные дни."
+        hint = "Отправьте ссылку другу — после его оплаты любого тарифа вам начислят +3 дня."
     elif code:
         hint = (
             "Задайте TELEGRAM_BOT_USERNAME в env (или BOT_TOKEN для автоопределения), "
@@ -68,11 +66,6 @@ def update_subscription(
     if body.notify_enabled is not None:
         sub.notify_enabled = body.notify_enabled
     if body.notify_news_enabled is not None:
-        if body.notify_news_enabled and not can_enable_news_notify(db, sub, is_admin=user.is_admin):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="paid_subscription_required_for_news_notify",
-            )
         sub.notify_news_enabled = body.notify_news_enabled
     db.commit()
     db.refresh(sub)

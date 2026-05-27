@@ -13,6 +13,7 @@ type Props = {
   loading: boolean;
   isAdmin: boolean;
   myId: number | null;
+  memberSince?: string | null;
   subscriptionActive: boolean;
   onChanged: () => void;
   onEdit: (signal: Signal) => void;
@@ -28,6 +29,7 @@ export function FeedTab({
   loading,
   isAdmin,
   myId,
+  memberSince = null,
   subscriptionActive,
   onChanged,
   onEdit,
@@ -40,7 +42,7 @@ export function FeedTab({
   const [closingId, setClosingId] = useState<number | null>(null);
   const hasActiveAccess = canViewActiveSignals(subscriptionActive, isAdmin);
   const visible = visibleFeedSignals(signals, subscriptionActive, isAdmin);
-  const { revealSignal, clearReveal } = useOutcomeReveal(signals, loading, myId);
+  const { revealSignal, clearReveal } = useOutcomeReveal(signals, loading, myId ?? null, memberSince);
 
   const handleDelete = async (id: number) => {
     if (!confirm("Удалить этот сигнал?")) return;

@@ -143,9 +143,9 @@ async def notify_new_signal(db: Session, signal: Signal) -> None:
 async def notify_new_news(db: Session, post: NewsPost) -> None:
     ids = subscriber_ids_for_news_notify(db)
     if not ids:
-        logger.info("notify_new_news: 0 получателей (платная подписка + notify_enabled)")
+        logger.info("notify_new_news: 0 получателей")
         return
-    logger.info("notify_new_news: %s получателей", len(ids))
+    logger.info("notify_new_news: %s получателей (все пользователи mini app)", len(ids))
     trader = db.get(Trader, post.author_telegram_id)
     author = None
     if trader:

@@ -134,7 +134,7 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void
           <h3>Реферальная программа</h3>
           <span className="referral-bonus-pill">+{info.referral_bonus_days} дня за друга</span>
         </div>
-        <p className="meta">Пригласите друга в PROP-DESK — после первого входа по вашей ссылке подписка продлится.</p>
+        <p className="meta">Пригласите друга — +{info.referral_bonus_days} дня вам, когда он оплатит неделю или месяц.</p>
 
         <div className="referral-code-box">
           <span className="referral-code-box__label">Ваш код</span>
@@ -163,8 +163,8 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void
             </div>
             <ol className="referral-steps">
               <li>Нажмите «Пригласить» или «Переслать» и выберите чат.</li>
-              <li>Друг открывает Mini App по ссылке (параметр startapp).</li>
-              <li>Вам начисляется +{info.referral_bonus_days} дня подписки.</li>
+              <li>Друг открывает Mini App по ссылке и регистрируется.</li>
+              <li>После оплаты любого тарифа вам начисляется +{info.referral_bonus_days} дня.</li>
             </ol>
           </>
         ) : (

@@ -144,6 +144,8 @@ def run_migrations(engine: Engine) -> None:
     _purge_test_data_once(engine)
     _purge_signals_reset_v3(engine)
     _purge_all_published_may2026(engine)
+    _sync_news_notify_flags_v1(engine)
+    _reset_news_notify_opt_in_v2(engine)
 
 
 def _purge_signals_reset_v3(engine: Engine) -> None:
@@ -212,6 +214,47 @@ def _purge_all_published_may2026(engine: Engine) -> None:
         marker.touch()
     finally:
         db.close()
+
+
+def _sync_news_notify_flags_v1(engine: Engine) -> None:
+    """Сброс notify_news у подписчиков без оплаты (trial / без подписки)."""
+    marker = _marker_path(engine, ".synced_news_notify_v1")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".synced_news_notify_v1"
+    if marker.exists():
+        return
+    from sqlalchemy import select
+
+    from app.database import SessionLocal
+    from app.models import Subscriber
+    from app.subscription_billing import sync_subscriber_notification_flags
+
+    db = SessionLocal()
+    try:
+        for sub in db.scalars(select(Subscriber)):
+            sync_subscriber_notification_flags(db, sub)
+        db.commit()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
+
+
+def _reset_news_notify_opt_in_v2(engine: Engine) -> None:
+    """Сброс notify_news у всех — повторное включение только вручную на вкладке «Новости» после оплаты."""
+    marker = _marker_path(engine, ".reset_news_notify_v2")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".reset_news_notify_v2"
+    if marker.exists():
+        return
+    with engine.begin() as conn:
+        conn.execute(text("UPDATE subscribers SET notify_news_enabled = 0"))
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.touch()
 
 
 def _purge_test_data_once(engine: Engine) -> None:

@@ -50,5 +50,5 @@ def build_referral_link(code: str) -> str:
 def referral_share_text(*, bonus_days: int) -> str:
     return (
         f"PROP-DESK · сигналы и трекер Hash Hedge. "
-        f"Попробуй бесплатно — по моей ссылке, а мне начислят +{bonus_days} дн. подписки."
+        f"Попробуй бесплатно — после твоей оплаты подписки мне начислят +{bonus_days} дн."
     )
