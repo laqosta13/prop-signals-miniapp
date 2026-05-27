@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import type { TraderRank } from "../api";
 import { confirmMyRank } from "../api";
 import { rankStyle } from "../utils/ranks";
@@ -26,8 +27,8 @@ export function RankConfirmModal({ rank, onDone }: Props) {
     }
   };
 
-  return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true">
+  return createPortal(
+    <div className="modal-backdrop modal-backdrop--rank" role="dialog" aria-modal="true">
       <div className="rank-confirm-sheet">
         <h2>Подтверди свой ранг</h2>
         <div className="rank-confirm-sheet__hero" style={{ background: st.bg, color: st.color }}>
@@ -43,6 +44,7 @@ export function RankConfirmModal({ rank, onDone }: Props) {
           До воскресенья 23:59 — иначе ранг понизится автоматически
         </p>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
