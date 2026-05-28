@@ -346,6 +346,28 @@ body {
   color: var(--muted);
 }
 
+.admin-purge {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.admin-purge__btn {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 90, 90, 0.45);
+  background: rgba(255, 70, 70, 0.12);
+  color: #ff8a89;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-purge__btn:active {
+  background: rgba(255, 70, 70, 0.22);
+}
+
 .delete-btn {
   padding: 4px 10px;
   border-radius: 8px;

@@ -7,6 +7,7 @@ import {
   fetchRankPending,
   fetchSignals,
   fetchSignalsPreview,
+  purgePublishedContent,
   setNotifications,
   type TraderRank,
   updateChallenge,
@@ -328,6 +329,28 @@ export default function App() {
 
   const onNewsSaved = () => setNewsRefreshKey((k) => k + 1);
 
+  const handlePurgePublished = async () => {
+    if (
+      !confirm(
+        "Удалить всё опубликованное?\n\n• все сигналы\n• все новости\n• все отзывы\n\nПодписки и платежи сохранятся. ТОП и трекеры админов сбросятся.",
+      )
+    ) {
+      return;
+    }
+    if (!confirm("Действие необратимо. Удалить?")) return;
+    try {
+      await purgePublishedContent();
+      setSignals([]);
+      setNewsRefreshKey((k) => k + 1);
+      setReviewsRefreshKey((k) => k + 1);
+      await Promise.all([loadBootstrap(), loadTrackers(), tab === "top" ? loadTop() : Promise.resolve()]);
+      WebApp.HapticFeedback.notificationOccurred("success");
+      alert("Готово: лента, новости и отзывы очищены.");
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Не удалось очистить");
+    }
+  };
+
   const head = TITLES[tab];
   const showDisclaimer = disclaimerReady && !disclaimerAccepted;
 
@@ -410,6 +433,7 @@ export default function App() {
             onPatch={patchSignal}
             onOpenPay={() => setTab("pay")}
             onOpenTracker={() => setTab("tracker")}
+            onPurgePublished={isAdmin ? () => void handlePurgePublished() : undefined}
           />
         )}
         {tab === "tracker" && (

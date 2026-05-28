@@ -229,6 +229,12 @@ export const submitPayment = (plan: "week" | "month", tx_id: string) =>
   });
 
 export const fetchMe = () => api<Me>("/auth/me");
+
+export const purgePublishedContent = () =>
+  api<{ ok: boolean; purged: string[]; reset: string[] }>("/admin/purge-published", {
+    method: "POST",
+  });
+
 export const fetchSignals = () => api<Signal[]>("/signals");
 export const fetchSignalsPreview = () => api<Signal[]>("/signals/preview");
 

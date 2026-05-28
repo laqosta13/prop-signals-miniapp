@@ -18,6 +18,7 @@ type Props = {
   onPatch: (id: number, patch: Partial<Signal>) => void;
   onOpenPay: () => void;
   onOpenTracker: () => void;
+  onPurgePublished?: () => void;
 };
 
 export function FeedTab({
@@ -33,6 +34,7 @@ export function FeedTab({
   onPatch,
   onOpenPay,
   onOpenTracker,
+  onPurgePublished,
 }: Props) {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [closingId, setClosingId] = useState<number | null>(null);
@@ -97,6 +99,13 @@ export function FeedTab({
         />
       ))}
       {trackers.length > 0 && <PropTrackerMini trackers={trackers} onOpen={onOpenTracker} />}
+      {onPurgePublished && (
+        <div className="admin-purge">
+          <button type="button" className="admin-purge__btn" onClick={onPurgePublished}>
+            Очистить всё опубликованное
+          </button>
+        </div>
+      )}
     </>
   );
 }
