@@ -1,5 +1,13 @@
 const KEY = "prop_outcome_reveal_v1";
 
+function parseApiDateMs(raw: string | null | undefined): number {
+  if (!raw) return 0;
+  const s = raw.trim();
+  const hasTz = /(?:[zZ]|[+\-]\d{2}:\d{2})$/.test(s);
+  const ms = new Date(hasTz ? s : `${s}Z`).getTime();
+  return Number.isFinite(ms) ? ms : 0;
+}
+
 export function loadPlayedOutcomeIds(userId: number): Set<number> {
   try {
     const raw = localStorage.getItem(`${KEY}:${userId}`);
@@ -19,13 +27,13 @@ export function markOutcomeRevealPlayed(userId: number, signalId: number): void 
 
 export function parseMemberSinceMs(memberSince: string | null | undefined): number | null {
   if (!memberSince) return null;
-  const ms = new Date(memberSince).getTime();
+  const ms = parseApiDateMs(memberSince);
   return Number.isFinite(ms) ? ms : null;
 }
 
 export function signalClosedAtMs(closedAt: string | null | undefined, createdAt: string): number {
   const raw = closedAt || createdAt;
-  const ms = new Date(raw).getTime();
+  const ms = parseApiDateMs(raw);
   return Number.isFinite(ms) ? ms : 0;
 }
 
