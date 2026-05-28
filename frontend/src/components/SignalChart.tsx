@@ -82,15 +82,6 @@ function applyLevelLines(series: ISeriesApi<"Candlestick">, levels: ReturnType<t
   });
 }
 
-function matchEntryCandleTime(candles: Candle[], entrySec: number, candleSec: number): UTCTimestamp | null {
-  for (const c of candles) {
-    const t = Number(c.time);
-    if (t === entrySec) return c.time;
-    if (entrySec >= t && entrySec < t + candleSec) return c.time;
-  }
-  return null;
-}
-
 function clipCandlesAtClose(candles: Candle[], closedAt: string | null | undefined, candleSec: number): Candle[] {
   if (!closedAt || !candles.length) return candles;
   const closeMs = Date.parse(closedAt);
@@ -108,18 +99,14 @@ function clipCandlesAtClose(candles: Candle[], closedAt: string | null | undefin
 function applyEntryMarker(
   series: ISeriesApi<"Candlestick">,
   candles: Candle[],
-  candleSec: number,
   entryFilledAt?: string | null,
   entryPrice?: number | null,
 ): UTCTimestamp | null {
-  if (!entryFilledAt) {
+  if (!entryFilledAt || candles.length === 0) {
     series.setMarkers([]);
     return null;
   }
-  const ms = Date.parse(entryFilledAt);
-  if (!Number.isFinite(ms)) return null;
-  const sec = Math.floor(ms / 1000);
-  const time = matchEntryCandleTime(candles, sec, candleSec);
+  const time = candles[candles.length - 1]?.time ?? null;
   if (time == null) return null;
   const label = entryPrice != null ? `Вход ${entryPrice.toFixed(2)}` : "Вход";
   series.setMarkers([
@@ -258,7 +245,7 @@ export function SignalChart({
         seriesRef.current = series;
         series.setData(data);
         applyLevelLines(series, lv);
-        entryCandleTimeRef.current = applyEntryMarker(series, data, candleSec, entryFilledAt, entryPrice);
+        entryCandleTimeRef.current = applyEntryMarker(series, data, entryFilledAt, entryPrice);
         chart.timeScale().fitContent();
         const x = entryCandleTimeRef.current != null ? chart.timeScale().timeToCoordinate(entryCandleTimeRef.current) : null;
         setEntryLineLeft(x != null && Number.isFinite(x) ? x : null);
