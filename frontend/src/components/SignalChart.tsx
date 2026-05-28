@@ -81,24 +81,19 @@ function applyLevelLines(series: ISeriesApi<"Candlestick">, levels: ReturnType<t
   });
 }
 
-function nearestCandleTime(candles: Candle[], targetSec: number): UTCTimestamp | null {
-  if (!candles.length) return null;
-  let best = candles[0].time;
-  let bestDelta = Math.abs(Number(best) - targetSec);
-  for (let i = 1; i < candles.length; i += 1) {
-    const t = candles[i].time;
-    const delta = Math.abs(Number(t) - targetSec);
-    if (delta < bestDelta) {
-      best = t;
-      bestDelta = delta;
-    }
+function matchEntryCandleTime(candles: Candle[], entrySec: number, candleSec: number): UTCTimestamp | null {
+  for (const c of candles) {
+    const t = Number(c.time);
+    if (t === entrySec) return c.time;
+    if (entrySec >= t && entrySec < t + candleSec) return c.time;
   }
-  return best;
+  return null;
 }
 
 function applyEntryMarker(
   series: ISeriesApi<"Candlestick">,
   candles: Candle[],
+  candleSec: number,
   entryFilledAt?: string | null,
   entryPrice?: number | null,
 ): UTCTimestamp | null {
@@ -109,7 +104,7 @@ function applyEntryMarker(
   const ms = Date.parse(entryFilledAt);
   if (!Number.isFinite(ms)) return null;
   const sec = Math.floor(ms / 1000);
-  const time = nearestCandleTime(candles, sec);
+  const time = matchEntryCandleTime(candles, sec, candleSec);
   if (time == null) return null;
   const label = entryPrice != null ? `Вход ${entryPrice.toFixed(2)}` : "Вход";
   series.setMarkers([
@@ -245,7 +240,8 @@ export function SignalChart({
         seriesRef.current = series;
         series.setData(candles);
         applyLevelLines(series, lv);
-        entryCandleTimeRef.current = applyEntryMarker(series, candles, entryFilledAt, entryPrice);
+        const candleSec = Math.max(60, Number(bybitIv) * 60);
+        entryCandleTimeRef.current = applyEntryMarker(series, candles, candleSec, entryFilledAt, entryPrice);
         chart.timeScale().fitContent();
         const x = entryCandleTimeRef.current != null ? chart.timeScale().timeToCoordinate(entryCandleTimeRef.current) : null;
         setEntryLineLeft(x != null && Number.isFinite(x) ? x : null);

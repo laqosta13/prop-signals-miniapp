@@ -1632,8 +1632,15 @@ body {
 .top-score {
   font-size: 1.3rem;
   font-weight: 700;
-  color: var(--green);
   margin: 2px 0;
+}
+
+.top-score.up {
+  color: var(--green);
+}
+
+.top-score.down {
+  color: var(--red);
 }
 
 .top-meta {
