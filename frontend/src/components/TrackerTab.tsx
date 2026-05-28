@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import type { ChallengeDashboard, Signal } from "../api";
 import { HASHHEDGE_RULES } from "../data/hashhedgeRules";
 import { authorProfile, formatTakeProfits, formatUsd } from "../utils";
@@ -13,6 +14,27 @@ type Props = {
 };
 
 export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Props) {
+  const [dayLossLimitPct, setDayLossLimitPct] = useState(5);
+  const todayLossUsd = useMemo(() => {
+    const now = new Date();
+    const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const dayEnd = dayStart + 24 * 60 * 60 * 1000;
+    return signals.reduce((sum, s) => {
+      if (s.status === "active" || s.realized_pnl == null || s.realized_pnl >= 0) return sum;
+      const at = s.closed_at || s.created_at;
+      const ts = new Date(at).getTime();
+      if (!Number.isFinite(ts) || ts < dayStart || ts >= dayEnd) return sum;
+      return sum + Math.abs(s.realized_pnl);
+    }, 0);
+  }, [signals]);
+  const totalAccountUsd = useMemo(
+    () => trackers.reduce((sum, t) => sum + (Number.isFinite(t.account_size) ? t.account_size : 0), 0),
+    [trackers],
+  );
+  const dayLimitUsd = totalAccountUsd * (dayLossLimitPct / 100);
+  const dayUsedPct = dayLimitUsd > 0 ? Math.min(100, (todayLossUsd / dayLimitUsd) * 100) : 0;
+  const dayRemainingUsd = Math.max(0, dayLimitUsd - todayLossUsd);
+
   return (
     <>
       <HashHedgeRulesTable rules={HASHHEDGE_RULES} />
@@ -137,6 +159,31 @@ export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Pro
           </section>
         );
       })}
+
+      <section className="tracker-global-limit">
+        <div className="tracker-global-limit__head">
+          <p className="tracker-global-limit__title">ЛИМИТ ДНЯ ВСЕХ ТРЕЙДЕРОВ</p>
+          <strong>{dayLossLimitPct.toFixed(1)}%</strong>
+        </div>
+        <input
+          type="range"
+          min={1}
+          max={15}
+          step={0.5}
+          value={dayLossLimitPct}
+          onChange={(e) => setDayLossLimitPct(Number(e.target.value))}
+        />
+        <div className="tracker-global-limit__row">
+          <span>Потери за день: {formatUsd(todayLossUsd)}</span>
+          <span>Лимит: {formatUsd(dayLimitUsd)}</span>
+        </div>
+        <div className="progress thin danger">
+          <span className="progress__fill danger" style={{ width: `${dayUsedPct}%` }} />
+        </div>
+        <p className="tracker-global-limit__foot">
+          Остаток {formatUsd(dayRemainingUsd)} из общей базы {formatUsd(totalAccountUsd)}
+        </p>
+      </section>
     </>
   );
 }

@@ -1414,6 +1414,47 @@ body {
   font-size: 0.9rem;
 }
 
+.tracker-global-limit {
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 12px;
+  margin: 4px 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tracker-global-limit__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.tracker-global-limit__title {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.tracker-global-limit input[type="range"] {
+  width: 100%;
+  margin: 2px 0 8px;
+}
+
+.tracker-global-limit__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+.tracker-global-limit__foot {
+  margin: 8px 0 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
 .stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
