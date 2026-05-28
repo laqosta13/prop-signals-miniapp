@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { fetchSubscriptionInfo, submitPayment, type SubscriptionInfo } from "../api";
-import { copyToClipboard } from "../utils";
+import { copyToClipboard, formatDateTimeMsk } from "../utils";
 import { copyReferralLink, openReferralShare } from "../utils/referralShare";
 
 export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void; refreshKey?: number }) {
@@ -84,7 +84,7 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void
     <div className="sub-pay">
       <p className={`sub-pay__status ${info.subscription_active ? "on" : "off"}`}>
         {info.subscription_active ? (
-          <>Подписка активна до {info.subscription_until ? new Date(info.subscription_until).toLocaleString() : "—"}</>
+          <>Подписка активна до {formatDateTimeMsk(info.subscription_until)}</>
         ) : (
           <>Подписка не активна. Новым пользователям — {info.trial_days} дня бесплатно.</>
         )}

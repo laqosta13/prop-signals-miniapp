@@ -24,6 +24,8 @@ type Props = {
   entryHigh: string | null;
   stopLoss: string | null;
   takeProfits: string | null;
+  entryFilledAt?: string | null;
+  entryPrice?: number | null;
   /** win/lose — один раз загрузить свечи и не обновлять */
   frozen?: boolean;
 };
@@ -54,38 +56,7 @@ async function fetchBybitKlines(pair: string, interval: string): Promise<Candle[
 }
 
 function applyLevelLines(series: ISeriesApi<"Candlestick">, levels: ReturnType<typeof levelsFromSignal>) {
-  const { entryLow, entryHigh, stop, targets } = levels;
-
-  if (entryLow != null && entryHigh != null && Math.abs(entryHigh - entryLow) > 1e-12) {
-    series.createPriceLine({
-      price: entryLow,
-      color: "rgba(61, 255, 138, 0.95)",
-      lineWidth: 2,
-      lineStyle: LineStyle.Dashed,
-      axisLabelVisible: true,
-      title: "Вход",
-    });
-    series.createPriceLine({
-      price: entryHigh,
-      color: "rgba(61, 255, 138, 0.55)",
-      lineWidth: 1,
-      lineStyle: LineStyle.Dashed,
-      axisLabelVisible: false,
-      title: "",
-    });
-  } else {
-    const entry = entryLow ?? entryHigh;
-    if (entry != null) {
-      series.createPriceLine({
-        price: entry,
-        color: "#3dff8a",
-        lineWidth: 2,
-        lineStyle: LineStyle.Solid,
-        axisLabelVisible: true,
-        title: "Вход",
-      });
-    }
-  }
+  const { stop, targets } = levels;
 
   if (stop != null) {
     series.createPriceLine({
@@ -110,12 +81,56 @@ function applyLevelLines(series: ISeriesApi<"Candlestick">, levels: ReturnType<t
   });
 }
 
+function nearestCandleTime(candles: Candle[], targetSec: number): UTCTimestamp | null {
+  if (!candles.length) return null;
+  let best = candles[0].time;
+  let bestDelta = Math.abs(Number(best) - targetSec);
+  for (let i = 1; i < candles.length; i += 1) {
+    const t = candles[i].time;
+    const delta = Math.abs(Number(t) - targetSec);
+    if (delta < bestDelta) {
+      best = t;
+      bestDelta = delta;
+    }
+  }
+  return best;
+}
+
+function applyEntryMarker(
+  series: ISeriesApi<"Candlestick">,
+  candles: Candle[],
+  entryFilledAt?: string | null,
+  entryPrice?: number | null,
+) {
+  if (!entryFilledAt) {
+    series.setMarkers([]);
+    return;
+  }
+  const ms = Date.parse(entryFilledAt);
+  if (!Number.isFinite(ms)) return;
+  const sec = Math.floor(ms / 1000);
+  const time = nearestCandleTime(candles, sec);
+  if (time == null) return;
+  const label = entryPrice != null ? `Вход ${entryPrice.toFixed(2)}` : "Вход";
+  series.setMarkers([
+    {
+      time,
+      position: "inBar",
+      color: "#3dff8a",
+      shape: "circle",
+      text: label,
+    },
+  ]);
+}
+
 export function SignalChart({
   symbol,
   entryLow,
   entryHigh,
   stopLoss,
   takeProfits,
+  entryFilledAt,
+  entryPrice,
   frozen = false,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -205,6 +220,7 @@ export function SignalChart({
         seriesRef.current = series;
         series.setData(candles);
         applyLevelLines(series, lv);
+        applyEntryMarker(series, candles, entryFilledAt, entryPrice);
         chart.timeScale().fitContent();
         loadedRef.current = true;
       })
@@ -216,7 +232,7 @@ export function SignalChart({
       });
 
     return () => ac.abort();
-  }, [visible, pair, interval, entryLow, entryHigh, stopLoss, takeProfits, frozen]);
+  }, [visible, pair, interval, entryLow, entryHigh, stopLoss, takeProfits, entryFilledAt, entryPrice, frozen]);
 
   if (!pair) return null;
 

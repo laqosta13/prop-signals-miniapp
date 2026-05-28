@@ -1,4 +1,17 @@
 /** Копирование в буфер (Telegram WebView + fallback). */
+const MSK_TZ = "Europe/Moscow";
+
+function mskDayKey(d: Date): string {
+  const parts = new Intl.DateTimeFormat("ru-RU", {
+    timeZone: MSK_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
 export async function copyToClipboard(text: string): Promise<boolean> {
   try {
     if (navigator.clipboard?.writeText) {
@@ -29,11 +42,11 @@ export function formatDayLabel(isoDate: string) {
   try {
     const d = new Date(isoDate + "T12:00:00");
     const today = new Date();
-    if (d.toDateString() === today.toDateString()) return "Сегодня";
+    if (mskDayKey(d) === mskDayKey(today)) return "Сегодня";
     const y = new Date(today);
     y.setDate(today.getDate() - 1);
-    if (d.toDateString() === y.toDateString()) return "Вчера";
-    return d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+    if (mskDayKey(d) === mskDayKey(y)) return "Вчера";
+    return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short", timeZone: MSK_TZ });
   } catch {
     return isoDate;
   }
@@ -43,16 +56,29 @@ export function formatTime(iso: string) {
   try {
     const d = new Date(iso);
     const now = new Date();
-    const sameDay = d.toDateString() === now.toDateString();
+    const sameDay = mskDayKey(d) === mskDayKey(now);
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
-    const isYesterday = d.toDateString() === yesterday.toDateString();
-    const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    const isYesterday = mskDayKey(d) === mskDayKey(yesterday);
+    const time = d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", timeZone: MSK_TZ });
     if (sameDay) return `Сегодня • ${time}`;
     if (isYesterday) return `Вчера • ${time}`;
-    return d.toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
+    return d.toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short", timeZone: MSK_TZ });
   } catch {
     return iso;
+  }
+}
+
+export function formatDateTimeMsk(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleString("ru-RU", {
+      dateStyle: "short",
+      timeStyle: "short",
+      timeZone: MSK_TZ,
+    });
+  } catch {
+    return "—";
   }
 }
 
