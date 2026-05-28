@@ -150,9 +150,6 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void
               <button type="button" className="referral-btn referral-btn--primary" onClick={shareReferral}>
                 Пригласить друга
               </button>
-              <button type="button" className="referral-btn referral-btn--secondary" onClick={shareReferral}>
-                Переслать
-              </button>
               <button
                 type="button"
                 className={`referral-btn referral-btn--ghost${refCopied ? " copied" : ""}`}
@@ -161,11 +158,6 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void
                 {refCopied ? "Скопировано ✓" : "Копировать ссылку"}
               </button>
             </div>
-            <ol className="referral-steps">
-              <li>Нажмите «Пригласить» или «Переслать» и выберите чат.</li>
-              <li>Друг открывает Mini App по ссылке и регистрируется.</li>
-              <li>После оплаты любого тарифа вам начисляется +{info.referral_bonus_days} дня.</li>
-            </ol>
           </>
         ) : (
           <p className="meta referral-warn">{info.referral_link_hint}</p>
