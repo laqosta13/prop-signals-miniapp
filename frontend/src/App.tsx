@@ -49,14 +49,63 @@ const TITLES: Record<Tab, { title: string; sub: string }> = {
   pay: { title: "Подписка", sub: "USDT TON · рефералы" },
 };
 
-const NAV: { id: Tab; label: string; icon: string }[] = [
-  { id: "feed", label: "Лента", icon: "📈" },
-  { id: "tracker", label: "Трекер", icon: "〰" },
-  { id: "top", label: "ТОП", icon: "🏆" },
-  { id: "reviews", label: "Отзывы", icon: "💬" },
-  { id: "news", label: "Новости", icon: "📰" },
-  { id: "pay", label: "Подписка", icon: "💳" },
+const NAV: { id: Tab; label: string }[] = [
+  { id: "feed", label: "Лента" },
+  { id: "tracker", label: "Трекер" },
+  { id: "top", label: "ТОП" },
+  { id: "reviews", label: "Отзывы" },
+  { id: "news", label: "Новости" },
+  { id: "pay", label: "Подписка" },
 ];
+
+function NavIcon({ tab }: { tab: Tab }) {
+  if (tab === "feed") {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path d="M4 16 9 11l3.5 3.5L20 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M20 12V7h-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (tab === "tracker") {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path d="M4 7h16M4 12h10M4 17h7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (tab === "top") {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path d="M7 20h10M8 16h8l1.5-8H6.5L8 16Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+        <path d="M9 8V5a3 3 0 0 1 6 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (tab === "reviews") {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path d="M5 6h14v9H9l-4 3V6Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (tab === "news") {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path d="M6 5h10v14H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" strokeWidth="2" />
+        <path d="M16 7h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H8" stroke="currentColor" strokeWidth="2" />
+        <path d="M8.5 9.5h5M8.5 12.5h5M8.5 15.5h3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect x="4" y="6" width="16" height="12" rx="2.5" stroke="currentColor" strokeWidth="2" />
+      <path d="M4 10h16" stroke="currentColor" strokeWidth="2" />
+      <path d="M8 14h3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 function TabFallback() {
   return <p className="meta">Загрузка…</p>;
@@ -372,9 +421,11 @@ export default function App() {
       )}
 
       <nav className="bottom-nav">
-        {NAV.map(({ id, label, icon }) => (
+        {NAV.map(({ id, label }) => (
           <button key={id} type="button" className={tab === id ? "on" : ""} onClick={() => setTab(id)}>
-            <span className="ico">{icon}</span>
+            <span className="ico">
+              <NavIcon tab={id} />
+            </span>
             {label}
           </button>
         ))}
