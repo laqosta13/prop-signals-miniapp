@@ -1418,7 +1418,7 @@ body {
   background: var(--surface);
   border-radius: 14px;
   padding: 12px;
-  margin: 4px 0 16px;
+  margin: 8px 0 16px;
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -1434,11 +1434,6 @@ body {
   font-size: 0.72rem;
   letter-spacing: 0.04em;
   color: var(--muted);
-}
-
-.tracker-global-limit input[type="range"] {
-  width: 100%;
-  margin: 2px 0 8px;
 }
 
 .tracker-global-limit__row {

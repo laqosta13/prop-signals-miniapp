@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { ChallengeDashboard, Signal } from "../api";
 import { HASHHEDGE_RULES } from "../data/hashhedgeRules";
 import { authorProfile, formatTakeProfits, formatUsd } from "../utils";
@@ -14,7 +14,7 @@ type Props = {
 };
 
 export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Props) {
-  const [dayLossLimitPct, setDayLossLimitPct] = useState(5);
+  const dayLossLimitPct = 5;
   const todayLossUsd = useMemo(() => {
     const now = new Date();
     const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
@@ -32,12 +32,28 @@ export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Pro
     [trackers],
   );
   const dayLimitUsd = totalAccountUsd * (dayLossLimitPct / 100);
-  const dayUsedPct = dayLimitUsd > 0 ? Math.min(100, (todayLossUsd / dayLimitUsd) * 100) : 0;
+  const dayRemainingPct = dayLimitUsd > 0 ? Math.max(0, 100 - (todayLossUsd / dayLimitUsd) * 100) : 0;
   const dayRemainingUsd = Math.max(0, dayLimitUsd - todayLossUsd);
 
   return (
     <>
       <HashHedgeRulesTable rules={HASHHEDGE_RULES} />
+      <section className="tracker-global-limit">
+        <div className="tracker-global-limit__head">
+          <p className="tracker-global-limit__title">ЛИМИТ ДНЯ ДЛЯ ВСЕХ ТРЕЙДЕРОВ</p>
+          <strong>{dayLossLimitPct}%</strong>
+        </div>
+        <div className="tracker-global-limit__row">
+          <span>Потери за день: {formatUsd(todayLossUsd)}</span>
+          <span>Лимит: {formatUsd(dayLimitUsd)}</span>
+        </div>
+        <div className="progress thin">
+          <span className="progress__fill" style={{ width: `${dayRemainingPct}%` }} />
+        </div>
+        <p className="tracker-global-limit__foot">
+          Остаток {formatUsd(dayRemainingUsd)} из общей базы {formatUsd(totalAccountUsd)}
+        </p>
+      </section>
 
       {!trackers.length && (
         <p className="meta tracker-empty">Трекеры админов появятся после настройки TELEGRAM_ADMIN_IDS.</p>
@@ -160,30 +176,6 @@ export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Pro
         );
       })}
 
-      <section className="tracker-global-limit">
-        <div className="tracker-global-limit__head">
-          <p className="tracker-global-limit__title">ЛИМИТ ДНЯ ВСЕХ ТРЕЙДЕРОВ</p>
-          <strong>{dayLossLimitPct.toFixed(1)}%</strong>
-        </div>
-        <input
-          type="range"
-          min={1}
-          max={15}
-          step={0.5}
-          value={dayLossLimitPct}
-          onChange={(e) => setDayLossLimitPct(Number(e.target.value))}
-        />
-        <div className="tracker-global-limit__row">
-          <span>Потери за день: {formatUsd(todayLossUsd)}</span>
-          <span>Лимит: {formatUsd(dayLimitUsd)}</span>
-        </div>
-        <div className="progress thin danger">
-          <span className="progress__fill danger" style={{ width: `${dayUsedPct}%` }} />
-        </div>
-        <p className="tracker-global-limit__foot">
-          Остаток {formatUsd(dayRemainingUsd)} из общей базы {formatUsd(totalAccountUsd)}
-        </p>
-      </section>
     </>
   );
 }
