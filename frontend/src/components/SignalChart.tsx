@@ -8,15 +8,18 @@ import {
   type ISeriesApi,
   type UTCTimestamp,
 } from "lightweight-charts";
+import { parseApiDate } from "../utils";
 import {
   CHART_INTERVALS,
   bybitSymbol,
+  entryCandleTimeForFill,
   levelsFromSignal,
   tradingViewSymbol,
+  type ChartCandle,
   type ChartInterval,
 } from "../utils/signalChartLevels";
 
-type Candle = { time: UTCTimestamp; open: number; high: number; low: number; close: number };
+const CHART_POLL_MS = 30_000;
 
 type Props = {
   symbol: string;
@@ -31,7 +34,7 @@ type Props = {
   frozen?: boolean;
 };
 
-async function fetchBybitKlines(pair: string, interval: string): Promise<Candle[]> {
+async function fetchBybitKlines(pair: string, interval: string): Promise<ChartCandle[]> {
   const params = new URLSearchParams({
     category: "linear",
     symbol: pair,
@@ -82,9 +85,9 @@ function applyLevelLines(series: ISeriesApi<"Candlestick">, levels: ReturnType<t
   });
 }
 
-function clipCandlesAtClose(candles: Candle[], closedAt: string | null | undefined, candleSec: number): Candle[] {
+function clipCandlesAtClose(candles: ChartCandle[], closedAt: string | null | undefined, candleSec: number): ChartCandle[] {
   if (!closedAt || !candles.length) return candles;
-  const closeMs = Date.parse(closedAt);
+  const closeMs = parseApiDate(closedAt).getTime();
   if (!Number.isFinite(closeMs)) return candles;
   const closeSec = Math.floor(closeMs / 1000);
   for (let i = 0; i < candles.length; i += 1) {
@@ -96,18 +99,11 @@ function clipCandlesAtClose(candles: Candle[], closedAt: string | null | undefin
   return candles;
 }
 
-function applyEntryMarker(
+function applyEntryMarkerAtTime(
   series: ISeriesApi<"Candlestick">,
-  candles: Candle[],
-  entryFilledAt?: string | null,
+  time: UTCTimestamp,
   entryPrice?: number | null,
-): UTCTimestamp | null {
-  if (!entryFilledAt || candles.length === 0) {
-    series.setMarkers([]);
-    return null;
-  }
-  const time = candles[candles.length - 1]?.time ?? null;
-  if (time == null) return null;
+) {
   const label = entryPrice != null ? `Вход ${entryPrice.toFixed(2)}` : "Вход";
   series.setMarkers([
     {
@@ -118,7 +114,12 @@ function applyEntryMarker(
       text: label,
     },
   ]);
-  return time;
+}
+
+function syncEntryLineLeft(chart: IChartApi, time: UTCTimestamp | null): number | null {
+  if (time == null) return null;
+  const x = chart.timeScale().timeToCoordinate(time);
+  return x != null && Number.isFinite(x) ? x : null;
 }
 
 export function SignalChart({
@@ -137,6 +138,7 @@ export function SignalChart({
   const chartApi = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const entryCandleTimeRef = useRef<UTCTimestamp | null>(null);
+  const pinnedEntryRef = useRef<{ fillAt: string; time: UTCTimestamp } | null>(null);
   const loadedRef = useRef(false);
   const [interval, setInterval] = useState<ChartInterval>("5");
   const [loading, setLoading] = useState(true);
@@ -147,11 +149,32 @@ export function SignalChart({
   const pair = bybitSymbol(symbol);
   const tvLink = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tradingViewSymbol(symbol))}`;
 
+  const resolvePinnedEntryTime = (candles: ChartCandle[], candleSec: number): UTCTimestamp | null => {
+    if (!entryFilledAt || !candles.length) return null;
+    if (pinnedEntryRef.current?.fillAt === entryFilledAt) {
+      return pinnedEntryRef.current.time;
+    }
+    const time = entryCandleTimeForFill(candles, entryFilledAt, candleSec);
+    if (time != null) pinnedEntryRef.current = { fillAt: entryFilledAt, time };
+    return time;
+  };
+
+  const paintEntryMarker = (series: ISeriesApi<"Candlestick">, candles: ChartCandle[], candleSec: number) => {
+    const time = resolvePinnedEntryTime(candles, candleSec);
+    entryCandleTimeRef.current = time;
+    if (time == null) {
+      series.setMarkers([]);
+      return;
+    }
+    applyEntryMarkerAtTime(series, time, entryPrice);
+  };
+
   useEffect(() => {
     loadedRef.current = false;
     entryCandleTimeRef.current = null;
+    pinnedEntryRef.current = null;
     setEntryLineLeft(null);
-  }, [symbol, frozen]);
+  }, [symbol, frozen, interval, entryFilledAt, closedAt]);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -184,17 +207,7 @@ export function SignalChart({
     });
     chartApi.current = chart;
     const updateEntryLinePosition = () => {
-      const t = entryCandleTimeRef.current;
-      if (t == null) {
-        setEntryLineLeft(null);
-        return;
-      }
-      const x = chart.timeScale().timeToCoordinate(t);
-      if (x == null || !Number.isFinite(x)) {
-        setEntryLineLeft(null);
-        return;
-      }
-      setEntryLineLeft(x);
+      setEntryLineLeft(syncEntryLineLeft(chart, entryCandleTimeRef.current));
     };
     chart.timeScale().subscribeVisibleTimeRangeChange(updateEntryLinePosition);
     const ro = new ResizeObserver(() => {
@@ -212,6 +225,7 @@ export function SignalChart({
       chartApi.current = null;
       seriesRef.current = null;
       entryCandleTimeRef.current = null;
+      pinnedEntryRef.current = null;
       setEntryLineLeft(null);
       loadedRef.current = false;
     };
@@ -219,7 +233,6 @@ export function SignalChart({
 
   useEffect(() => {
     if (!visible || !pair || !chartApi.current) return;
-    if (frozen && loadedRef.current) return;
 
     const bybitIv = CHART_INTERVALS.find((x) => x.id === interval)?.bybit ?? "5";
     const ac = new AbortController();
@@ -245,10 +258,9 @@ export function SignalChart({
         seriesRef.current = series;
         series.setData(data);
         applyLevelLines(series, lv);
-        entryCandleTimeRef.current = applyEntryMarker(series, data, entryFilledAt, entryPrice);
+        paintEntryMarker(series, data, candleSec);
         chart.timeScale().fitContent();
-        const x = entryCandleTimeRef.current != null ? chart.timeScale().timeToCoordinate(entryCandleTimeRef.current) : null;
-        setEntryLineLeft(x != null && Number.isFinite(x) ? x : null);
+        setEntryLineLeft(syncEntryLineLeft(chart, entryCandleTimeRef.current));
         loadedRef.current = true;
       })
       .catch((e) => {
@@ -262,6 +274,35 @@ export function SignalChart({
 
     return () => ac.abort();
   }, [visible, pair, interval, entryLow, entryHigh, stopLoss, takeProfits, closedAt, entryFilledAt, entryPrice, frozen]);
+
+  useEffect(() => {
+    if (!visible || !pair || frozen || !entryFilledAt) return;
+
+    const bybitIv = CHART_INTERVALS.find((x) => x.id === interval)?.bybit ?? "5";
+    const candleSec = Math.max(60, Number(bybitIv) * 60);
+
+    const refreshCandles = () => {
+      const chart = chartApi.current;
+      const series = seriesRef.current;
+      if (!chart || !series || !loadedRef.current) return;
+
+      void fetchBybitKlines(pair, bybitIv)
+        .then((candles) => {
+          const chartNow = chartApi.current;
+          const seriesNow = seriesRef.current;
+          if (!chartNow || !seriesNow) return;
+          seriesNow.setData(candles);
+          paintEntryMarker(seriesNow, candles, candleSec);
+          setEntryLineLeft(syncEntryLineLeft(chartNow, entryCandleTimeRef.current));
+        })
+        .catch(() => {
+          /* keep last frame */
+        });
+    };
+
+    const id = window.setInterval(refreshCandles, CHART_POLL_MS);
+    return () => window.clearInterval(id);
+  }, [visible, pair, interval, frozen, entryFilledAt, entryPrice]);
 
   if (!pair) return null;
 

@@ -1,5 +1,10 @@
 /** Парсинг уровней сигнала для графика. */
 
+import { parseApiDate } from "../utils";
+import type { UTCTimestamp } from "lightweight-charts";
+
+export type ChartCandle = { time: UTCTimestamp; open: number; high: number; low: number; close: number };
+
 export function parseLevelPrice(raw: string | null | undefined): number | null {
   if (!raw) return null;
   const cleaned = raw.trim().replace(",", ".").replace(/[^\d.\-]/g, "");
@@ -74,4 +79,23 @@ export function levelsFromSignal(
     stop: parseLevelPrice(stopLoss),
     targets: parseTakeProfitPrices(takeProfits),
   };
+}
+
+/** Свеча, на которой зафиксирован вход (по времени entry_filled_at). */
+export function entryCandleTimeForFill(
+  candles: ChartCandle[],
+  entryFilledAt: string,
+  candleSec: number,
+): UTCTimestamp | null {
+  if (!candles.length) return null;
+  const fillMs = parseApiDate(entryFilledAt).getTime();
+  if (!Number.isFinite(fillMs)) return null;
+  const fillSec = Math.floor(fillMs / 1000);
+  for (let i = candles.length - 1; i >= 0; i -= 1) {
+    const t = Number(candles[i].time);
+    if (fillSec >= t && fillSec < t + candleSec) return candles[i].time;
+  }
+  const lastT = Number(candles[candles.length - 1].time);
+  if (fillSec >= lastT) return candles[candles.length - 1].time;
+  return candles[0].time;
 }

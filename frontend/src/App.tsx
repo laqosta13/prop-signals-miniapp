@@ -20,7 +20,11 @@ import { AppendSupplementModal } from "./components/AppendSupplementModal";
 import { EditSignalModal } from "./components/EditSignalModal";
 import { NewSignalModal } from "./components/NewSignalModal";
 import { NewsModal } from "./components/NewsModal";
+import { DisclaimerModal } from "./components/DisclaimerModal";
+import { OutcomeReveal } from "./components/OutcomeReveal";
 import { RankConfirmModal } from "./components/RankConfirmModal";
+import { useOutcomeReveal } from "./hooks/useOutcomeReveal";
+import { hasAcceptedDisclaimer, markDisclaimerAccepted } from "./utils/disclaimerStorage";
 
 const TrackerTab = lazy(() =>
   import("./components/TrackerTab").then((m) => ({ default: m.TrackerTab })),
@@ -38,7 +42,7 @@ const SubscriptionTab = lazy(() =>
 
 type Tab = "feed" | "tracker" | "top" | "reviews" | "news" | "pay";
 
-const FEED_POLL_MS = 60_000;
+const FEED_POLL_MS = 15_000;
 
 const TITLES: Record<Tab, { title: string; sub: string }> = {
   feed: { title: "Сигналы", sub: "PROP-DESK · Hash Hedge" },
@@ -138,6 +142,9 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rankPending, setRankPending] = useState<TraderRank | null>(null);
+  const [disclaimerReady, setDisclaimerReady] = useState(false);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
+  const [feedDisclaimerOpen, setFeedDisclaimerOpen] = useState(false);
 
   const fullAccessRef = useRef(false);
   const trackersFetchedRef = useRef(false);
@@ -241,6 +248,15 @@ export default function App() {
   }, [loadBootstrap]);
 
   useEffect(() => {
+    if (myId == null) {
+      setDisclaimerReady(false);
+      return;
+    }
+    setDisclaimerAccepted(hasAcceptedDisclaimer(myId));
+    setDisclaimerReady(true);
+  }, [myId]);
+
+  useEffect(() => {
     if (tab !== "feed" && tab !== "tracker") return;
     if (trackersFetchedRef.current) return;
     trackersFetchedRef.current = true;
@@ -252,10 +268,18 @@ export default function App() {
   }, [tab, loadTop]);
 
   useEffect(() => {
-    if (tab !== "feed" || loading) return;
+    if (loading) return;
     const id = window.setInterval(() => void refreshSignalsOnly(), FEED_POLL_MS);
     return () => clearInterval(id);
-  }, [tab, loading, refreshSignalsOnly]);
+  }, [loading, refreshSignalsOnly]);
+
+  const { revealSignal, clearReveal } = useOutcomeReveal(
+    signals,
+    loading,
+    myId,
+    memberSince,
+    !loading && myId != null,
+  );
 
   const openSettings = async () => {
     const mine = trackers.find((t) => t.owner_telegram_id === myId);
@@ -305,6 +329,13 @@ export default function App() {
   const onNewsSaved = () => setNewsRefreshKey((k) => k + 1);
 
   const head = TITLES[tab];
+  const showDisclaimer = disclaimerReady && !disclaimerAccepted;
+
+  const acceptDisclaimer = () => {
+    if (myId == null) return;
+    markDisclaimerAccepted(myId);
+    setDisclaimerAccepted(true);
+  };
 
   return (
     <div className="app">
@@ -317,6 +348,18 @@ export default function App() {
           {isAdmin && tab === "news" && (
             <button type="button" className="fab-top" onClick={openNewNews} aria-label="Новая новость">
               +
+            </button>
+          )}
+          {tab === "feed" && (
+            <button
+              type="button"
+              className="disclaimer-btn"
+              onClick={() => setFeedDisclaimerOpen(true)}
+              aria-label="Дисклеймер"
+            >
+              <span className="disclaimer-btn__icon" aria-hidden>
+                !
+              </span>
             </button>
           )}
           <button
@@ -360,7 +403,6 @@ export default function App() {
             loading={loading}
             isAdmin={isAdmin}
             myId={myId}
-            memberSince={memberSince}
             subscriptionActive={subActive}
             onChanged={reloadAfterSignalChange}
             onEdit={setEditSignal}
@@ -455,7 +497,16 @@ export default function App() {
         onSaved={onNewsSaved}
       />
 
-      {rankPending && (
+      {revealSignal && myId != null && (
+        <OutcomeReveal signal={revealSignal} userId={myId} onDone={clearReveal} />
+      )}
+
+      {showDisclaimer && <DisclaimerModal onAccept={acceptDisclaimer} />}
+      {feedDisclaimerOpen && !showDisclaimer && (
+        <DisclaimerModal variant="info" onClose={() => setFeedDisclaimerOpen(false)} />
+      )}
+
+      {!showDisclaimer && rankPending && (
         <RankConfirmModal
           rank={rankPending}
           onDone={() => {

@@ -2,22 +2,28 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Signal } from "../api";
 import {
   isOutcomeRevealEligible,
+  isTerminalOutcomeStatus,
   loadPlayedOutcomeIds,
   parseMemberSinceMs,
+  seedPlayedOutcomesForExistingFeed,
   signalClosedAtMs,
 } from "../utils/outcomeRevealStorage";
 
-function pickRevealSignal(
+function pickJustClosedSignals(
   signals: Signal[],
+  prevStatus: Map<number, string>,
   played: Set<number>,
   memberSinceMs: number | null,
-): Signal | null {
-  const candidates = signals.filter((s) =>
-    isOutcomeRevealEligible(s.status, s.id, s.closed_at, s.created_at, played, memberSinceMs),
-  );
-  if (!candidates.length) return null;
-  candidates.sort((a, b) => signalClosedAtMs(b.closed_at, b.created_at) - signalClosedAtMs(a.closed_at, a.created_at));
-  return candidates[0] ?? null;
+): Signal[] {
+  const fresh: Signal[] = [];
+  for (const s of signals) {
+    const was = prevStatus.get(s.id);
+    if (was == null || isTerminalOutcomeStatus(was) || !isTerminalOutcomeStatus(s.status)) continue;
+    if (!isOutcomeRevealEligible(s.status, s.closed_at, played, memberSinceMs, s.id)) continue;
+    fresh.push(s);
+  }
+  fresh.sort((a, b) => signalClosedAtMs(a.closed_at) - signalClosedAtMs(b.closed_at));
+  return fresh;
 }
 
 export function useOutcomeReveal(
@@ -25,32 +31,70 @@ export function useOutcomeReveal(
   loading: boolean,
   userId: number | null,
   memberSince: string | null | undefined,
+  enabled: boolean,
 ) {
   const [revealSignal, setRevealSignal] = useState<Signal | null>(null);
-  const scheduledIdRef = useRef<number | null>(null);
+  const prevStatusRef = useRef<Map<number, string>>(new Map());
+  const hydratedRef = useRef(false);
+  const queueRef = useRef<Signal[]>([]);
+
+  const pumpQueue = useCallback(() => {
+    const next = queueRef.current[0];
+    if (next) setRevealSignal(next);
+    else setRevealSignal(null);
+  }, []);
 
   useEffect(() => {
-    if (loading || userId == null || revealSignal != null) return;
+    if (!enabled || loading || userId == null) return;
 
     const memberSinceMs = parseMemberSinceMs(memberSince);
     const played = loadPlayedOutcomeIds(userId);
-    const next = pickRevealSignal(signals, played, memberSinceMs);
-    if (!next) return;
-    if (scheduledIdRef.current === next.id) return;
 
-    scheduledIdRef.current = next.id;
-    const t = window.setTimeout(() => {
-      scheduledIdRef.current = null;
-      setRevealSignal(next);
-    }, 380);
+    if (!hydratedRef.current) {
+      for (const s of signals) {
+        prevStatusRef.current.set(s.id, s.status);
+      }
+      if (memberSinceMs != null) {
+        seedPlayedOutcomesForExistingFeed(userId, signals, memberSinceMs);
+      }
+      hydratedRef.current = true;
+      return;
+    }
 
-    return () => {
-      clearTimeout(t);
-      if (scheduledIdRef.current === next.id) scheduledIdRef.current = null;
-    };
-  }, [loading, userId, signals, memberSince, revealSignal]);
+    if (revealSignal != null) {
+      for (const s of signals) {
+        prevStatusRef.current.set(s.id, s.status);
+      }
+      return;
+    }
 
-  const clearReveal = useCallback(() => setRevealSignal(null), []);
+    const fresh = pickJustClosedSignals(signals, prevStatusRef.current, played, memberSinceMs);
+    for (const s of signals) {
+      prevStatusRef.current.set(s.id, s.status);
+    }
+    if (!fresh.length) return;
+
+    for (const s of fresh) {
+      if (!queueRef.current.some((q) => q.id === s.id)) {
+        queueRef.current.push(s);
+      }
+    }
+    pumpQueue();
+  }, [enabled, loading, userId, signals, memberSince, revealSignal, pumpQueue]);
+
+  const clearReveal = useCallback(() => {
+    queueRef.current.shift();
+    pumpQueue();
+  }, [pumpQueue]);
+
+  useEffect(() => {
+    if (userId == null) {
+      hydratedRef.current = false;
+      prevStatusRef.current.clear();
+      queueRef.current = [];
+      setRevealSignal(null);
+    }
+  }, [userId]);
 
   return { revealSignal, clearReveal };
 }
