@@ -24,6 +24,7 @@ type Props = {
   entryHigh: string | null;
   stopLoss: string | null;
   takeProfits: string | null;
+  closedAt?: string | null;
   entryFilledAt?: string | null;
   entryPrice?: number | null;
   /** win/lose — один раз загрузить свечи и не обновлять */
@@ -90,6 +91,20 @@ function matchEntryCandleTime(candles: Candle[], entrySec: number, candleSec: nu
   return null;
 }
 
+function clipCandlesAtClose(candles: Candle[], closedAt: string | null | undefined, candleSec: number): Candle[] {
+  if (!closedAt || !candles.length) return candles;
+  const closeMs = Date.parse(closedAt);
+  if (!Number.isFinite(closeMs)) return candles;
+  const closeSec = Math.floor(closeMs / 1000);
+  for (let i = 0; i < candles.length; i += 1) {
+    const t = Number(candles[i].time);
+    if (closeSec >= t && closeSec < t + candleSec) {
+      return candles.slice(0, i + 1);
+    }
+  }
+  return candles;
+}
+
 function applyEntryMarker(
   series: ISeriesApi<"Candlestick">,
   candles: Candle[],
@@ -125,6 +140,7 @@ export function SignalChart({
   entryHigh,
   stopLoss,
   takeProfits,
+  closedAt,
   entryFilledAt,
   entryPrice,
   frozen = false,
@@ -229,6 +245,8 @@ export function SignalChart({
         if (ac.signal.aborted) return;
         const chart = chartApi.current;
         if (!chart) return;
+        const candleSec = Math.max(60, Number(bybitIv) * 60);
+        const data = frozen ? clipCandlesAtClose(candles, closedAt, candleSec) : candles;
         if (seriesRef.current) chart.removeSeries(seriesRef.current);
         const series = chart.addCandlestickSeries({
           upColor: "#3dff8a",
@@ -238,10 +256,9 @@ export function SignalChart({
           wickDownColor: "#ff6b6b",
         });
         seriesRef.current = series;
-        series.setData(candles);
+        series.setData(data);
         applyLevelLines(series, lv);
-        const candleSec = Math.max(60, Number(bybitIv) * 60);
-        entryCandleTimeRef.current = applyEntryMarker(series, candles, candleSec, entryFilledAt, entryPrice);
+        entryCandleTimeRef.current = applyEntryMarker(series, data, candleSec, entryFilledAt, entryPrice);
         chart.timeScale().fitContent();
         const x = entryCandleTimeRef.current != null ? chart.timeScale().timeToCoordinate(entryCandleTimeRef.current) : null;
         setEntryLineLeft(x != null && Number.isFinite(x) ? x : null);
@@ -257,26 +274,27 @@ export function SignalChart({
       });
 
     return () => ac.abort();
-  }, [visible, pair, interval, entryLow, entryHigh, stopLoss, takeProfits, entryFilledAt, entryPrice, frozen]);
+  }, [visible, pair, interval, entryLow, entryHigh, stopLoss, takeProfits, closedAt, entryFilledAt, entryPrice, frozen]);
 
   if (!pair) return null;
 
   return (
     <section ref={wrapRef} className={`signal-chart${frozen ? " signal-chart--frozen" : ""}`}>
       <div className="signal-chart__head">
-        <div className="signal-chart__tf">
-          {CHART_INTERVALS.map((tf) => (
-            <button
-              key={tf.id}
-              type="button"
-              className={interval === tf.id ? "on" : ""}
-              disabled={frozen}
-              onClick={() => setInterval(tf.id)}
-            >
-              {tf.label}
-            </button>
-          ))}
-        </div>
+        {!frozen && (
+          <div className="signal-chart__tf">
+            {CHART_INTERVALS.map((tf) => (
+              <button
+                key={tf.id}
+                type="button"
+                className={interval === tf.id ? "on" : ""}
+                onClick={() => setInterval(tf.id)}
+              >
+                {tf.label}
+              </button>
+            ))}
+          </div>
+        )}
         <a className="signal-chart__tv-link" href={tvLink} target="_blank" rel="noreferrer">
           TradingView ↗
         </a>

@@ -161,6 +161,7 @@ export function SignalCard({
         entryHigh={s.entry_high}
         stopLoss={s.stop_loss}
         takeProfits={s.take_profits}
+        closedAt={s.closed_at}
         entryFilledAt={s.entry_filled_at}
         entryPrice={s.published_market_price}
         frozen={s.status === "win" || s.status === "lose"}
