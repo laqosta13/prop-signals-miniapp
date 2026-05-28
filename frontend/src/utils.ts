@@ -1,5 +1,6 @@
 /** Копирование в буфер (Telegram WebView + fallback). */
 const MSK_TZ = "Europe/Moscow";
+const MSK_OFFSET_MINUTES = 180;
 
 function mskDayKey(d: Date): string {
   const parts = new Intl.DateTimeFormat("ru-RU", {
@@ -10,6 +11,22 @@ function mskDayKey(d: Date): string {
   }).formatToParts(d);
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
   return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
+export function parseApiDate(raw: string): Date {
+  const s = raw.trim();
+  const hasTz = /(?:[zZ]|[+\-]\d{2}:\d{2})$/.test(s);
+  return new Date(hasTz ? s : `${s}Z`);
+}
+
+export function mskDayBoundsMs(now: Date = new Date()): { startMs: number; endMs: number } {
+  // API dates are UTC; this returns UTC ms range for the current MSK day.
+  const shiftMs = MSK_OFFSET_MINUTES * 60_000;
+  const shiftedNowMs = now.getTime() + shiftMs;
+  const shifted = new Date(shiftedNowMs);
+  const shiftedStartMs = Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate());
+  const startMs = shiftedStartMs - shiftMs;
+  return { startMs, endMs: startMs + 24 * 60 * 60 * 1000 };
 }
 
 export async function copyToClipboard(text: string): Promise<boolean> {
@@ -54,7 +71,7 @@ export function formatDayLabel(isoDate: string) {
 
 export function formatTime(iso: string) {
   try {
-    const d = new Date(iso);
+    const d = parseApiDate(iso);
     const now = new Date();
     const sameDay = mskDayKey(d) === mskDayKey(now);
     const yesterday = new Date(now);
@@ -72,7 +89,7 @@ export function formatTime(iso: string) {
 export function formatDateTimeMsk(iso: string | null | undefined): string {
   if (!iso) return "—";
   try {
-    return new Date(iso).toLocaleString("ru-RU", {
+    return parseApiDate(iso).toLocaleString("ru-RU", {
       dateStyle: "short",
       timeStyle: "short",
       timeZone: MSK_TZ,

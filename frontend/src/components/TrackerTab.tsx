@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { ChallengeDashboard, Signal } from "../api";
 import { HASHHEDGE_RULES } from "../data/hashhedgeRules";
-import { authorProfile, formatTakeProfits, formatUsd } from "../utils";
+import { authorProfile, formatTakeProfits, formatUsd, mskDayBoundsMs, parseApiDate } from "../utils";
 import { Avatar } from "./Avatar";
 import { HashHedgeRulesTable } from "./HashHedgeRulesTable";
 
@@ -16,13 +16,11 @@ type Props = {
 export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Props) {
   const dayLossLimitPct = 5;
   const todayLossUsd = useMemo(() => {
-    const now = new Date();
-    const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const dayEnd = dayStart + 24 * 60 * 60 * 1000;
+    const { startMs: dayStart, endMs: dayEnd } = mskDayBoundsMs();
     return signals.reduce((sum, s) => {
       if (s.status === "active" || s.realized_pnl == null || s.realized_pnl >= 0) return sum;
       const at = s.closed_at || s.created_at;
-      const ts = new Date(at).getTime();
+      const ts = parseApiDate(at).getTime();
       if (!Number.isFinite(ts) || ts < dayStart || ts >= dayEnd) return sum;
       return sum + Math.abs(s.realized_pnl);
     }, 0);

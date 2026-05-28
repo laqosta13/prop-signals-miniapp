@@ -101,16 +101,16 @@ function applyEntryMarker(
   candles: Candle[],
   entryFilledAt?: string | null,
   entryPrice?: number | null,
-) {
+): UTCTimestamp | null {
   if (!entryFilledAt) {
     series.setMarkers([]);
-    return;
+    return null;
   }
   const ms = Date.parse(entryFilledAt);
-  if (!Number.isFinite(ms)) return;
+  if (!Number.isFinite(ms)) return null;
   const sec = Math.floor(ms / 1000);
   const time = nearestCandleTime(candles, sec);
-  if (time == null) return;
+  if (time == null) return null;
   const label = entryPrice != null ? `Вход ${entryPrice.toFixed(2)}` : "Вход";
   series.setMarkers([
     {
@@ -121,6 +121,7 @@ function applyEntryMarker(
       text: label,
     },
   ]);
+  return time;
 }
 
 export function SignalChart({
@@ -137,17 +138,21 @@ export function SignalChart({
   const chartRef = useRef<HTMLDivElement>(null);
   const chartApi = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const entryCandleTimeRef = useRef<UTCTimestamp | null>(null);
   const loadedRef = useRef(false);
   const [interval, setInterval] = useState<ChartInterval>("5");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
+  const [entryLineLeft, setEntryLineLeft] = useState<number | null>(null);
 
   const pair = bybitSymbol(symbol);
   const tvLink = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tradingViewSymbol(symbol))}`;
 
   useEffect(() => {
     loadedRef.current = false;
+    entryCandleTimeRef.current = null;
+    setEntryLineLeft(null);
   }, [symbol, frozen]);
 
   useEffect(() => {
@@ -180,16 +185,36 @@ export function SignalChart({
       height: 240,
     });
     chartApi.current = chart;
+    const updateEntryLinePosition = () => {
+      const t = entryCandleTimeRef.current;
+      if (t == null) {
+        setEntryLineLeft(null);
+        return;
+      }
+      const x = chart.timeScale().timeToCoordinate(t);
+      if (x == null || !Number.isFinite(x)) {
+        setEntryLineLeft(null);
+        return;
+      }
+      setEntryLineLeft(x);
+    };
+    chart.timeScale().subscribeVisibleTimeRangeChange(updateEntryLinePosition);
     const ro = new ResizeObserver(() => {
-      if (chartRef.current) chart.applyOptions({ width: chartRef.current.clientWidth });
+      if (chartRef.current) {
+        chart.applyOptions({ width: chartRef.current.clientWidth });
+        updateEntryLinePosition();
+      }
     });
     ro.observe(chartRef.current);
 
     return () => {
+      chart.timeScale().unsubscribeVisibleTimeRangeChange(updateEntryLinePosition);
       ro.disconnect();
       chart.remove();
       chartApi.current = null;
       seriesRef.current = null;
+      entryCandleTimeRef.current = null;
+      setEntryLineLeft(null);
       loadedRef.current = false;
     };
   }, [visible]);
@@ -220,11 +245,15 @@ export function SignalChart({
         seriesRef.current = series;
         series.setData(candles);
         applyLevelLines(series, lv);
-        applyEntryMarker(series, candles, entryFilledAt, entryPrice);
+        entryCandleTimeRef.current = applyEntryMarker(series, candles, entryFilledAt, entryPrice);
         chart.timeScale().fitContent();
+        const x = entryCandleTimeRef.current != null ? chart.timeScale().timeToCoordinate(entryCandleTimeRef.current) : null;
+        setEntryLineLeft(x != null && Number.isFinite(x) ? x : null);
         loadedRef.current = true;
       })
       .catch((e) => {
+        entryCandleTimeRef.current = null;
+        setEntryLineLeft(null);
         if (!ac.signal.aborted) setErr(e instanceof Error ? e.message : "Ошибка графика");
       })
       .finally(() => {
@@ -260,6 +289,7 @@ export function SignalChart({
         {loading && <p className="signal-chart__loading meta">Загрузка графика…</p>}
         {err && <p className="signal-chart__err err">{err}</p>}
         <div ref={chartRef} className="signal-chart__canvas" />
+        {entryLineLeft != null && <div className="signal-chart__entry-line" style={{ left: `${entryLineLeft}px` }} />}
       </div>
       <div className="signal-chart__legend">
         <span className="signal-chart__legend-item entry">Вход</span>

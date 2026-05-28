@@ -84,7 +84,7 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void
     <div className="sub-pay">
       <p className={`sub-pay__status ${info.subscription_active ? "on" : "off"}`}>
         {info.subscription_active ? (
-          <>Подписка активна до {formatDateTimeMsk(info.subscription_until)}</>
+          <>Подписка активна до {formatDateTimeMsk(info.subscription_until)} МСК</>
         ) : (
           <>Подписка не активна. Новым пользователям — {info.trial_days} дня бесплатно.</>
         )}
