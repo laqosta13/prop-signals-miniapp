@@ -2,9 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { createSignalWithMedia, fetchMarketPrice } from "../api";
 import type { UploadProgress } from "../api";
+import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
 import { normalizeTakeProfits } from "../utils";
 import { entryNominalUsd, parseLeverage, parseRiskPercent } from "../utils/signalForm";
-import { defaultLevelsFromEntry, stopTargetFromEntry } from "../utils/signalLevels";
 import {
   initialUploadProgress,
   mediaBytesInForm,
@@ -13,6 +13,7 @@ import {
 import { UploadProgressBar } from "./UploadProgressBar";
 import { LeveragePicker } from "./LeveragePicker";
 import { RiskPercentSlider } from "./RiskPercentSlider";
+import { SignalLevelsFields } from "./SignalLevelsFields";
 import { SignalMediaPicker } from "./SignalMediaPicker";
 
 type Props = {
@@ -30,10 +31,6 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
   const [priceLoading, setPriceLoading] = useState(false);
   const [priceSource, setPriceSource] = useState<string | null>(null);
   const [symbol, setSymbol] = useState(DEFAULT_SYMBOL);
-  const [direction, setDirection] = useState<"long" | "short">("long");
-  const [entry, setEntry] = useState("");
-  const [stop, setStop] = useState("");
-  const [target, setTarget] = useState("");
   const [leverage, setLeverage] = useState("1");
   const [risk, setRisk] = useState("10");
   const [comment, setComment] = useState("");
@@ -41,16 +38,24 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
   const [video, setVideo] = useState<File | null>(null);
   const [shotPreview, setShotPreview] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+
+  const {
+    direction,
+    entry,
+    stop,
+    target,
+    riskPct,
+    setDirection,
+    onEntryChange,
+    onStopChange,
+    onTargetChange,
+    onRiskPctChange,
+    applyMarketPrice,
+    resetLevels,
+  } = useSignalLevelFields("long");
+
   const directionRef = useRef(direction);
-
   directionRef.current = direction;
-
-  const applyMarketPrice = useCallback((price: number, dir: "long" | "short") => {
-    const levels = defaultLevelsFromEntry(price, dir);
-    setEntry(levels.entry);
-    setStop(levels.stop);
-    setTarget(levels.target);
-  }, []);
 
   const loadMarketPrice = useCallback(
     async (sym: string) => {
@@ -79,9 +84,7 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
     setLeverage("1");
     setRisk("10");
     setComment("");
-    setEntry("");
-    setStop("");
-    setTarget("");
+    resetLevels();
     setPriceSource(null);
     setScreenshot(null);
     setVideo(null);
@@ -89,7 +92,7 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
       if (prev) URL.revokeObjectURL(prev);
       return null;
     });
-  }, [open]);
+  }, [open, resetLevels, setDirection]);
 
   useEffect(() => {
     if (!open) return;
@@ -98,15 +101,6 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
     }, 350);
     return () => clearTimeout(t);
   }, [symbol, open, loadMarketPrice]);
-
-  const setDirectionAndLevels = (dir: "long" | "short") => {
-    setDirection(dir);
-    const next = stopTargetFromEntry(entry, dir);
-    if (next) {
-      setStop(next.stop);
-      setTarget(next.target);
-    }
-  };
 
   if (!open) return null;
 
@@ -183,33 +177,25 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
 
         <label className="field-label">Направление</label>
         <div className="dir-toggle">
-          <button type="button" className={direction === "long" ? "active long" : ""} onClick={() => setDirectionAndLevels("long")}>
+          <button type="button" className={direction === "long" ? "active long" : ""} onClick={() => setDirection("long")}>
             LONG
           </button>
-          <button type="button" className={direction === "short" ? "active short" : ""} onClick={() => setDirectionAndLevels("short")}>
+          <button type="button" className={direction === "short" ? "active short" : ""} onClick={() => setDirection("short")}>
             SHORT
           </button>
         </div>
 
-        <div className="triple">
-          <div>
-            <label className="field-label">Вход</label>
-            <input
-              value={entry}
-              onChange={(e) => setEntry(e.target.value)}
-              placeholder={priceLoading ? "Загрузка…" : "0.00"}
-              disabled={priceLoading}
-            />
-          </div>
-          <div>
-            <label className="field-label">Стоп</label>
-            <input value={stop} onChange={(e) => setStop(e.target.value)} placeholder="−1%" />
-          </div>
-          <div>
-            <label className="field-label">Цель</label>
-            <input value={target} onChange={(e) => setTarget(e.target.value)} placeholder="+1%" />
-          </div>
-        </div>
+        <SignalLevelsFields
+          entry={entry}
+          stop={stop}
+          target={target}
+          riskPct={riskPct}
+          priceLoading={priceLoading}
+          onEntryChange={onEntryChange}
+          onStopChange={onStopChange}
+          onTargetChange={onTargetChange}
+          onRiskPctChange={onRiskPctChange}
+        />
         {priceLoading && <p className="meta">Загрузка курса Bybit (бессрочный)…</p>}
         {!priceLoading && priceSource && entry && (
           <p className="meta">Курс: Bybit USDT perpetual · вход {entry}</p>

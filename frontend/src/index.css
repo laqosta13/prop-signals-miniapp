@@ -2701,6 +2701,19 @@ input.readonly {
   grid-template-columns: 1fr 1fr 1fr;
 }
 
+.levels-grid-form {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 0.55fr 1fr;
+  gap: 8px;
+  align-items: end;
+}
+
+.levels-grid-form__hint {
+  grid-column: 1 / -1;
+  margin: 0 0 4px;
+  font-size: 0.72rem;
+}
+
 .double {
   grid-template-columns: 1fr 1fr;
 }

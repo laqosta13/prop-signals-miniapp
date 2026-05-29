@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { updateSignalWithMedia, type Signal, type UploadProgress } from "../api";
+import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
 import { formatTakeProfits, normalizeTakeProfits } from "../utils";
 import { entryNominalUsd, parseLeverage, parseRiskPercent } from "../utils/signalForm";
 import {
@@ -11,6 +12,7 @@ import {
 import { UploadProgressBar } from "./UploadProgressBar";
 import { LeveragePicker } from "./LeveragePicker";
 import { RiskPercentSlider } from "./RiskPercentSlider";
+import { SignalLevelsFields } from "./SignalLevelsFields";
 import { SignalMediaPicker } from "./SignalMediaPicker";
 
 type Props = {
@@ -24,10 +26,6 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [symbol, setSymbol] = useState("");
-  const [direction, setDirection] = useState<"long" | "short">("long");
-  const [entry, setEntry] = useState("");
-  const [stop, setStop] = useState("");
-  const [target, setTarget] = useState("");
   const [leverage, setLeverage] = useState("1");
   const [risk, setRisk] = useState("10");
   const [comment, setComment] = useState("");
@@ -38,16 +36,32 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
   const [removeVideo, setRemoveVideo] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
 
+  const {
+    direction,
+    entry,
+    stop,
+    target,
+    riskPct,
+    setDirection,
+    onEntryChange,
+    onStopChange,
+    onTargetChange,
+    onRiskPctChange,
+    loadLevels,
+  } = useSignalLevelFields("long");
+
   useEffect(() => {
     if (!signal) return;
     setSymbol(signal.symbol);
-    setDirection(signal.direction === "short" ? "short" : "long");
-    setEntry(signal.entry_low || signal.entry_high || "");
-    setStop(signal.stop_loss || "");
-    setTarget(formatTakeProfits(signal.take_profits));
     setLeverage(String(parseLeverage(String(signal.leverage ?? 1))));
     setRisk(String(signal.risk_percent ?? signal.points_percent ?? 10));
     setComment(signal.comment || "");
+    loadLevels({
+      entryVal: signal.entry_low || signal.entry_high || "",
+      stopVal: signal.stop_loss || "",
+      targetVal: formatTakeProfits(signal.take_profits),
+      dir: signal.direction === "short" ? "short" : "long",
+    });
     setScreenshot(null);
     setVideo(null);
     if (shotPreview) URL.revokeObjectURL(shotPreview);
@@ -55,7 +69,7 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
     setRemoveScreenshot(false);
     setRemoveVideo(false);
     setError(null);
-  }, [signal]);
+  }, [signal, loadLevels]);
 
   if (!signal) return null;
 
@@ -144,20 +158,16 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
           </button>
         </div>
 
-        <div className="triple">
-          <div>
-            <label className="field-label">Вход</label>
-            <input value={entry} onChange={(e) => setEntry(e.target.value)} placeholder="0.00" />
-          </div>
-          <div>
-            <label className="field-label">Стоп</label>
-            <input value={stop} onChange={(e) => setStop(e.target.value)} placeholder="0.00" />
-          </div>
-          <div>
-            <label className="field-label">Цель</label>
-            <input value={target} onChange={(e) => setTarget(e.target.value)} placeholder="0.00" />
-          </div>
-        </div>
+        <SignalLevelsFields
+          entry={entry}
+          stop={stop}
+          target={target}
+          riskPct={riskPct}
+          onEntryChange={onEntryChange}
+          onStopChange={onStopChange}
+          onTargetChange={onTargetChange}
+          onRiskPctChange={onRiskPctChange}
+        />
 
         <label className="field-label">Плечо</label>
         <LeveragePicker
