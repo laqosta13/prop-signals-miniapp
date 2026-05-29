@@ -1,10 +1,21 @@
 import { useState } from "react";
+import WebApp from "@twa-dev/sdk";
 import type { HashHedgeRules } from "../api";
+import { HASHHEDGE_REGISTER_URL } from "../data/hashhedgeRules";
 
 type Props = {
   rules: HashHedgeRules | null;
   loading?: boolean;
 };
+
+function openPropRegistration() {
+  WebApp.HapticFeedback.impactOccurred("light");
+  if (WebApp.openLink) {
+    WebApp.openLink(HASHHEDGE_REGISTER_URL);
+    return;
+  }
+  window.open(HASHHEDGE_REGISTER_URL, "_blank", "noopener,noreferrer");
+}
 
 export function HashHedgeRulesTable({ rules, loading }: Props) {
   const [openHint, setOpenHint] = useState<string | null>(null);
@@ -59,6 +70,11 @@ export function HashHedgeRulesTable({ rules, loading }: Props) {
             )}
           </div>
         ))}
+        <div className="hashhedge-rules__footer">
+          <button type="button" className="hashhedge-rules__register" onClick={openPropRegistration}>
+            Регистрация на проп
+          </button>
+        </div>
       </div>
     </section>
   );

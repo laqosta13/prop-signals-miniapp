@@ -533,6 +533,37 @@ body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.hashhedge-rules__footer {
+  padding: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(9, 11, 16, 0.25);
+}
+
+.hashhedge-rules__register {
+  display: block;
+  width: 100%;
+  padding: 13px 16px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffe066 0%, #ffc107 100%);
+  color: #1a1400;
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow:
+    0 2px 10px rgba(255, 193, 7, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  transition:
+    transform 0.12s ease,
+    filter 0.12s ease;
+}
+
+.hashhedge-rules__register:active {
+  transform: scale(0.98);
+  filter: brightness(0.96);
+}
+
 .tracker-empty {
   margin-top: 8px;
 }

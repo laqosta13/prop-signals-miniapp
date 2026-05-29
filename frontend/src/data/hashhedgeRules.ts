@@ -1,5 +1,8 @@
 import type { HashHedgeRules } from "../api";
 
+/** Ссылка на регистрацию Hash Hedge (реферал). */
+export const HASHHEDGE_REGISTER_URL = "https://hashhedge.com?fpr=igor83";
+
 /** Статические правила Hash Hedge — без лишнего запроса при открытии трекера. */
 export const HASHHEDGE_RULES: HashHedgeRules = {
   firm: "Hash Hedge",
