@@ -29,7 +29,8 @@ body {
 }
 
 .app {
-  max-width: 480px;
+  --app-max-width: 480px;
+  max-width: var(--app-max-width);
   margin: 0 auto;
   min-height: 100vh;
   padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom));
@@ -2443,14 +2444,24 @@ input.readonly {
   background: rgba(4, 6, 10, 0.72);
   z-index: 4000;
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
   padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom));
+}
+
+.modal-backdrop--signal .modal {
+  width: 100%;
+  max-width: var(--app-max-width, 480px);
+  margin: 0;
+  border-left: none;
+  border-right: none;
+  border-radius: 20px 20px 0 0;
 }
 
 .modal {
   width: 100%;
-  max-width: 480px;
-  margin: 0 auto;
+  max-width: var(--app-max-width, 480px);
   max-height: min(92vh, calc(100dvh - var(--bottom-nav-h) - env(safe-area-inset-bottom) - 12px));
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;

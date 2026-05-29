@@ -133,7 +133,7 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop modal-backdrop--signal" onClick={onClose}>
       <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
         <header className="modal__head">
           <div>
