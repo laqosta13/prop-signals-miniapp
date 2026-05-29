@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import {
   DEFAULT_STOP_RISK_PCT,
+  clampStopOffsetPct,
   formatRiskPct,
   levelsFromEntryAndRisk,
   parseRiskPctValue,
@@ -73,9 +74,9 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
       setStop(value);
       const inferred = riskPctFromEntryStop(entry, value, direction);
       if (inferred === null) return;
-      const pctLabel = formatRiskPct(inferred);
+      const pctLabel = formatRiskPct(clampStopOffsetPct(inferred));
       setRiskPct(pctLabel);
-      const next = stopTargetFromEntryAndRisk(entry, direction, inferred);
+      const next = stopTargetFromEntryAndRisk(entry, direction, clampStopOffsetPct(inferred));
       if (next) setTarget(next.target);
     },
     [direction, entry],

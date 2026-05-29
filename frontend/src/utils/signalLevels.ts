@@ -2,6 +2,15 @@
 
 export const DEFAULT_STOP_RISK_PCT = 1;
 export const REWARD_RISK_RATIO = 3;
+export const STOP_OFFSET_MIN_PCT = 0.25;
+export const STOP_OFFSET_MAX_PCT = 5;
+export const STOP_OFFSET_STEP = 0.25;
+export const STOP_OFFSET_MARKS = [0.5, 1, 1.5, 2, 3, 5] as const;
+
+export function clampStopOffsetPct(pct: number): number {
+  if (!Number.isFinite(pct) || pct <= 0) return DEFAULT_STOP_RISK_PCT;
+  return Math.min(STOP_OFFSET_MAX_PCT, Math.max(STOP_OFFSET_MIN_PCT, pct));
+}
 
 export function formatPriceLevel(price: number): string {
   if (!Number.isFinite(price) || price <= 0) return "";

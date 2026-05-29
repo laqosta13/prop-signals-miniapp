@@ -2703,9 +2703,22 @@ input.readonly {
 
 .levels-grid-form {
   display: grid;
-  grid-template-columns: 1.1fr 1fr 0.55fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
   align-items: end;
+}
+
+.levels-grid-form__slider {
+  grid-column: 1 / -1;
+  margin-top: 2px;
+}
+
+.stop-offset-slider {
+  margin-bottom: 0;
+}
+
+.stop-offset-slider__marks {
+  grid-template-columns: repeat(6, 1fr);
 }
 
 .levels-grid-form__hint {

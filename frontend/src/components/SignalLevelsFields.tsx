@@ -1,3 +1,5 @@
+import { StopOffsetSlider } from "./StopOffsetSlider";
+
 type Props = {
   entry: string;
   stop: string;
@@ -41,18 +43,11 @@ export function SignalLevelsFields({
         <input value={stop} onChange={(e) => onStopChange(e.target.value)} placeholder="Цена" />
       </div>
       <div>
-        <label className="field-label">%</label>
-        <input
-          value={riskPct}
-          onChange={(e) => onRiskPctChange(e.target.value)}
-          placeholder="1"
-          inputMode="decimal"
-          aria-label="Процент до стопа"
-        />
-      </div>
-      <div>
         <label className="field-label">Цель</label>
         <input value={target} onChange={(e) => onTargetChange(e.target.value)} placeholder="Цена" />
+      </div>
+      <div className="levels-grid-form__slider">
+        <StopOffsetSlider value={riskPct} onChange={onRiskPctChange} />
       </div>
       {showPriceHint && (
         <p className="meta levels-grid-form__hint">Вход подставляется с Bybit USDT perpetual (perp).</p>
