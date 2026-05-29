@@ -788,7 +788,7 @@ body {
 .outcome-reveal {
   position: fixed;
   inset: 0;
-  z-index: 2998;
+  z-index: 5000;
   pointer-events: none;
 }
 

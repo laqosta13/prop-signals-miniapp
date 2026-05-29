@@ -17,13 +17,30 @@ function pickJustClosedSignals(
 ): Signal[] {
   const fresh: Signal[] = [];
   for (const s of signals) {
-    const was = prevStatus.get(s.id);
-    if (was == null || isTerminalOutcomeStatus(was) || !isTerminalOutcomeStatus(s.status)) continue;
+    if (!isTerminalOutcomeStatus(s.status)) continue;
     if (!isOutcomeRevealEligible(s.status, s.closed_at, played, memberSinceMs, s.id)) continue;
+
+    const was = prevStatus.get(s.id);
+    if (was != null && isTerminalOutcomeStatus(was)) continue;
+
     fresh.push(s);
   }
   fresh.sort((a, b) => signalClosedAtMs(a.closed_at) - signalClosedAtMs(b.closed_at));
   return fresh;
+}
+
+function queueFreshOutcomes(fresh: Signal[], queue: Signal[]) {
+  for (const s of fresh) {
+    if (!queue.some((q) => q.id === s.id)) {
+      queue.push(s);
+    }
+  }
+}
+
+function syncPrevStatuses(signals: Signal[], prevStatus: Map<number, string>) {
+  for (const s of signals) {
+    prevStatus.set(s.id, s.status);
+  }
 }
 
 export function useOutcomeReveal(
@@ -51,9 +68,7 @@ export function useOutcomeReveal(
     const played = loadPlayedOutcomeIds(userId);
 
     if (!hydratedRef.current) {
-      for (const s of signals) {
-        prevStatusRef.current.set(s.id, s.status);
-      }
+      syncPrevStatuses(signals, prevStatusRef.current);
       if (memberSinceMs != null) {
         seedPlayedOutcomesForExistingFeed(userId, signals, memberSinceMs);
       }
@@ -61,25 +76,18 @@ export function useOutcomeReveal(
       return;
     }
 
-    if (revealSignal != null) {
-      for (const s of signals) {
-        prevStatusRef.current.set(s.id, s.status);
-      }
-      return;
-    }
-
     const fresh = pickJustClosedSignals(signals, prevStatusRef.current, played, memberSinceMs);
-    for (const s of signals) {
-      prevStatusRef.current.set(s.id, s.status);
-    }
-    if (!fresh.length) return;
+    syncPrevStatuses(signals, prevStatusRef.current);
 
-    for (const s of fresh) {
-      if (!queueRef.current.some((q) => q.id === s.id)) {
-        queueRef.current.push(s);
-      }
+    if (fresh.length) {
+      queueFreshOutcomes(fresh, queueRef.current);
     }
-    pumpQueue();
+
+    if (revealSignal != null) return;
+
+    if (fresh.length || queueRef.current.length) {
+      pumpQueue();
+    }
   }, [enabled, loading, userId, signals, memberSince, revealSignal, pumpQueue]);
 
   const clearReveal = useCallback(() => {
