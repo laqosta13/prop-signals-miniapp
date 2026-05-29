@@ -29,7 +29,6 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [priceLoading, setPriceLoading] = useState(false);
-  const [priceSource, setPriceSource] = useState<string | null>(null);
   const [symbol, setSymbol] = useState(DEFAULT_SYMBOL);
   const [leverage, setLeverage] = useState("1");
   const [risk, setRisk] = useState("10");
@@ -51,7 +50,7 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
     onTargetChange,
     onRiskPctChange,
     applyMarketPrice,
-    resetLevels,
+    resetForm,
   } = useSignalLevelFields("long");
 
   const directionRef = useRef(direction);
@@ -63,9 +62,8 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
       if (!normalized) return;
       setPriceLoading(true);
       try {
-        const { price, source } = await fetchMarketPrice(normalized);
+        const { price } = await fetchMarketPrice(normalized);
         applyMarketPrice(price, directionRef.current);
-        setPriceSource(source ?? "bybit_perp");
         setError(null);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Не удалось загрузить курс");
@@ -80,25 +78,23 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
     if (!open) return;
     setError(null);
     setSymbol(DEFAULT_SYMBOL);
-    setDirection("long");
     setLeverage("1");
     setRisk("10");
     setComment("");
-    resetLevels();
-    setPriceSource(null);
+    resetForm();
     setScreenshot(null);
     setVideo(null);
     setShotPreview((prev) => {
       if (prev) URL.revokeObjectURL(prev);
       return null;
     });
-  }, [open, resetLevels, setDirection]);
+  }, [open, resetForm]);
 
   useEffect(() => {
     if (!open) return;
     const t = window.setTimeout(() => {
       void loadMarketPrice(symbol);
-    }, 350);
+    }, 150);
     return () => clearTimeout(t);
   }, [symbol, open, loadMarketPrice]);
 
@@ -196,10 +192,7 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
           onTargetChange={onTargetChange}
           onRiskPctChange={onRiskPctChange}
         />
-        {priceLoading && <p className="meta">Загрузка курса Bybit (бессрочный)…</p>}
-        {!priceLoading && priceSource && entry && (
-          <p className="meta">Курс: Bybit USDT perpetual · вход {entry}</p>
-        )}
+        {priceLoading && <p className="meta">Загрузка курса Bybit USDT perpetual…</p>}
 
         <label className="field-label">Плечо</label>
         <LeveragePicker

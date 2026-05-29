@@ -9,6 +9,7 @@ type Props = {
   onTargetChange: (value: string) => void;
   onRiskPctChange: (value: string) => void;
   entryPlaceholder?: string;
+  showPriceHint?: boolean;
 };
 
 export function SignalLevelsFields({
@@ -22,6 +23,7 @@ export function SignalLevelsFields({
   onTargetChange,
   onRiskPctChange,
   entryPlaceholder = "0.00",
+  showPriceHint = true,
 }: Props) {
   return (
     <div className="levels-grid-form">
@@ -52,7 +54,9 @@ export function SignalLevelsFields({
         <label className="field-label">Цель</label>
         <input value={target} onChange={(e) => onTargetChange(e.target.value)} placeholder="Цена" />
       </div>
-      <p className="meta levels-grid-form__hint">R:R 1:3 — % до стопа, цель в 3 раза дальше (можно править вручную)</p>
+      {showPriceHint && (
+        <p className="meta levels-grid-form__hint">Вход подставляется с Bybit USDT perpetual (perp).</p>
+      )}
     </div>
   );
 }

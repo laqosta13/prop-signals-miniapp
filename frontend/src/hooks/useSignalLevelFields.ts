@@ -30,6 +30,14 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
     setRiskPct(String(DEFAULT_STOP_RISK_PCT));
   }, []);
 
+  const resetForm = useCallback(() => {
+    setDirectionState("long");
+    setEntry("");
+    setStop("");
+    setTarget("");
+    setRiskPct(String(DEFAULT_STOP_RISK_PCT));
+  }, []);
+
   const resetLevels = useCallback(() => {
     setEntry("");
     setStop("");
@@ -115,6 +123,7 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
     onTargetChange,
     onRiskPctChange,
     applyMarketPrice,
+    resetForm,
     resetLevels,
     loadLevels,
   };

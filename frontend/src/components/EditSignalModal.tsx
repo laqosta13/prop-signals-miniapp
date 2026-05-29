@@ -167,6 +167,7 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
           onStopChange={onStopChange}
           onTargetChange={onTargetChange}
           onRiskPctChange={onRiskPctChange}
+          showPriceHint={false}
         />
 
         <label className="field-label">Плечо</label>
