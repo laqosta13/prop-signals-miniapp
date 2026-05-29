@@ -35,7 +35,6 @@ async def update_settings(
     account_size: str | None = Form(None),
     stage: str | None = Form(None),
     balance: str | None = Form(None),
-    reset_day: str | None = Form(None),
     remove_screenshot: str | None = Form(None),
     screenshot: UploadFile | None = File(None),
     db: Session = Depends(db_session),
@@ -55,9 +54,6 @@ async def update_settings(
 
     if balance is not None and balance.strip():
         ch.balance = round(float(balance), 2)
-
-    if _form_bool(reset_day):
-        ch.day_start_balance = ch.balance
 
     if _form_bool(remove_screenshot):
         delete_media_files(ch.prop_screenshot_path)

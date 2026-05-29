@@ -13,7 +13,6 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
   const [accountSize, setAccountSize] = useState("10000");
   const [stage, setStage] = useState("1");
   const [balance, setBalance] = useState("10000");
-  const [resetDay, setResetDay] = useState(false);
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [removeScreenshot, setRemoveScreenshot] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
@@ -55,7 +54,6 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
       fd.append("account_size", accountSize);
       fd.append("stage", stage);
       fd.append("balance", balance);
-      if (resetDay) fd.append("reset_day", "true");
       if (removeScreenshot) fd.append("remove_screenshot", "true");
       if (screenshot) fd.append("screenshot", screenshot);
       await updateChallengeSettings(fd);
@@ -97,7 +95,7 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
         />
 
         <label className="field-label">Этап</label>
-        <div className="dir-toggle">
+        <div className="leverage-picker leverage-picker--3col">
           {(["1", "2", "3"] as const).map((s) => (
             <button
               key={s}
@@ -105,7 +103,7 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
               className={stage === s ? "active" : ""}
               onClick={() => setStage(s)}
             >
-              {s}
+              Этап {s}
             </button>
           ))}
         </div>
@@ -149,11 +147,6 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
             Удалить текущий скрин
           </label>
         )}
-
-        <label className="notify-row">
-          <input type="checkbox" checked={resetDay} onChange={(e) => setResetDay(e.target.checked)} />
-          Сбросить дневной лимит (от текущего баланса)
-        </label>
 
         {error && <p className="err">{error}</p>}
 

@@ -2595,6 +2595,10 @@ input.readonly {
   margin-bottom: 12px;
 }
 
+.leverage-picker--3col {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 .leverage-picker button {
   padding: 10px 4px;
   border-radius: 10px;
