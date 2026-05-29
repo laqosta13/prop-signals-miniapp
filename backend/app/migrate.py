@@ -132,6 +132,10 @@ def run_migrations(engine: Engine) -> None:
             conn.execute(text("UPDATE traders SET shield_active = 0 WHERE shield_active IS NULL"))
             conn.execute(text("UPDATE traders SET rank_applied_this_week = 0 WHERE rank_applied_this_week IS NULL"))
 
+        if "user_challenges" in tables:
+            if not _has_column(engine, "user_challenges", "prop_screenshot_path"):
+                conn.execute(text("ALTER TABLE user_challenges ADD COLUMN prop_screenshot_path VARCHAR(256)"))
+
         if "reviews" in tables:
             if not _has_column(engine, "reviews", "image_path"):
                 conn.execute(text("ALTER TABLE reviews ADD COLUMN image_path VARCHAR(256)"))

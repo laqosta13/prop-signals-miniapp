@@ -20,6 +20,7 @@ def media_root() -> Path:
     (root / "avatars").mkdir(exist_ok=True)
     (root / "news").mkdir(exist_ok=True)
     (root / "reviews").mkdir(exist_ok=True)
+    (root / "trackers").mkdir(exist_ok=True)
     return root
 
 
@@ -63,6 +64,21 @@ async def save_news_video(post_id: int, file: UploadFile) -> str:
 
 async def save_review_image(review_id: int, file: UploadFile) -> str:
     return await _save_upload(file, f"reviews/{review_id}", IMAGE_TYPES, IMAGE_EXT, settings.max_image_bytes, "shot")
+
+
+async def save_tracker_screenshot(admin_id: int, file: UploadFile) -> str:
+    return await _save_upload(
+        file, f"trackers/{admin_id}", IMAGE_TYPES, IMAGE_EXT, settings.max_image_bytes, "prop"
+    )
+
+
+def clear_tracker_screenshot_dir(admin_id: int) -> None:
+    folder = media_root() / "trackers" / str(admin_id)
+    if not folder.is_dir():
+        return
+    for f in folder.iterdir():
+        if f.is_file():
+            f.unlink(missing_ok=True)
 
 
 async def _save_upload(

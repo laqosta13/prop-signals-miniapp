@@ -76,6 +76,7 @@ class UserChallenge(Base):
     balance: Mapped[float] = mapped_column(Float, default=10_000.0)
     day_start_balance: Mapped[float] = mapped_column(Float, default=10_000.0)
     trading_days: Mapped[int] = mapped_column(Integer, default=0)
+    prop_screenshot_path: Mapped[str | None] = mapped_column(String(256), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 

@@ -194,6 +194,7 @@ class ChallengeDashboard(BaseModel):
     winrate: float
     total_pnl: float
     max_leverage: str
+    prop_screenshot_url: str | None = None
 
 
 class ReviewCreate(BaseModel):

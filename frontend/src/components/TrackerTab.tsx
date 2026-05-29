@@ -1,7 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { ChallengeDashboard, Signal } from "../api";
 import { HASHHEDGE_RULES } from "../data/hashhedgeRules";
-import { authorProfile, formatTakeProfits, formatUsd, mskDayBoundsMs, parseApiDate } from "../utils";
+import { authorProfile, formatTakeProfits, formatUsd, mediaUrl, mskDayBoundsMs, parseApiDate } from "../utils";
 import { Avatar } from "./Avatar";
 import { HashHedgeRulesTable } from "./HashHedgeRulesTable";
 
@@ -10,10 +10,11 @@ type Props = {
   signals: Signal[];
   myId: number | null;
   isAdmin: boolean;
-  onSettings: () => void;
+  onSettings: (tracker: ChallengeDashboard) => void;
 };
 
 export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Props) {
+  const [lightbox, setLightbox] = useState<string | null>(null);
   const dayLossLimitPct = 5;
   const todayLossUsd = useMemo(() => {
     const { startMs: dayStart, endMs: dayEnd } = mskDayBoundsMs();
@@ -35,6 +36,14 @@ export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Pro
 
   return (
     <>
+      {lightbox && (
+        <div className="lightbox" role="dialog" onClick={() => setLightbox(null)}>
+          <button type="button" className="lightbox__close" aria-label="Закрыть" onClick={() => setLightbox(null)}>
+            ×
+          </button>
+          <img src={lightbox} alt="" className="lightbox__img" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
       <HashHedgeRulesTable rules={HASHHEDGE_RULES} />
       <section className="tracker-global-limit">
         <div className="tracker-global-limit__head">
@@ -123,6 +132,20 @@ export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Pro
               </div>
             </div>
 
+            {d.prop_screenshot_url && (
+              <div className="tracker-prop">
+                <p className="label">Сверка с пропом</p>
+                <button
+                  type="button"
+                  className="tracker-prop__shot"
+                  onClick={() => setLightbox(mediaUrl(d.prop_screenshot_url) ?? d.prop_screenshot_url)}
+                >
+                  <img src={mediaUrl(d.prop_screenshot_url) ?? d.prop_screenshot_url} alt="Скрин с пропа" />
+                </button>
+                <p className="meta tracker-prop__balance">Баланс на пропе: {formatUsd(d.balance)}</p>
+              </div>
+            )}
+
             <div className="stats-row">
               <div className="stat">
                 <span>Торговые дни</span>
@@ -148,7 +171,7 @@ export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Pro
             </div>
 
             {canEdit && (
-              <button type="button" className="ghost-btn" onClick={onSettings}>
+              <button type="button" className="ghost-btn" onClick={() => onSettings(d)}>
                 Настройки
               </button>
             )}

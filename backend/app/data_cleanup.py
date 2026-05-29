@@ -8,7 +8,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.media_storage import delete_media_files, media_root
+from app.media_storage import clear_tracker_screenshot_dir, delete_media_files, media_root
 from app.models import (
     NewsPost,
     Review,
@@ -96,6 +96,9 @@ def _reset_admin_trackers(db: Session) -> None:
             ch.day_start_balance = _TRACKER_DEFAULT
             ch.stage = 1
             ch.trading_days = 0
+            delete_media_files(ch.prop_screenshot_path)
+            ch.prop_screenshot_path = None
+        clear_tracker_screenshot_dir(aid)
 
 
 def purge_signals_and_reset_ratings(db: Session) -> None:

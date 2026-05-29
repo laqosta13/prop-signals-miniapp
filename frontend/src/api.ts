@@ -148,6 +148,7 @@ export type ChallengeDashboard = {
   winrate: number;
   total_pnl: number;
   max_leverage: string;
+  prop_screenshot_url: string | null;
 };
 
 export type HashHedgeStageRules = {
@@ -399,14 +400,5 @@ export const setNotifications = (patch: { notify_enabled?: boolean; notify_news_
     body: JSON.stringify(patch),
   });
 
-export const updateChallenge = (body: {
-  account_size?: number;
-  stage?: number;
-  balance?: number;
-  reset_day?: boolean;
-}) =>
-  api<ChallengeDashboard>("/challenge/settings", {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+export const updateChallengeSettings = (form: FormData) =>
+  sendForm<ChallengeDashboard>("/challenge/settings", "PUT", form);

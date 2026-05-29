@@ -9,7 +9,6 @@ import {
   fetchSignalsPreview,
   setNotifications,
   type TraderRank,
-  updateChallenge,
   type ChallengeDashboard,
   type NewsPost,
   type Signal,
@@ -23,6 +22,7 @@ import { NewsModal } from "./components/NewsModal";
 import { DisclaimerModal } from "./components/DisclaimerModal";
 import { OutcomeReveal } from "./components/OutcomeReveal";
 import { RankConfirmModal } from "./components/RankConfirmModal";
+import { TrackerSettingsModal } from "./components/TrackerSettingsModal";
 import { useOutcomeReveal } from "./hooks/useOutcomeReveal";
 import { hasAcceptedDisclaimer, markDisclaimerAccepted } from "./utils/disclaimerStorage";
 
@@ -145,6 +145,7 @@ export default function App() {
   const [disclaimerReady, setDisclaimerReady] = useState(false);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const [feedDisclaimerOpen, setFeedDisclaimerOpen] = useState(false);
+  const [trackerSettings, setTrackerSettings] = useState<ChallengeDashboard | null>(null);
 
   const fullAccessRef = useRef(false);
   const trackersFetchedRef = useRef(false);
@@ -281,21 +282,8 @@ export default function App() {
     !loading && myId != null,
   );
 
-  const openSettings = async () => {
-    const mine = trackers.find((t) => t.owner_telegram_id === myId);
-    const size = prompt("Размер счёта ($)", String(mine?.account_size ?? 10000));
-    if (!size) return;
-    const stage = prompt("Этап (1–3)", String(mine?.stage ?? 1));
-    try {
-      await updateChallenge({
-        account_size: parseFloat(size),
-        stage: parseInt(stage || "1", 10),
-        reset_day: true,
-      });
-      await loadTrackers();
-    } catch (e) {
-      alert(e instanceof Error ? e.message : "Ошибка");
-    }
+  const openSettings = (tracker: ChallengeDashboard) => {
+    setTrackerSettings(tracker);
   };
 
   const toggleSignalNotify = async () => {
@@ -515,6 +503,12 @@ export default function App() {
           }}
         />
       )}
+
+      <TrackerSettingsModal
+        tracker={trackerSettings}
+        onClose={() => setTrackerSettings(null)}
+        onSaved={() => void loadTrackers()}
+      />
     </div>
   );
 }

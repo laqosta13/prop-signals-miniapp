@@ -116,6 +116,7 @@ def build_dashboard(db: Session, ch: UserChallenge, trader: Trader | None = None
         winrate=round(wins / total * 100, 1) if total else 0.0,
         total_pnl=round(balance - start, 2),
         max_leverage=rules.max_leverage,
+        prop_screenshot_url=public_url(ch.prop_screenshot_path),
     )
 
 
