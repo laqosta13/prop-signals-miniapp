@@ -44,7 +44,7 @@ export function StopOffsetSlider({ value, onChange }: Props) {
           <button
             key={m}
             type="button"
-            className={`risk-slider__mark${current === m ? " on" : ""}`}
+            className={`risk-slider__mark${Math.abs(current - m) < STOP_OFFSET_STEP / 2 ? " on" : ""}`}
             onClick={() => setPercent(m)}
           >
             {m}

@@ -1,5 +1,7 @@
 import { StopOffsetSlider } from "./StopOffsetSlider";
 
+const LEVEL_HINTS = ["Цена с Bybit perp", "R:R 1:3 · по умолчанию"] as const;
+
 type Props = {
   entry: string;
   stop: string;
@@ -50,7 +52,11 @@ export function SignalLevelsFields({
         <StopOffsetSlider value={riskPct} onChange={onRiskPctChange} />
       </div>
       {showPriceHint && (
-        <p className="meta levels-grid-form__hint">Вход подставляется с Bybit USDT perpetual (perp).</p>
+        <ul className="levels-grid-form__hints">
+          {LEVEL_HINTS.map((hint) => (
+            <li key={hint}>{hint}</li>
+          ))}
+        </ul>
       )}
     </div>
   );
