@@ -2447,22 +2447,42 @@ input.readonly {
   flex-direction: column;
   justify-content: flex-end;
   align-items: center;
+  overflow-x: hidden;
   padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom));
+}
+
+.modal-backdrop--signal {
+  overflow-x: hidden;
 }
 
 .modal-backdrop--signal .modal {
   width: 100%;
   max-width: var(--app-max-width, 480px);
   margin: 0;
+  min-width: 0;
+  overflow-x: hidden;
   border-left: none;
   border-right: none;
   border-radius: 20px 20px 0 0;
+}
+
+.modal-backdrop--signal .levels-grid-form,
+.modal-backdrop--signal .levels-grid-form > div,
+.modal-backdrop--signal .risk-slider,
+.modal-backdrop--signal .leverage-picker,
+.modal-backdrop--signal .dir-toggle,
+.modal-backdrop--signal .signal-media-picker,
+.modal-backdrop--signal input,
+.modal-backdrop--signal textarea {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .modal {
   width: 100%;
   max-width: var(--app-max-width, 480px);
   max-height: min(92vh, calc(100dvh - var(--bottom-nav-h) - env(safe-area-inset-bottom) - 12px));
+  overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   background: rgba(18, 21, 30, 0.85);
@@ -2472,6 +2492,17 @@ input.readonly {
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   box-shadow: 0 18px 36px rgba(0, 0, 0, 0.35);
+}
+
+.modal--tracker-settings {
+  min-width: 0;
+}
+
+.modal--tracker-settings .leverage-picker,
+.modal--tracker-settings .signal-media-picker__btn,
+.modal--tracker-settings input,
+.modal--tracker-settings .tracker-prop-preview img {
+  max-width: 100%;
 }
 
 .modal .submit-btn {
@@ -2669,6 +2700,8 @@ input.readonly {
 
 .risk-slider {
   margin-bottom: 12px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .risk-slider__head {
@@ -2692,6 +2725,7 @@ input.readonly {
 .risk-slider__input {
   display: block;
   width: 100%;
+  max-width: 100%;
   height: 28px;
   margin: 0;
   padding: 0;
@@ -2746,7 +2780,7 @@ input.readonly {
 
 .risk-slider__marks {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 4px;
   margin-top: 6px;
 }
@@ -2760,6 +2794,9 @@ input.readonly {
   font-weight: 600;
   cursor: pointer;
   text-align: center;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .risk-slider__mark.on {
@@ -2769,6 +2806,7 @@ input.readonly {
 .signal-nominal {
   margin-top: 6px;
   font-size: 0.82rem;
+  overflow-wrap: anywhere;
 }
 
 .signal-nominal__usd {
@@ -2796,9 +2834,19 @@ input.readonly {
 
 .levels-grid-form {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   align-items: end;
+  min-width: 0;
+}
+
+.levels-grid-form > div {
+  min-width: 0;
+}
+
+.levels-grid-form input {
+  width: 100%;
+  min-width: 0;
 }
 
 .levels-grid-form__slider {
@@ -2811,7 +2859,7 @@ input.readonly {
 }
 
 .stop-offset-slider__marks {
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 .levels-grid-form__hint {

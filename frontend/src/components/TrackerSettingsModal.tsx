@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { updateChallengeSettings, type ChallengeDashboard } from "../api";
 import { mediaUrl } from "../utils";
@@ -14,10 +14,10 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
   const [stage, setStage] = useState("1");
   const [balance, setBalance] = useState("10000");
   const [screenshot, setScreenshot] = useState<File | null>(null);
-  const [removeScreenshot, setRemoveScreenshot] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!tracker) return;
@@ -25,7 +25,6 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
     setStage(String(tracker.stage));
     setBalance(String(Math.round(tracker.balance * 100) / 100));
     setScreenshot(null);
-    setRemoveScreenshot(false);
     setPreview((prev) => {
       if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
       return tracker.prop_screenshot_url ? mediaUrl(tracker.prop_screenshot_url) : null;
@@ -37,7 +36,6 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
 
   const onPickScreenshot = (file: File | null) => {
     setScreenshot(file);
-    setRemoveScreenshot(false);
     setPreview((prev) => {
       if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
       return file ? URL.createObjectURL(file) : tracker.prop_screenshot_url ? mediaUrl(tracker.prop_screenshot_url) : null;
@@ -53,7 +51,6 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
       fd.append("account_size", accountSize);
       fd.append("stage", stage);
       fd.append("balance", balance);
-      if (removeScreenshot) fd.append("remove_screenshot", "true");
       if (screenshot) fd.append("screenshot", screenshot);
       await updateChallengeSettings(fd);
       WebApp.HapticFeedback.notificationOccurred("success");
@@ -68,7 +65,7 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={(e) => void submit(e)}>
+      <form className="modal modal--tracker-settings" onClick={(e) => e.stopPropagation()} onSubmit={(e) => void submit(e)}>
         <header className="modal__head">
           <div>
             <h2>Настройки трекера</h2>
@@ -118,34 +115,24 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
         />
 
         <label className="field-label">Скрин с пропа</label>
-        {preview && !removeScreenshot && (
+        {preview && (
           <div className="tracker-prop-preview">
             <img src={preview} alt="Скрин с пропа" />
           </div>
         )}
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => onPickScreenshot(e.target.files?.[0] ?? null)}
-        />
+        <div className="signal-media-picker">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="signal-media-picker__input"
+            onChange={(e) => onPickScreenshot(e.target.files?.[0] ?? null)}
+          />
+          <button type="button" className="signal-media-picker__btn" onClick={() => fileInputRef.current?.click()}>
+            Заменить скрин
+          </button>
+        </div>
         <p className="meta">Один актуальный скрин — новый заменяет предыдущий.</p>
-        {tracker.prop_screenshot_url && !screenshot && (
-          <label className="notify-row">
-            <input
-              type="checkbox"
-              checked={removeScreenshot}
-              onChange={(e) => {
-                setRemoveScreenshot(e.target.checked);
-                if (e.target.checked) {
-                  setPreview(null);
-                } else {
-                  setPreview(tracker.prop_screenshot_url ? mediaUrl(tracker.prop_screenshot_url) : null);
-                }
-              }}
-            />
-            Удалить текущий скрин
-          </label>
-        )}
 
         {error && <p className="err">{error}</p>}
 
