@@ -24,7 +24,6 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
     setAccountSize(String(Math.round(tracker.account_size)));
     setStage(String(tracker.stage));
     setBalance(String(Math.round(tracker.balance * 100) / 100));
-    setResetDay(false);
     setScreenshot(null);
     setRemoveScreenshot(false);
     setPreview((prev) => {
