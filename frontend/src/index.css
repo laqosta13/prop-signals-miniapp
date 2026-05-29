@@ -2451,6 +2451,22 @@ input.readonly {
   padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom));
 }
 
+.modal-backdrop--sheet {
+  overflow-x: hidden;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.modal-backdrop--sheet .modal {
+  max-height: min(92vh, calc(100dvh - env(safe-area-inset-bottom) - 12px));
+  scroll-padding-bottom: 20px;
+}
+
+.modal-backdrop--sheet .submit-btn {
+  position: static;
+  box-shadow: none;
+  margin-top: 16px;
+}
+
 .modal-backdrop--signal {
   overflow-x: hidden;
 }

@@ -69,7 +69,7 @@ export function AppendSupplementModal({ signal, onClose, onDone }: Props) {
   };
 
   return (
-    <div className="modal-backdrop modal-backdrop--signal" onClick={onClose}>
+    <div className="modal-backdrop modal-backdrop--sheet modal-backdrop--signal" onClick={onClose}>
       <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
         <header className="modal__head">
           <div>

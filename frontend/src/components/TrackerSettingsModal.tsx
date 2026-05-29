@@ -64,7 +64,7 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop modal-backdrop--sheet" onClick={onClose}>
       <form className="modal modal--tracker-settings" onClick={(e) => e.stopPropagation()} onSubmit={(e) => void submit(e)}>
         <header className="modal__head">
           <div>
