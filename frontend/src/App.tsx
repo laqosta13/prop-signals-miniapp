@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import {
   fetchChallengeTrackers,
@@ -17,28 +17,19 @@ import {
 import { FeedTab } from "./components/FeedTab";
 import { AppendSupplementModal } from "./components/AppendSupplementModal";
 import { EditSignalModal } from "./components/EditSignalModal";
+import { LeaderboardTab } from "./components/LeaderboardTab";
 import { NewSignalModal } from "./components/NewSignalModal";
 import { NewsModal } from "./components/NewsModal";
+import { NewsTab } from "./components/NewsTab";
 import { DisclaimerModal } from "./components/DisclaimerModal";
 import { OutcomeReveal } from "./components/OutcomeReveal";
 import { RankConfirmModal } from "./components/RankConfirmModal";
+import { ReviewsTab } from "./components/ReviewsTab";
+import { SubscriptionTab } from "./components/SubscriptionTab";
 import { TrackerSettingsModal } from "./components/TrackerSettingsModal";
+import { TrackerTab } from "./components/TrackerTab";
 import { useOutcomeReveal } from "./hooks/useOutcomeReveal";
 import { hasAcceptedDisclaimer, markDisclaimerAccepted } from "./utils/disclaimerStorage";
-
-const TrackerTab = lazy(() =>
-  import("./components/TrackerTab").then((m) => ({ default: m.TrackerTab })),
-);
-const LeaderboardTab = lazy(() =>
-  import("./components/LeaderboardTab").then((m) => ({ default: m.LeaderboardTab })),
-);
-const ReviewsTab = lazy(() =>
-  import("./components/ReviewsTab").then((m) => ({ default: m.ReviewsTab })),
-);
-const NewsTab = lazy(() => import("./components/NewsTab").then((m) => ({ default: m.NewsTab })));
-const SubscriptionTab = lazy(() =>
-  import("./components/SubscriptionTab").then((m) => ({ default: m.SubscriptionTab })),
-);
 
 type Tab = "feed" | "tracker" | "top" | "reviews" | "news" | "pay";
 
@@ -109,10 +100,6 @@ function NavIcon({ tab }: { tab: Tab }) {
       <path d="M8 14h3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
-}
-
-function TabFallback() {
-  return <p className="meta">Загрузка…</p>;
 }
 
 export default function App() {
@@ -401,41 +388,31 @@ export default function App() {
           />
         )}
         {tab === "tracker" && (
-          <Suspense fallback={<TabFallback />}>
-            <TrackerTab
-              trackers={trackers}
-              signals={signals}
-              myId={myId}
-              isAdmin={isAdmin}
-              onSettings={openSettings}
-            />
-          </Suspense>
+          <TrackerTab
+            trackers={trackers}
+            signals={signals}
+            myId={myId}
+            isAdmin={isAdmin}
+            onSettings={openSettings}
+          />
         )}
         {tab === "top" && (
-          <Suspense fallback={<TabFallback />}>
-            <LeaderboardTab traders={traders} loading={loading && !traders.length} myId={myId} />
-          </Suspense>
+          <LeaderboardTab traders={traders} loading={loading && !traders.length} myId={myId} />
         )}
         {tab === "reviews" && (
-          <Suspense fallback={<TabFallback />}>
-            <ReviewsTab
-              isAdmin={isAdmin}
-              canWriteReview={canWriteReview}
-              reviewWriteBlockedReason={reviewWriteBlockedReason}
-              daysUntilReview={daysUntilReview}
-              refreshKey={reviewsRefreshKey}
-            />
-          </Suspense>
+          <ReviewsTab
+            isAdmin={isAdmin}
+            canWriteReview={canWriteReview}
+            reviewWriteBlockedReason={reviewWriteBlockedReason}
+            daysUntilReview={daysUntilReview}
+            refreshKey={reviewsRefreshKey}
+          />
         )}
         {tab === "news" && (
-          <Suspense fallback={<TabFallback />}>
-            <NewsTab isAdmin={isAdmin} onEdit={openEditNews} refreshKey={newsRefreshKey} />
-          </Suspense>
+          <NewsTab isAdmin={isAdmin} onEdit={openEditNews} refreshKey={newsRefreshKey} />
         )}
         {tab === "pay" && (
-          <Suspense fallback={<TabFallback />}>
-            <SubscriptionTab onPaid={() => void loadBootstrap()} refreshKey={payRefreshKey} />
-          </Suspense>
+          <SubscriptionTab onPaid={() => void loadBootstrap()} refreshKey={payRefreshKey} />
         )}
       </main>
 

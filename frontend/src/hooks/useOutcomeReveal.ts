@@ -21,7 +21,8 @@ function pickJustClosedSignals(
     if (!isOutcomeRevealEligible(s.status, s.closed_at, played, memberSinceMs, s.id)) continue;
 
     const was = prevStatus.get(s.id);
-    if (was != null && isTerminalOutcomeStatus(was)) continue;
+    // Animate only on active → win/lose. was == null means first sight (history) — skip.
+    if (was == null || isTerminalOutcomeStatus(was)) continue;
 
     fresh.push(s);
   }
@@ -68,6 +69,7 @@ export function useOutcomeReveal(
     const played = loadPlayedOutcomeIds(userId);
 
     if (!hydratedRef.current) {
+      if (loading) return;
       syncPrevStatuses(signals, prevStatusRef.current);
       if (memberSinceMs != null) {
         seedPlayedOutcomesForExistingFeed(userId, signals, memberSinceMs);
