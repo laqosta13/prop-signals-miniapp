@@ -47,8 +47,9 @@ def compute_tracker_stats(
     *,
     max_daily_loss_pct: float,
 ) -> TrackerStats:
-    wins = sum(1 for s in closed if s.status == "win")
-    total = len(closed)
+    wins = sum(1 for s in closed if signal_pnl_usd(s) >= 0)
+    losses = sum(1 for s in closed if signal_pnl_usd(s) < 0)
+    total = wins + losses
     winrate = round(wins / total * 100, 1) if total else 0.0
 
     trading_days = len({msk_day_key(s.closed_at) for s in closed if msk_day_key(s.closed_at)})
@@ -78,7 +79,7 @@ def compute_tracker_stats(
 
     return TrackerStats(
         wins=wins,
-        trades_count=total,
+        trades_count=len(closed),
         winrate=winrate,
         trading_days=trading_days,
         daily_loss_usd=daily_loss_usd,

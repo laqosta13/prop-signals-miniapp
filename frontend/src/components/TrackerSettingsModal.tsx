@@ -6,7 +6,7 @@ import { mediaUrl } from "../utils";
 type Props = {
   tracker: ChallengeDashboard | null;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (updated: ChallengeDashboard) => void;
 };
 
 export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
@@ -17,6 +17,7 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
   const [preview, setPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [balanceTouched, setBalanceTouched] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -30,6 +31,7 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
       return tracker.prop_screenshot_url ? mediaUrl(tracker.prop_screenshot_url) : null;
     });
     setError(null);
+    setBalanceTouched(false);
   }, [tracker]);
 
   if (!tracker) return null;
@@ -42,19 +44,28 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
     });
   };
 
+  const onBalanceChange = (raw: string) => {
+    setBalanceTouched(true);
+    setBalance(raw);
+    setAccountSize(raw);
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
     try {
       const fd = new FormData();
-      fd.append("account_size", accountSize);
       fd.append("stage", stage);
-      fd.append("balance", balance);
+      if (balanceTouched) {
+        fd.append("balance", balance);
+      } else {
+        fd.append("account_size", accountSize);
+      }
       if (screenshot) fd.append("screenshot", screenshot);
-      await updateChallengeSettings(fd);
+      const updated = await updateChallengeSettings(fd);
       WebApp.HapticFeedback.notificationOccurred("success");
-      onSaved();
+      onSaved(updated);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось сохранить");
@@ -77,7 +88,7 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
         </header>
 
         <p className="meta tracker-settings-note">
-          Коррекция баланса с пропа не сбрасывает прогресс — меняется только текущая цена счёта.
+          Баланс с пропа обновляет основной баланс в трекере, ленте и форме сигнала. Размер счёта подстраивается под историю сделок.
         </p>
 
         <label className="field-label">Размер счёта ($)</label>
@@ -110,7 +121,7 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
           min={0}
           step={0.01}
           value={balance}
-          onChange={(e) => setBalance(e.target.value)}
+          onChange={(e) => onBalanceChange(e.target.value)}
           required
         />
 

@@ -1,5 +1,5 @@
 import type { Signal } from "../api";
-import { parseLevelPrice } from "./signalChartLevels";
+import { parseLevelPrice, parseTakeProfitPrices } from "./signalChartLevels";
 
 const DEFAULT_STAKE_PCT = 10;
 const MAX_LEVERAGE = 5;
@@ -12,7 +12,15 @@ function exitPrice(s: Signal): number | null {
   if (s.closed_exit_price != null && Number.isFinite(s.closed_exit_price)) {
     return s.closed_exit_price;
   }
-  return null;
+  if (s.status !== "win" && s.status !== "lose") return null;
+  if (s.status === "lose") {
+    return parseLevelPrice(s.stop_loss);
+  }
+  const tps = parseTakeProfitPrices(s.take_profits);
+  if (tps.length) {
+    return s.direction === "short" ? Math.max(...tps) : Math.min(...tps);
+  }
+  return parseLevelPrice(s.take_profits);
 }
 
 function priceMovePct(s: Signal): number | null {

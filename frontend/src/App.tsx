@@ -445,13 +445,11 @@ export default function App() {
           open={showNewSignal}
           onClose={() => setShowNewSignal(false)}
           onCreated={reloadAfterSignalChange}
-          accountSize={trackers.find((t) => t.owner_telegram_id === myId)?.account_size ?? null}
         />
         <EditSignalModal
           signal={editSignal}
           onClose={() => setEditSignal(null)}
           onUpdated={reloadAfterSignalChange}
-          accountSize={trackers.find((t) => t.owner_telegram_id === myId)?.account_size ?? null}
         />
         <AppendSupplementModal
           signal={supplementSignal}
@@ -483,7 +481,11 @@ export default function App() {
         <TrackerSettingsModal
           tracker={trackerSettings}
           onClose={() => setTrackerSettings(null)}
-          onSaved={() => void loadTrackers()}
+          onSaved={(updated) => {
+            setTrackers((prev) =>
+              prev.map((t) => (t.owner_telegram_id === updated.owner_telegram_id ? updated : t)),
+            );
+          }}
         />
       </Suspense>
     </div>

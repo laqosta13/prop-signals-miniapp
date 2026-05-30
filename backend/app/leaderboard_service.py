@@ -41,7 +41,7 @@ def daily_stats_map(db: Session, admin_ids: list[int]) -> dict[int, list[TraderD
         b = buckets[s.author_telegram_id][day]
         b["pnl"] = round(b["pnl"] + pnl, 2)
         b["rating"] = round(b["rating"] + ret, 2)
-        if s.status == "win":
+        if pnl >= 0:
             b["w"] += 1
         else:
             b["l"] += 1

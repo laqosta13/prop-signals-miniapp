@@ -248,6 +248,16 @@ def format_updated_signal_message(signal: Signal, changes: list[str], *, actor_l
         body = "<b>Изменения:</b>\n" + "\n".join(changes)
     else:
         body = "Обновлены параметры сигнала."
+    if signal.status in ("win", "lose"):
+        ret = _closed_price_move_pct(signal)
+        pnl = signal_realized_pnl_for_read(signal) or 0
+        sign = "+" if ret >= 0 else ""
+        lev = signal_leverage(signal)
+        lev_note = f" · {lev}x" if lev > 1 else ""
+        body += (
+            f"\n\n<b>P/L:</b> {sign}{ret:.2f}% · трекер{lev_note}: {pnl:+.0f}$"
+            f"\n<b>Счёт сигнала:</b> ${signal_pnl_base_usd(signal):,.0f}"
+        )
     return header + body
 
 

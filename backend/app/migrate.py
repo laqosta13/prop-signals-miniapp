@@ -191,6 +191,7 @@ def run_migrations(engine: Engine) -> None:
     _recalc_market_close_ratings_v1(engine)
     _recalc_closed_signal_pnl_v2(engine)
     _recalc_closed_signal_pnl_v3(engine)
+    _recalc_winrate_by_pnl_v1(engine)
 
 
 def _recalc_closed_signal_pnl_v3(engine: Engine) -> None:
@@ -230,6 +231,36 @@ def _recalc_closed_signal_pnl_v3(engine: Engine) -> None:
 
         rebuild_trader_stats_from_signals(db, ids)
         rebuild_tracker_balances_from_signals(db, ids)
+        db.commit()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
+
+
+def _recalc_winrate_by_pnl_v1(engine: Engine) -> None:
+    """WR и W/L в ТОП/трекере — по фактическому P/L ($), не только по статусу win/lose."""
+    marker = _marker_path(engine, ".recalc_winrate_by_pnl_v1")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".recalc_winrate_by_pnl_v1"
+    if marker.exists():
+        return
+
+    from app.config import settings
+    from app.database import SessionLocal
+    from app.trader_stats import rebuild_trader_stats_from_signals
+
+    ids = sorted(settings.admin_id_set)
+    if not ids:
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+        return
+
+    db = SessionLocal()
+    try:
+        rebuild_trader_stats_from_signals(db, ids)
         db.commit()
         marker.parent.mkdir(parents=True, exist_ok=True)
         marker.touch()

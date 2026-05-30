@@ -269,6 +269,9 @@ export const confirmMyRank = () => api<TraderRank>("/traders/me/rank/confirm", {
 export const activateRankShield = () => api<TraderRank>("/traders/me/rank/shield", { method: "POST" });
 export const fetchChallengeTrackers = () => api<ChallengeDashboard[]>("/challenge/trackers");
 
+/** Трекер текущего админа (баланс + счёт) — для формы сигнала. */
+export const fetchMyTracker = () => api<ChallengeDashboard>("/challenge/my-tracker");
+
 export const fetchReviews = () => api<Review[]>("/reviews");
 
 export const createReview = (form: FormData) => sendForm<Review>("/reviews", "POST", form);

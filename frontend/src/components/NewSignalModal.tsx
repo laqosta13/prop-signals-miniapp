@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { createSignalWithMedia, fetchMarketPrice } from "../api";
 import type { UploadProgress } from "../api";
+import { useAdminTrackerSnapshot } from "../hooks/useAdminTrackerSnapshot";
 import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
 import { normalizeTakeProfits } from "../utils";
 import { ruTextFieldProps } from "../utils/textFieldProps";
@@ -22,12 +23,11 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
-  accountSize?: number | null;
 };
 
 const DEFAULT_SYMBOL = "BTCUSDT";
 
-export function NewSignalModal({ open, onClose, onCreated, accountSize }: Props) {
+export function NewSignalModal({ open, onClose, onCreated }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [priceLoading, setPriceLoading] = useState(false);
@@ -57,6 +57,8 @@ export function NewSignalModal({ open, onClose, onCreated, accountSize }: Props)
 
   const directionRef = useRef(direction);
   directionRef.current = direction;
+
+  const { snapshot: trackerSnap, loading: trackerLoading } = useAdminTrackerSnapshot(open);
 
   const loadMarketPrice = useCallback(
     async (sym: string) => {
@@ -102,9 +104,10 @@ export function NewSignalModal({ open, onClose, onCreated, accountSize }: Props)
 
   if (!open) return null;
 
-  const account = accountSize ?? 0;
+  const trackerBalance = trackerSnap?.balance ?? 0;
+  const accountForNominal = trackerSnap?.accountSize ?? 0;
   const lev = parseLeverage(leverage);
-  const stakeUsd = entryNominalUsd(account, parseRiskPercent(risk), lev);
+  const stakeUsd = entryNominalUsd(accountForNominal, parseRiskPercent(risk), lev);
 
   const onScreenshot = (file: File | null) => {
     setScreenshot(file);
@@ -207,15 +210,30 @@ export function NewSignalModal({ open, onClose, onCreated, accountSize }: Props)
 
         <RiskPercentSlider value={risk} onChange={setRisk} />
 
-        <label className="field-label">Счёт $</label>
-        <input value={account > 0 ? String(Math.round(account)) : "—"} readOnly className="readonly" />
-        {account > 0 && (
+        <label className="field-label">Трекер $</label>
+        <input
+          value={
+            trackerLoading
+              ? "Загрузка…"
+              : trackerBalance > 0
+                ? String(Math.round(trackerBalance))
+                : "—"
+          }
+          readOnly
+          className="readonly"
+        />
+        {accountForNominal > 0 && (
           <p className="meta signal-nominal">
             Номинал позиции:{" "}
             <span className="signal-nominal__usd">
               ${stakeUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}
             </span>{" "}
             (<span className="signal-nominal__pct">{risk}%</span> × <span className="signal-nominal__lev">{lev}x</span>)
+          </p>
+        )}
+        {accountForNominal > 0 && accountForNominal !== trackerBalance && (
+          <p className="meta signal-nominal-hint">
+            Номинал от счёта ${accountForNominal.toLocaleString("en-US", { maximumFractionDigits: 0 })}, не от текущего баланса
           </p>
         )}
 

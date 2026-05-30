@@ -112,6 +112,11 @@ def closed_signal_pnl_usd(signal: Signal) -> float:
     return round(signal_entry_stake_usd(signal) * move / 100.0, 2)
 
 
+def outcome_from_pnl(pnl: float) -> str:
+    """win/lose по фактическому P/L ($), 0 = win."""
+    return "win" if pnl >= 0 else "lose"
+
+
 def signal_realized_pnl_for_read(signal: Signal) -> float | None:
     """P/L для API: пересчёт по фактическому exit и сумме входа (risk_percent)."""
     if signal.status not in ("win", "lose"):
@@ -140,7 +145,7 @@ def apply_outcome_to_trader(
     if trader.losses is None:
         trader.losses = 0
 
-    if outcome == "win":
+    if pnl >= 0:
         trader.wins += 1
     else:
         trader.losses += 1
@@ -199,7 +204,7 @@ def rebuild_trader_stats_from_signals(db: Session, telegram_ids: list[int]) -> i
             signal.status = outcome
             signal.realized_pnl = pnl
 
-            if outcome == "win":
+            if pnl >= 0:
                 trader.wins += 1
             else:
                 trader.losses += 1

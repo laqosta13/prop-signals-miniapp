@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
-from app.challenge_service import build_dashboard, get_or_create_challenge, list_admin_trackers
+from app.challenge_service import apply_prop_balance_sync, build_dashboard, get_or_create_challenge, list_admin_trackers
 from app.deps import db_session, get_current_user, require_admin
 from app.hashhedge_rules import rules_payload
 from app.media_storage import clear_tracker_screenshot_dir, delete_media_files, save_tracker_screenshot
@@ -30,6 +30,17 @@ def trackers(
     return rows
 
 
+@router.get("/my-tracker", response_model=ChallengeDashboard)
+def my_tracker(
+    db: Session = Depends(db_session),
+    admin: TelegramUser = Depends(require_admin),
+) -> ChallengeDashboard:
+    """Текущий трекер админа — для формы сигнала (баланс и размер счёта)."""
+    ch = get_or_create_challenge(db, admin.telegram_user_id)
+    db.commit()
+    return build_dashboard(db, ch)
+
+
 @router.put("/settings", response_model=ChallengeDashboard)
 async def update_settings(
     account_size: str | None = Form(None),
@@ -43,17 +54,17 @@ async def update_settings(
     """Настройки трекера: коррекция баланса с пропа не сбрасывает прогресс (account_size, trading_days)."""
     ch = get_or_create_challenge(db, admin.telegram_user_id)
 
-    if account_size is not None and account_size.strip():
-        ch.account_size = float(account_size)
-
     if stage is not None and stage.strip():
         stage_n = int(stage)
         if stage_n < 1 or stage_n > 3:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Этап должен быть от 1 до 3")
         ch.stage = stage_n
 
-    if balance is not None and balance.strip():
-        ch.balance = round(float(balance), 2)
+    balance_provided = balance is not None and balance.strip()
+    if balance_provided:
+        apply_prop_balance_sync(db, ch, float(balance))
+    elif account_size is not None and account_size.strip():
+        ch.account_size = float(account_size)
 
     if _form_bool(remove_screenshot):
         delete_media_files(ch.prop_screenshot_path)

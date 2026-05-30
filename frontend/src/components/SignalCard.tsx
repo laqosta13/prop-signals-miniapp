@@ -198,12 +198,21 @@ export function SignalCard({
       )}
       {s.comment && <p className="signal-card__comment">{s.comment}</p>}
       {(s.supplements?.length ?? 0) > 0 && (
-        <section className="signal-supplements">
-          <h4 className="signal-supplements__title">Дополнения</h4>
-          {s.supplements!.map((sup) => (
-            <div key={sup.id} className="signal-supplement">
-              <p className="signal-supplement__time">{formatTime(sup.created_at)}</p>
-              {sup.comment && <p className="signal-card__comment">{sup.comment}</p>}
+        <section className="signal-supplements" aria-label="Дополнения к сигналу">
+          <header className="signal-supplements__head">
+            <span className="signal-supplements__badge" aria-hidden>
+              ＋
+            </span>
+            <span className="signal-supplements__title">Дополнения</span>
+            <span className="signal-supplements__count">{s.supplements!.length}</span>
+          </header>
+          {s.supplements!.map((sup, idx) => (
+            <article key={sup.id} className="signal-supplement">
+              <header className="signal-supplement__head">
+                <span className="signal-supplement__label">Доп. {idx + 1}</span>
+                <time className="signal-supplement__time">{formatTime(sup.created_at)}</time>
+              </header>
+              {sup.comment && <p className="signal-supplement__comment">{sup.comment}</p>}
               {sup.media_image_url && (
                 <button type="button" className="media-thumb" onClick={() => setLightbox(mediaUrl(sup.media_image_url))}>
                   <img src={mediaUrl(sup.media_image_url)!} alt="Скрин дополнения" className="signal-media-img" />
@@ -212,7 +221,7 @@ export function SignalCard({
               {sup.media_video_url && (
                 <video src={mediaUrl(sup.media_video_url)!} controls className="signal-media-video" playsInline />
               )}
-            </div>
+            </article>
           ))}
         </section>
       )}

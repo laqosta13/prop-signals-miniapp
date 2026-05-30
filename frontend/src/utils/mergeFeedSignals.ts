@@ -1,6 +1,17 @@
 import type { Signal } from "../api";
 import { parseApiDate } from "../utils";
 
+function mergeClosedSignal(local: Signal, remote: Signal): Signal {
+  return {
+    ...remote,
+    closed_at: remote.closed_at ?? local.closed_at,
+    closed_exit_price: remote.closed_exit_price ?? local.closed_exit_price,
+    realized_pnl: remote.realized_pnl ?? local.realized_pnl,
+    close_reason: remote.close_reason ?? local.close_reason,
+    entry_filled_at: remote.entry_filled_at ?? local.entry_filled_at,
+  };
+}
+
 /** Не откатывать локально закрытый сигнал из-за устаревшего poll/refetch. */
 export function mergeFeedSignals(prev: Signal[], next: Signal[]): Signal[] {
   const prevById = new Map(prev.map((s) => [s.id, s]));
@@ -16,10 +27,11 @@ export function mergeFeedSignals(prev: Signal[], next: Signal[]): Signal[] {
       const localMs = parseApiDate(local.closed_at).getTime();
       const remoteMs = parseApiDate(remote.closed_at).getTime();
       if (Number.isFinite(localMs) && Number.isFinite(remoteMs) && localMs > remoteMs) {
-        return local;
+        return mergeClosedSignal(remote, local);
       }
     }
 
+    if (remoteClosed) return mergeClosedSignal(local, remote);
     return remote;
   });
 }

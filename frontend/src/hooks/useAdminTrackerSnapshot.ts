@@ -1,0 +1,42 @@
+import { useEffect, useState } from "react";
+import { fetchMyTracker } from "../api";
+
+export type TrackerSnapshot = {
+  balance: number;
+  accountSize: number;
+};
+
+export function useAdminTrackerSnapshot(enabled: boolean) {
+  const [snapshot, setSnapshot] = useState<TrackerSnapshot | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!enabled) {
+      setSnapshot(null);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    void fetchMyTracker()
+      .then((d) => {
+        if (!cancelled) {
+          setSnapshot({
+            balance: d.balance,
+            accountSize: d.account_size,
+          });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSnapshot(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled]);
+
+  return { snapshot, loading };
+}

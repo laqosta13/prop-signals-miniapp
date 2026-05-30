@@ -73,6 +73,25 @@ def _sync_trading_days(db: Session, ch: UserChallenge) -> None:
     ch.trading_days = len({msk_day_key(s.closed_at) for s in closed if msk_day_key(s.closed_at)})
 
 
+def apply_prop_balance_sync(db: Session, ch: UserChallenge, new_balance: float) -> None:
+    """Сверка с пропом: основной баланс и счёт согласованы с закрытыми сигналами."""
+    from app.trader_stats import closed_signal_pnl_usd
+
+    closed = _closed_signals(db, ch.telegram_user_id)
+    total_pnl = round(sum(closed_signal_pnl_usd(s) for s in closed), 2)
+    bal = round(new_balance, 2)
+    ch.balance = bal
+    ch.account_size = round(max(bal - total_pnl, 0.01), 2)
+    rules = rules_for_stage(ch.stage)
+    stats = compute_tracker_stats(
+        ch,
+        closed,
+        max_daily_loss_pct=rules.max_daily_loss_pct,
+    )
+    ch.day_start_balance = stats.day_start_balance
+    _sync_trading_days(db, ch)
+
+
 def rebuild_tracker_balances_from_signals(db: Session, admin_ids: list[int]) -> None:
     """Баланс трекера = стартовый депозит + сумма realized_pnl закрытых сигналов."""
     from app.trader_stats import closed_signal_pnl_usd
