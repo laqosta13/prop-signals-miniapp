@@ -9,7 +9,7 @@ import socket
 from dataclasses import dataclass
 from html import unescape
 from html.parser import HTMLParser
-from urllib.parse import urljoin, urlparse
+from urllib.parse import parse_qs, quote, urljoin, urlparse
 
 import httpx
 
@@ -31,6 +31,8 @@ _OG_KEYS = {
     "twitter:image": "image_url",
     "twitter:image:src": "image_url",
 }
+
+_YOUTUBE_HOSTS = frozenset({"youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"})
 
 
 @dataclass(frozen=True)
@@ -154,9 +156,63 @@ def _extract_preview(base_url: str, html: str) -> LinkPreview:
     )
 
 
-async def fetch_link_preview(raw_url: str) -> LinkPreview | None:
-    url = normalize_link_url(raw_url)
-    if url is None or not _is_safe_url(url):
+def _youtube_video_id(url: str) -> str | None:
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
+    if host.startswith("www."):
+        host = host[4:]
+
+    if host == "youtu.be":
+        vid = parsed.path.strip("/").split("/")[0]
+        return vid if re.fullmatch(r"[\w-]{11}", vid) else None
+
+    if host not in _YOUTUBE_HOSTS:
+        return None
+
+    path = parsed.path or ""
+    if path == "/watch" or path.startswith("/watch/"):
+        vid = (parse_qs(parsed.query).get("v") or [None])[0]
+        return vid if vid and re.fullmatch(r"[\w-]{11}", vid) else None
+
+    for prefix in ("/embed/", "/shorts/", "/live/", "/v/"):
+        if path.startswith(prefix):
+            vid = path[len(prefix) :].split("/")[0]
+            return vid if re.fullmatch(r"[\w-]{11}", vid) else None
+    return None
+
+
+async def _fetch_youtube_preview(url: str, video_id: str) -> LinkPreview:
+    title: str | None = None
+    description: str | None = None
+    image_url = f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg"
+
+    oembed_url = f"https://www.youtube.com/oembed?url={quote(url, safe='')}&format=json"
+    try:
+        async with httpx.AsyncClient(
+            timeout=settings.price_http_timeout_seconds,
+            headers={"User-Agent": _USER_AGENT, "Accept": "application/json"},
+        ) as client:
+            resp = await client.get(oembed_url)
+            if resp.status_code == 200:
+                data = resp.json()
+                if isinstance(data, dict):
+                    title = _clip(data.get("title"), 300)
+                    thumb = data.get("thumbnail_url")
+                    if isinstance(thumb, str) and thumb.startswith(("http://", "https://")):
+                        image_url = thumb
+                    author = _clip(data.get("author_name"), 120)
+                    if author:
+                        description = f"Канал: {author}"
+    except Exception as e:
+        logger.warning("YouTube oEmbed failed for %s: %s", url[:120], e)
+
+    if not title:
+        title = "YouTube"
+    return LinkPreview(url=url, title=title, description=description, image_url=image_url)
+
+
+async def _fetch_html_preview(url: str) -> LinkPreview | None:
+    if not _is_safe_url(url):
         return None
 
     timeout = settings.price_http_timeout_seconds
@@ -194,3 +250,15 @@ async def fetch_link_preview(raw_url: str) -> LinkPreview | None:
     except Exception as e:
         logger.warning("link preview failed for %s: %s", url[:120], e)
     return LinkPreview(url=url, title=_clip(urlparse(url).netloc, 300))
+
+
+async def fetch_link_preview(raw_url: str) -> LinkPreview | None:
+    url = normalize_link_url(raw_url)
+    if url is None or not _is_safe_url(url):
+        return None
+
+    video_id = _youtube_video_id(url)
+    if video_id:
+        return await _fetch_youtube_preview(url, video_id)
+
+    return await _fetch_html_preview(url)
