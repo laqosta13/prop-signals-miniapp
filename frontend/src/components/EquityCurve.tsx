@@ -8,6 +8,7 @@ type Props = {
   dailyStats: TraderDayStat[];
   className?: string;
   showDayList?: boolean;
+  percentOnly?: boolean;
 };
 
 type Point = {
@@ -154,7 +155,7 @@ function yTicks(minV: number, maxV: number) {
 }
 
 /** Кумулятивная кривая доходности по дням. */
-export function EquityCurve({ dailyStats, className = "", showDayList = true }: Props) {
+export function EquityCurve({ dailyStats, className = "", showDayList = true, percentOnly = false }: Props) {
   const [period, setPeriod] = useState<EquityPeriod>(7);
   const [daysOpen, setDaysOpen] = useState(false);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
@@ -340,9 +341,18 @@ export function EquityCurve({ dailyStats, className = "", showDayList = true }: 
               <span className="equity-curve__tip-date">{formatDayLabel(active.date)}</span>
               <span className={active.value >= 0 ? "pnl-win" : "pnl-lose"}>{fmtPct(active.value)}</span>
               <span className="equity-curve__tip-sub">
-                день {active.dayDelta >= 0 ? "+" : ""}
-                {active.dayDelta.toFixed(2)}% · {active.dayPnl >= 0 ? "+" : ""}
-                {formatUsd(active.dayPnl)}
+                {percentOnly ? (
+                  <>
+                    день {active.dayDelta >= 0 ? "+" : ""}
+                    {active.dayDelta.toFixed(2)}%
+                  </>
+                ) : (
+                  <>
+                    день {active.dayDelta >= 0 ? "+" : ""}
+                    {active.dayDelta.toFixed(2)}% · {active.dayPnl >= 0 ? "+" : ""}
+                    {formatUsd(active.dayPnl)}
+                  </>
+                )}
               </span>
             </div>
           )}
@@ -369,19 +379,21 @@ export function EquityCurve({ dailyStats, className = "", showDayList = true }: 
           </button>
           {daysOpen && (
             <div className="equity-curve__days-panel">
-              <div className="equity-curve__days-head">
+              <div className={`equity-curve__days-head${percentOnly ? " equity-curve__days-head--pct" : ""}`}>
                 <span>День</span>
-                <span>P/L</span>
+                {!percentOnly && <span>P/L</span>}
                 <span>%</span>
               </div>
-              <ul className="equity-curve__days-list">
+              <ul className={`equity-curve__days-list${percentOnly ? " equity-curve__days-list--pct" : ""}`}>
                 {dayList.map((d) => (
                   <li key={d.date}>
                     <span>{formatDayLabel(d.date)}</span>
-                    <span className={d.pnl_usd >= 0 ? "pnl-win" : "pnl-lose"}>
-                      {d.pnl_usd >= 0 ? "+" : ""}
-                      {formatUsd(d.pnl_usd)}
-                    </span>
+                    {!percentOnly && (
+                      <span className={d.pnl_usd >= 0 ? "pnl-win" : "pnl-lose"}>
+                        {d.pnl_usd >= 0 ? "+" : ""}
+                        {formatUsd(d.pnl_usd)}
+                      </span>
+                    )}
                     <span className={d.rating_delta >= 0 ? "pnl-win" : "pnl-lose"}>
                       {d.rating_delta >= 0 ? "+" : ""}
                       {d.rating_delta.toFixed(2)}%

@@ -9,8 +9,9 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 
 from app.config import settings
+from app.cult_channel_service import apply_outcome_to_channel
 from app.database import SessionLocal
-from app.models import Signal
+from app.models import CultChannel, CultChannelSignal, Signal
 from app.price_service import (
     clear_price_cache,
     fetch_market_quotes,
@@ -31,16 +32,20 @@ async def check_active_signals_once() -> int:
     clear_price_cache()
     db = SessionLocal()
     try:
-        stmt = select(Signal).where(Signal.status == "active")
-        active = list(db.scalars(stmt).all())
-        if not active:
+        admin_active = list(db.scalars(select(Signal).where(Signal.status == "active")).all())
+        cult_active = list(db.scalars(select(CultChannelSignal).where(CultChannelSignal.status == "active")).all())
+
+        symbols = sorted(
+            {normalize_symbol(s.symbol) for s in admin_active}
+            | {normalize_symbol(s.symbol) for s in cult_active}
+        )
+        if not symbols:
             return 0
 
-        symbols = sorted({normalize_symbol(s.symbol) for s in active})
         quote_lists = await asyncio.gather(*(fetch_market_quotes(sym) for sym in symbols))
         quotes_by_symbol = dict(zip(symbols, quote_lists, strict=True))
 
-        for signal in active:
+        for signal in admin_active:
             sym = normalize_symbol(signal.symbol)
             quotes = quotes_by_symbol.get(sym) or []
             if not quotes:
@@ -88,6 +93,37 @@ async def check_active_signals_once() -> int:
                     exit_price=hit.price,
                     close_reason="target" if outcome == "win" else "stop",
                 )
+                closed += 1
+
+        channels = {c.id: c for c in db.scalars(select(CultChannel)).all()}
+        for sig in cult_active:
+            channel = channels.get(sig.cult_channel_id)
+            if channel is None:
+                continue
+            sym = normalize_symbol(sig.symbol)
+            quotes = quotes_by_symbol.get(sym) or []
+            if not quotes:
+                continue
+
+            if sig.entry_filled_at is None:
+                if not entry_zone_defined(sig.entry_low, sig.entry_high):
+                    continue
+                hit = first_entry_quote(quotes, sig.direction, sig.entry_low, sig.entry_high)
+                if hit is None:
+                    continue
+                sig.entry_filled_at = datetime.now(timezone.utc)
+                db.commit()
+                logger.info("CULT: вход #%s %s @%s", sig.id, sig.symbol, channel.username)
+                continue
+
+            outcome_hit = first_outcome_quote(quotes, sig.direction, sig.stop_loss, sig.take_profits)
+            if outcome_hit is None:
+                continue
+            outcome, hit = outcome_hit
+            if outcome in ("win", "lose"):
+                apply_outcome_to_channel(db, channel, sig, outcome, hit.price)
+                db.commit()
+                logger.info("CULT: %s #%s %s @%s", outcome, sig.id, sig.symbol, channel.username)
                 closed += 1
     except Exception as e:
         logger.exception("price monitor error: %s", e)

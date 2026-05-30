@@ -155,6 +155,24 @@ class TraderRead(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class CultChannelRead(BaseModel):
+    id: int
+    title: str
+    username: str
+    channel_url: str
+    rating_percent: float
+    wins: int
+    losses: int
+    rank: int
+    win_rate: float
+    connected_at: datetime
+    daily_stats: list[TraderDayStat] = []
+
+
+class CultChannelCreateBody(BaseModel):
+    url: str = Field(min_length=4, max_length=256)
+
+
 class ChallengeDashboard(BaseModel):
     owner_telegram_id: int
     owner_username: str | None = None

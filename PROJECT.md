@@ -24,7 +24,7 @@
 
 1. **Лента** — сигналы с **нумерацией #N**, график на карточке, просмотры/лайки, мини-трекеры админов, галочка уведомлений, **дисклеймер** (кнопка **!** в шапке + принятие при первом заходе), **анимация WIN/LOSE** при **живом** закрытии сигнала
 2. **Трекер** — Hash Hedge challenge для каждого админа + таблица правил по этапам
-3. **ТОП** — **volnovoi** (сводный портфель всех админов) + **копирование на Bybit** под карточкой; блок **«ТРЕЙДЕРЫ CULT»**; **RankGuide**; блок **«КОНДИДАТЫ В CULT»** — остальные трейдеры; equity curve; **описание рангов** (раскрывающийся блок)
+3. **ТОП** — **volnovoi** + копирование Bybit; **RankGuide**; **ТРЕЙДЕРЫ CULT**; **КОНДИДАТЫ В CULT** — админы + **Telegram-каналы** (аналитика % с момента подключения)
 4. **Отзывы** — оценка 1–5 и текст; один отзыв на пользователя
 5. **Новости** — публикации админов; чтение для всех
 6. **Подписка** — оплата USDT TON (проверка TXID в блокчейне), реферальные ссылки, trial
@@ -196,6 +196,32 @@ DELETE /copy-trading/me          — отключить
 **Backend:** `bybit_trading.py`, `copy_trading_service.py`, `copy_billing.py`, `copy_billing_scheduler.py`, `routers/copy_trading.py`; хуки в `signal_service.py`, `price_monitor.py`.
 
 **Env (опционально):** `EXCHANGE_SECRETS_KEY` — отдельный ключ шифрования (иначе `BOT_TOKEN`).
+
+---
+
+## Каналы-кандидаты CULT (Telegram)
+
+Админ добавляет ссылку на публичный Telegram-канал в блок **«КОНДИДАТЫ В CULT»**. Аналитика как у трейдеров, но **только чистый %** (без $).
+
+| Параметр | Значение |
+|---|---|
+| UI | `CultChannelCard.tsx`, форма `CultChannelAdminPanel.tsx` (только админ) |
+| Подключение | `t.me/channel` или `@channel`; бот **админ канала** (для `channel_post` updates) |
+| Старт учёта | **`connected_at`** — посты **до** подключения игнорируются (историю не парсим) |
+| Парсинг поста | Тикер + LONG/SHORT + **вход + стоп + цель** (`channel_signal_parser.py`) |
+| Мониторинг | Тот же price monitor (Bybit perp): вход → стоп/цель |
+| Метрики | `rating_percent`, W/L, WR, equity curve и дни — **без P/L $** |
+| Таблицы | `cult_channels`, `cult_channel_signals` |
+
+**API:**
+
+```
+GET    /cult-channels           — список (все авторизованные)
+POST   /cult-channels           — добавить канал (require_admin)
+DELETE /cult-channels/{id}      — отключить (require_admin)
+```
+
+**Backend:** `cult_channel_service.py`, `telegram_updates.py` (polling `channel_post`), `routers/cult_channels.py`.
 
 ---
 
@@ -412,6 +438,7 @@ GET  /traders/{id}/rank          — id=0 → volnovoi
 GET  /traders/me/rank-pending | POST .../confirm | POST .../shield
 GET  /copy-trading/me | PUT /copy-trading/me | PATCH /copy-trading/me
 POST /copy-trading/me/test | POST /copy-trading/me/pay | DELETE /copy-trading/me
+GET  /cult-channels | POST /cult-channels | DELETE /cult-channels/{id}
 GET  /challenge/trackers
 GET  /challenge/my-tracker       — require_admin, свой трекер для формы сигнала
 GET  /challenge/rules
@@ -436,6 +463,7 @@ POST /admin/purge-published      — require_admin, полная очистка 
 | Очистка данных | `data_cleanup.py`, `routers/admin.py`, `scripts/purge_published.py` |
 | P/L, ТОП | `trader_stats.py`, `leaderboard_service.py`, `volnovoi_account.py` |
 | Copy-trading Bybit | `bybit_trading.py`, `copy_trading_service.py`, `copy_billing.py`, `copy_billing_scheduler.py`, `credentials_crypto.py`, `routers/copy_trading.py` |
+| CULT каналы | `cult_channel_service.py`, `channel_signal_parser.py`, `telegram_updates.py`, `telegram_bot_api.py`, `routers/cult_channels.py` |
 | Ранги | `rank_service.py`, `rank_scheduler.py`, `rank_constants.py` |
 | Трекер | `challenge_service.py`, `tracker_metrics.py`, `hashhedge_rules.py` |
 | Уведомления | `telegram_notify.py` |
@@ -449,7 +477,7 @@ POST /admin/purge-published      — require_admin, полная очистка 
 | Права на сигнал | `utils/signalActions.ts` (`canCloseAtMarketSignal`, …) |
 | Дополнения | `AppendSupplementModal.tsx` |
 | Трекер UI | `TrackerTab.tsx`, `TrackerSettingsModal.tsx`, `HashHedgeRulesTable.tsx`, `data/hashhedgeRules.ts` |
-| ТОП | `LeaderboardTab.tsx`, `VolnovoiCopyPanel.tsx`, `TraderProfileModal.tsx`, `RankGuide.tsx`, `EquityCurve.tsx`, `utils/volnovoi.ts` |
+| ТОП | `LeaderboardTab.tsx`, `VolnovoiCopyPanel.tsx`, `CultChannelCard.tsx`, `CultChannelAdminPanel.tsx`, `TraderProfileModal.tsx`, `RankGuide.tsx`, `EquityCurve.tsx`, `utils/volnovoi.ts` |
 | Upload | `api.ts` (`sendFormWithProgress`), `UploadProgressBar.tsx`, `utils/upload.ts` |
 | API клиент | `frontend/src/api.ts` |
 
@@ -547,6 +575,7 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 44. **ТОП UX** — график equity вне клика карточки; «Страховка» на volnovoi; выровненная форма Bybit API
 45. **График сигнала** — шире (~220 баров), 268px, скругление 12px внутри карточки
 46. **Трекер UI** — свёрнутые сделки; баланс под скрином скрыт; prop sync без смены старта/цели
+47. **CULT каналы** — Telegram-каналы в кандидатах, парсинг сигналов, % с `connected_at`, polling `channel_post`
 
 ---
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, lazy, Suspense } from "react"
 import WebApp from "@twa-dev/sdk";
 import {
   fetchChallengeTrackers,
+  fetchCultChannels,
   fetchLeaderboard,
   fetchMe,
   fetchRankPending,
@@ -12,6 +13,7 @@ import {
   type ChallengeDashboard,
   type NewsPost,
   type Signal,
+  type CultChannel,
   type Trader,
 } from "./api";
 import { FeedTab } from "./components/FeedTab";
@@ -110,6 +112,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>("feed");
   const [signals, setSignals] = useState<Signal[]>([]);
   const [traders, setTraders] = useState<Trader[]>([]);
+  const [cultChannels, setCultChannels] = useState<CultChannel[]>([]);
   const [trackers, setTrackers] = useState<ChallengeDashboard[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [myId, setMyId] = useState<number | null>(null);
@@ -209,7 +212,9 @@ export default function App() {
 
   const loadTop = useCallback(async () => {
     try {
-      setTraders(await fetchLeaderboard());
+      const [board, channels] = await Promise.all([fetchLeaderboard(), fetchCultChannels()]);
+      setTraders(board);
+      setCultChannels(channels);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка рейтинга");
     }
@@ -398,7 +403,14 @@ export default function App() {
             />
           )}
           {tab === "top" && (
-            <LeaderboardTab traders={traders} loading={loading && !traders.length} myId={myId} />
+            <LeaderboardTab
+              traders={traders}
+              cultChannels={cultChannels}
+              loading={loading && !traders.length && !cultChannels.length}
+              myId={myId}
+              isAdmin={isAdmin}
+              onCultChannelsChange={() => void loadTop()}
+            />
           )}
           {tab === "reviews" && (
             <ReviewsTab

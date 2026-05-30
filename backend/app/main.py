@@ -17,7 +17,8 @@ from app.migrate import run_migrations
 from app.price_monitor import price_monitor_loop
 from app.copy_billing_scheduler import copy_billing_scheduler_loop
 from app.rank_scheduler import rank_scheduler_loop
-from app.routers import admin, auth, challenge, copy_trading, news, reviews, signals, subscriptions, traders
+from app.telegram_updates import telegram_updates_loop
+from app.routers import admin, auth, challenge, copy_trading, cult_channels, news, reviews, signals, subscriptions, traders
 
 logging.basicConfig(level=logging.INFO)
 
@@ -34,8 +35,9 @@ async def lifespan(app: FastAPI):
     price_task = asyncio.create_task(price_monitor_loop())
     rank_task = asyncio.create_task(rank_scheduler_loop())
     billing_task = asyncio.create_task(copy_billing_scheduler_loop())
+    tg_task = asyncio.create_task(telegram_updates_loop())
     yield
-    for task in (price_task, rank_task, billing_task):
+    for task in (price_task, rank_task, billing_task, tg_task):
         task.cancel()
         try:
             await task
@@ -56,6 +58,7 @@ app.add_middleware(
 )
 
 app.include_router(copy_trading.router)
+app.include_router(cult_channels.router)
 app.include_router(admin.router)
 app.include_router(auth.router)
 app.include_router(challenge.router)

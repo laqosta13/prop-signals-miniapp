@@ -159,6 +159,49 @@ class Trader(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
+class CultChannel(Base):
+    """Telegram-канал в блоке «КОНДИДАТЫ В CULT» — аналитика с момента подключения."""
+
+    __tablename__ = "cult_channels"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    title: Mapped[str] = mapped_column(String(128), nullable=False)
+    username: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
+    chat_id: Mapped[int | None] = mapped_column(Integer, nullable=True, unique=True, index=True)
+    channel_url: Mapped[str] = mapped_column(String(256), nullable=False)
+    connected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    rating_percent: Mapped[float] = mapped_column(Float, default=0.0)
+    wins: Mapped[int] = mapped_column(Integer, default=0)
+    losses: Mapped[int] = mapped_column(Integer, default=0)
+    added_by_telegram_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class CultChannelSignal(Base):
+    """Сигнал из поста канала (тикер, вход, стоп, цель)."""
+
+    __tablename__ = "cult_channel_signals"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    cult_channel_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    telegram_message_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    message_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    symbol: Mapped[str] = mapped_column(String(32), nullable=False)
+    direction: Mapped[str] = mapped_column(String(8), nullable=False)
+    entry_low: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    entry_high: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    stop_loss: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    take_profits: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(16), default="active")
+    entry_filled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    close_reason: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    closed_exit_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    published_market_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class Subscriber(Base):
     __tablename__ = "subscribers"
 

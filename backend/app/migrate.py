@@ -270,6 +270,68 @@ def run_migrations(engine: Engine) -> None:
                 )
             )
 
+        if "cult_channels" not in inspect(engine).get_table_names():
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS cult_channels (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        title VARCHAR(128) NOT NULL,
+                        username VARCHAR(64) NOT NULL UNIQUE,
+                        chat_id INTEGER UNIQUE,
+                        channel_url VARCHAR(256) NOT NULL,
+                        connected_at DATETIME NOT NULL,
+                        enabled BOOLEAN DEFAULT 1,
+                        rating_percent REAL DEFAULT 0,
+                        wins INTEGER DEFAULT 0,
+                        losses INTEGER DEFAULT 0,
+                        added_by_telegram_id INTEGER,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
+            )
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_cult_channels_username ON cult_channels (username)"))
+
+        if "cult_channel_signals" not in inspect(engine).get_table_names():
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS cult_channel_signals (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        cult_channel_id INTEGER NOT NULL,
+                        telegram_message_id INTEGER NOT NULL,
+                        message_date DATETIME NOT NULL,
+                        symbol VARCHAR(32) NOT NULL,
+                        direction VARCHAR(8) NOT NULL,
+                        entry_low VARCHAR(32),
+                        entry_high VARCHAR(32),
+                        stop_loss VARCHAR(32),
+                        take_profits TEXT,
+                        status VARCHAR(16) DEFAULT 'active',
+                        entry_filled_at DATETIME,
+                        closed_at DATETIME,
+                        close_reason VARCHAR(16),
+                        closed_exit_price REAL,
+                        published_market_price REAL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
+            )
+            conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_cult_channel_signals_channel "
+                    "ON cult_channel_signals (cult_channel_id)"
+                )
+            )
+            conn.execute(
+                text(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS ix_cult_channel_signals_msg "
+                    "ON cult_channel_signals (cult_channel_id, telegram_message_id)"
+                )
+            )
+
     _backfill_referral_codes(engine)
     _purge_test_data_once(engine)
     _purge_signals_reset_v3(engine)

@@ -1,7 +1,8 @@
-import { useState } from "react";
-import type { Trader, TraderRank } from "../api";
-import { activateRankShield } from "../api";
+import { useMemo, useState } from "react";
+import type { CultChannel, Trader } from "../api";
 import { EquityCurve } from "./EquityCurve";
+import { CultChannelAdminPanel } from "./CultChannelAdminPanel";
+import { CultChannelCard } from "./CultChannelCard";
 import { RankBadge } from "./RankBadge";
 import { RankGuide } from "./RankGuide";
 import { TraderProfileModal } from "./TraderProfileModal";
@@ -12,23 +13,18 @@ import { Avatar } from "./Avatar";
 
 type Props = {
   traders: Trader[];
+  cultChannels: CultChannel[];
   loading: boolean;
   myId: number | null;
+  isAdmin: boolean;
+  onCultChannelsChange: () => void;
 };
 
-function TopTraderCard({
-  trader,
-  onOpen,
-  myRank,
-  onShield,
-  shieldBusy,
-}: {
-  trader: Trader;
-  onOpen: () => void;
-  myRank?: TraderRank | null;
-  onShield?: () => void;
-  shieldBusy?: boolean;
-}) {
+type CandidateItem =
+  | { kind: "trader"; rating: number; trader: Trader }
+  | { kind: "channel"; rating: number; channel: CultChannel };
+
+function TopTraderCard({ trader, onOpen }: { trader: Trader; onOpen: () => void }) {
   const aggregate = isVolnovoiTrader(trader);
 
   return (
@@ -58,86 +54,79 @@ function TopTraderCard({
         </button>
 
         {trader.daily_stats.length > 0 && <EquityCurve dailyStats={trader.daily_stats} />}
-
-        {aggregate && myRank && !myRank.shield_used_this_month && onShield && (
-          <button type="button" className="btn-ghost top-card__shield" disabled={shieldBusy} onClick={onShield}>
-            Страховка
-          </button>
-        )}
       </div>
     </li>
   );
 }
 
-export function LeaderboardTab({ traders, loading, myId }: Props) {
+export function LeaderboardTab({
+  traders,
+  cultChannels,
+  loading,
+  myId,
+  isAdmin,
+  onCultChannelsChange,
+}: Props) {
   const [profileTrader, setProfileTrader] = useState<Trader | null>(null);
-  const [myRankOverride, setMyRankOverride] = useState<TraderRank | null>(null);
-  const [shieldBusy, setShieldBusy] = useState(false);
 
   const volnovoi = traders.find((t) => isVolnovoiTrader(t));
-  const candidates = traders.filter((t) => !isVolnovoiTrader(t));
-  const myTrader = traders.find((t) => t.telegram_id === myId);
-  const myRank = myRankOverride ?? myTrader?.trader_rank ?? null;
+  const adminCandidates = traders.filter((t) => !isVolnovoiTrader(t));
 
-  const onActivateShield = () => {
-    void (async () => {
-      setShieldBusy(true);
-      try {
-        setMyRankOverride(await activateRankShield());
-      } catch (e) {
-        alert(e instanceof Error ? e.message : "Страховка недоступна");
-      } finally {
-        setShieldBusy(false);
-      }
-    })();
-  };
+  const candidates = useMemo(() => {
+    const items: CandidateItem[] = [
+      ...adminCandidates.map((trader) => ({ kind: "trader" as const, rating: trader.rating_percent, trader })),
+      ...cultChannels.map((channel) => ({ kind: "channel" as const, rating: channel.rating_percent, channel })),
+    ];
+    return items.sort((a, b) => b.rating - a.rating);
+  }, [adminCandidates, cultChannels]);
 
   if (loading) return <p className="meta">Загрузка…</p>;
 
   return (
     <>
-      {!traders.length && <p className="meta">Рейтинг появится после закрытых сигналов.</p>}
-
-      {volnovoi && (
-        <section className="top-cult-block top-cult-block--traders">
-          <ol className="top-list top-list--solo">
-            <TopTraderCard
-              trader={volnovoi}
-              onOpen={() => setProfileTrader(volnovoi)}
-              myRank={myRank}
-              onShield={onActivateShield}
-              shieldBusy={shieldBusy}
-            />
-          </ol>
-          <VolnovoiCopyPanel />
-          <p className="top-cult-label top-cult-label--traders">ТРЕЙДЕРЫ CULT</p>
-        </section>
+      {!traders.length && !cultChannels.length && (
+        <p className="meta">Рейтинг появится после закрытых сигналов.</p>
       )}
 
       <RankGuide />
 
-      {(candidates.length > 0 || traders.length > 0) && (
-        <section className="top-cult-block top-cult-block--candidates">
-          <p className="top-cult-label top-cult-label--candidates">КОНДИДАТЫ В CULT</p>
-          {candidates.length > 0 ? (
-            <ol className="top-list">
-              {candidates.map((t) => (
-                <TopTraderCard key={t.telegram_id} trader={t} onOpen={() => setProfileTrader(t)} />
-              ))}
-            </ol>
-          ) : (
-            !volnovoi && <p className="meta">Рейтинг появится после закрытых сигналов.</p>
-          )}
+      {volnovoi && (
+        <section className="top-cult-block top-cult-block--traders">
+          <p className="top-cult-label top-cult-label--traders">ТРЕЙДЕРЫ CULT</p>
+          <ol className="top-list top-list--solo">
+            <TopTraderCard trader={volnovoi} onOpen={() => setProfileTrader(volnovoi)} />
+          </ol>
+          <VolnovoiCopyPanel />
         </section>
       )}
+
+      <section className="top-cult-block top-cult-block--candidates">
+        <p className="top-cult-label top-cult-label--candidates">КОНДИДАТЫ В CULT</p>
+        {isAdmin && <CultChannelAdminPanel channels={cultChannels} onChange={onCultChannelsChange} />}
+        {candidates.length > 0 ? (
+          <ol className="top-list">
+            {candidates.map((item) =>
+              item.kind === "trader" ? (
+                <TopTraderCard
+                  key={`t-${item.trader.telegram_id}`}
+                  trader={item.trader}
+                  onOpen={() => setProfileTrader(item.trader)}
+                />
+              ) : (
+                <CultChannelCard key={`c-${item.channel.id}`} channel={item.channel} />
+              ),
+            )}
+          </ol>
+        ) : (
+          <p className="meta">Кандидаты появятся после сделок или подключения каналов.</p>
+        )}
+      </section>
 
       {profileTrader && (
         <TraderProfileModal
           trader={profileTrader}
           isMe={myId === profileTrader.telegram_id}
-          myRank={myRank}
-          onShield={onActivateShield}
-          shieldBusy={shieldBusy}
+          isAdmin={isAdmin}
           onClose={() => setProfileTrader(null)}
         />
       )}

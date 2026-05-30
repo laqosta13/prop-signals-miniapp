@@ -129,6 +129,20 @@ export type Trader = {
   is_aggregate?: boolean;
 };
 
+export type CultChannel = {
+  id: number;
+  title: string;
+  username: string;
+  channel_url: string;
+  rating_percent: number;
+  wins: number;
+  losses: number;
+  rank: number;
+  win_rate: number;
+  connected_at: string;
+  daily_stats: TraderDayStat[];
+};
+
 export type ChallengeDashboard = {
   owner_telegram_id: number;
   owner_username: string | null;
@@ -324,6 +338,17 @@ export const payCopyTradingFee = (invoice_id: number, tx_id: string) =>
   });
 
 export const fetchLeaderboard = () => api<Trader[]>("/traders/leaderboard");
+export const fetchCultChannels = () => api<CultChannel[]>("/cult-channels");
+export const createCultChannel = (url: string) =>
+  api<CultChannel>("/cult-channels", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
+export async function deleteCultChannel(id: number): Promise<void> {
+  const res = await fetch(`${base}/cult-channels/${id}`, { method: "DELETE", headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseApiError(res));
+}
 export const fetchTraderRank = (telegramId: number) => api<TraderRank>(`/traders/${telegramId}/rank`);
 export const fetchRankPending = () =>
   api<{ needs_confirm: boolean; rank: TraderRank }>("/traders/me/rank-pending");

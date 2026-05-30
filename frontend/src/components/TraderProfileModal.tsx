@@ -10,20 +10,11 @@ import { RankBadge } from "./RankBadge";
 type Props = {
   trader: Trader;
   isMe: boolean;
-  myRank?: TraderRank | null;
-  onShield?: () => void;
-  shieldBusy?: boolean;
+  isAdmin: boolean;
   onClose: () => void;
 };
 
-export function TraderProfileModal({
-  trader,
-  isMe,
-  myRank,
-  onShield: onShieldExternal,
-  shieldBusy,
-  onClose,
-}: Props) {
+export function TraderProfileModal({ trader, isMe, isAdmin, onClose }: Props) {
   const aggregate = isVolnovoiTrader(trader);
   const [rank, setRank] = useState<TraderRank | null>(trader.trader_rank ?? null);
   const [busy, setBusy] = useState(false);
@@ -53,10 +44,6 @@ export function TraderProfileModal({
   };
 
   const onShieldClick = () => {
-    if (onShieldExternal) {
-      onShieldExternal();
-      return;
-    }
     void (async () => {
       setBusy(true);
       try {
@@ -69,9 +56,7 @@ export function TraderProfileModal({
     })();
   };
 
-  const shieldDisabled = shieldBusy || busy;
-  const showOwnShield = !aggregate && isMe && rank && !rank.shield_used_this_month;
-  const showViewerShield = aggregate && myRank && !myRank.shield_used_this_month && !!onShieldExternal;
+  const showOwnShield = !aggregate && isMe && isAdmin && rank && !rank.shield_used_this_month;
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -120,8 +105,8 @@ export function TraderProfileModal({
                 Подтвердить результат
               </button>
             )}
-            {(showOwnShield || showViewerShield) && (
-              <button type="button" className="btn-ghost" disabled={shieldDisabled} onClick={onShieldClick}>
+            {showOwnShield && (
+              <button type="button" className="btn-ghost" disabled={busy} onClick={onShieldClick}>
                 Страховка
               </button>
             )}
