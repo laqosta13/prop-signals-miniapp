@@ -234,6 +234,42 @@ def run_migrations(engine: Engine) -> None:
                 )
             )
 
+        if "user_bybit_settings" in inspect(engine).get_table_names():
+            for col, ddl in (
+                ("connected_at", "ALTER TABLE user_bybit_settings ADD COLUMN connected_at DATETIME"),
+                ("equity_baseline_usd", "ALTER TABLE user_bybit_settings ADD COLUMN equity_baseline_usd REAL"),
+                ("last_equity_usd", "ALTER TABLE user_bybit_settings ADD COLUMN last_equity_usd REAL"),
+                ("billed_profit_usd", "ALTER TABLE user_bybit_settings ADD COLUMN billed_profit_usd REAL DEFAULT 0"),
+            ):
+                if not _has_column(engine, "user_bybit_settings", col):
+                    conn.execute(text(ddl))
+            conn.execute(text("UPDATE user_bybit_settings SET billed_profit_usd = 0 WHERE billed_profit_usd IS NULL"))
+
+        if "copy_trading_invoices" not in inspect(engine).get_table_names():
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS copy_trading_invoices (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        telegram_user_id INTEGER NOT NULL,
+                        period_date DATE NOT NULL,
+                        profit_usd REAL NOT NULL,
+                        fee_usd REAL NOT NULL,
+                        status VARCHAR(16) DEFAULT 'pending',
+                        tx_id VARCHAR(128) UNIQUE,
+                        paid_at DATETIME,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
+            )
+            conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_copy_trading_invoices_user "
+                    "ON copy_trading_invoices (telegram_user_id)"
+                )
+            )
+
     _backfill_referral_codes(engine)
     _purge_test_data_once(engine)
     _purge_signals_reset_v3(engine)

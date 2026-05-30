@@ -262,6 +262,14 @@ export type MarketPrice = { symbol: string; price: number; source?: string };
 
 export const fetchMarketPrice = (symbol: string) =>
   api<MarketPrice>(`/signals/market-price?symbol=${encodeURIComponent(symbol.trim())}`);
+export type CopyTradingInvoice = {
+  id: number;
+  period_date: string;
+  profit_usd: number;
+  fee_usd: number;
+  created_at?: string | null;
+};
+
 export type CopyTradingStatus = {
   configured: boolean;
   enabled: boolean;
@@ -271,6 +279,15 @@ export type CopyTradingStatus = {
   stake_percent: number;
   usdt_balance?: number | null;
   balance_error?: string | null;
+  usdt_ton_address: string;
+  fee_percent: number;
+  connected_at?: string | null;
+  equity_baseline_usd?: number | null;
+  current_equity_usd?: number | null;
+  profit_usd: number;
+  unbilled_profit_usd: number;
+  copy_allowed: boolean;
+  pending_invoice?: CopyTradingInvoice | null;
 };
 
 export type CopyTradingSaveBody = {
@@ -298,6 +315,13 @@ export async function deleteCopyTradingSettings(): Promise<void> {
   const res = await fetch(`${base}/copy-trading/me`, { method: "DELETE", headers: authHeaders() });
   if (!res.ok) throw new Error(await parseApiError(res));
 }
+
+export const payCopyTradingFee = (invoice_id: number, tx_id: string) =>
+  api<CopyTradingStatus>("/copy-trading/me/pay", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ invoice_id, tx_id }),
+  });
 
 export const fetchLeaderboard = () => api<Trader[]>("/traders/leaderboard");
 export const fetchTraderRank = (telegramId: number) => api<TraderRank>(`/traders/${telegramId}/rank`);

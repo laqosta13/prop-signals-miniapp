@@ -13,10 +13,9 @@ type Props = {
   traders: Trader[];
   loading: boolean;
   myId: number | null;
-  subscriptionActive: boolean;
 };
 
-export function LeaderboardTab({ traders, loading, myId, subscriptionActive }: Props) {
+export function LeaderboardTab({ traders, loading, myId }: Props) {
   const [profileTrader, setProfileTrader] = useState<Trader | null>(null);
 
   if (loading) return <p className="meta">Загрузка…</p>;
@@ -59,7 +58,7 @@ export function LeaderboardTab({ traders, loading, myId, subscriptionActive }: P
 
               {t.daily_stats.length > 0 && <EquityCurve dailyStats={t.daily_stats} />}
             </button>
-            {aggregate && <VolnovoiCopyPanel subscriptionActive={subscriptionActive} />}
+            {aggregate && <VolnovoiCopyPanel />}
           </li>
           );
         })}

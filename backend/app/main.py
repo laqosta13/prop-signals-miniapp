@@ -15,6 +15,7 @@ from app.media_storage import media_root
 from app.database import Base, engine
 from app.migrate import run_migrations
 from app.price_monitor import price_monitor_loop
+from app.copy_billing_scheduler import copy_billing_scheduler_loop
 from app.rank_scheduler import rank_scheduler_loop
 from app.routers import admin, auth, challenge, copy_trading, news, reviews, signals, subscriptions, traders
 
@@ -32,8 +33,9 @@ async def lifespan(app: FastAPI):
     await check_active_signals_once()
     price_task = asyncio.create_task(price_monitor_loop())
     rank_task = asyncio.create_task(rank_scheduler_loop())
+    billing_task = asyncio.create_task(copy_billing_scheduler_loop())
     yield
-    for task in (price_task, rank_task):
+    for task in (price_task, rank_task, billing_task):
         task.cancel()
         try:
             await task

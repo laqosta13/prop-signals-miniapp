@@ -1,21 +1,37 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import WebApp from "@twa-dev/sdk";
 import type { CopyTradingStatus } from "../api";
 import {
   deleteCopyTradingSettings,
   fetchCopyTradingStatus,
+  payCopyTradingFee,
   saveCopyTradingSettings,
   testCopyTradingConnection,
 } from "../api";
+import { copyToClipboard, formatUsd, selectFieldText } from "../utils";
+import { PasteButton } from "./PasteButton";
 
-type Props = {
-  subscriptionActive: boolean;
+const EMPTY_STATUS: CopyTradingStatus = {
+  configured: false,
+  enabled: false,
+  testnet: true,
+  account_balance_usd: 10000,
+  stake_percent: 10,
+  usdt_ton_address: "",
+  fee_percent: 20,
+  profit_usd: 0,
+  unbilled_profit_usd: 0,
+  copy_allowed: true,
 };
 
-export function VolnovoiCopyPanel({ subscriptionActive }: Props) {
+export function VolnovoiCopyPanel() {
   const [status, setStatus] = useState<CopyTradingStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [tx, setTx] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const [apiKey, setApiKey] = useState("");
   const [apiSecret, setApiSecret] = useState("");
@@ -24,31 +40,33 @@ export function VolnovoiCopyPanel({ subscriptionActive }: Props) {
   const [accountBalance, setAccountBalance] = useState("10000");
   const [stakePercent, setStakePercent] = useState("10");
 
+  const walletRef = useRef<HTMLInputElement>(null);
+
+  const refresh = async () => {
+    const s = await fetchCopyTradingStatus();
+    setStatus(s);
+    if (s.configured) {
+      setTestnet(s.testnet);
+      setEnabled(s.enabled);
+      setAccountBalance(String(s.account_balance_usd));
+      setStakePercent(String(s.stake_percent));
+    }
+    return s;
+  };
+
   useEffect(() => {
-    void fetchCopyTradingStatus()
-      .then((s) => {
-        setStatus(s);
-        if (s.configured) {
-          setTestnet(s.testnet);
-          setEnabled(s.enabled);
-          setAccountBalance(String(s.account_balance_usd));
-          setStakePercent(String(s.stake_percent));
-        }
-      })
-      .catch(() => setStatus({ configured: false, enabled: false, testnet: true, account_balance_usd: 10000, stake_percent: 10 }))
+    void refresh()
+      .catch(() => setStatus(EMPTY_STATUS))
       .finally(() => setLoading(false));
   }, []);
 
   const onSave = async () => {
-    if (!subscriptionActive) {
-      alert("Копирование доступно с активной подпиской");
-      return;
-    }
     if (!apiKey.trim() || !apiSecret.trim()) {
-      alert("Введите API Key и Secret");
+      setErr("Введите API Key и Secret");
       return;
     }
     setBusy(true);
+    setErr(null);
     try {
       const s = await saveCopyTradingSettings({
         api_key: apiKey.trim(),
@@ -61,9 +79,9 @@ export function VolnovoiCopyPanel({ subscriptionActive }: Props) {
       setStatus(s);
       setApiKey("");
       setApiSecret("");
-      alert("API сохранён. Сделки volnovoi будут копироваться автоматически.");
+      WebApp.HapticFeedback.notificationOccurred("success");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Ошибка сохранения");
+      setErr(e instanceof Error ? e.message : "Ошибка сохранения");
     } finally {
       setBusy(false);
     }
@@ -71,6 +89,7 @@ export function VolnovoiCopyPanel({ subscriptionActive }: Props) {
 
   const onTest = async () => {
     setBusy(true);
+    setErr(null);
     try {
       if (apiKey.trim() && apiSecret.trim()) {
         await saveCopyTradingSettings({
@@ -84,11 +103,27 @@ export function VolnovoiCopyPanel({ subscriptionActive }: Props) {
         setApiKey("");
         setApiSecret("");
       }
-      const s = await testCopyTradingConnection();
-      setStatus(s);
-      alert(s.usdt_balance != null ? `Подключено. Баланс USDT: ${s.usdt_balance.toFixed(2)}` : "Подключено");
+      setStatus(await testCopyTradingConnection());
+      WebApp.HapticFeedback.notificationOccurred("success");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Ошибка подключения");
+      setErr(e instanceof Error ? e.message : "Ошибка подключения");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onPay = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const inv = status?.pending_invoice;
+    if (!inv) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      setStatus(await payCopyTradingFee(inv.id, tx.trim()));
+      setTx("");
+      WebApp.HapticFeedback.notificationOccurred("success");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Ошибка оплаты");
     } finally {
       setBusy(false);
     }
@@ -97,15 +132,35 @@ export function VolnovoiCopyPanel({ subscriptionActive }: Props) {
   const onDisconnect = async () => {
     if (!confirm("Отключить API и остановить копирование?")) return;
     setBusy(true);
+    setErr(null);
     try {
       await deleteCopyTradingSettings();
-      setStatus({ configured: false, enabled: false, testnet: true, account_balance_usd: 10000, stake_percent: 10 });
+      setStatus(EMPTY_STATUS);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Ошибка");
+      setErr(e instanceof Error ? e.message : "Ошибка");
     } finally {
       setBusy(false);
     }
   };
+
+  const copyWallet = async () => {
+    const addr = status?.usdt_ton_address;
+    if (!addr) return;
+    const ok = await copyToClipboard(addr);
+    WebApp.HapticFeedback.notificationOccurred(ok ? "success" : "error");
+    if (ok) {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+      return;
+    }
+    if (walletRef.current) {
+      selectFieldText(walletRef.current);
+      WebApp.showAlert("Адрес выделен — нажмите Ctrl+C (или ⌘+C).");
+    }
+  };
+
+  const pending = status?.pending_invoice;
+  const blocked = status?.configured && !status.copy_allowed && pending;
 
   return (
     <div className="volnovoi-copy" onClick={(e) => e.stopPropagation()}>
@@ -115,7 +170,7 @@ export function VolnovoiCopyPanel({ subscriptionActive }: Props) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        <span>Копирование на Bybit</span>
+        <span>Копирование volnovoi · Bybit</span>
         <span className="volnovoi-copy__chevron" aria-hidden>
           {open ? "▾" : "▸"}
         </span>
@@ -124,34 +179,83 @@ export function VolnovoiCopyPanel({ subscriptionActive }: Props) {
       {open && (
         <div className="volnovoi-copy__panel">
           <p className="volnovoi-copy__desc">
-            Подключите API Bybit — сделки аккаунта <strong>volnovoi</strong> (все сигналы трейдеров) будут
-            автоматически открываться на вашем счёте USDT perpetual с теми же стопом и целью.
+            Сделки аккаунта <strong>volnovoi</strong> копируются на ваш Bybit USDT perpetual с теми же стопом и
+            целью. Оплата отдельная от подписки на ленту.
           </p>
-          <ul className="volnovoi-copy__hints">
-            <li>Ключи хранятся на сервере в зашифрованном виде</li>
-            <li>Нужны права <strong>Trade</strong>, без вывода средств</li>
-            <li>Размер позиции = ваш депозит × сумма входа % × плечо сигнала</li>
-            <li>Сначала протестируйте на testnet</li>
-          </ul>
 
-          {!subscriptionActive && (
-            <p className="volnovoi-copy__warn">Нужна активная подписка для сохранения API и копирования.</p>
-          )}
+          <ul className="volnovoi-copy__hints">
+            <li>Комиссия — <strong>{status?.fee_percent ?? 20}%</strong> от прибыли с момента подключения</li>
+            <li>Счёт выставляется раз в сутки при росте прибыли</li>
+            <li>Оплата USDT TON на наш кошелёк, проверка TXID on-chain</li>
+            <li>Без оплаты счёта копирование приостанавливается</li>
+            <li>Ключи шифруются; права API — только <strong>Trade</strong></li>
+            <li>Размер позиции = депозит × % входа × плечо сигнала</li>
+          </ul>
 
           {loading ? (
             <p className="meta">Загрузка…</p>
           ) : (
             <>
-              {status?.configured && status.api_key_hint && (
-                <p className="volnovoi-copy__status">
-                  Ключ: {status.api_key_hint}
-                  {status.usdt_balance != null && (
-                    <>
-                      {" "}
-                      · USDT <strong>{status.usdt_balance.toFixed(2)}</strong>
-                    </>
+              {status?.configured && (
+                <div className="volnovoi-copy__stats">
+                  {status.api_key_hint && <span>Ключ {status.api_key_hint}</span>}
+                  {status.current_equity_usd != null && (
+                    <span>Баланс {formatUsd(status.current_equity_usd)}</span>
                   )}
-                  {status.balance_error && <span className="volnovoi-copy__err"> · {status.balance_error}</span>}
+                  <span>Прибыль {formatUsd(status.profit_usd)}</span>
+                  <span>К оплате {formatUsd(status.unbilled_profit_usd)} × {status.fee_percent}%</span>
+                </div>
+              )}
+
+              {blocked && pending && (
+                <section className="volnovoi-copy__bill">
+                  <h4 className="volnovoi-copy__bill-title">Счёт за копирование</h4>
+                  <p className="volnovoi-copy__bill-row">
+                    <span>Прибыль с подключения</span>
+                    <strong>{formatUsd(pending.profit_usd)}</strong>
+                  </p>
+                  <p className="volnovoi-copy__bill-row volnovoi-copy__bill-row--due">
+                    <span>К оплате ({status?.fee_percent}%)</span>
+                    <strong>{formatUsd(pending.fee_usd)}</strong>
+                  </p>
+                  <p className="meta volnovoi-copy__bill-hint">
+                    TXID проверяется on-chain. После подтверждений копирование возобновится.
+                  </p>
+                  <div className="pay-addr-row">
+                    <input
+                      ref={walletRef}
+                      readOnly
+                      className="pay-addr"
+                      value={status?.usdt_ton_address ?? ""}
+                      onFocus={(e) => selectFieldText(e.currentTarget)}
+                      aria-label="Адрес USDT TON"
+                    />
+                    <button type="button" className={`copy-btn${copied ? " copied" : ""}`} onClick={() => void copyWallet()}>
+                      {copied ? "✓" : "Копировать"}
+                    </button>
+                  </div>
+                  <form className="volnovoi-copy__pay-form" onSubmit={(e) => void onPay(e)}>
+                    <div className="field-row">
+                      <label className="field-label">TXID перевода</label>
+                      <PasteButton onPaste={setTx} disabled={busy} />
+                    </div>
+                    <input
+                      value={tx}
+                      onChange={(e) => setTx(e.target.value)}
+                      placeholder="Hash транзакции TON"
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                    <button type="submit" className="btn-primary" disabled={busy || !tx.trim()}>
+                      Оплатить счёт
+                    </button>
+                  </form>
+                </section>
+              )}
+
+              {status?.configured && status.copy_allowed && !pending && status.unbilled_profit_usd > 0 && (
+                <p className="volnovoi-copy__ok meta">
+                  Копирование активно. Следующий счёт — при росте прибыли (раз в сутки).
                 </p>
               )}
 
@@ -160,7 +264,7 @@ export function VolnovoiCopyPanel({ subscriptionActive }: Props) {
                 <input
                   type="password"
                   autoComplete="off"
-                  placeholder={status?.configured ? "Новый ключ (оставьте пустым)" : "Bybit API Key"}
+                  placeholder={status?.configured ? "Новый ключ" : "Bybit API Key"}
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                 />
@@ -200,14 +304,19 @@ export function VolnovoiCopyPanel({ subscriptionActive }: Props) {
                 </label>
               </div>
 
-              <label className="volnovoi-copy__check">
-                <input type="checkbox" checked={testnet} onChange={(e) => setTestnet(e.target.checked)} />
-                Testnet (демо-счёт)
-              </label>
-              <label className="volnovoi-copy__check">
-                <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
-                Копирование включено
-              </label>
+              <div className="volnovoi-copy__checks">
+                <label className="volnovoi-copy__check">
+                  <input type="checkbox" checked={testnet} onChange={(e) => setTestnet(e.target.checked)} />
+                  Testnet
+                </label>
+                <label className="volnovoi-copy__check">
+                  <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+                  Копирование включено
+                </label>
+              </div>
+
+              {err && <p className="err volnovoi-copy__err">{err}</p>}
+              {status?.balance_error && <p className="meta volnovoi-copy__err">{status.balance_error}</p>}
 
               <div className="volnovoi-copy__actions">
                 <button type="button" className="btn-primary" disabled={busy} onClick={() => void onSave()}>
@@ -217,7 +326,12 @@ export function VolnovoiCopyPanel({ subscriptionActive }: Props) {
                   Проверить
                 </button>
                 {status?.configured && (
-                  <button type="button" className="btn-ghost volnovoi-copy__disconnect" disabled={busy} onClick={() => void onDisconnect()}>
+                  <button
+                    type="button"
+                    className="btn-ghost volnovoi-copy__disconnect"
+                    disabled={busy}
+                    onClick={() => void onDisconnect()}
+                  >
                     Отключить
                   </button>
                 )}

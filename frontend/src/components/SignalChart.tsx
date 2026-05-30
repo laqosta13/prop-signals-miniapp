@@ -23,15 +23,13 @@ import {
   type ChartCandle,
   type ChartInterval,
   type CloseReason,
-  type SignalChartLevels,
 } from "../utils/signalChartLevels";
 
 const CHART_POLL_MS = 30_000;
 const CHART_KLINE_LIMIT = 1000;
-const CHART_VISIBLE_BARS = 180;
+const CHART_VISIBLE_BARS = 220;
 const CHART_HISTORY_BEFORE_MS = 36 * 60 * 60 * 1000;
-const CHART_RIGHT_OFFSET_BARS = 32;
-const CHART_PRICE_PAD_RATIO = 0.1;
+const CHART_RIGHT_OFFSET_BARS = 24;
 
 type Props = {
   symbol: string;
@@ -81,38 +79,6 @@ async function fetchBybitKlines(
     .filter((c) => Number.isFinite(c.close));
   candles.reverse();
   return candles;
-}
-
-function levelsPriceExtent(levels: SignalChartLevels): { min: number; max: number } | null {
-  const prices: number[] = [];
-  if (levels.stop != null) prices.push(levels.stop);
-  levels.targets.forEach((tp) => prices.push(tp));
-  if (levels.entryLow != null) prices.push(levels.entryLow);
-  if (levels.entryHigh != null) prices.push(levels.entryHigh);
-  if (!prices.length) return null;
-  return { min: Math.min(...prices), max: Math.max(...prices) };
-}
-
-function buildLevelsAutoscaleProvider(levels: SignalChartLevels) {
-  const extent = levelsPriceExtent(levels);
-  return (original: () => { priceRange: { minValue: number; maxValue: number } } | null) => {
-    const base = original();
-    if (!extent) return base;
-    let min = extent.min;
-    let max = extent.max;
-    if (base?.priceRange) {
-      min = Math.min(min, base.priceRange.minValue);
-      max = Math.max(max, base.priceRange.maxValue);
-    }
-    const span = Math.max(max - min, Math.abs(max) * 0.002);
-    const pad = span * CHART_PRICE_PAD_RATIO;
-    return {
-      priceRange: {
-        minValue: min - pad,
-        maxValue: max + pad,
-      },
-    };
-  };
 }
 
 function applyLevelLines(series: ISeriesApi<"Candlestick">, levels: ReturnType<typeof levelsFromSignal>) {
@@ -391,7 +357,7 @@ export function SignalChart({
       crosshair: { mode: CrosshairMode.Normal },
       rightPriceScale: {
         borderVisible: false,
-        scaleMargins: { top: 0.1, bottom: 0.1 },
+        scaleMargins: { top: 0.06, bottom: 0.06 },
       },
       timeScale: {
         borderVisible: false,
@@ -400,7 +366,7 @@ export function SignalChart({
         rightOffset: CHART_RIGHT_OFFSET_BARS,
       },
       width: chartRef.current.clientWidth,
-      height: 240,
+      height: 268,
     });
     chartApi.current = chart;
     const updateOverlayLines = () => syncOverlayLines(chart);
@@ -457,7 +423,6 @@ export function SignalChart({
           borderVisible: false,
           wickUpColor: "#3dff8a",
           wickDownColor: "#ff6b6b",
-          autoscaleInfoProvider: buildLevelsAutoscaleProvider(lv),
         });
         seriesRef.current = series;
         series.setData(data);

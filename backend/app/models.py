@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
@@ -52,7 +52,27 @@ class UserBybitSettings(Base):
     testnet: Mapped[bool] = mapped_column(Boolean, default=True)
     account_balance_usd: Mapped[float] = mapped_column(Float, default=10_000.0)
     stake_percent: Mapped[float] = mapped_column(Float, default=10.0)
+    connected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    equity_baseline_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
+    last_equity_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
+    billed_profit_usd: Mapped[float] = mapped_column(Float, default=0.0)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class CopyTradingInvoice(Base):
+    """Счёт 20% от прибыли копирования volnovoi."""
+
+    __tablename__ = "copy_trading_invoices"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    telegram_user_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    period_date: Mapped[date] = mapped_column(nullable=False)
+    profit_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    fee_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), default="pending")
+    tx_id: Mapped[str | None] = mapped_column(String(128), nullable=True, unique=True)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class SignalCopyTrade(Base):

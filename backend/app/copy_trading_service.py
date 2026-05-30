@@ -17,12 +17,11 @@ from app.bybit_trading import (
     set_leverage,
     set_position_stops,
 )
-from app.config import settings
 from app.credentials_crypto import decrypt_secret
-from app.models import Signal, SignalCopyTrade, Subscriber, UserBybitSettings
+from app.copy_billing import copy_trading_allowed
+from app.models import Signal, SignalCopyTrade, UserBybitSettings
 from app.price_service import bybit_linear_pair
 from app.signal_utils import parse_price, parse_take_profit_levels
-from app.subscription_billing import subscription_active
 from app.trader_stats import signal_entry_price, signal_entry_stake_pct, signal_leverage
 
 logger = logging.getLogger(__name__)
@@ -72,21 +71,7 @@ def copy_notional_usd(settings_row: UserBybitSettings, signal: Signal) -> float:
 
 def eligible_copy_settings(db: Session) -> list[UserBybitSettings]:
     rows = list(db.scalars(select(UserBybitSettings).where(UserBybitSettings.enabled.is_(True))).all())
-    if not rows:
-        return []
-    subs = {
-        s.telegram_user_id: s
-        for s in db.scalars(
-            select(Subscriber).where(Subscriber.telegram_user_id.in_([r.telegram_user_id for r in rows]))
-        ).all()
-    }
-    result: list[UserBybitSettings] = []
-    for row in rows:
-        sub = subs.get(row.telegram_user_id)
-        is_admin = row.telegram_user_id in settings.admin_id_set
-        if sub and subscription_active(sub, is_admin):
-            result.append(row)
-    return result
+    return [row for row in rows if copy_trading_allowed(db, row.telegram_user_id)]
 
 
 def _get_or_create_copy_row(db: Session, signal_id: int, user_id: int) -> SignalCopyTrade:
