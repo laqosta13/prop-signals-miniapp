@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.deps import db_session, get_current_user, require_admin
-from app.link_preview import fetch_link_preview, normalize_link_url
+from app.link_preview import LinkPreview, fetch_link_preview, normalize_link_url
 from app.media_storage import delete_media_files, save_news_image, save_news_video
 from app.models import NewsPost
 from app.schemas import NewsLinkPreview, NewsRead, TelegramUser
