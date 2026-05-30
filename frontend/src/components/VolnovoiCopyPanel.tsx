@@ -259,52 +259,53 @@ export function VolnovoiCopyPanel() {
                 </p>
               )}
 
-              <label className="field">
-                <span>API Key</span>
-                <input
-                  type="password"
-                  autoComplete="off"
-                  placeholder={status?.configured ? "Новый ключ" : "Bybit API Key"}
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>API Secret</span>
-                <input
-                  type="password"
-                  autoComplete="off"
-                  placeholder={status?.configured ? "Новый secret" : "Bybit API Secret"}
-                  value={apiSecret}
-                  onChange={(e) => setApiSecret(e.target.value)}
-                />
-              </label>
-
-              <div className="volnovoi-copy__row">
-                <label className="field">
-                  <span>Депозит для расчёта, $</span>
+              <div className="volnovoi-copy__form">
+                <label className="volnovoi-copy__field">
+                  <span className="field-label">API Key</span>
                   <input
-                    type="number"
-                    min={100}
-                    step={100}
-                    value={accountBalance}
-                    onChange={(e) => setAccountBalance(e.target.value)}
+                    type="password"
+                    autoComplete="off"
+                    placeholder={status?.configured ? "Новый ключ" : "Bybit API Key"}
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
                   />
                 </label>
-                <label className="field">
-                  <span>Сумма входа, %</span>
+                <label className="volnovoi-copy__field">
+                  <span className="field-label">API Secret</span>
                   <input
-                    type="number"
-                    min={0.1}
-                    max={100}
-                    step={0.5}
-                    value={stakePercent}
-                    onChange={(e) => setStakePercent(e.target.value)}
+                    type="password"
+                    autoComplete="off"
+                    placeholder={status?.configured ? "Новый secret" : "Bybit API Secret"}
+                    value={apiSecret}
+                    onChange={(e) => setApiSecret(e.target.value)}
                   />
                 </label>
-              </div>
 
-              <div className="volnovoi-copy__checks">
+                <div className="volnovoi-copy__row">
+                  <label className="volnovoi-copy__field">
+                    <span className="field-label">Депозит для расчёта, $</span>
+                    <input
+                      type="number"
+                      min={100}
+                      step={100}
+                      value={accountBalance}
+                      onChange={(e) => setAccountBalance(e.target.value)}
+                    />
+                  </label>
+                  <label className="volnovoi-copy__field">
+                    <span className="field-label">Сумма входа, %</span>
+                    <input
+                      type="number"
+                      min={0.1}
+                      max={100}
+                      step={0.5}
+                      value={stakePercent}
+                      onChange={(e) => setStakePercent(e.target.value)}
+                    />
+                  </label>
+                </div>
+
+                <div className="volnovoi-copy__checks">
                 <label className="volnovoi-copy__check">
                   <input type="checkbox" checked={testnet} onChange={(e) => setTestnet(e.target.checked)} />
                   Testnet
@@ -313,6 +314,7 @@ export function VolnovoiCopyPanel() {
                   <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
                   Копирование включено
                 </label>
+                </div>
               </div>
 
               {err && <p className="err volnovoi-copy__err">{err}</p>}

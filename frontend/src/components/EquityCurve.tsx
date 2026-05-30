@@ -228,7 +228,7 @@ export function EquityCurve({ dailyStats, className = "", showDayList = true }: 
   const active = chart && hoverIdx != null ? chart.coords[hoverIdx] : chart?.last;
 
   return (
-    <div className={`equity-curve equity-curve--exchange ${className}`.trim()}>
+    <div className={`equity-curve equity-curve--exchange ${className}`.trim()} onClick={(e) => e.stopPropagation()}>
       <div className="equity-curve__toolbar">
         <div className="equity-curve__toolbar-main">
           <span className="equity-curve__title">Доходность</span>
@@ -356,7 +356,10 @@ export function EquityCurve({ dailyStats, className = "", showDayList = true }: 
           <button
             type="button"
             className={`equity-curve__days-toggle${daysOpen ? " equity-curve__days-toggle--open" : ""}`}
-            onClick={() => setDaysOpen((v) => !v)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setDaysOpen((v) => !v);
+            }}
             aria-expanded={daysOpen}
           >
             <span>Дни · {dayList.length}</span>

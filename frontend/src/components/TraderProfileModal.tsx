@@ -10,10 +10,20 @@ import { RankBadge } from "./RankBadge";
 type Props = {
   trader: Trader;
   isMe: boolean;
+  myRank?: TraderRank | null;
+  onShield?: () => void;
+  shieldBusy?: boolean;
   onClose: () => void;
 };
 
-export function TraderProfileModal({ trader, isMe, onClose }: Props) {
+export function TraderProfileModal({
+  trader,
+  isMe,
+  myRank,
+  onShield: onShieldExternal,
+  shieldBusy,
+  onClose,
+}: Props) {
   const aggregate = isVolnovoiTrader(trader);
   const [rank, setRank] = useState<TraderRank | null>(trader.trader_rank ?? null);
   const [busy, setBusy] = useState(false);
@@ -42,16 +52,26 @@ export function TraderProfileModal({ trader, isMe, onClose }: Props) {
     }
   };
 
-  const onShield = async () => {
-    setBusy(true);
-    try {
-      setRank(await activateRankShield());
-    } catch (e) {
-      alert(e instanceof Error ? e.message : "Страховка недоступна");
-    } finally {
-      setBusy(false);
+  const onShieldClick = () => {
+    if (onShieldExternal) {
+      onShieldExternal();
+      return;
     }
+    void (async () => {
+      setBusy(true);
+      try {
+        setRank(await activateRankShield());
+      } catch (e) {
+        alert(e instanceof Error ? e.message : "Страховка недоступна");
+      } finally {
+        setBusy(false);
+      }
+    })();
   };
+
+  const shieldDisabled = shieldBusy || busy;
+  const showOwnShield = !aggregate && isMe && rank && !rank.shield_used_this_month;
+  const showViewerShield = aggregate && myRank && !myRank.shield_used_this_month && !!onShieldExternal;
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -66,7 +86,7 @@ export function TraderProfileModal({ trader, isMe, onClose }: Props) {
               <p className="trader-profile-sheet__name">{profile.title}</p>
               {rank && <RankBadge rank={rank} compact />}
             </div>
-            {aggregate && <p className="trader-profile-sheet__sub">Аккаунт · все сделки трейдеров</p>}
+            {aggregate && <p className="trader-profile-sheet__sub">Копирует · все сделки трейдеров</p>}
           </div>
         </div>
 
@@ -100,9 +120,9 @@ export function TraderProfileModal({ trader, isMe, onClose }: Props) {
                 Подтвердить результат
               </button>
             )}
-            {!aggregate && isMe && !rank.shield_used_this_month && (
-              <button type="button" className="btn-ghost" disabled={busy} onClick={() => void onShield()}>
-                Активировать страховку
+            {(showOwnShield || showViewerShield) && (
+              <button type="button" className="btn-ghost" disabled={shieldDisabled} onClick={onShieldClick}>
+                Страховка
               </button>
             )}
           </div>
