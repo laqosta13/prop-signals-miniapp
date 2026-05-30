@@ -2266,28 +2266,22 @@ body {
   margin-bottom: 4px;
 }
 
-.top-panel {
-  display: flex;
-  flex-direction: column;
-  min-height: calc(100vh - var(--bottom-nav-h) - 120px - env(safe-area-inset-bottom));
-}
-
-.top-panel__main {
-  flex: 0 0 auto;
-}
-
 .top-cult-block--traders {
   margin-top: 12px;
   margin-bottom: 16px;
 }
 
 .top-cult-block--candidates {
-  margin-top: auto;
-  padding-top: 24px;
+  margin-top: 20px;
+  padding-top: 4px;
 }
 
 .top-list--solo {
   margin-bottom: 0;
+}
+
+.top-list--after-volnovoi {
+  margin-top: 12px;
 }
 
 .top-cult-label {

@@ -20,10 +20,6 @@ type Props = {
   onCultChannelsChange: () => void;
 };
 
-type CandidateItem =
-  | { kind: "trader"; rating: number; trader: Trader }
-  | { kind: "channel"; rating: number; channel: CultChannel };
-
 function TopTraderCard({ trader, onOpen }: { trader: Trader; onOpen: () => void }) {
   const aggregate = isVolnovoiTrader(trader);
 
@@ -70,59 +66,69 @@ export function LeaderboardTab({
   const [profileTrader, setProfileTrader] = useState<Trader | null>(null);
 
   const volnovoi = traders.find((t) => isVolnovoiTrader(t));
-  const adminCandidates = traders.filter((t) => !isVolnovoiTrader(t));
+  const traderCandidates = useMemo(
+    () =>
+      traders
+        .filter((t) => !isVolnovoiTrader(t))
+        .sort((a, b) => b.rating_percent - a.rating_percent),
+    [traders],
+  );
+  const channelCandidates = useMemo(
+    () => [...cultChannels].sort((a, b) => b.rating_percent - a.rating_percent),
+    [cultChannels],
+  );
 
-  const candidates = useMemo(() => {
-    const items: CandidateItem[] = [
-      ...adminCandidates.map((trader) => ({ kind: "trader" as const, rating: trader.rating_percent, trader })),
-      ...cultChannels.map((channel) => ({ kind: "channel" as const, rating: channel.rating_percent, channel })),
-    ];
-    return items.sort((a, b) => b.rating - a.rating);
-  }, [adminCandidates, cultChannels]);
+  const showTradersBlock = Boolean(volnovoi || traderCandidates.length > 0);
+  const showCandidatesBlock = channelCandidates.length > 0 || isAdmin;
 
   if (loading) return <p className="meta">Загрузка…</p>;
 
   return (
-    <div className="top-panel">
+    <>
       {!traders.length && !cultChannels.length && (
         <p className="meta">Рейтинг появится после закрытых сигналов.</p>
       )}
 
-      <div className="top-panel__main">
-        <RankGuide />
+      <RankGuide />
 
-        {volnovoi && (
-          <section className="top-cult-block top-cult-block--traders">
-            <p className="top-cult-label top-cult-label--traders">ТРЕЙДЕРЫ CULT/A</p>
+      {showTradersBlock && (
+        <section className="top-cult-block top-cult-block--traders">
+          <p className="top-cult-label top-cult-label--traders">ТРЕЙДЕРЫ CULT/A</p>
+          {volnovoi && (
             <ol className="top-list top-list--solo">
               <TopTraderCard trader={volnovoi} onOpen={() => setProfileTrader(volnovoi)} />
             </ol>
-            <VolnovoiCopyPanel />
-          </section>
-        )}
-      </div>
-
-      <section className="top-cult-block top-cult-block--candidates">
-        <p className="top-cult-label top-cult-label--candidates">КОНДИДАТЫ В CULT</p>
-        {candidates.length > 0 ? (
-          <ol className="top-list">
-            {candidates.map((item) =>
-              item.kind === "trader" ? (
+          )}
+          {volnovoi && <VolnovoiCopyPanel />}
+          {traderCandidates.length > 0 && (
+            <ol className={`top-list${volnovoi ? " top-list--after-volnovoi" : ""}`}>
+              {traderCandidates.map((trader) => (
                 <TopTraderCard
-                  key={`t-${item.trader.telegram_id}`}
-                  trader={item.trader}
-                  onOpen={() => setProfileTrader(item.trader)}
+                  key={trader.telegram_id}
+                  trader={trader}
+                  onOpen={() => setProfileTrader(trader)}
                 />
-              ) : (
-                <CultChannelCard key={`c-${item.channel.id}`} channel={item.channel} />
-              ),
-            )}
-          </ol>
-        ) : (
-          <p className="meta">Кандидаты появятся после сделок или подключения каналов.</p>
-        )}
-        {isAdmin && <CultChannelAdminPanel channels={cultChannels} onChange={onCultChannelsChange} />}
-      </section>
+              ))}
+            </ol>
+          )}
+        </section>
+      )}
+
+      {showCandidatesBlock && (
+        <section className="top-cult-block top-cult-block--candidates">
+          <p className="top-cult-label top-cult-label--candidates">КОНДИДАТЫ В CULT</p>
+          {channelCandidates.length > 0 ? (
+            <ol className="top-list">
+              {channelCandidates.map((channel) => (
+                <CultChannelCard key={channel.id} channel={channel} />
+              ))}
+            </ol>
+          ) : (
+            !isAdmin && <p className="meta">Кандидаты появятся после подключения каналов.</p>
+          )}
+          {isAdmin && <CultChannelAdminPanel channels={cultChannels} onChange={onCultChannelsChange} />}
+        </section>
+      )}
 
       {profileTrader && (
         <TraderProfileModal
@@ -132,6 +138,6 @@ export function LeaderboardTab({
           onClose={() => setProfileTrader(null)}
         />
       )}
-    </div>
+    </>
   );
 }

@@ -18,7 +18,7 @@ from app.signal_utils import (
     price_move_pct,
     trade_move_pct,
 )
-from app.telegram_bot_api import get_chat, verify_bot_is_channel_admin
+from app.telegram_bot_api import TelegramApiError, get_chat, verify_bot_is_channel_admin
 
 
 def _now() -> datetime:

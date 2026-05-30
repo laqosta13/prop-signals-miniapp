@@ -15,6 +15,7 @@ from app.cult_channel_service import (
 from app.deps import db_session, get_current_user, require_admin
 from app.models import CultChannel
 from app.schemas import CultChannelCreateBody, CultChannelRead, TelegramUser
+from app.telegram_bot_api import TelegramApiError
 
 router = APIRouter(prefix="/cult-channels", tags=["cult-channels"])
 
@@ -56,7 +57,7 @@ async def create_cult_channel(
     except ValueError as e:
         db.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
-    except RuntimeError as e:
+    except (RuntimeError, TelegramApiError) as e:
         db.rollback()
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e)) from e
     rows = build_cult_channels_read(db)
