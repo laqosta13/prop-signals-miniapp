@@ -61,8 +61,11 @@ export function TraderProfileModal({ trader, isMe, onClose }: Props) {
         </button>
         <div className="trader-profile-sheet__head">
           <Avatar url={trader.avatar_url} displayName={trader.display_name} username={trader.username} size={56} />
-          <div>
-            <p className="trader-profile-sheet__name">{profile.title}</p>
+          <div className="trader-profile-sheet__who">
+            <div className="trader-profile-sheet__name-row">
+              <p className="trader-profile-sheet__name">{profile.title}</p>
+              {rank && <RankBadge rank={rank} compact />}
+            </div>
             {aggregate && <p className="trader-profile-sheet__sub">Аккаунт · все сделки трейдеров</p>}
           </div>
         </div>
@@ -88,10 +91,6 @@ export function TraderProfileModal({ trader, isMe, onClose }: Props) {
 
         {rank && (
           <div className="trader-profile-sheet__rank-block" style={{ background: st.bg }}>
-            <div className="trader-profile-sheet__rank-head">
-              <span className="trader-profile-sheet__rank-label">Ранг:</span>
-              <RankBadge rank={rank} />
-            </div>
             <p className="trader-profile-sheet__weekly">
               Неделя: {rank.weekly_pct >= 0 ? "+" : ""}
               {rank.weekly_pct.toFixed(1)}%

@@ -40,6 +40,37 @@ class Signal(Base):
     author_username: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
 
+class UserBybitSettings(Base):
+    """API Bybit пользователя для копирования сигналов volnovoi."""
+
+    __tablename__ = "user_bybit_settings"
+
+    telegram_user_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    api_key_encrypted: Mapped[str] = mapped_column(String(512), nullable=False)
+    api_secret_encrypted: Mapped[str] = mapped_column(String(512), nullable=False)
+    testnet: Mapped[bool] = mapped_column(Boolean, default=True)
+    account_balance_usd: Mapped[float] = mapped_column(Float, default=10_000.0)
+    stake_percent: Mapped[float] = mapped_column(Float, default=10.0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class SignalCopyTrade(Base):
+    """Копия сигнала на бирже пользователя."""
+
+    __tablename__ = "signal_copy_trades"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    signal_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    telegram_user_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    exchange_status: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    exchange_pair: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    exchange_qty: Mapped[float | None] = mapped_column(Float, nullable=True)
+    exchange_order_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    exchange_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class SignalSupplement(Base):
     """Дополнение к сигналу (комментарий / медиа после публикации)."""
 

@@ -262,6 +262,43 @@ export type MarketPrice = { symbol: string; price: number; source?: string };
 
 export const fetchMarketPrice = (symbol: string) =>
   api<MarketPrice>(`/signals/market-price?symbol=${encodeURIComponent(symbol.trim())}`);
+export type CopyTradingStatus = {
+  configured: boolean;
+  enabled: boolean;
+  testnet: boolean;
+  api_key_hint?: string | null;
+  account_balance_usd: number;
+  stake_percent: number;
+  usdt_balance?: number | null;
+  balance_error?: string | null;
+};
+
+export type CopyTradingSaveBody = {
+  api_key: string;
+  api_secret: string;
+  testnet: boolean;
+  enabled: boolean;
+  account_balance_usd: number;
+  stake_percent: number;
+};
+
+export const fetchCopyTradingStatus = () => api<CopyTradingStatus>("/copy-trading/me");
+
+export const saveCopyTradingSettings = (body: CopyTradingSaveBody) =>
+  api<CopyTradingStatus>("/copy-trading/me", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+export const testCopyTradingConnection = () =>
+  api<CopyTradingStatus>("/copy-trading/me/test", { method: "POST" });
+
+export async function deleteCopyTradingSettings(): Promise<void> {
+  const res = await fetch(`${base}/copy-trading/me`, { method: "DELETE", headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseApiError(res));
+}
+
 export const fetchLeaderboard = () => api<Trader[]>("/traders/leaderboard");
 export const fetchTraderRank = (telegramId: number) => api<TraderRank>(`/traders/${telegramId}/rank`);
 export const fetchRankPending = () =>

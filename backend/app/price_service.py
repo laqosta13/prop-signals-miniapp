@@ -30,6 +30,11 @@ def normalize_symbol(symbol: str) -> str:
     return symbol.upper().replace("/", "").replace("-", "").strip()
 
 
+def bybit_linear_pair(symbol: str) -> str | None:
+    """Пара USDT perpetual на Bybit (linear)."""
+    return _crypto_usdt_pair(symbol)
+
+
 def _crypto_usdt_pair(sym: str) -> str | None:
     """Пара для Bybit linear (USDT perpetual)."""
     s = normalize_symbol(sym)

@@ -4,6 +4,7 @@ import { EquityCurve } from "./EquityCurve";
 import { RankBadge } from "./RankBadge";
 import { RankGuide } from "./RankGuide";
 import { TraderProfileModal } from "./TraderProfileModal";
+import { VolnovoiCopyPanel } from "./VolnovoiCopyPanel";
 import { authorProfile } from "../utils";
 import { isVolnovoiTrader } from "../utils/volnovoi";
 import { Avatar } from "./Avatar";
@@ -12,9 +13,10 @@ type Props = {
   traders: Trader[];
   loading: boolean;
   myId: number | null;
+  subscriptionActive: boolean;
 };
 
-export function LeaderboardTab({ traders, loading, myId }: Props) {
+export function LeaderboardTab({ traders, loading, myId, subscriptionActive }: Props) {
   const [profileTrader, setProfileTrader] = useState<Trader | null>(null);
 
   if (loading) return <p className="meta">Загрузка…</p>;
@@ -28,7 +30,7 @@ export function LeaderboardTab({ traders, loading, myId }: Props) {
         {traders.map((t) => {
           const aggregate = isVolnovoiTrader(t);
           return (
-          <li key={t.telegram_id}>
+          <li key={t.telegram_id} className={aggregate ? "top-list__item--aggregate" : undefined}>
             <button
               type="button"
               className={`top-card top-card--btn${aggregate ? " top-card--aggregate" : ""}`}
@@ -40,28 +42,24 @@ export function LeaderboardTab({ traders, loading, myId }: Props) {
                 </span>
                 <Avatar url={t.avatar_url} displayName={t.display_name} username={t.username} size={44} />
                 <div className="top-body">
-                  <p className="top-name">{authorProfile(t.display_name, t.username).title}</p>
+                  <div className="top-name-row">
+                    <p className="top-name">{authorProfile(t.display_name, t.username).title}</p>
+                    {t.trader_rank && <RankBadge rank={t.trader_rank} compact />}
+                  </div>
                   {aggregate && <p className="top-aggregate-hint">Аккаунт · все сделки трейдеров</p>}
                   <p className={`top-score ${t.rating_percent >= 0 ? "up" : "down"}`}>
                     {t.rating_percent >= 0 ? "+" : ""}
                     {t.rating_percent.toFixed(2)}%
                   </p>
-                  <p className="top-meta top-meta--ranks">
-                    {t.trader_rank && (
-                      <span className="top-rank-row">
-                        <span className="top-rank-row__label">Ранг:</span>
-                        <RankBadge rank={t.trader_rank} compact />
-                      </span>
-                    )}
-                    <span className="top-meta__stats">
-                      W {t.wins} · L {t.losses} · WR {t.win_rate}%
-                    </span>
+                  <p className="top-meta">
+                    W {t.wins} · L {t.losses} · WR {t.win_rate}%
                   </p>
                 </div>
               </div>
 
               {t.daily_stats.length > 0 && <EquityCurve dailyStats={t.daily_stats} />}
             </button>
+            {aggregate && <VolnovoiCopyPanel subscriptionActive={subscriptionActive} />}
           </li>
           );
         })}

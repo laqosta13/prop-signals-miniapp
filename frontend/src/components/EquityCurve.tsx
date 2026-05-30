@@ -156,6 +156,7 @@ function yTicks(minV: number, maxV: number) {
 /** Кумулятивная кривая доходности по дням. */
 export function EquityCurve({ dailyStats, className = "", showDayList = true }: Props) {
   const [period, setPeriod] = useState<EquityPeriod>(7);
+  const [daysOpen, setDaysOpen] = useState(false);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const gradId = useId().replace(/:/g, "");
 
@@ -352,26 +353,41 @@ export function EquityCurve({ dailyStats, className = "", showDayList = true }: 
 
       {showDayList && dayList.length > 0 && (
         <div className="equity-curve__days">
-          <div className="equity-curve__days-head">
-            <span>День</span>
-            <span>P/L</span>
-            <span>%</span>
-          </div>
-          <ul className="equity-curve__days-list">
-            {dayList.map((d) => (
-              <li key={d.date}>
-                <span>{formatDayLabel(d.date)}</span>
-                <span className={d.pnl_usd >= 0 ? "pnl-win" : "pnl-lose"}>
-                  {d.pnl_usd >= 0 ? "+" : ""}
-                  {formatUsd(d.pnl_usd)}
-                </span>
-                <span className={d.rating_delta >= 0 ? "pnl-win" : "pnl-lose"}>
-                  {d.rating_delta >= 0 ? "+" : ""}
-                  {d.rating_delta.toFixed(2)}%
-                </span>
-              </li>
-            ))}
-          </ul>
+          <button
+            type="button"
+            className={`equity-curve__days-toggle${daysOpen ? " equity-curve__days-toggle--open" : ""}`}
+            onClick={() => setDaysOpen((v) => !v)}
+            aria-expanded={daysOpen}
+          >
+            <span>Дни · {dayList.length}</span>
+            <span className="equity-curve__days-chevron" aria-hidden>
+              {daysOpen ? "▾" : "▸"}
+            </span>
+          </button>
+          {daysOpen && (
+            <div className="equity-curve__days-panel">
+              <div className="equity-curve__days-head">
+                <span>День</span>
+                <span>P/L</span>
+                <span>%</span>
+              </div>
+              <ul className="equity-curve__days-list">
+                {dayList.map((d) => (
+                  <li key={d.date}>
+                    <span>{formatDayLabel(d.date)}</span>
+                    <span className={d.pnl_usd >= 0 ? "pnl-win" : "pnl-lose"}>
+                      {d.pnl_usd >= 0 ? "+" : ""}
+                      {formatUsd(d.pnl_usd)}
+                    </span>
+                    <span className={d.rating_delta >= 0 ? "pnl-win" : "pnl-lose"}>
+                      {d.rating_delta >= 0 ? "+" : ""}
+                      {d.rating_delta.toFixed(2)}%
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </div>

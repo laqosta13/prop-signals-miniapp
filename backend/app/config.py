@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     toncenter_api_key: str = ""
     ton_payment_min_confirmations: int = 3
     public_base_url: str = ""
+    exchange_secrets_key: str = ""
 
     @property
     def admin_id_set(self) -> set[int]:

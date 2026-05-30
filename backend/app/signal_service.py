@@ -32,6 +32,7 @@ from app.telegram_notify import (
     format_updated_signal_message,
     notify_subscribers,
 )
+from app.copy_trading_service import close_signal_copies, open_signal_copies
 from app.challenge_service import apply_signal_to_tracker, ensure_tracker_for_new_signal
 from app.database import SessionLocal
 from app.price_service import (
@@ -224,6 +225,7 @@ async def close_signal_and_notify(
     reason = close_reason or ("market" if market_close else None)
     if not close_signal(db, signal, outcome, exit_price, close_reason=reason):
         return
+    await close_signal_copies(db, signal)
     ids = subscriber_ids_for_notify(db)
     if ids:
         await notify_subscribers(format_closed_signal_message(signal, market_close=market_close), ids)
@@ -255,6 +257,8 @@ async def close_signal_at_market(db: Session, signal: Signal, *, notify: bool = 
         await close_signal_and_notify(db, signal, outcome, exit_price=exit_price, market_close=True)
     elif not close_signal(db, signal, outcome, exit_price=exit_price, close_reason="market"):
         raise ValueError("close_failed")
+    else:
+        await close_signal_copies(db, signal)
     if signal.status == "active":
         raise ValueError("close_failed")
 
@@ -359,6 +363,9 @@ async def stamp_signal_at_publication(
     if notify_entry and entry_hit:
         await notify_entry_filled(db, signal)
 
+    if signal.entry_filled_at is not None:
+        await open_signal_copies(db, signal)
+
 
 async def try_fill_entry_from_market(db: Session, signal: Signal, *, notify: bool = True) -> bool:
     """Если цена уже прошла уровень входа — сразу отмечаем сигнал активным."""
@@ -392,6 +399,7 @@ async def try_fill_entry_from_market(db: Session, signal: Signal, *, notify: boo
     )
     if notify:
         await notify_entry_filled(db, signal)
+    await open_signal_copies(db, signal)
     return True
 
 

@@ -398,7 +398,12 @@ export default function App() {
             />
           )}
           {tab === "top" && (
-            <LeaderboardTab traders={traders} loading={loading && !traders.length} myId={myId} />
+            <LeaderboardTab
+              traders={traders}
+              loading={loading && !traders.length}
+              myId={myId}
+              subscriptionActive={subActive || isAdmin}
+            />
           )}
           {tab === "reviews" && (
             <ReviewsTab

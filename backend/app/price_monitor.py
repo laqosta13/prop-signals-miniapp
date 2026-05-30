@@ -18,6 +18,7 @@ from app.price_service import (
     first_outcome_quote,
     normalize_symbol,
 )
+from app.copy_trading_service import open_signal_copies
 from app.signal_service import close_signal_and_notify, notify_entry_filled
 from app.signal_utils import entry_zone_defined
 
@@ -62,6 +63,7 @@ async def check_active_signals_once() -> int:
                     hit.price,
                 )
                 await notify_entry_filled(db, signal)
+                await open_signal_copies(db, signal)
                 continue
 
             outcome_hit = first_outcome_quote(

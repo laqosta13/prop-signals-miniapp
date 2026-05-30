@@ -1876,6 +1876,28 @@ body {
   min-width: 0;
 }
 
+.top-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.top-name {
+  margin: 0;
+  font-weight: 700;
+  font-size: 1rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-name-row .rank-badge {
+  flex-shrink: 0;
+}
+
 .top-rank {
   font-size: 1.2rem;
   font-weight: 800;
@@ -1899,6 +1921,121 @@ body {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+.top-list__item--aggregate {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.volnovoi-copy {
+  margin: -4px 0 12px;
+}
+
+.volnovoi-copy__toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid rgba(224, 175, 255, 0.22);
+  border-radius: 0 0 14px 14px;
+  border-top: none;
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.volnovoi-copy__toggle--open {
+  border-radius: 0;
+  border-bottom-color: transparent;
+}
+
+.volnovoi-copy__chevron {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.volnovoi-copy__panel {
+  padding: 12px 14px 14px;
+  border: 1px solid rgba(224, 175, 255, 0.22);
+  border-top: none;
+  border-radius: 0 0 14px 14px;
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.volnovoi-copy__desc {
+  margin: 0 0 10px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.volnovoi-copy__desc strong {
+  color: #e0afff;
+}
+
+.volnovoi-copy__hints {
+  margin: 0 0 12px;
+  padding-left: 1.1rem;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.volnovoi-copy__warn {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 180, 80, 0.12);
+  border: 1px solid rgba(255, 180, 80, 0.25);
+  font-size: 0.75rem;
+  color: #ffd9a0;
+}
+
+.volnovoi-copy__status {
+  margin: 0 0 10px;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.volnovoi-copy__err {
+  color: var(--red);
+}
+
+.volnovoi-copy__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.volnovoi-copy__check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.volnovoi-copy__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.volnovoi-copy__disconnect {
+  color: var(--red);
+}
+
+.top-list__item--aggregate .top-card--aggregate {
+  border-radius: 14px 14px 0 0;
 }
 
 .top-score {
@@ -1931,34 +2068,6 @@ body {
 
 .top-card--btn:active {
   opacity: 0.92;
-}
-
-.top-meta--ranks {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px 12px;
-}
-
-.top-rank-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.top-rank-row__label {
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.top-meta__stats {
-  font-size: 0.78rem;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
 
 .rank-badge {
@@ -2127,10 +2236,30 @@ body {
   margin-bottom: 16px;
 }
 
+.trader-profile-sheet__who {
+  flex: 1;
+  min-width: 0;
+}
+
+.trader-profile-sheet__name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .trader-profile-sheet__name {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trader-profile-sheet__name-row .rank-badge {
+  flex-shrink: 0;
 }
 
 .trader-profile-sheet__sub {
@@ -2179,21 +2308,6 @@ body {
   flex-direction: column;
   gap: 10px;
   align-items: flex-start;
-}
-
-.trader-profile-sheet__rank-head {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.trader-profile-sheet__rank-label {
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
 }
 
 .trader-profile-sheet__weekly {
@@ -2437,9 +2551,39 @@ body {
 
 .equity-curve__days {
   margin-top: 8px;
+}
+
+.equity-curve__days-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.equity-curve__days-toggle--open {
+  border-radius: 12px 12px 0 0;
+  border-bottom-color: transparent;
+}
+
+.equity-curve__days-chevron {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.equity-curve__days-panel {
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
   background: rgba(0, 0, 0, 0.18);
 }
 

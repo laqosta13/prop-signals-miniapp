@@ -56,6 +56,11 @@ def run_migrations(engine: Engine) -> None:
                 ("number", "ALTER TABLE signals ADD COLUMN number INTEGER"),
                 ("close_reason", "ALTER TABLE signals ADD COLUMN close_reason VARCHAR(16)"),
                 ("closed_exit_price", "ALTER TABLE signals ADD COLUMN closed_exit_price REAL"),
+                ("exchange_status", "ALTER TABLE signals ADD COLUMN exchange_status VARCHAR(16)"),
+                ("exchange_pair", "ALTER TABLE signals ADD COLUMN exchange_pair VARCHAR(32)"),
+                ("exchange_qty", "ALTER TABLE signals ADD COLUMN exchange_qty REAL"),
+                ("exchange_order_id", "ALTER TABLE signals ADD COLUMN exchange_order_id VARCHAR(64)"),
+                ("exchange_error", "ALTER TABLE signals ADD COLUMN exchange_error TEXT"),
             ):
                 if not _has_column(engine, "signals", col):
                     conn.execute(text(ddl))
@@ -179,6 +184,55 @@ def run_migrations(engine: Engine) -> None:
             ):
                 if not _has_column(engine, "news_posts", col):
                     conn.execute(text(ddl))
+
+        if "user_bybit_settings" not in inspect(engine).get_table_names():
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS user_bybit_settings (
+                        telegram_user_id INTEGER PRIMARY KEY,
+                        enabled BOOLEAN DEFAULT 1,
+                        api_key_encrypted VARCHAR(512) NOT NULL,
+                        api_secret_encrypted VARCHAR(512) NOT NULL,
+                        testnet BOOLEAN DEFAULT 1,
+                        account_balance_usd REAL DEFAULT 10000,
+                        stake_percent REAL DEFAULT 10,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
+            )
+
+        if "signal_copy_trades" not in inspect(engine).get_table_names():
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS signal_copy_trades (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        signal_id INTEGER NOT NULL,
+                        telegram_user_id INTEGER NOT NULL,
+                        exchange_status VARCHAR(16),
+                        exchange_pair VARCHAR(32),
+                        exchange_qty REAL,
+                        exchange_order_id VARCHAR(64),
+                        exchange_error TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
+            )
+            conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_signal_copy_trades_signal_id "
+                    "ON signal_copy_trades (signal_id)"
+                )
+            )
+            conn.execute(
+                text(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS ix_signal_copy_trades_signal_user "
+                    "ON signal_copy_trades (signal_id, telegram_user_id)"
+                )
+            )
 
     _backfill_referral_codes(engine)
     _purge_test_data_once(engine)

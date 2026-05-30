@@ -16,7 +16,7 @@ from app.database import Base, engine
 from app.migrate import run_migrations
 from app.price_monitor import price_monitor_loop
 from app.rank_scheduler import rank_scheduler_loop
-from app.routers import admin, auth, challenge, news, reviews, signals, subscriptions, traders
+from app.routers import admin, auth, challenge, copy_trading, news, reviews, signals, subscriptions, traders
 
 logging.basicConfig(level=logging.INFO)
 
@@ -53,6 +53,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(copy_trading.router)
 app.include_router(admin.router)
 app.include_router(auth.router)
 app.include_router(challenge.router)
