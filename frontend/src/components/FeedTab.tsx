@@ -88,6 +88,7 @@ export function FeedTab({
         <SignalCard
           key={s.id}
           signal={s}
+          liveTrackerBalance={trackers.find((t) => t.owner_telegram_id === s.author_telegram_id)?.balance}
           isAdmin={isAdmin}
           myId={myId}
           canEngage={true}

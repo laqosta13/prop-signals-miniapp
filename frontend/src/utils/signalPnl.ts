@@ -44,6 +44,14 @@ function leverage(s: Signal): number {
   return Math.min(Math.max(Math.trunc(lev), 1), MAX_LEVERAGE);
 }
 
+/** Баланс трекера для карточки: актуальный из ленты, иначе снимок при публикации. */
+export function signalTrackerBalanceUsd(s: Signal, liveBalance?: number | null): number {
+  if (liveBalance != null && liveBalance > 0) return liveBalance;
+  if (s.tracker_balance != null && s.tracker_balance > 0) return s.tracker_balance;
+  if (s.account_size != null && s.account_size > 0) return s.account_size;
+  return 10_000;
+}
+
 /** База для номинала: размер счёта (account_size), иначе баланс на момент публикации. */
 export function signalPnlBaseUsd(s: Signal): number {
   if (s.account_size != null && s.account_size > 0) return s.account_size;

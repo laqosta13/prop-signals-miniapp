@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { recordSignalView, toggleSignalLike, type Signal } from "../api";
 import { calcRR, authorProfile, formatTakeProfits, formatTime, formatUsd, mediaUrl } from "../utils";
-import { signalEntryStakePct, signalPnlBaseUsd, signalPriceMovePct, signalRealizedPnl } from "../utils/signalPnl";
+import { signalEntryStakePct, signalPriceMovePct, signalRealizedPnl, signalTrackerBalanceUsd } from "../utils/signalPnl";
 import { useSignalLivePnl } from "../hooks/useSignalLivePnl";
 import { canEditOrDeleteSignal, canCloseAtMarketSignal, canSupplementSignal } from "../utils/signalActions";
 import { signalOutcomeDisplay } from "../utils/signalChartLevels";
@@ -11,6 +11,7 @@ import { SignalChart } from "./SignalChart";
 
 type Props = {
   signal: Signal;
+  liveTrackerBalance?: number | null;
   isAdmin?: boolean;
   myId?: number | null;
   canEngage?: boolean;
@@ -25,6 +26,7 @@ type Props = {
 
 export function SignalCard({
   signal: s,
+  liveTrackerBalance,
   isAdmin,
   myId,
   canEngage = true,
@@ -80,7 +82,7 @@ export function SignalCard({
   const isLong = s.direction === "long";
   const pnl = signalRealizedPnl(s) ?? s.realized_pnl;
   const stake = signalEntryStakePct(s);
-  const sizingBase = signalPnlBaseUsd(s);
+  const trackerUsd = signalTrackerBalanceUsd(s, liveTrackerBalance);
   const movePct = signalPriceMovePct(s);
   const entryDone = !!(s.entry_filled_at || (!s.entry_low && !s.entry_high));
   const livePnl = useSignalLivePnl(s, s.status === "active" && entryDone, cardRef);
@@ -146,8 +148,12 @@ export function SignalCard({
         </div>
 
         <div className="signal-card__perf">
+          <span className={`outcome outcome--head ${statusClass}`} data-outcome-badge={s.id}>
+            {statusBadge}
+          </span>
           {showResult && (
             <div className={`signal-card__result ${pnlUp ? "up" : "down"}`} aria-live="polite">
+              <span className="signal-card__result-label">PnL</span>
               {headerPnl != null ? (
                 <span className="signal-card__result-usd">
                   {headerPnl >= 0 ? "+" : ""}
@@ -164,9 +170,6 @@ export function SignalCard({
               )}
             </div>
           )}
-          <span className={`outcome outcome--head ${statusClass}`} data-outcome-badge={s.id}>
-            {statusBadge}
-          </span>
         </div>
       </header>
 
@@ -193,8 +196,8 @@ export function SignalCard({
           <span className="signal-param__value">{stake}%</span>
         </div>
         <div className="signal-param">
-          <span className="signal-param__label">Счёт</span>
-          <span className="signal-param__value">{sizingBase > 0 ? formatUsd(sizingBase) : "—"}</span>
+          <span className="signal-param__label">Трекер</span>
+          <span className="signal-param__value">{trackerUsd > 0 ? formatUsd(trackerUsd) : "—"}</span>
         </div>
         <div className="signal-param">
           <span className="signal-param__label">Плечо</span>
