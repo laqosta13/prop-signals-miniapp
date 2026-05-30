@@ -17,7 +17,6 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
   const [preview, setPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [balanceTouched, setBalanceTouched] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -31,7 +30,6 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
       return tracker.prop_screenshot_url ? mediaUrl(tracker.prop_screenshot_url) : null;
     });
     setError(null);
-    setBalanceTouched(false);
   }, [tracker]);
 
   if (!tracker) return null;
@@ -44,12 +42,6 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
     });
   };
 
-  const onBalanceChange = (raw: string) => {
-    setBalanceTouched(true);
-    setBalance(raw);
-    setAccountSize(raw);
-  };
-
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -57,13 +49,11 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
     try {
       const fd = new FormData();
       fd.append("stage", stage);
-      if (balanceTouched) {
-        fd.append("balance", balance);
-      } else {
-        fd.append("account_size", accountSize);
-      }
+      fd.append("balance", balance);
       if (screenshot) fd.append("screenshot", screenshot);
       const updated = await updateChallengeSettings(fd);
+      setAccountSize(String(Math.round(updated.account_size)));
+      setBalance(String(Math.round(updated.balance * 100) / 100));
       WebApp.HapticFeedback.notificationOccurred("success");
       onSaved(updated);
       onClose();
@@ -88,18 +78,12 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
         </header>
 
         <p className="meta tracker-settings-note">
-          Баланс с пропа обновляет основной баланс в трекере, ленте и форме сигнала. Размер счёта подстраивается под историю сделок.
+          Баланс с пропа сохраняется как основной баланс трекера — прогресс, лента и форма сигнала пересчитаются автоматически.
         </p>
 
         <label className="field-label">Размер счёта ($)</label>
-        <input
-          type="number"
-          min={1000}
-          step={100}
-          value={accountSize}
-          onChange={(e) => setAccountSize(e.target.value)}
-          required
-        />
+        <input type="text" className="readonly" value={accountSize} readOnly tabIndex={-1} aria-readonly />
+        <p className="meta signal-nominal-hint">Стартовый депозит — из баланса с пропа и истории закрытых сделок.</p>
 
         <label className="field-label">Этап</label>
         <div className="leverage-picker leverage-picker--3col">
@@ -121,7 +105,7 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
           min={0}
           step={0.01}
           value={balance}
-          onChange={(e) => onBalanceChange(e.target.value)}
+          onChange={(e) => setBalance(e.target.value)}
           required
         />
 

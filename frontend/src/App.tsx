@@ -481,10 +481,8 @@ export default function App() {
         <TrackerSettingsModal
           tracker={trackerSettings}
           onClose={() => setTrackerSettings(null)}
-          onSaved={(updated) => {
-            setTrackers((prev) =>
-              prev.map((t) => (t.owner_telegram_id === updated.owner_telegram_id ? updated : t)),
-            );
+          onSaved={() => {
+            void loadTrackers();
           }}
         />
       </Suspense>

@@ -51,6 +51,34 @@ export function signalPnlBaseUsd(s: Signal): number {
   return 10_000;
 }
 
+function priceMoveAt(entry: number, direction: string, marketPrice: number): number {
+  if (entry <= 0 || !Number.isFinite(marketPrice)) return 0;
+  if (direction === "short") {
+    return Math.round(((entry - marketPrice) / entry) * 10000) / 100;
+  }
+  return Math.round(((marketPrice - entry) / entry) * 10000) / 100;
+}
+
+function nominalUsd(s: Signal): number {
+  return (signalPnlBaseUsd(s) * stakePct(s) * leverage(s)) / 100;
+}
+
+/** Нереализованный P/L по текущей рыночной цене (активный сигнал в сделке). */
+export function signalUnrealizedPnl(s: Signal, marketPrice: number): number | null {
+  if (s.status !== "active") return null;
+  const entry = entryPrice(s);
+  if (entry == null) return null;
+  const move = priceMoveAt(entry, s.direction, marketPrice);
+  return Math.round((nominalUsd(s) * move) / 100 * 100) / 100;
+}
+
+export function signalUnrealizedMovePct(s: Signal, marketPrice: number): number | null {
+  if (s.status !== "active") return null;
+  const entry = entryPrice(s);
+  if (entry == null) return null;
+  return priceMoveAt(entry, s.direction, marketPrice);
+}
+
 /** P/L в $: счёт × сумма входа % × плечо × движение цены / 100. */
 export function signalRealizedPnl(s: Signal): number | null {
   if (s.status !== "win" && s.status !== "lose") return null;

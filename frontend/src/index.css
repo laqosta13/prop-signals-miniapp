@@ -343,6 +343,40 @@ body {
   flex-direction: column;
   align-items: flex-end;
   gap: 6px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.signal-card__pnl {
+  text-align: right;
+  line-height: 1.1;
+}
+
+.signal-card__pnl-usd {
+  display: block;
+  font-size: 1.28rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.signal-card__pnl-pct {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.92;
+}
+
+.signal-card__pnl.up .signal-card__pnl-usd,
+.signal-card__pnl.up .signal-card__pnl-pct {
+  color: var(--green);
+}
+
+.signal-card__pnl.down .signal-card__pnl-usd,
+.signal-card__pnl.down .signal-card__pnl-pct {
+  color: var(--red);
 }
 
 .risk-tag {

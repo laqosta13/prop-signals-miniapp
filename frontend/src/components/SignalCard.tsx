@@ -3,6 +3,7 @@ import WebApp from "@twa-dev/sdk";
 import { recordSignalView, toggleSignalLike, type Signal } from "../api";
 import { calcRR, authorProfile, formatTakeProfits, formatTime, formatUsd, mediaUrl } from "../utils";
 import { signalEntryStakePct, signalPnlBaseUsd, signalPriceMovePct, signalRealizedPnl } from "../utils/signalPnl";
+import { useSignalLivePnl } from "../hooks/useSignalLivePnl";
 import { canEditOrDeleteSignal, canCloseAtMarketSignal, canSupplementSignal } from "../utils/signalActions";
 import { signalOutcomeDisplay } from "../utils/signalChartLevels";
 import { Avatar } from "./Avatar";
@@ -82,6 +83,12 @@ export function SignalCard({
   const sizingBase = signalPnlBaseUsd(s);
   const movePct = signalPriceMovePct(s);
   const entryDone = !!(s.entry_filled_at || (!s.entry_low && !s.entry_high));
+  const livePnl = useSignalLivePnl(s, s.status === "active" && entryDone, cardRef);
+  const headerPnl =
+    s.status === "active" && entryDone ? livePnl.pnl : pnl ?? null;
+  const headerMove =
+    s.status === "active" && entryDone ? livePnl.movePct : movePct ?? null;
+  const showHeaderPnl = headerPnl != null || headerMove != null;
   const outcome = signalOutcomeDisplay(
     s.status,
     entryDone,
@@ -132,13 +139,36 @@ export function SignalCard({
               {s.symbol}
             </h3>
             <span className="author-line author-line--name">{author.title}</span>
-            {author.subtitle && <span className="author-line author-line--login">{author.subtitle}</span>}
             <span className={`dir-badge ${isLong ? "long" : "short"}`}>
               {isLong ? "↑ LONG" : "↓ SHORT"}
             </span>
           </div>
         </div>
         <div className="signal-card__actions">
+          {showHeaderPnl && (
+            <div
+              className={`signal-card__pnl ${
+                (headerPnl ?? headerMove ?? 0) >= 0 ? "up" : "down"
+              }`}
+              aria-live="polite"
+            >
+              {headerPnl != null && (
+                <span className="signal-card__pnl-usd">
+                  {headerPnl >= 0 ? "+" : ""}
+                  {formatUsd(headerPnl)}
+                </span>
+              )}
+              {headerMove != null && (
+                <span className="signal-card__pnl-pct">
+                  {headerMove >= 0 ? "+" : ""}
+                  {headerMove.toFixed(2)}%
+                </span>
+              )}
+              {livePnl.loading && s.status === "active" && headerPnl == null && (
+                <span className="signal-card__pnl-pct">…</span>
+              )}
+            </div>
+          )}
           <span className="risk-tag">Вход {stake}%</span>
           {sizingBase > 0 && <span className="risk-tag">Счёт {formatUsd(sizingBase)}</span>}
           {isAdmin && canEditOrDeleteSignal(s, myId, !!isAdmin) && (

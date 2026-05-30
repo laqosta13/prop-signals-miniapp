@@ -62,9 +62,18 @@ async def update_settings(
 
     balance_provided = balance is not None and balance.strip()
     if balance_provided:
-        apply_prop_balance_sync(db, ch, float(balance))
+        try:
+            new_balance = float(balance.replace(",", "."))
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Некорректный баланс",
+            ) from exc
+        if new_balance < 0:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Баланс не может быть отрицательным")
+        apply_prop_balance_sync(db, ch, new_balance)
     elif account_size is not None and account_size.strip():
-        ch.account_size = float(account_size)
+        ch.account_size = float(account_size.replace(",", "."))
 
     if _form_bool(remove_screenshot):
         delete_media_files(ch.prop_screenshot_path)
