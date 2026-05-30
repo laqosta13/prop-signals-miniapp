@@ -22,14 +22,12 @@ import { NewSignalModal } from "./components/NewSignalModal";
 import { NewsModal } from "./components/NewsModal";
 import { NewsTab } from "./components/NewsTab";
 import { DisclaimerModal } from "./components/DisclaimerModal";
-import { OutcomeReveal } from "./components/OutcomeReveal";
 import { RankConfirmModal } from "./components/RankConfirmModal";
 import { ReviewsTab } from "./components/ReviewsTab";
 import { SubscriptionTab } from "./components/SubscriptionTab";
 import { TrackerSettingsModal } from "./components/TrackerSettingsModal";
 import { TrackerTab } from "./components/TrackerTab";
 import { mergeFeedSignals } from "./utils/mergeFeedSignals";
-import { useOutcomeReveal } from "./hooks/useOutcomeReveal";
 import { hasAcceptedDisclaimer, markDisclaimerAccepted } from "./utils/disclaimerStorage";
 
 type Tab = "feed" | "tracker" | "top" | "reviews" | "news" | "pay";
@@ -117,7 +115,6 @@ export default function App() {
   const [notifyEnabled, setNotifyEnabled] = useState(true);
   const [notifyNewsEnabled, setNotifyNewsEnabled] = useState(false);
   const [paidSub, setPaidSub] = useState(false);
-  const [memberSince, setMemberSince] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showNewSignal, setShowNewSignal] = useState(false);
   const [editSignal, setEditSignal] = useState<Signal | null>(null);
@@ -167,7 +164,6 @@ export default function App() {
       const me = await fetchMe();
       setIsAdmin(me.is_admin);
       setMyId(me.telegram_user_id);
-      setMemberSince(me.member_since);
       setNotifyEnabled(me.notify_enabled);
       setNotifyNewsEnabled(me.notify_news_enabled);
       setPaidSub(me.paid_subscription);
@@ -265,14 +261,6 @@ export default function App() {
     const id = window.setInterval(() => void refreshSignalsOnly(), FEED_POLL_MS);
     return () => clearInterval(id);
   }, [loading, refreshSignalsOnly]);
-
-  const { revealSignal, clearReveal } = useOutcomeReveal(
-    signals,
-    loading,
-    myId,
-    memberSince,
-    !loading && myId != null,
-  );
 
   const openSettings = (tracker: ChallengeDashboard) => {
     setTrackerSettings(tracker);
@@ -467,10 +455,6 @@ export default function App() {
         onClose={() => setNewsModalOpen(false)}
         onSaved={onNewsSaved}
       />
-
-      {revealSignal && myId != null && (
-        <OutcomeReveal signal={revealSignal} userId={myId} onDone={clearReveal} />
-      )}
 
       {showDisclaimer && <DisclaimerModal onAccept={acceptDisclaimer} />}
       {feedDisclaimerOpen && !showDisclaimer && (
