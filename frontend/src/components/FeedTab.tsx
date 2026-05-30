@@ -56,11 +56,13 @@ export function FeedTab({
     if (!confirm("Закрыть сигнал по текущей рыночной цене?")) return;
     setClosingId(id);
     try {
-      await closeSignalAtMarket(id);
+      const updated = await closeSignalAtMarket(id);
+      onPatch(id, updated);
       WebApp.HapticFeedback.notificationOccurred("success");
       onChanged();
     } catch (e) {
       alert(e instanceof Error ? e.message : "Не удалось закрыть");
+      onChanged();
     } finally {
       setClosingId(null);
     }

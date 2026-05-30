@@ -44,13 +44,16 @@ type Props = {
   frozen?: boolean;
 };
 
-async function fetchBybitKlines(pair: string, interval: string): Promise<ChartCandle[]> {
+async function fetchBybitKlines(pair: string, interval: string, endMs?: number): Promise<ChartCandle[]> {
   const params = new URLSearchParams({
     category: "linear",
     symbol: pair,
     interval,
     limit: "180",
   });
+  if (endMs != null && Number.isFinite(endMs)) {
+    params.set("end", String(Math.ceil(endMs)));
+  }
   const res = await fetch(`https://api.bybit.com/v5/market/kline?${params}`);
   if (!res.ok) throw new Error("Не удалось загрузить свечи");
   const body = (await res.json()) as { retCode?: number; result?: { list?: string[][] } };
@@ -106,7 +109,11 @@ function clipCandlesAtClose(candles: ChartCandle[], closedAt: string | null | un
       return candles.slice(0, i + 1);
     }
   }
-  return candles;
+  const lastT = Number(candles[candles.length - 1].time);
+  if (closeSec >= lastT) {
+    return candles;
+  }
+  return candles.slice(0, 1);
 }
 
 function buildChartMarkers(
@@ -127,14 +134,15 @@ function buildChartMarkers(
       text: entryPrice != null ? `Вход ${entryPrice.toFixed(2)}` : "Вход",
     });
   }
-  if (closeTime != null && closeLabel) {
+  if (closeTime != null) {
     const priceHint = closePrice != null ? ` · ${closePrice.toFixed(2)}` : "";
+    const text = closeLabel ? `${closeLabel}${priceHint}` : `Закрыт${priceHint}`;
     markers.push({
       time: closeTime,
       position: "inBar",
       color: closeColor,
       shape: "circle",
-      text: `${closeLabel}${priceHint}`,
+      text,
     });
   }
   return markers.sort((a, b) => Number(a.time) - Number(b.time));
@@ -211,11 +219,13 @@ export function SignalChart({
 
     const reason = frozen && closedAt ? resolveCloseReason(closeReason, status) : null;
     const label = closeReasonLabel(reason);
-    const closeTime = frozen && closedAt && label ? resolvePinnedCloseTime(candles, candleSec) : null;
+    const closeTime = frozen && closedAt ? resolvePinnedCloseTime(candles, candleSec) : null;
     closeCandleTimeRef.current = closeTime;
 
     if (reason && label) {
       setCloseOverlay({ label, reason });
+    } else if (frozen && closedAt) {
+      setCloseOverlay({ label: label ?? "Закрыт", reason: reason ?? "market" });
     } else {
       setCloseOverlay(null);
     }
@@ -307,13 +317,17 @@ export function SignalChart({
     setLoading(true);
     setErr(null);
     const lv = levelsFromSignal(entryLow, entryHigh, stopLoss, takeProfits);
+    const candleSec = Math.max(60, Number(bybitIv) * 60);
+    const closeEndMs =
+      frozen && closedAt
+        ? parseApiDate(closedAt).getTime() + candleSec * 1000
+        : undefined;
 
-    void fetchBybitKlines(pair, bybitIv)
+    void fetchBybitKlines(pair, bybitIv, closeEndMs)
       .then((candles) => {
         if (ac.signal.aborted) return;
         const chart = chartApi.current;
         if (!chart) return;
-        const candleSec = Math.max(60, Number(bybitIv) * 60);
         const data = frozen ? clipCandlesAtClose(candles, closedAt, candleSec) : candles;
         if (seriesRef.current) chart.removeSeries(seriesRef.current);
         const series = chart.addCandlestickSeries({

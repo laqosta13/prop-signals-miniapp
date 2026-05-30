@@ -159,6 +159,7 @@ export function SignalCard({
       </header>
       <p className="signal-card__time">{formatTime(s.created_at)}</p>
       <SignalChart
+        key={`${s.id}-${s.status}-${s.closed_at ?? "open"}`}
         symbol={s.symbol}
         entryLow={s.entry_low}
         entryHigh={s.entry_high}

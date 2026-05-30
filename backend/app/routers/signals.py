@@ -312,8 +312,18 @@ async def close_market(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail=f"Не удалось получить цену для {row.symbol}",
             ) from e
+        if str(e) == "close_failed":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Сигнал не удалось закрыть — обновите ленту",
+            ) from e
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Сигнал нельзя закрыть") from e
     db.refresh(row)
+    if row.status == "active":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Сигнал не удалось закрыть — обновите ленту",
+        )
     return signal_to_read(db, row, admin.telegram_user_id)
 
 

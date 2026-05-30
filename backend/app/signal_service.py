@@ -193,9 +193,9 @@ def close_signal(
     exit_price: float | None = None,
     *,
     close_reason: str | None = None,
-) -> None:
+) -> bool:
     if signal.status != "active":
-        return
+        return False
     signal.status = outcome
     signal.closed_at = datetime.now(timezone.utc)
     if close_reason:
@@ -212,6 +212,7 @@ def close_signal(
     apply_signal_to_tracker(db, signal)
     db.commit()
     db.refresh(signal)
+    return True
 
 
 async def close_signal_and_notify(
@@ -224,7 +225,8 @@ async def close_signal_and_notify(
     market_close: bool = False,
 ) -> None:
     reason = close_reason or ("market" if market_close else None)
-    close_signal(db, signal, outcome, exit_price, close_reason=reason)
+    if not close_signal(db, signal, outcome, exit_price, close_reason=reason):
+        return
     ids = subscriber_ids_for_notify(db)
     if ids:
         await notify_subscribers(format_closed_signal_message(signal, market_close=market_close), ids)
@@ -232,10 +234,13 @@ async def close_signal_and_notify(
 
 async def close_signal_at_market(db: Session, signal: Signal) -> None:
     """Ручное закрытие активного сигнала по текущей рыночной цене."""
+    if signal.status in ("win", "lose"):
+        return
     if not signal_in_trade(signal):
         raise ValueError("not_in_trade")
     clear_price_cache()
-    exit_price = await fetch_price(signal.symbol)
+    quote = await fetch_bybit_perp_quote(signal.symbol)
+    exit_price = quote.price if quote is not None else await fetch_price(signal.symbol)
     if exit_price is None:
         raise ValueError("no_price")
     move = trade_move_pct(
@@ -247,6 +252,8 @@ async def close_signal_at_market(db: Session, signal: Signal) -> None:
     )
     outcome = "win" if move > 0 else "lose"
     await close_signal_and_notify(db, signal, outcome, exit_price=exit_price, market_close=True)
+    if signal.status == "active":
+        raise ValueError("close_failed")
 
 
 async def notify_entry_filled(db: Session, signal: Signal) -> None:
