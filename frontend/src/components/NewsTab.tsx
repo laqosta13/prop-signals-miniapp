@@ -79,12 +79,12 @@ export function NewsTab({ isAdmin, onEdit, refreshKey = 0 }: Props) {
             {videoSrc && (
               <video className="news-card__video" src={videoSrc} controls playsInline preload="metadata" />
             )}
+            <p className="news-card__body">{p.body}</p>
             {p.link && (
               <div className="news-card__link">
-                <LinkPreviewCard link={p.link} />
+                <LinkPreviewCard link={p.link} showUrl />
               </div>
             )}
-            <p className="news-card__body">{p.body}</p>
           </li>
         );
       })}

@@ -30,6 +30,7 @@ _OG_KEYS = {
     "og:image": "image_url",
     "twitter:image": "image_url",
     "twitter:image:src": "image_url",
+    "og:site_name": "site_name",
 }
 
 _YOUTUBE_HOSTS = frozenset({"youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"})
@@ -208,6 +209,11 @@ async def _fetch_youtube_preview(url: str, video_id: str) -> LinkPreview:
 
     if not title:
         title = "YouTube"
+
+    watch_preview = await _fetch_html_preview(f"https://www.youtube.com/watch?v={video_id}")
+    if watch_preview and watch_preview.description:
+        description = watch_preview.description
+
     return LinkPreview(url=url, title=title, description=description, image_url=image_url)
 
 
