@@ -186,7 +186,7 @@ def run_migrations(engine: Engine) -> None:
     _purge_all_published_may2026_v2(engine)
     _purge_all_published_jun2026(engine)
     _sync_news_notify_flags_v1(engine)
-    _sync_news_notify_opt_in_v2(engine)
+    _reset_news_notify_opt_in_v2(engine)
     _recalc_market_close_ratings_v1(engine)
     _recalc_closed_signal_pnl_v2(engine)
 
