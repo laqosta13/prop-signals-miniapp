@@ -8,7 +8,8 @@ from app.hashhedge_rules import rules_for_stage
 from app.media_storage import public_url
 from app.serializers import trader_display_name, trader_login
 from app.models import Signal, Trader, UserChallenge
-from app.trader_stats import pnl_usd_for_outcome, signal_tracker_balance
+from app.tracker_metrics import compute_tracker_stats, msk_day_key
+from app.trader_stats import signal_tracker_balance
 
 
 def admin_ids() -> list[int]:
@@ -52,11 +53,27 @@ def ensure_tracker_for_new_signal(db: Session, signal: Signal) -> None:
         ch.account_size = ch.balance = ch.day_start_balance = tb
 
 
+def _closed_signals(db: Session, owner_id: int) -> list[Signal]:
+    return list(
+        db.scalars(
+            select(Signal)
+            .where(Signal.author_telegram_id == owner_id, Signal.status.in_(("win", "lose")))
+            .order_by(Signal.closed_at.asc())
+        ).all()
+    )
+
+
+def _sync_trading_days(db: Session, ch: UserChallenge) -> None:
+    closed = _closed_signals(db, ch.telegram_user_id)
+    ch.trading_days = len({msk_day_key(s.closed_at) for s in closed if msk_day_key(s.closed_at)})
+
+
 def apply_signal_to_tracker(db: Session, signal: Signal) -> None:
     if signal.author_telegram_id not in settings.admin_id_set or signal.realized_pnl is None:
         return
     ch = get_or_create_challenge(db, signal.author_telegram_id)
     ch.balance = round(ch.balance + signal.realized_pnl, 2)
+    _sync_trading_days(db, ch)
 
 
 def build_dashboard(db: Session, ch: UserChallenge, trader: Trader | None = None) -> dict:
@@ -66,17 +83,14 @@ def build_dashboard(db: Session, ch: UserChallenge, trader: Trader | None = None
     rules = rules_for_stage(ch.stage)
     start, balance = ch.account_size, ch.balance
     profit_pct = ((balance - start) / start * 100.0) if start > 0 else 0.0
-    drawdown_pct = max(0.0, (start - balance) / start * 100.0) if start > 0 and balance < start else 0.0
-    daily_loss_usd = max(0.0, ch.day_start_balance - balance)
-    daily_loss_pct = (daily_loss_usd / ch.day_start_balance * 100.0) if ch.day_start_balance > 0 else 0.0
-    max_daily_usd = ch.day_start_balance * rules.max_daily_loss_pct / 100.0
 
-    closed = db.scalars(
-        select(Signal.status)
-        .where(Signal.author_telegram_id == owner_id, Signal.status.in_(("win", "lose")))
-    ).all()
-    wins = sum(1 for s in closed if s == "win")
-    total = len(closed)
+    closed = _closed_signals(db, owner_id)
+    stats = compute_tracker_stats(
+        ch,
+        closed,
+        max_daily_loss_pct=rules.max_daily_loss_pct,
+    )
+    ch.trading_days = stats.trading_days
 
     if trader is None:
         trader = db.get(Trader, owner_id)
@@ -103,17 +117,17 @@ def build_dashboard(db: Session, ch: UserChallenge, trader: Trader | None = None
         profit_pct=round(profit_pct, 2),
         profit_target_pct=target_pct,
         profit_target_unlimited=profit_unlimited,
-        drawdown_pct=round(drawdown_pct, 2),
+        drawdown_pct=stats.drawdown_pct,
         max_drawdown_pct=rules.max_drawdown_pct,
-        daily_loss_pct=round(daily_loss_pct, 2),
+        daily_loss_pct=stats.daily_loss_pct,
         max_daily_loss_pct=rules.max_daily_loss_pct,
-        daily_remaining_usd=round(max(0.0, max_daily_usd - daily_loss_usd), 2),
-        trading_days=ch.trading_days,
+        daily_remaining_usd=stats.daily_remaining_usd,
+        trading_days=stats.trading_days,
         min_trading_days=rules.min_trading_days or 0,
         min_trading_days_unlimited=min_days_unlimited,
         goal_balance=goal,
-        trades_count=total,
-        winrate=round(wins / total * 100, 1) if total else 0.0,
+        trades_count=stats.trades_count,
+        winrate=stats.winrate,
         total_pnl=round(balance - start, 2),
         max_leverage=rules.max_leverage,
         prop_screenshot_url=public_url(ch.prop_screenshot_path),
