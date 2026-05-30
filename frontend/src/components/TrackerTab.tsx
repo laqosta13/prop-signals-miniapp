@@ -181,7 +181,10 @@ export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Pro
                 {recent.map((s) => (
                   <li key={s.id}>
                     <div>
-                      <strong>{s.symbol}</strong>
+                      <strong>
+                        {s.number != null && <span className="signal-number">#{s.number} </span>}
+                        {s.symbol}
+                      </strong>
                       <span className="muted"> {s.direction.toUpperCase()}</span>
                     </div>
                     <span className={s.realized_pnl != null && s.realized_pnl >= 0 ? "pnl-win" : "pnl-lose"}>

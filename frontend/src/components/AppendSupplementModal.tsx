@@ -75,7 +75,7 @@ export function AppendSupplementModal({ signal, onClose, onDone }: Props) {
           <div>
             <h2>Дополнить сигнал</h2>
             <p>
-              {signal.symbol} · {signal.direction.toUpperCase()}
+              #{signal.number} · {signal.symbol} · {signal.direction.toUpperCase()}
             </p>
           </div>
           <button type="button" className="icon-btn" onClick={onClose}>

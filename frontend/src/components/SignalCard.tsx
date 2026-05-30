@@ -127,7 +127,10 @@ export function SignalCard({
         <div className="signal-card__author">
           <Avatar url={s.author_avatar_url} displayName={s.author_display_name} username={s.author_username} size={36} />
           <div>
-            <h3>{s.symbol}</h3>
+            <h3>
+              <span className="signal-number">#{s.number}</span>
+              {s.symbol}
+            </h3>
             <span className="author-line author-line--name">{author.title}</span>
             {author.subtitle && <span className="author-line author-line--login">{author.subtitle}</span>}
             <span className={`dir-badge ${isLong ? "long" : "short"}`}>
@@ -162,6 +165,9 @@ export function SignalCard({
         stopLoss={s.stop_loss}
         takeProfits={s.take_profits}
         closedAt={s.closed_at}
+        closeReason={s.close_reason}
+        closedExitPrice={s.closed_exit_price}
+        status={s.status}
         entryFilledAt={s.entry_filled_at}
         entryPrice={s.published_market_price}
         frozen={s.status === "win" || s.status === "lose"}

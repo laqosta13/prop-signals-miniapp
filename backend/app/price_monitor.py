@@ -80,7 +80,13 @@ async def check_active_signals_once() -> int:
                     hit.source,
                     hit.price,
                 )
-                await close_signal_and_notify(db, signal, outcome, exit_price=hit.price)
+                await close_signal_and_notify(
+                    db,
+                    signal,
+                    outcome,
+                    exit_price=hit.price,
+                    close_reason="target" if outcome == "win" else "stop",
+                )
                 closed += 1
     except Exception as e:
         logger.exception("price monitor error: %s", e)

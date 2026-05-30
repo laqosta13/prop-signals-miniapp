@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -186,11 +186,26 @@ async def notify_deleted_signal(db: Session, signal: Signal, *, actor: TelegramU
         await notify_subscribers(format_deleted_signal_message(signal, actor_label=label), ids)
 
 
-def close_signal(db: Session, signal: Signal, outcome: str, exit_price: float | None = None) -> None:
+def close_signal(
+    db: Session,
+    signal: Signal,
+    outcome: str,
+    exit_price: float | None = None,
+    *,
+    close_reason: str | None = None,
+) -> None:
     if signal.status != "active":
         return
     signal.status = outcome
     signal.closed_at = datetime.now(timezone.utc)
+    if close_reason:
+        signal.close_reason = close_reason
+    elif outcome == "win":
+        signal.close_reason = "target"
+    elif outcome == "lose":
+        signal.close_reason = "stop"
+    if exit_price is not None:
+        signal.closed_exit_price = round(float(exit_price), 8)
     trader = get_or_create_trader(db, signal.author_telegram_id, signal.author_username)
     _normalize_trader_stats(trader)
     apply_outcome_to_trader(trader, signal, outcome, exit_price)
@@ -205,9 +220,11 @@ async def close_signal_and_notify(
     outcome: str,
     exit_price: float | None = None,
     *,
+    close_reason: str | None = None,
     market_close: bool = False,
 ) -> None:
-    close_signal(db, signal, outcome, exit_price)
+    reason = close_reason or ("market" if market_close else None)
+    close_signal(db, signal, outcome, exit_price, close_reason=reason)
     ids = subscriber_ids_for_notify(db)
     if ids:
         await notify_subscribers(format_closed_signal_message(signal, market_close=market_close), ids)
@@ -382,6 +399,11 @@ async def sync_pending_entry_fills(
     return filled
 
 
+def next_signal_number(db: Session) -> int:
+    mx = db.scalar(select(func.max(Signal.number)))
+    return 1 if mx is None else int(mx) + 1
+
+
 def build_signal_row(
     db: Session,
     *,
@@ -409,6 +431,7 @@ def build_signal_row(
         last_name=author_last_name,
     )
     return Signal(
+        number=next_signal_number(db),
         symbol=symbol,
         direction=direction,
         entry_low=entry_low,

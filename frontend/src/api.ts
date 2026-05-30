@@ -18,8 +18,11 @@ export type SignalSupplement = {
 
 export type Signal = {
   id: number;
+  number: number;
   created_at: string;
   closed_at: string | null;
+  close_reason: string | null;
+  closed_exit_price: number | null;
   symbol: string;
   direction: string;
   entry_low: string | null;

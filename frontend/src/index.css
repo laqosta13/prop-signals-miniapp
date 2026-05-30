@@ -253,6 +253,13 @@ body {
   font-size: 1.1rem;
 }
 
+.signal-number {
+  color: var(--muted);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin-right: 6px;
+}
+
 .author-line {
   display: block;
   font-size: 0.72rem;
@@ -1068,6 +1075,79 @@ body {
   );
 }
 
+.signal-chart__close-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  transform: translateX(-0.5px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.signal-chart__close-line--stop {
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 107, 107, 0.05),
+    rgba(255, 107, 107, 0.34) 18%,
+    rgba(255, 107, 107, 0.34) 82%,
+    rgba(255, 107, 107, 0.05)
+  );
+}
+
+.signal-chart__close-line--target {
+  background: linear-gradient(
+    to bottom,
+    rgba(224, 175, 255, 0.05),
+    rgba(224, 175, 255, 0.34) 18%,
+    rgba(224, 175, 255, 0.34) 82%,
+    rgba(224, 175, 255, 0.05)
+  );
+}
+
+.signal-chart__close-line--market {
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 209, 102, 0.05),
+    rgba(255, 209, 102, 0.34) 18%,
+    rgba(255, 209, 102, 0.34) 82%,
+    rgba(255, 209, 102, 0.05)
+  );
+}
+
+.signal-chart__close-badge {
+  position: absolute;
+  top: 6px;
+  transform: translateX(-50%);
+  z-index: 2;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.signal-chart__close-badge--stop {
+  color: #ffb4b4;
+  background: rgba(255, 70, 70, 0.22);
+}
+
+.signal-chart__close-badge--target {
+  color: #e8d0ff;
+  background: rgba(160, 100, 220, 0.22);
+}
+
+.signal-chart__close-badge--market {
+  color: #ffe08a;
+  background: rgba(255, 190, 60, 0.2);
+}
+
 .signal-chart__loading,
 .signal-chart__err {
   position: absolute;
@@ -1112,6 +1192,24 @@ body {
 
 .signal-chart__legend-item.target::before {
   background: #e0afff;
+}
+
+.signal-chart__legend-item.close::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.signal-chart__legend-item.close--stop::before {
+  background: #ff6b6b;
+}
+
+.signal-chart__legend-item.close--target::before {
+  background: #e0afff;
+}
+
+.signal-chart__legend-item.close--market::before {
+  background: #ffd166;
 }
 
 .media-thumb {

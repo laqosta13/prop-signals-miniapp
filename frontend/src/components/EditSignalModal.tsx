@@ -138,7 +138,7 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
         <header className="modal__head">
           <div>
             <h2>Редактировать</h2>
-            <p>{signal.symbol} · активный сигнал</p>
+            <p>#{signal.number} · {signal.symbol} · активный сигнал</p>
           </div>
           <button type="button" className="icon-btn" onClick={onClose}>
             ×

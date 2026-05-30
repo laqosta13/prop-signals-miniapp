@@ -102,7 +102,7 @@ export function OutcomeReveal({ signal, userId, onDone }: Props) {
         <div className="outcome-reveal__center">
           <div className={`outcome-reveal__flash ${isWin ? "win" : "lose"}`} />
           <p className={`outcome-reveal__word ${isWin ? "win" : "lose"}`}>{word}</p>
-          <p className="outcome-reveal__sub">{signal.symbol}</p>
+          <p className="outcome-reveal__sub">#{signal.number} · {signal.symbol}</p>
         </div>
       )}
 

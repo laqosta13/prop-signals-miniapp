@@ -164,8 +164,9 @@ def _signal_summary(signal: Signal) -> str:
     stake = signal_entry_stake_pct(signal)
     stake_usd = signal_entry_stake_usd(signal)
     tracker = signal_tracker_balance(signal)
+    num = signal.number if signal.number is not None else signal.id
     lines = [
-        f"{_esc(signal.symbol)} · <b>{_esc(signal.direction.upper())}</b>",
+        f"<b>#{num}</b> · {_esc(signal.symbol)} · <b>{_esc(signal.direction.upper())}</b>",
         f"Вход: {_entry_label(signal.entry_low, signal.entry_high)}",
         f"Стоп: {_esc(signal.stop_loss)}",
         f"Цель: {_format_take_profits(signal.take_profits)}",
@@ -237,7 +238,8 @@ def format_new_signal_message(signal: Signal) -> str:
 
 
 def format_updated_signal_message(signal: Signal, changes: list[str], *, actor_label: str | None = None) -> str:
-    header = f"✏️ <b>Сигнал обновлён</b>\n{_esc(signal.symbol)} · <b>{_esc(signal.direction.upper())}</b>\n"
+    num = signal.number if signal.number is not None else signal.id
+    header = f"✏️ <b>Сигнал #{num} обновлён</b>\n{_esc(signal.symbol)} · <b>{_esc(signal.direction.upper())}</b>\n"
     if actor_label:
         header += f"<b>Изменил:</b> {_esc(actor_label)}\n"
     if changes:
@@ -248,7 +250,8 @@ def format_updated_signal_message(signal: Signal, changes: list[str], *, actor_l
 
 
 def format_deleted_signal_message(signal: Signal, *, actor_label: str | None = None) -> str:
-    head = "🗑 <b>Сигнал удалён</b>\n"
+    num = signal.number if signal.number is not None else signal.id
+    head = f"🗑 <b>Сигнал #{num} удалён</b>\n"
     if actor_label:
         head += f"<b>Удалил:</b> {_esc(actor_label)}\n"
     return head + _signal_summary(signal)
@@ -267,6 +270,7 @@ def format_closed_signal_message(signal: Signal, *, market_close: bool = False) 
     sign = "+" if ret >= 0 else ""
     lev = signal_leverage(signal)
     lev_note = f" · {lev}x" if lev > 1 else ""
+    num = signal.number if signal.number is not None else signal.id
     if market_close:
         emoji = "📤"
         label = "ЗАКРЫТ ПО РЫНКУ"
@@ -274,7 +278,7 @@ def format_closed_signal_message(signal: Signal, *, market_close: bool = False) 
         emoji = "✅" if signal.status == "win" else "❌"
         label = "WIN" if signal.status == "win" else "LOSE"
     return (
-        f"{emoji} <b>Сигнал {label}</b>\n"
+        f"{emoji} <b>Сигнал #{num} {label}</b>\n"
         f"{_esc(signal.symbol)} · {_esc(signal.direction.upper())}\n"
         f"Движение цены: {sign}{ret:.2f}% · P/L трекера{lev_note}: {pnl:+.0f}$\n"
         f"Трекер сигнала: ${signal_tracker_balance(signal):,.0f}\n"
@@ -290,7 +294,8 @@ def format_supplement_message(
     has_video: bool = False,
     actor_label: str | None = None,
 ) -> str:
-    parts = [f"➕ <b>Дополнение к сигналу</b>\n{_esc(signal.symbol)} · {_esc(signal.direction.upper())}"]
+    num = signal.number if signal.number is not None else signal.id
+    parts = [f"➕ <b>Дополнение к сигналу #{num}</b>\n{_esc(signal.symbol)} · {_esc(signal.direction.upper())}"]
     if actor_label:
         parts.append(f"\n<b>Дополнил:</b> {_esc(actor_label)}")
     if comment and comment.strip():
@@ -321,8 +326,9 @@ def format_new_news_message(post: NewsPost, *, author_label: str | None = None) 
 
 def format_entry_filled_message(signal: Signal) -> str:
     author = _esc(_signal_author_label(signal))
+    num = signal.number if signal.number is not None else signal.id
     return (
-        f"🎯 <b>Вход в зоне</b>\n"
+        f"🎯 <b>Вход в зоне · #{num}</b>\n"
         f"{_esc(signal.symbol)} · <b>{_esc(signal.direction.upper())}</b>\n"
         f"Цена достигла уровня входа — позиция в работе.\n"
         f"Вход: {_entry_label(signal.entry_low, signal.entry_high)}\n"

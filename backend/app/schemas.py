@@ -26,8 +26,11 @@ class SignalSupplementRead(BaseModel):
 
 class SignalRead(BaseModel):
     id: int
+    number: int
     created_at: datetime
     closed_at: datetime | None = None
+    close_reason: str | None = None
+    closed_exit_price: float | None = None
     symbol: str
     direction: str
     entry_low: str | None

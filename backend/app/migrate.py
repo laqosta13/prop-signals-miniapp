@@ -22,6 +22,17 @@ def _marker_path(engine: Engine, name: str) -> Path | None:
     return Path(db_file).resolve().parent / name
 
 
+def _backfill_signal_numbers(conn) -> None:
+    if not _has_column(conn.engine, "signals", "number"):
+        return
+    null_count = conn.execute(text("SELECT COUNT(*) FROM signals WHERE number IS NULL")).scalar() or 0
+    if null_count == 0:
+        return
+    rows = conn.execute(text("SELECT id FROM signals ORDER BY created_at ASC, id ASC")).fetchall()
+    for idx, (signal_id,) in enumerate(rows, start=1):
+        conn.execute(text("UPDATE signals SET number = :n WHERE id = :id"), {"n": idx, "id": signal_id})
+
+
 def run_migrations(engine: Engine) -> None:
     tables = inspect(engine).get_table_names()
     with engine.begin() as conn:
@@ -41,12 +52,28 @@ def run_migrations(engine: Engine) -> None:
                 ("entry_filled_at", "ALTER TABLE signals ADD COLUMN entry_filled_at DATETIME"),
                 ("published_market_price", "ALTER TABLE signals ADD COLUMN published_market_price REAL"),
                 ("published_market_source", "ALTER TABLE signals ADD COLUMN published_market_source VARCHAR(32)"),
+                ("number", "ALTER TABLE signals ADD COLUMN number INTEGER"),
+                ("close_reason", "ALTER TABLE signals ADD COLUMN close_reason VARCHAR(16)"),
+                ("closed_exit_price", "ALTER TABLE signals ADD COLUMN closed_exit_price REAL"),
             ):
                 if not _has_column(engine, "signals", col):
                     conn.execute(text(ddl))
             conn.execute(text("UPDATE signals SET points_percent = 1.0 WHERE points_percent IS NULL"))
             conn.execute(text("UPDATE signals SET views_count = 0 WHERE views_count IS NULL"))
             conn.execute(text("UPDATE signals SET likes_count = 0 WHERE likes_count IS NULL"))
+            _backfill_signal_numbers(conn)
+            conn.execute(
+                text(
+                    "UPDATE signals SET close_reason = 'target' "
+                    "WHERE status = 'win' AND close_reason IS NULL"
+                )
+            )
+            conn.execute(
+                text(
+                    "UPDATE signals SET close_reason = 'stop' "
+                    "WHERE status = 'lose' AND close_reason IS NULL"
+                )
+            )
 
         if "subscribers" in tables:
             if not _has_column(engine, "subscribers", "subscription_until"):

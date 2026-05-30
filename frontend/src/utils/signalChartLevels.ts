@@ -81,6 +81,54 @@ export function levelsFromSignal(
   };
 }
 
+/** Свеча для момента времени (вход, закрытие). */
+export function candleTimeForInstant(
+  candles: ChartCandle[],
+  instantIso: string,
+  candleSec: number,
+): UTCTimestamp | null {
+  return entryCandleTimeForFill(candles, instantIso, candleSec);
+}
+
+export type CloseReason = "stop" | "target" | "market";
+
+export function resolveCloseReason(
+  closeReason: string | null | undefined,
+  status: string,
+): CloseReason | null {
+  if (closeReason === "stop" || closeReason === "target" || closeReason === "market") {
+    return closeReason;
+  }
+  if (status === "win") return "target";
+  if (status === "lose") return "stop";
+  return null;
+}
+
+export function closeReasonLabel(reason: CloseReason | null): string | null {
+  if (reason === "stop") return "Стоп";
+  if (reason === "target") return "Цель";
+  if (reason === "market") return "По рынку";
+  return null;
+}
+
+export function closeReasonColor(reason: CloseReason | null): string {
+  if (reason === "stop") return "#ff6b6b";
+  if (reason === "target") return "#e0afff";
+  if (reason === "market") return "#ffd166";
+  return "#aab4c7";
+}
+
+export function resolveClosePrice(
+  levels: SignalChartLevels,
+  reason: CloseReason | null,
+  closedExitPrice: number | null | undefined,
+): number | null {
+  if (closedExitPrice != null && Number.isFinite(closedExitPrice)) return closedExitPrice;
+  if (reason === "stop") return levels.stop;
+  if (reason === "target") return levels.targets[0] ?? null;
+  return null;
+}
+
 /** Свеча, на которой зафиксирован вход (по времени entry_filled_at). */
 export function entryCandleTimeForFill(
   candles: ChartCandle[],

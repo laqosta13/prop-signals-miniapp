@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.media_storage import public_url
 from app.models import Signal, SignalLike, SignalSupplement, Trader
 from app.schemas import SignalRead, SignalSupplementRead
-from app.serializers import trader_avatar_url, trader_display_name, trader_login
+from app.serializers import signal_display_number, trader_avatar_url, trader_display_name, trader_login
 
 FEED_SIGNAL_LIMIT = 80
 MAX_SUPPLEMENTS_PER_SIGNAL = 8
@@ -64,8 +64,11 @@ def signals_list_read(db: Session, signals: list[Signal], viewer_id: int | None)
         out.append(
             SignalRead(
                 id=s.id,
+                number=signal_display_number(s),
                 created_at=s.created_at,
                 closed_at=s.closed_at,
+                close_reason=s.close_reason,
+                closed_exit_price=s.closed_exit_price,
                 symbol=s.symbol,
                 direction=s.direction,
                 entry_low=s.entry_low,

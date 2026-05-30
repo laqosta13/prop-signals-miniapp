@@ -38,6 +38,10 @@ def trader_avatar_url(trader: Trader | None) -> str | None:
     return None
 
 
+def signal_display_number(signal: Signal) -> int:
+    return signal.number if signal.number is not None else signal.id
+
+
 def _supplements_read(db: Session, signal_id: int) -> list[SignalSupplementRead]:
     rows = db.scalars(
         select(SignalSupplement).where(SignalSupplement.signal_id == signal_id).order_by(SignalSupplement.created_at)
@@ -62,8 +66,11 @@ def signal_to_read(db: Session, signal: Signal, viewer_id: int | None = None) ->
     login = trader_login(trader, signal.author_username)
     return SignalRead(
         id=signal.id,
+        number=signal_display_number(signal),
         created_at=signal.created_at,
         closed_at=signal.closed_at,
+        close_reason=signal.close_reason,
+        closed_exit_price=signal.closed_exit_price,
         symbol=signal.symbol,
         direction=signal.direction,
         entry_low=signal.entry_low,

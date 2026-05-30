@@ -6,17 +6,24 @@ import {
   createChart,
   type IChartApi,
   type ISeriesApi,
+  type SeriesMarker,
   type UTCTimestamp,
 } from "lightweight-charts";
 import { parseApiDate } from "../utils";
 import {
   CHART_INTERVALS,
   bybitSymbol,
+  candleTimeForInstant,
+  closeReasonColor,
+  closeReasonLabel,
   entryCandleTimeForFill,
   levelsFromSignal,
+  resolveClosePrice,
+  resolveCloseReason,
   tradingViewSymbol,
   type ChartCandle,
   type ChartInterval,
+  type CloseReason,
 } from "../utils/signalChartLevels";
 
 const CHART_POLL_MS = 30_000;
@@ -28,6 +35,9 @@ type Props = {
   stopLoss: string | null;
   takeProfits: string | null;
   closedAt?: string | null;
+  closeReason?: string | null;
+  closedExitPrice?: number | null;
+  status?: string;
   entryFilledAt?: string | null;
   entryPrice?: number | null;
   /** win/lose — один раз загрузить свечи и не обновлять */
@@ -99,24 +109,38 @@ function clipCandlesAtClose(candles: ChartCandle[], closedAt: string | null | un
   return candles;
 }
 
-function applyEntryMarkerAtTime(
-  series: ISeriesApi<"Candlestick">,
-  time: UTCTimestamp,
-  entryPrice?: number | null,
-) {
-  const label = entryPrice != null ? `Вход ${entryPrice.toFixed(2)}` : "Вход";
-  series.setMarkers([
-    {
-      time,
+function buildChartMarkers(
+  entryTime: UTCTimestamp | null,
+  entryPrice: number | null | undefined,
+  closeTime: UTCTimestamp | null,
+  closeLabel: string | null,
+  closeColor: string,
+  closePrice: number | null,
+): SeriesMarker<UTCTimestamp>[] {
+  const markers: SeriesMarker<UTCTimestamp>[] = [];
+  if (entryTime != null) {
+    markers.push({
+      time: entryTime,
       position: "inBar",
       color: "#3dff8a",
       shape: "circle",
-      text: label,
-    },
-  ]);
+      text: entryPrice != null ? `Вход ${entryPrice.toFixed(2)}` : "Вход",
+    });
+  }
+  if (closeTime != null && closeLabel) {
+    const priceHint = closePrice != null ? ` · ${closePrice.toFixed(2)}` : "";
+    markers.push({
+      time: closeTime,
+      position: "inBar",
+      color: closeColor,
+      shape: "circle",
+      text: `${closeLabel}${priceHint}`,
+    });
+  }
+  return markers.sort((a, b) => Number(a.time) - Number(b.time));
 }
 
-function syncEntryLineLeft(chart: IChartApi, time: UTCTimestamp | null): number | null {
+function syncLineLeft(chart: IChartApi, time: UTCTimestamp | null): number | null {
   if (time == null) return null;
   const x = chart.timeScale().timeToCoordinate(time);
   return x != null && Number.isFinite(x) ? x : null;
@@ -129,6 +153,9 @@ export function SignalChart({
   stopLoss,
   takeProfits,
   closedAt,
+  closeReason,
+  closedExitPrice,
+  status = "active",
   entryFilledAt,
   entryPrice,
   frozen = false,
@@ -138,13 +165,17 @@ export function SignalChart({
   const chartApi = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const entryCandleTimeRef = useRef<UTCTimestamp | null>(null);
+  const closeCandleTimeRef = useRef<UTCTimestamp | null>(null);
   const pinnedEntryRef = useRef<{ fillAt: string; time: UTCTimestamp } | null>(null);
+  const pinnedCloseRef = useRef<{ closedAt: string; time: UTCTimestamp } | null>(null);
   const loadedRef = useRef(false);
   const [interval, setInterval] = useState<ChartInterval>("5");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
   const [entryLineLeft, setEntryLineLeft] = useState<number | null>(null);
+  const [closeLineLeft, setCloseLineLeft] = useState<number | null>(null);
+  const [closeOverlay, setCloseOverlay] = useState<{ label: string; reason: CloseReason } | null>(null);
 
   const pair = bybitSymbol(symbol);
   const tvLink = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tradingViewSymbol(symbol))}`;
@@ -159,22 +190,57 @@ export function SignalChart({
     return time;
   };
 
-  const paintEntryMarker = (series: ISeriesApi<"Candlestick">, candles: ChartCandle[], candleSec: number) => {
-    const time = resolvePinnedEntryTime(candles, candleSec);
-    entryCandleTimeRef.current = time;
-    if (time == null) {
-      series.setMarkers([]);
-      return;
+  const resolvePinnedCloseTime = (candles: ChartCandle[], candleSec: number): UTCTimestamp | null => {
+    if (!closedAt || !candles.length) return null;
+    if (pinnedCloseRef.current?.closedAt === closedAt) {
+      return pinnedCloseRef.current.time;
     }
-    applyEntryMarkerAtTime(series, time, entryPrice);
+    const time = candleTimeForInstant(candles, closedAt, candleSec);
+    if (time != null) pinnedCloseRef.current = { closedAt, time };
+    return time;
+  };
+
+  const paintChartMarkers = (
+    series: ISeriesApi<"Candlestick">,
+    candles: ChartCandle[],
+    candleSec: number,
+    levels: ReturnType<typeof levelsFromSignal>,
+  ) => {
+    const entryTime = resolvePinnedEntryTime(candles, candleSec);
+    entryCandleTimeRef.current = entryTime;
+
+    const reason = frozen && closedAt ? resolveCloseReason(closeReason, status) : null;
+    const label = closeReasonLabel(reason);
+    const closeTime = frozen && closedAt && label ? resolvePinnedCloseTime(candles, candleSec) : null;
+    closeCandleTimeRef.current = closeTime;
+
+    if (reason && label) {
+      setCloseOverlay({ label, reason });
+    } else {
+      setCloseOverlay(null);
+    }
+
+    const closePrice = resolveClosePrice(levels, reason, closedExitPrice);
+    series.setMarkers(
+      buildChartMarkers(entryTime, entryPrice, closeTime, label, closeReasonColor(reason), closePrice),
+    );
+  };
+
+  const syncOverlayLines = (chart: IChartApi) => {
+    setEntryLineLeft(syncLineLeft(chart, entryCandleTimeRef.current));
+    setCloseLineLeft(syncLineLeft(chart, closeCandleTimeRef.current));
   };
 
   useEffect(() => {
     loadedRef.current = false;
     entryCandleTimeRef.current = null;
+    closeCandleTimeRef.current = null;
     pinnedEntryRef.current = null;
+    pinnedCloseRef.current = null;
     setEntryLineLeft(null);
-  }, [symbol, frozen, interval, entryFilledAt, closedAt]);
+    setCloseLineLeft(null);
+    setCloseOverlay(null);
+  }, [symbol, frozen, interval, entryFilledAt, closedAt, closeReason, closedExitPrice, status]);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -206,27 +272,29 @@ export function SignalChart({
       height: 240,
     });
     chartApi.current = chart;
-    const updateEntryLinePosition = () => {
-      setEntryLineLeft(syncEntryLineLeft(chart, entryCandleTimeRef.current));
-    };
-    chart.timeScale().subscribeVisibleTimeRangeChange(updateEntryLinePosition);
+    const updateOverlayLines = () => syncOverlayLines(chart);
+    chart.timeScale().subscribeVisibleTimeRangeChange(updateOverlayLines);
     const ro = new ResizeObserver(() => {
       if (chartRef.current) {
         chart.applyOptions({ width: chartRef.current.clientWidth });
-        updateEntryLinePosition();
+        updateOverlayLines();
       }
     });
     ro.observe(chartRef.current);
 
     return () => {
-      chart.timeScale().unsubscribeVisibleTimeRangeChange(updateEntryLinePosition);
+      chart.timeScale().unsubscribeVisibleTimeRangeChange(updateOverlayLines);
       ro.disconnect();
       chart.remove();
       chartApi.current = null;
       seriesRef.current = null;
       entryCandleTimeRef.current = null;
+      closeCandleTimeRef.current = null;
       pinnedEntryRef.current = null;
+      pinnedCloseRef.current = null;
       setEntryLineLeft(null);
+      setCloseLineLeft(null);
+      setCloseOverlay(null);
       loadedRef.current = false;
     };
   }, [visible]);
@@ -258,14 +326,17 @@ export function SignalChart({
         seriesRef.current = series;
         series.setData(data);
         applyLevelLines(series, lv);
-        paintEntryMarker(series, data, candleSec);
+        paintChartMarkers(series, data, candleSec, lv);
         chart.timeScale().fitContent();
-        setEntryLineLeft(syncEntryLineLeft(chart, entryCandleTimeRef.current));
+        syncOverlayLines(chart);
         loadedRef.current = true;
       })
       .catch((e) => {
         entryCandleTimeRef.current = null;
+        closeCandleTimeRef.current = null;
         setEntryLineLeft(null);
+        setCloseLineLeft(null);
+        setCloseOverlay(null);
         if (!ac.signal.aborted) setErr(e instanceof Error ? e.message : "Ошибка графика");
       })
       .finally(() => {
@@ -273,13 +344,29 @@ export function SignalChart({
       });
 
     return () => ac.abort();
-  }, [visible, pair, interval, entryLow, entryHigh, stopLoss, takeProfits, closedAt, entryFilledAt, entryPrice, frozen]);
+  }, [
+    visible,
+    pair,
+    interval,
+    entryLow,
+    entryHigh,
+    stopLoss,
+    takeProfits,
+    closedAt,
+    closeReason,
+    closedExitPrice,
+    status,
+    entryFilledAt,
+    entryPrice,
+    frozen,
+  ]);
 
   useEffect(() => {
     if (!visible || !pair || frozen || !entryFilledAt) return;
 
     const bybitIv = CHART_INTERVALS.find((x) => x.id === interval)?.bybit ?? "5";
     const candleSec = Math.max(60, Number(bybitIv) * 60);
+    const lv = levelsFromSignal(entryLow, entryHigh, stopLoss, takeProfits);
 
     const refreshCandles = () => {
       const chart = chartApi.current;
@@ -292,8 +379,8 @@ export function SignalChart({
           const seriesNow = seriesRef.current;
           if (!chartNow || !seriesNow) return;
           seriesNow.setData(candles);
-          paintEntryMarker(seriesNow, candles, candleSec);
-          setEntryLineLeft(syncEntryLineLeft(chartNow, entryCandleTimeRef.current));
+          paintChartMarkers(seriesNow, candles, candleSec, lv);
+          syncOverlayLines(chartNow);
         })
         .catch(() => {
           /* keep last frame */
@@ -302,7 +389,7 @@ export function SignalChart({
 
     const id = window.setInterval(refreshCandles, CHART_POLL_MS);
     return () => window.clearInterval(id);
-  }, [visible, pair, interval, frozen, entryFilledAt, entryPrice]);
+  }, [visible, pair, interval, frozen, entryFilledAt, entryPrice, entryLow, entryHigh, stopLoss, takeProfits]);
 
   if (!pair) return null;
 
@@ -332,11 +419,28 @@ export function SignalChart({
         {err && <p className="signal-chart__err err">{err}</p>}
         <div ref={chartRef} className="signal-chart__canvas" />
         {entryLineLeft != null && <div className="signal-chart__entry-line" style={{ left: `${entryLineLeft}px` }} />}
+        {closeLineLeft != null && closeOverlay && (
+          <>
+            <div
+              className={`signal-chart__close-line signal-chart__close-line--${closeOverlay.reason}`}
+              style={{ left: `${closeLineLeft}px` }}
+            />
+            <div
+              className={`signal-chart__close-badge signal-chart__close-badge--${closeOverlay.reason}`}
+              style={{ left: `${closeLineLeft}px` }}
+            >
+              {closeOverlay.label}
+            </div>
+          </>
+        )}
       </div>
       <div className="signal-chart__legend">
         <span className="signal-chart__legend-item entry">Вход</span>
         <span className="signal-chart__legend-item stop">Стоп</span>
         <span className="signal-chart__legend-item target">Цель</span>
+        {closeOverlay && (
+          <span className={`signal-chart__legend-item close close--${closeOverlay.reason}`}>{closeOverlay.label}</span>
+        )}
       </div>
     </section>
   );

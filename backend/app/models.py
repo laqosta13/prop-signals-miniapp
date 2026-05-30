@@ -10,8 +10,11 @@ class Signal(Base):
     __tablename__ = "signals"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    number: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    close_reason: Mapped[str | None] = mapped_column(String(16), nullable=True)  # stop | target | market
+    closed_exit_price: Mapped[float | None] = mapped_column(Float, nullable=True)
     symbol: Mapped[str] = mapped_column(String(32), nullable=False)
     direction: Mapped[str] = mapped_column(String(8), nullable=False)  # long | short
     entry_low: Mapped[str | None] = mapped_column(String(32), nullable=True)
