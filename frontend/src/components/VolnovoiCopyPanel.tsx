@@ -39,6 +39,7 @@ export function VolnovoiCopyPanel({ subscriptionActive }: Props) {
       .finally(() => setLoading(false));
   }, []);
 
+  const onSave = async () => {
     if (!subscriptionActive) {
       alert("Копирование доступно с активной подпиской");
       return;
