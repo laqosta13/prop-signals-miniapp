@@ -255,35 +255,36 @@ export function SignalCard({
         <section className="signal-supplements" aria-label="Дополнения к сигналу">
           <p className="signal-section-label signal-section-label--sup">Дополнения · {s.supplements!.length}</p>
           {s.supplements!.map((sup) => (
-              <div key={sup.id} className="signal-card__params signal-card__params--sup">
-                <div className="signal-param signal-param--full">
-                  <span className="signal-param__label">Время</span>
-                  <span className="signal-param__value">{formatTime(sup.created_at)}</span>
-                </div>
-                {sup.comment && (
+            <div key={sup.id} className="signal-supplement">
+              <time className="signal-card__time" dateTime={sup.created_at}>
+                {formatTime(sup.created_at)}
+              </time>
+              {sup.comment && (
+                <div className="signal-card__params signal-card__params--sup">
                   <div className="signal-param signal-param--full">
                     <span className="signal-param__label">Коммент.</span>
                     <span className="signal-param__value signal-param__value--text">{sup.comment}</span>
                   </div>
-                )}
-                {sup.media_image_url && (
-                  <button
-                    type="button"
-                    className="media-thumb signal-supplement__media"
-                    onClick={() => setLightbox(mediaUrl(sup.media_image_url))}
-                  >
-                    <img src={mediaUrl(sup.media_image_url)!} alt="Скрин дополнения" className="signal-media-img" />
-                  </button>
-                )}
-                {sup.media_video_url && (
-                  <video
-                    src={mediaUrl(sup.media_video_url)!}
-                    controls
-                    className="signal-media-video signal-supplement__media"
-                    playsInline
-                  />
-                )}
-              </div>
+                </div>
+              )}
+              {sup.media_image_url && (
+                <button
+                  type="button"
+                  className="media-thumb signal-supplement__media"
+                  onClick={() => setLightbox(mediaUrl(sup.media_image_url))}
+                >
+                  <img src={mediaUrl(sup.media_image_url)!} alt="Скрин дополнения" className="signal-media-img" />
+                </button>
+              )}
+              {sup.media_video_url && (
+                <video
+                  src={mediaUrl(sup.media_video_url)!}
+                  controls
+                  className="signal-media-video signal-supplement__media"
+                  playsInline
+                />
+              )}
+            </div>
           ))}
         </section>
       )}

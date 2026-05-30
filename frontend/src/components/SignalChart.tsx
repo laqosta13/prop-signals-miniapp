@@ -23,12 +23,15 @@ import {
   type ChartCandle,
   type ChartInterval,
   type CloseReason,
+  type SignalChartLevels,
 } from "../utils/signalChartLevels";
 
 const CHART_POLL_MS = 30_000;
 const CHART_KLINE_LIMIT = 1000;
 const CHART_VISIBLE_BARS = 180;
 const CHART_HISTORY_BEFORE_MS = 36 * 60 * 60 * 1000;
+const CHART_RIGHT_OFFSET_BARS = 32;
+const CHART_PRICE_PAD_RATIO = 0.1;
 
 type Props = {
   symbol: string;
@@ -78,6 +81,38 @@ async function fetchBybitKlines(
     .filter((c) => Number.isFinite(c.close));
   candles.reverse();
   return candles;
+}
+
+function levelsPriceExtent(levels: SignalChartLevels): { min: number; max: number } | null {
+  const prices: number[] = [];
+  if (levels.stop != null) prices.push(levels.stop);
+  levels.targets.forEach((tp) => prices.push(tp));
+  if (levels.entryLow != null) prices.push(levels.entryLow);
+  if (levels.entryHigh != null) prices.push(levels.entryHigh);
+  if (!prices.length) return null;
+  return { min: Math.min(...prices), max: Math.max(...prices) };
+}
+
+function buildLevelsAutoscaleProvider(levels: SignalChartLevels) {
+  const extent = levelsPriceExtent(levels);
+  return (original: () => { priceRange: { minValue: number; maxValue: number } } | null) => {
+    const base = original();
+    if (!extent) return base;
+    let min = extent.min;
+    let max = extent.max;
+    if (base?.priceRange) {
+      min = Math.min(min, base.priceRange.minValue);
+      max = Math.max(max, base.priceRange.maxValue);
+    }
+    const span = Math.max(max - min, Math.abs(max) * 0.002);
+    const pad = span * CHART_PRICE_PAD_RATIO;
+    return {
+      priceRange: {
+        minValue: min - pad,
+        maxValue: max + pad,
+      },
+    };
+  };
 }
 
 function applyLevelLines(series: ISeriesApi<"Candlestick">, levels: ReturnType<typeof levelsFromSignal>) {
@@ -213,22 +248,24 @@ function applyFeedVisibleRange(
 
   if (candles.length <= CHART_VISIBLE_BARS) {
     chart.timeScale().fitContent();
+    chart.timeScale().applyOptions({ rightOffset: CHART_RIGHT_OFFSET_BARS });
     return;
   }
 
   const half = Math.floor(CHART_VISIBLE_BARS / 2);
   let from = focusIdx - half;
-  let to = from + CHART_VISIBLE_BARS;
+  let to = from + CHART_VISIBLE_BARS - CHART_RIGHT_OFFSET_BARS;
   if (from < 0) {
     from = 0;
-    to = CHART_VISIBLE_BARS;
+    to = Math.min(candles.length, CHART_VISIBLE_BARS - CHART_RIGHT_OFFSET_BARS);
   }
   if (to > candles.length) {
     to = candles.length;
-    from = Math.max(0, to - CHART_VISIBLE_BARS);
+    from = Math.max(0, to - (CHART_VISIBLE_BARS - CHART_RIGHT_OFFSET_BARS));
   }
 
   chart.timeScale().setVisibleLogicalRange({ from, to });
+  chart.timeScale().applyOptions({ rightOffset: CHART_RIGHT_OFFSET_BARS });
 }
 
 export function SignalChart({
@@ -352,8 +389,16 @@ export function SignalChart({
         horzLines: { visible: false },
       },
       crosshair: { mode: CrosshairMode.Normal },
-      rightPriceScale: { borderVisible: false },
-      timeScale: { borderVisible: false, timeVisible: true, secondsVisible: false },
+      rightPriceScale: {
+        borderVisible: false,
+        scaleMargins: { top: 0.1, bottom: 0.1 },
+      },
+      timeScale: {
+        borderVisible: false,
+        timeVisible: true,
+        secondsVisible: false,
+        rightOffset: CHART_RIGHT_OFFSET_BARS,
+      },
       width: chartRef.current.clientWidth,
       height: 240,
     });
@@ -412,6 +457,7 @@ export function SignalChart({
           borderVisible: false,
           wickUpColor: "#3dff8a",
           wickDownColor: "#ff6b6b",
+          autoscaleInfoProvider: buildLevelsAutoscaleProvider(lv),
         });
         seriesRef.current = series;
         series.setData(data);

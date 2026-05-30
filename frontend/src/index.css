@@ -440,15 +440,18 @@ body {
   margin-top: 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+}
+
+.signal-supplement .signal-card__time {
+  margin-bottom: 6px;
 }
 
 .signal-card__params--sup {
-  margin-bottom: 0;
+  margin-bottom: 8px;
 }
 
-.signal-card__params--sup .signal-supplement__media {
-  grid-column: 1 / -1;
+.signal-supplement__media {
   margin: 0;
 }
 
