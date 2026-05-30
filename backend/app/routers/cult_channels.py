@@ -1,8 +1,19 @@
+import asyncio
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.cult_channel_service import add_cult_channel, build_cult_channels_read, delete_cult_channel
+from app.cult_channel_service import (
+    build_cult_channels_read,
+    channel_public_url,
+    delete_cult_channel,
+    normalize_channel_username,
+    resolve_channel,
+)
 from app.deps import db_session, get_current_user, require_admin
+from app.models import CultChannel
 from app.schemas import CultChannelCreateBody, CultChannelRead, TelegramUser
 
 router = APIRouter(prefix="/cult-channels", tags=["cult-channels"])
@@ -18,14 +29,30 @@ def list_cult_channels(
 
 
 @router.post("", response_model=CultChannelRead, status_code=status.HTTP_201_CREATED)
-def create_cult_channel(
+async def create_cult_channel(
     body: CultChannelCreateBody,
     db: Session = Depends(db_session),
     user: TelegramUser = Depends(require_admin),
 ) -> CultChannelRead:
+    url = body.url.strip()
     try:
-        row = add_cult_channel(db, body.url.strip(), user.telegram_user_id)
+        username = normalize_channel_username(url)
+        existing = db.scalar(select(CultChannel).where(CultChannel.username == username))
+        if existing:
+            raise ValueError("Канал уже подключён")
+
+        chat_id, title, uname = await asyncio.to_thread(resolve_channel, username)
+        row = CultChannel(
+            title=title,
+            username=uname,
+            chat_id=chat_id,
+            channel_url=channel_public_url(uname),
+            connected_at=datetime.now(timezone.utc),
+            added_by_telegram_id=user.telegram_user_id,
+        )
+        db.add(row)
         db.commit()
+        db.refresh(row)
     except ValueError as e:
         db.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

@@ -83,26 +83,27 @@ export function LeaderboardTab({
   if (loading) return <p className="meta">Загрузка…</p>;
 
   return (
-    <>
+    <div className="top-panel">
       {!traders.length && !cultChannels.length && (
         <p className="meta">Рейтинг появится после закрытых сигналов.</p>
       )}
 
-      <RankGuide />
+      <div className="top-panel__main">
+        <RankGuide />
 
-      {volnovoi && (
-        <section className="top-cult-block top-cult-block--traders">
-          <p className="top-cult-label top-cult-label--traders">ТРЕЙДЕРЫ CULT</p>
-          <ol className="top-list top-list--solo">
-            <TopTraderCard trader={volnovoi} onOpen={() => setProfileTrader(volnovoi)} />
-          </ol>
-          <VolnovoiCopyPanel />
-        </section>
-      )}
+        {volnovoi && (
+          <section className="top-cult-block top-cult-block--traders">
+            <p className="top-cult-label top-cult-label--traders">ТРЕЙДЕРЫ CULT/A</p>
+            <ol className="top-list top-list--solo">
+              <TopTraderCard trader={volnovoi} onOpen={() => setProfileTrader(volnovoi)} />
+            </ol>
+            <VolnovoiCopyPanel />
+          </section>
+        )}
+      </div>
 
       <section className="top-cult-block top-cult-block--candidates">
         <p className="top-cult-label top-cult-label--candidates">КОНДИДАТЫ В CULT</p>
-        {isAdmin && <CultChannelAdminPanel channels={cultChannels} onChange={onCultChannelsChange} />}
         {candidates.length > 0 ? (
           <ol className="top-list">
             {candidates.map((item) =>
@@ -120,6 +121,7 @@ export function LeaderboardTab({
         ) : (
           <p className="meta">Кандидаты появятся после сделок или подключения каналов.</p>
         )}
+        {isAdmin && <CultChannelAdminPanel channels={cultChannels} onChange={onCultChannelsChange} />}
       </section>
 
       {profileTrader && (
@@ -130,6 +132,6 @@ export function LeaderboardTab({
           onClose={() => setProfileTrader(null)}
         />
       )}
-    </>
+    </div>
   );
 }

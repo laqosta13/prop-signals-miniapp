@@ -121,7 +121,8 @@ async def check_active_signals_once() -> int:
                 continue
             outcome, hit = outcome_hit
             if outcome in ("win", "lose"):
-                apply_outcome_to_channel(db, channel, sig, outcome, hit.price)
+                if not apply_outcome_to_channel(db, channel, sig, outcome, hit.price):
+                    continue
                 db.commit()
                 logger.info("CULT: %s #%s %s @%s", outcome, sig.id, sig.symbol, channel.username)
                 closed += 1

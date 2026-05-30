@@ -212,9 +212,25 @@ export default function App() {
 
   const loadTop = useCallback(async () => {
     try {
-      const [board, channels] = await Promise.all([fetchLeaderboard(), fetchCultChannels()]);
-      setTraders(board);
-      setCultChannels(channels);
+      const [boardResult, channelsResult] = await Promise.allSettled([
+        fetchLeaderboard(),
+        fetchCultChannels(),
+      ]);
+      if (boardResult.status === "fulfilled") {
+        setTraders(boardResult.value);
+      } else {
+        setTraders([]);
+        setError(
+          boardResult.reason instanceof Error
+            ? boardResult.reason.message
+            : "Ошибка рейтинга",
+        );
+      }
+      if (channelsResult.status === "fulfilled") {
+        setCultChannels(channelsResult.value);
+      } else {
+        setCultChannels([]);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка рейтинга");
     }

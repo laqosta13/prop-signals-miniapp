@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
-from app.channel_signal_parser import parse_channel_signal
+from app.channel_signal_parser import ParsedChannelSignal, parse_channel_signal
 from app.models import CultChannel, CultChannelSignal
 from app.schemas import CultChannelRead, TraderDayStat
 from app.signal_utils import (
@@ -18,7 +18,7 @@ from app.signal_utils import (
     price_move_pct,
     trade_move_pct,
 )
-from app.telegram_bot_api import get_chat
+from app.telegram_bot_api import get_chat, verify_bot_is_channel_admin
 
 
 def _now() -> datetime:
@@ -56,6 +56,7 @@ def resolve_channel(username: str) -> tuple[int, str, str]:
     uname = str(chat.get("username") or username).lower()
     if chat.get("type") != "channel":
         raise ValueError("Это не публичный канал. Добавьте бота админом в канал.")
+    verify_bot_is_channel_admin(chat_id)
     return chat_id, title, uname
 
 
@@ -87,6 +88,39 @@ def delete_cult_channel(db: Session, channel_id: int) -> None:
     db.delete(row)
 
 
+def _find_channel(db: Session, chat_id: int, message: dict) -> CultChannel | None:
+    channel = db.scalar(select(CultChannel).where(CultChannel.chat_id == chat_id, CultChannel.enabled.is_(True)))
+    if channel is not None:
+        return channel
+    username = str((message.get("chat") or {}).get("username") or "").lower()
+    if not username:
+        return None
+    return db.scalar(select(CultChannel).where(CultChannel.username == username, CultChannel.enabled.is_(True)))
+
+
+def _message_text(message: dict) -> str:
+    return str(message.get("text") or message.get("caption") or "")
+
+
+def _message_date(message: dict) -> datetime | None:
+    raw = message.get("date")
+    if raw is None:
+        return None
+    try:
+        return _as_utc(datetime.fromtimestamp(int(raw), tz=timezone.utc))
+    except (TypeError, ValueError, OSError):
+        return None
+
+
+def _apply_parsed(sig: CultChannelSignal, parsed: ParsedChannelSignal) -> None:
+    sig.symbol = parsed.symbol
+    sig.direction = parsed.direction
+    sig.entry_low = parsed.entry_low
+    sig.entry_high = parsed.entry_high
+    sig.stop_loss = parsed.stop_loss
+    sig.take_profits = parsed.take_profits
+
+
 def _closed_move_pct(sig: CultChannelSignal) -> float:
     entry = effective_entry_price(sig.entry_low, sig.entry_high, sig.published_market_price)
     if entry is None or sig.closed_exit_price is None:
@@ -94,7 +128,14 @@ def _closed_move_pct(sig: CultChannelSignal) -> float:
     return price_move_pct(entry, sig.direction, float(sig.closed_exit_price))
 
 
-def apply_outcome_to_channel(db: Session, channel: CultChannel, sig: CultChannelSignal, outcome: str, exit_price: float) -> None:
+def apply_outcome_to_channel(
+    db: Session,
+    channel: CultChannel,
+    sig: CultChannelSignal,
+    outcome: str,
+    exit_price: float,
+) -> bool:
+    """Закрывает сигнал один раз. False — уже закрыт другим процессом."""
     move = trade_move_pct(
         sig.entry_low,
         sig.entry_high,
@@ -104,49 +145,81 @@ def apply_outcome_to_channel(db: Session, channel: CultChannel, sig: CultChannel
         stop_loss=sig.stop_loss,
         take_profits=sig.take_profits,
     )
-    outcome = outcome_from_move(move)
-    sig.status = outcome
-    sig.closed_at = _now()
-    sig.closed_exit_price = exit_price
-    sig.close_reason = "target" if outcome == "win" else "stop"
+    final_outcome = outcome_from_move(move)
+    close_reason = "target" if final_outcome == "win" else "stop"
+    closed_at = _now()
 
-    if move >= 0:
-        channel.wins += 1
-    else:
-        channel.losses += 1
-    channel.rating_percent = round((channel.rating_percent or 0) + move, 2)
-
-
-def ingest_channel_post(db: Session, chat_id: int, message: dict) -> CultChannelSignal | None:
-    channel = db.scalar(select(CultChannel).where(CultChannel.chat_id == chat_id, CultChannel.enabled.is_(True)))
-    if channel is None:
-        channel = db.scalar(
-            select(CultChannel).where(
-                CultChannel.username == str(message.get("chat", {}).get("username", "")).lower(),
-                CultChannel.enabled.is_(True),
-            )
+    res = db.execute(
+        update(CultChannelSignal)
+        .where(CultChannelSignal.id == sig.id, CultChannelSignal.status == "active")
+        .values(
+            status=final_outcome,
+            closed_at=closed_at,
+            closed_exit_price=exit_price,
+            close_reason=close_reason,
         )
+    )
+    if res.rowcount != 1:
+        return False
+
+    sig.status = final_outcome
+    sig.closed_at = closed_at
+    sig.closed_exit_price = exit_price
+    sig.close_reason = close_reason
+
+    wins = int(channel.wins or 0)
+    losses = int(channel.losses or 0)
+    if move >= 0:
+        channel.wins = wins + 1
+    else:
+        channel.losses = losses + 1
+    channel.rating_percent = round(float(channel.rating_percent or 0) + move, 2)
+    return True
+
+
+def ingest_channel_post(
+    db: Session,
+    chat_id: int,
+    message: dict,
+    *,
+    is_edit: bool = False,
+) -> CultChannelSignal | None:
+    channel = _find_channel(db, chat_id, message)
     if channel is None:
         return None
 
-    msg_id = int(message["message_id"])
-    dup = db.scalar(
+    msg_id_raw = message.get("message_id")
+    if msg_id_raw is None:
+        return None
+    msg_id = int(msg_id_raw)
+
+    msg_date = _message_date(message)
+    if msg_date is None:
+        return None
+
+    connected = _as_utc(channel.connected_at)
+    if msg_date < connected - timedelta(seconds=2):
+        return None
+
+    text = _message_text(message)
+    parsed = parse_channel_signal(text)
+    if parsed is None:
+        return None
+
+    existing = db.scalar(
         select(CultChannelSignal).where(
             CultChannelSignal.cult_channel_id == channel.id,
             CultChannelSignal.telegram_message_id == msg_id,
         )
     )
-    if dup:
-        return None
 
-    msg_date = _as_utc(datetime.fromtimestamp(int(message["date"]), tz=timezone.utc))
-    if msg_date < _as_utc(channel.connected_at):
-        return None
-
-    text = message.get("text") or message.get("caption") or ""
-    parsed = parse_channel_signal(text)
-    if parsed is None:
-        return None
+    if existing:
+        if not is_edit:
+            return None
+        if existing.status != "active" or existing.entry_filled_at is not None:
+            return None
+        _apply_parsed(existing, parsed)
+        return existing
 
     sig = CultChannelSignal(
         cult_channel_id=channel.id,

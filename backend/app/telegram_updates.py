@@ -10,7 +10,7 @@ from app.config import settings
 from app.cult_channel_service import ingest_channel_post
 from app.database import SessionLocal
 from app.media_storage import media_root
-from app.telegram_bot_api import get_updates
+from app.telegram_bot_api import delete_webhook, get_updates
 
 logger = logging.getLogger(__name__)
 
@@ -44,26 +44,47 @@ async def process_updates_once() -> int:
         return 0
 
     processed = 0
+    next_offset: int | None = None
     db = SessionLocal()
     try:
         for upd in updates:
             upd_id = int(upd["update_id"])
-            msg = upd.get("channel_post") or upd.get("edited_channel_post")
-            if msg:
-                chat = msg.get("chat") or {}
-                chat_id = chat.get("id")
-                if chat_id is not None:
-                    sig = ingest_channel_post(db, int(chat_id), msg)
-                    if sig:
-                        processed += 1
-                        logger.info(
-                            "CULT channel signal #%s %s from @%s",
-                            sig.id,
-                            sig.symbol,
-                            chat.get("username"),
-                        )
-            _save_offset(upd_id + 1)
+            next_offset = upd_id + 1
+
+            msg = upd.get("channel_post")
+            is_edit = False
+            if not msg:
+                msg = upd.get("edited_channel_post")
+                is_edit = bool(msg)
+
+            if not msg:
+                continue
+
+            chat = msg.get("chat") or {}
+            chat_id = chat.get("id")
+            if chat_id is None:
+                logger.warning("channel update without chat.id: %s", upd_id)
+                continue
+
+            try:
+                sig = ingest_channel_post(db, int(chat_id), msg, is_edit=is_edit)
+            except Exception:
+                logger.exception("ingest channel post failed update_id=%s", upd_id)
+                raise
+
+            if sig:
+                processed += 1
+                logger.info(
+                    "CULT channel signal #%s %s from @%s%s",
+                    sig.id,
+                    sig.symbol,
+                    chat.get("username"),
+                    " (edit)" if is_edit else "",
+                )
+
         db.commit()
+        if next_offset is not None:
+            _save_offset(next_offset)
     except Exception as e:
         logger.exception("telegram updates error: %s", e)
         db.rollback()
@@ -76,6 +97,7 @@ async def telegram_updates_loop() -> None:
     if not settings.bot_token:
         logger.info("telegram_updates: BOT_TOKEN missing, skip")
         return
+    await asyncio.to_thread(delete_webhook)
     logger.info("telegram_updates: polling channel_post")
     while True:
         try:

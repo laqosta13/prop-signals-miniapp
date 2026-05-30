@@ -26,6 +26,11 @@ _SYMBOL_RE = re.compile(
 _LONG_RE = re.compile(r"\b(long|лонг|buy|покупка)\b", re.IGNORECASE)
 _SHORT_RE = re.compile(r"\b(short|шорт|sell|продажа)\b", re.IGNORECASE)
 
+_SKIP_SYMBOLS = frozenset({
+    "LONG", "SHORT", "BUY", "SELL", "ENTRY", "STOP", "TARGET", "TP", "SL",
+    "USD", "USDT", "PERP", "RISK", "PNL",
+})
+
 _ENTRY_PATTERNS = (
     r"(?:вход|entry|ent(?:ry)?|buy\s*zone|зона\s*входа)\s*[:\-]?\s*([\d\s.,\-–—]+)",
     r"(?:вход|entry)\s+([\d\s.,\-–—]+)",
@@ -40,12 +45,23 @@ _TP_PATTERNS = (
 
 def _normalize_symbol(raw: str) -> str:
     sym = raw.upper().strip().lstrip("#$")
-    if sym.endswith("USDT") or sym.endswith("USD") or sym.endswith("PERP"):
-        return sym.replace("PERP", "USDT") if sym.endswith("PERP") else sym
-    return f"{sym}USDT"
+    if sym.endswith("PERP"):
+        sym = sym.replace("PERP", "USDT")
+    elif not (sym.endswith("USDT") or sym.endswith("USD")):
+        sym = f"{sym}USDT"
+    return sym
 
 
-def _extract_price(raw: str | None) -> str | None:
+def _find_symbol(body: str) -> str | None:
+    for m in _SYMBOL_RE.finditer(body):
+        token = m.group(1).upper()
+        if token in _SKIP_SYMBOLS:
+            continue
+        return _normalize_symbol(token)
+    return None
+
+
+def _extract_price(raw: str | None) -> tuple[str, str] | None:
     if not raw:
         return None
     cleaned = raw.strip().replace("–", "-").replace("—", "-")
@@ -54,12 +70,33 @@ def _extract_price(raw: str | None) -> str | None:
         lo = parse_price(parts[0])
         hi = parse_price(parts[1])
         if lo is not None and hi is not None:
-            return f"{min(lo, hi)}", f"{max(lo, hi)}"
+            return str(min(lo, hi)), str(max(lo, hi))
     p = parse_price(cleaned)
     if p is None:
         return None
     s = str(p)
     return s, s
+
+
+def _entry_mid(entry_low: str, entry_high: str) -> float | None:
+    lo = parse_price(entry_low)
+    hi = parse_price(entry_high)
+    if lo is not None and hi is not None:
+        return (lo + hi) / 2
+    return lo if lo is not None else hi
+
+
+def _levels_valid(direction: str, entry_low: str, entry_high: str, stop: float, targets: list[float]) -> bool:
+    entry = _entry_mid(entry_low, entry_high)
+    if entry is None or entry <= 0:
+        return False
+    tp = targets[0]
+    d = direction.lower()
+    if d == "long":
+        return stop < entry and tp > entry
+    if d == "short":
+        return stop > entry and tp < entry
+    return False
 
 
 def _first_match(patterns: tuple[str, ...], text: str) -> str | None:
@@ -75,10 +112,9 @@ def parse_channel_signal(text: str | None) -> ParsedChannelSignal | None:
         return None
     body = text.strip()
 
-    sym_match = _SYMBOL_RE.search(body)
-    if not sym_match:
+    symbol = _find_symbol(body)
+    if not symbol:
         return None
-    symbol = _normalize_symbol(sym_match.group(1))
 
     if _LONG_RE.search(body):
         direction = "long"
@@ -100,6 +136,9 @@ def parse_channel_signal(text: str | None) -> ParsedChannelSignal | None:
         return None
 
     entry_low, entry_high = entry
+    if not _levels_valid(direction, entry_low, entry_high, stop, targets):
+        return None
+
     return ParsedChannelSignal(
         symbol=symbol,
         direction=direction,

@@ -40,8 +40,25 @@ async def _api_async(method: str, payload: dict[str, Any] | None = None) -> dict
         return r.json()
 
 
+def delete_webhook() -> None:
+    """Long polling не работает, пока активен webhook."""
+    try:
+        _api("deleteWebhook", {"drop_pending_updates": False})
+        logger.info("telegram: webhook cleared for polling")
+    except Exception as e:
+        logger.warning("telegram deleteWebhook: %s", e)
+
+
 def get_chat(chat_id: str | int) -> dict[str, Any]:
     return _api("getChat", {"chat_id": chat_id})["result"]
+
+
+def verify_bot_is_channel_admin(chat_id: int) -> None:
+    me = _api("getMe")["result"]
+    bot_id = int(me["id"])
+    member = _api("getChatMember", {"chat_id": chat_id, "user_id": bot_id})["result"]
+    if member.get("status") not in ("administrator", "creator"):
+        raise ValueError("Добавьте бота администратором канала (права на чтение постов)")
 
 
 async def get_updates(offset: int | None = None, timeout: int = 25) -> list[dict[str, Any]]:
