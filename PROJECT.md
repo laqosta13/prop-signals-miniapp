@@ -24,7 +24,7 @@
 
 1. **Лента** — сигналы с **нумерацией #N**, график на карточке, просмотры/лайки, мини-трекеры админов, галочка уведомлений, **дисклеймер** (кнопка **!** в шапке + принятие при первом заходе), **анимация WIN/LOSE** при **живом** закрытии сигнала
 2. **Трекер** — Hash Hedge challenge для каждого админа + таблица правил по этапам
-3. **ТОП** — рейтинг трейдеров, **volnovoi** (сводный аккаунт всех админов), equity curve, **копирование на Bybit** под volnovoi, **описание рангов** (раскрывающийся блок)
+3. **ТОП** — **volnovoi** (сводный портфель всех админов) + **копирование на Bybit** под карточкой; блок **«ТРЕЙДЕРЫ CULT»**; **RankGuide**; блок **«КОНДИДАТЫ В CULT»** — остальные трейдеры; equity curve; **описание рангов** (раскрывающийся блок)
 4. **Отзывы** — оценка 1–5 и текст; один отзыв на пользователя
 5. **Новости** — публикации админов; чтение для всех
 6. **Подписка** — оплата USDT TON (проверка TXID в блокчейне), реферальные ссылки, trial
@@ -51,7 +51,7 @@
 | Лента: **активные** сигналы | ✗ | ✓ `GET /signals` |
 | Трекер Hash Hedge | ✓ | ✓ |
 | ТОП / equity curve | ✓ | ✓ |
-| **Копирование volnovoi на Bybit** | ✗ (просмотр панели) | ✓ сохранение API + авто-сделки |
+| **Копирование volnovoi на Bybit** | ✓ настройка API (без подписки на ленту) | ✓ авто-сделки; **оплата 20% прибыли** отдельно |
 | Лайки / просмотры (win/lose) | ✓ | ✓ |
 | Лайки / просмотры (active) | ✗ | ✓ |
 | Отзывы / Новости (чтение) | ✓ | ✓ |
@@ -75,7 +75,7 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 - **Трекер $** — только чтение, **баланс Hash Hedge**; при открытии формы подгружается **`GET /challenge/my-tracker`** (`useAdminTrackerSnapshot`)
 - **Дополнения** на карточке — отдельный блок с фиолетовым акцентом, бейдж «Доп. N», счётчик дополнений
 - **Скрин / Видео / Комментарий** (на русском)
-- **График на карточке** — `SignalChart.tsx`: свечи **Bybit USDT perpetual (linear)** 1m / 5m / 15m, линии входа / стопа / целей (`lightweight-charts` **v4**, `addCandlestickSeries`); lazy-load в viewport; TradingView `BYBIT:…` ↗; фон как у карточки, **без сетки**; **`z-index` ниже нижней панели** (график не перекрывает вкладки)
+- **График на карточке** — `SignalChart.tsx`: свечи **Bybit USDT perpetual (linear)** 1m / 5m / 15m, линии входа / стопа / целей (`lightweight-charts` **v4**, `addCandlestickSeries`); **~220 видимых баров**, высота **268px**, скругление **12px** (внутри карточки, не full-bleed); lazy-load в viewport; TradingView `BYBIT:…` ↗; фон как у карточки, **без сетки**; **`z-index` ниже нижней панели** (график не перекрывает вкладки)
 - **График после win/lose** — `frozen`: свечи грузятся **один раз**, таймфреймы **скрыты**, график обрезается на свече `closed_at`, повторных запросов нет
 - **Закрытие на графике** (только frozen): **точка** на свече `closed_at`, **вертикальная линия**, бейдж **«Стоп»** / **«Цель»** / **«По рынку»** (цвет: красный / фиолетовый / жёлтый); поля `close_reason`, `closed_exit_price` в БД
 - **Активный график** — свечи обновляются каждые **30 с** (`CHART_POLL_MS`), пока сигнал не закрыт
@@ -143,43 +143,57 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 
 ---
 
-## volnovoi — сводный аккаунт ТОП
+## volnovoi — сводный портфель ТОП
 
 - **`VOLNOVOI_TELEGRAM_ID = 0`**, отображение **`volnovoi`**, флаг **`is_aggregate: true`**
-- Первая карточка в ТОП: все **закрытые** сигналы **всех админов** в одном портфеле (рейтинг %, P/L $, W/L, WR, equity curve)
+- Первая секция **«ТРЕЙДЕРЫ CULT»**: все **закрытые** сигналы **всех админов** в одном портфеле (рейтинг %, P/L $, W/L, WR, equity curve)
+- Подпись карточки: **«Копирует · все сделки трейдеров»** (не «Аккаунт»)
 - Backend: `volnovoi_account.py`, prepend в `build_leaderboard()`; `GET /traders/0/rank` — вычисленный ранг
-- UI: карточка `top-card--aggregate`, символ **∑** вместо `#rank`; профиль read-only (без confirm/shield)
+- UI: карточка `top-card--aggregate`, символ **∑**; клик по **шапке** открывает профиль; **график и «Дни · N»** — отдельно (не открывают профиль)
+- Профиль volnovoi: сводная статистика; **кнопка «Страховка»** — активирует **ваш** rank shield (если ещё не использован в месяце); без confirm ранга
+- На карточке volnovoi — та же **«Страховка»** под графиком (для своего ранга)
 
 ---
 
 ## Копирование сигналов на Bybit (volnovoi)
 
-Подписчик сохраняет **свои** API-ключи Bybit — сделки трейдеров копируются на **его** счёт USDT perpetual (linear).
+Подписчик сохраняет **свои** API-ключи Bybit — сделки volnovoi копируются на **его** счёт USDT perpetual (linear). **Не требует подписки на ленту** — отдельная оплата за копирование.
 
 | Параметр | Значение |
 |---|---|
 | UI | `VolnovoiCopyPanel.tsx` — под карточкой **volnovoi** на вкладке ТОП (раскрывающийся блок) |
-| Доступ | Сохранение и торговля — **активная подписка** (или админ) |
+| Доступ | Любой авторизованный пользователь — `GET/PUT /copy-trading/me` |
 | Биржа | Bybit v5, **USDT perp**; forex/золото пропускаются |
 | Вход | Market при `entry_filled_at` (монитор / публикация) |
 | Выход | Reduce-only market при закрытии сигнала; SL/TP на позиции через `trading-stop` |
 | Размер | `account_balance_usd × stake_percent × leverage_сигнала / 100` (депозит и % задаёт пользователь) |
-| Ключи | Шифрование Fernet (`credentials_crypto.py`); ключ = `EXCHANGE_SECRETS_KEY` или `BOT_TOKEN` |
+| Ключи | Шифрование Fernet (`credentials_crypto.py`); ключ = `EXCHANGE_SECRETS_KEY` или `BOT_TOKEN`; права API — только **Trade** |
 | Testnet | По умолчанию **true** в форме; переключатель в UI |
 
-**Таблицы:** `user_bybit_settings`, `signal_copy_trades` (статус копии per user per signal).
+### Оплата копирования (отдельно от подписки)
+
+| Параметр | Значение |
+|---|---|
+| Комиссия | **20%** от **прибыли** на Bybit с момента подключения (`equity_baseline_usd`) |
+| Счёт | Раз в сутки (**00:00 UTC**), если выросла неоплаченная прибыль — `copy_billing_scheduler.py` |
+| Оплата | USDT TON + **TXID** on-chain (тот же кошелёк, что подписка) |
+| Блокировка | При неоплаченном счёте **`copy_allowed: false`** — новые копии не открываются |
+| Админы | Счета и блокировка **не применяются** |
+
+**Таблицы:** `user_bybit_settings` (+ `connected_at`, `equity_baseline_usd`, `billed_profit_usd`), `signal_copy_trades`, **`copy_trading_invoices`**.
 
 **API:**
 
 ```
-GET    /copy-trading/me          — статус (маска ключа, баланс USDT)
-PUT    /copy-trading/me          — сохранить ключи (require_active_subscription)
+GET    /copy-trading/me          — статус (маска ключа, баланс, прибыль, счёт)
+PUT    /copy-trading/me          — сохранить ключи
 PATCH  /copy-trading/me          — enabled / testnet / депозит / stake %
 POST   /copy-trading/me/test     — проверка подключения
+POST   /copy-trading/me/pay      — оплата счёта (invoice_id + tx_id)
 DELETE /copy-trading/me          — отключить
 ```
 
-**Backend:** `bybit_trading.py`, `copy_trading_service.py`, `routers/copy_trading.py`; хуки в `signal_service.py`, `price_monitor.py`.
+**Backend:** `bybit_trading.py`, `copy_trading_service.py`, `copy_billing.py`, `copy_billing_scheduler.py`, `routers/copy_trading.py`; хуки в `signal_service.py`, `price_monitor.py`.
 
 **Env (опционально):** `EXCHANGE_SECRETS_KEY` — отдельный ключ шифрования (иначе `BOT_TOKEN`).
 
@@ -213,7 +227,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 **Закрытие по рынку:** P/L и win/lose по фактическому движению вход→рыночная цена; в Telegram — «ЗАКРЫТ ПО РЫНКУ».
 
 Логика: `trader_stats.py`, `leaderboard_service.py`, `tracker_metrics.py`.  
-ТОП: equity curve (`EquityCurve.tsx`) — вкладки **7д / 30д / 90д**, таблица дней **сворачивается** («Дни · N»); daily stats **90 дней** в API; без скачивания аватаров на каждый запрос.
+ТОП: equity curve (`EquityCurve.tsx`) — вкладки **7д / 30д / 90д**, таблица дней **сворачивается** («Дни · N»; клик **не** открывает профиль); daily stats **90 дней** в API; без скачивания аватаров на каждый запрос.
 
 ---
 
@@ -222,8 +236,9 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 8 уровней: `rank_constants.py`, `rank_service.py`, `rank_scheduler.py` (понедельник).
 
 - Поля в `traders`, API `/traders/me/rank-pending`, `/confirm`, `/shield`
-- UI: `RankBadge` **в одной строке с именем** (карточка ТОП + профиль), `RankConfirmModal`, `TraderProfileModal`, `RankGuide` под списком в ТОП
-- В списке ТОП **без** полной `rank_history` (полная — в профиле)
+- UI: `RankBadge` **в одной строке с именем** (карточка ТОП + профиль), `RankConfirmModal`, `TraderProfileModal`, `RankGuide` под volnovoi в ТОП
+- **Страховка** — кнопка «Страховка» (не «Активировать…») в своём профиле и на карточке **volnovoi** для текущего пользователя
+- В списке ТОП **без** полной `rank_history` (полная — в профиле кандидата)
 
 ---
 
@@ -334,7 +349,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 - Единый стиль **glassmorphism**: полупрозрачные карточки/модалки/кнопки, blur, мягкие тени
 - Нижнее меню: вместо эмодзи используются SVG-иконки (современный iOS-like стиль)
 - Полиш взаимодействий: active/focus состояния, мягкие микро-анимации, поддержка `prefers-reduced-motion`
-- ТОП: процент рейтинга окрашивается по знаку (**плюс зелёный**, **минус красный**); кривая доходности — вверх зелёная, вниз красная
+- ТОП: процент рейтинга окрашивается по знаку (**плюс зелёный**, **минус красный**); кривая доходности — вверх зелёная, вниз красная; секции **ТРЕЙДЕРЫ CULT** / **КОНДИДАТЫ В CULT**
 
 ---
 
@@ -396,7 +411,7 @@ GET  /traders/leaderboard
 GET  /traders/{id}/rank          — id=0 → volnovoi
 GET  /traders/me/rank-pending | POST .../confirm | POST .../shield
 GET  /copy-trading/me | PUT /copy-trading/me | PATCH /copy-trading/me
-POST /copy-trading/me/test | DELETE /copy-trading/me
+POST /copy-trading/me/test | POST /copy-trading/me/pay | DELETE /copy-trading/me
 GET  /challenge/trackers
 GET  /challenge/my-tracker       — require_admin, свой трекер для формы сигнала
 GET  /challenge/rules
@@ -420,7 +435,7 @@ POST /admin/purge-published      — require_admin, полная очистка 
 | Цены | `price_service.py`, `price_monitor.py` |
 | Очистка данных | `data_cleanup.py`, `routers/admin.py`, `scripts/purge_published.py` |
 | P/L, ТОП | `trader_stats.py`, `leaderboard_service.py`, `volnovoi_account.py` |
-| Copy-trading Bybit | `bybit_trading.py`, `copy_trading_service.py`, `credentials_crypto.py`, `routers/copy_trading.py` |
+| Copy-trading Bybit | `bybit_trading.py`, `copy_trading_service.py`, `copy_billing.py`, `copy_billing_scheduler.py`, `credentials_crypto.py`, `routers/copy_trading.py` |
 | Ранги | `rank_service.py`, `rank_scheduler.py`, `rank_constants.py` |
 | Трекер | `challenge_service.py`, `tracker_metrics.py`, `hashhedge_rules.py` |
 | Уведомления | `telegram_notify.py` |
@@ -434,7 +449,7 @@ POST /admin/purge-published      — require_admin, полная очистка 
 | Права на сигнал | `utils/signalActions.ts` (`canCloseAtMarketSignal`, …) |
 | Дополнения | `AppendSupplementModal.tsx` |
 | Трекер UI | `TrackerTab.tsx`, `TrackerSettingsModal.tsx`, `HashHedgeRulesTable.tsx`, `data/hashhedgeRules.ts` |
-| ТОП | `LeaderboardTab.tsx`, `VolnovoiCopyPanel.tsx`, `RankGuide.tsx`, `EquityCurve.tsx`, `utils/volnovoi.ts` |
+| ТОП | `LeaderboardTab.tsx`, `VolnovoiCopyPanel.tsx`, `TraderProfileModal.tsx`, `RankGuide.tsx`, `EquityCurve.tsx`, `utils/volnovoi.ts` |
 | Upload | `api.ts` (`sendFormWithProgress`), `UploadProgressBar.tsx`, `utils/upload.ts` |
 | API клиент | `frontend/src/api.ts` |
 
@@ -480,7 +495,7 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 - `.recalc_closed_signal_pnl_v2`, `.recalc_closed_signal_pnl_v3` — пересчёт P/L от `account_size` и risk_percent
 - `.recalc_winrate_by_pnl_v1` — пересчёт W/L и WR по фактическому P/L ($)
 
-Новые колонки через `migrate.py`: `published_market_price`, `published_market_source`, `prop_screenshot_path`, `number`, `close_reason`, `closed_exit_price`, `account_size`, rank fields; таблицы **`user_bybit_settings`**, **`signal_copy_trades`** и др.
+Новые колонки через `migrate.py`: `published_market_price`, `published_market_source`, `prop_screenshot_path`, `number`, `close_reason`, `closed_exit_price`, `account_size`, rank fields; таблицы **`user_bybit_settings`**, **`signal_copy_trades`**, **`copy_trading_invoices`** и др.
 
 ---
 
@@ -527,10 +542,14 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 39. **Equity curve** — периоды 7/30/90д; сворачиваемая таблица дней
 40. **Ранг в строке имени** — `RankBadge compact` рядом с именем в ТОП и профиле
 41. **Copy-trading Bybit** — API пользователя, копирование сигналов volnovoi; панель под карточкой volnovoi
-42. **Трекер UI** — свёрнутые сделки; баланс под скрином скрыт; prop sync без смены старта/цели
+42. **Copy billing** — 20% прибыли с подключения, счёт раз в сутки, оплата TXID; пауза копирования без оплаты
+43. **ТОП CULT** — секции «ТРЕЙДЕРЫ CULT» / «КОНДИДАТЫ В CULT»; volnovoi «Копирует · все сделки трейдеров»
+44. **ТОП UX** — график equity вне клика карточки; «Страховка» на volnovoi; выровненная форма Bybit API
+45. **График сигнала** — шире (~220 баров), 268px, скругление 12px внутри карточки
+46. **Трекер UI** — свёрнутые сделки; баланс под скрином скрыт; prop sync без смены старта/цели
 
 ---
 
 ## Быстрое напоминание для AI
 
-> **prop-signals-miniapp** — FastAPI + React Telegram Mini App на Amvera (SQLite, `/data`). Админы публикуют сигналы **#N**; активные — по подписке, win/lose + трекер + ТОП — бесплатно. **volnovoi** — сводный портфель всех админов в ТОП; подписчики могут **копировать сделки на свой Bybit** (ключи шифруются). **Цены и график: Bybit USDT perp.** Equity curve 7/30/90д. P/L = (`account_size` × сумма входа % × плечо) × % движения; WR по P/L $. WIN/LOSE reveal — **active→win/lose**, poll 15s. Полный контекст — этот файл.
+> **prop-signals-miniapp** — FastAPI + React Telegram Mini App на Amvera (SQLite, `/data`). Админы публикуют сигналы **#N**; активные — по подписке, win/lose + трекер + ТОП — бесплатно. **volnovoi** — сводный портфель всех админов в ТОП; подписчики **копируют на свой Bybit** (ключи шифруются, **20% прибыли** отдельно от подписки). **Цены и график: Bybit USDT perp.** Equity curve 7/30/90д. P/L = (`account_size` × сумма входа % × плечо) × % движения; WR по P/L $. WIN/LOSE reveal — **active→win/lose**, poll 15s. Полный контекст — этот файл.
