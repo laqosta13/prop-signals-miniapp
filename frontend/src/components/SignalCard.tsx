@@ -253,25 +253,12 @@ export function SignalCard({
 
       {(s.supplements?.length ?? 0) > 0 && (
         <section className="signal-supplements" aria-label="Дополнения к сигналу">
-          <p className="signal-section-label">Дополнения · {s.supplements!.length}</p>
-          {s.supplements!.map((sup, idx) => {
-            const mediaParts = [
-              sup.media_image_url ? "скрин" : null,
-              sup.media_video_url ? "видео" : null,
-            ].filter(Boolean);
-            return (
+          <p className="signal-section-label signal-section-label--sup">Дополнения · {s.supplements!.length}</p>
+          {s.supplements!.map((sup) => (
               <div key={sup.id} className="signal-card__params signal-card__params--sup">
-                <div className="signal-param">
-                  <span className="signal-param__label">Доп.</span>
-                  <span className="signal-param__value">{idx + 1}</span>
-                </div>
-                <div className="signal-param signal-param--span-2">
+                <div className="signal-param signal-param--full">
                   <span className="signal-param__label">Время</span>
                   <span className="signal-param__value">{formatTime(sup.created_at)}</span>
-                </div>
-                <div className="signal-param">
-                  <span className="signal-param__label">Медиа</span>
-                  <span className="signal-param__value">{mediaParts.length ? mediaParts.join(" · ") : "—"}</span>
                 </div>
                 {sup.comment && (
                   <div className="signal-param signal-param--full">
@@ -297,8 +284,7 @@ export function SignalCard({
                   />
                 )}
               </div>
-            );
-          })}
+          ))}
         </section>
       )}
 

@@ -408,10 +408,6 @@ body {
   text-overflow: ellipsis;
 }
 
-.signal-param--span-2 {
-  grid-column: span 2;
-}
-
 .signal-param--full {
   grid-column: 1 / -1;
   text-align: left;
@@ -431,6 +427,13 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.07em;
   color: var(--muted);
+}
+
+.signal-section-label--sup {
+  margin-bottom: 8px;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  color: var(--text);
 }
 
 .signal-supplements {
