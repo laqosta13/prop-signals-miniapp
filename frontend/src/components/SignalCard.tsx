@@ -255,18 +255,11 @@ export function SignalCard({
         <section className="signal-supplements" aria-label="Дополнения к сигналу">
           <p className="signal-section-label signal-section-label--sup">Дополнения · {s.supplements!.length}</p>
           {s.supplements!.map((sup) => (
-            <div key={sup.id} className="signal-supplement">
+            <div key={sup.id} className="signal-supplement tracker-hero">
               <time className="signal-card__time" dateTime={sup.created_at}>
                 {formatTime(sup.created_at)}
               </time>
-              {sup.comment && (
-                <div className="signal-card__params signal-card__params--sup">
-                  <div className="signal-param signal-param--full">
-                    <span className="signal-param__label">Коммент.</span>
-                    <span className="signal-param__value signal-param__value--text">{sup.comment}</span>
-                  </div>
-                </div>
-              )}
+              {sup.comment && <p className="signal-supplement__comment">{sup.comment}</p>}
               {sup.media_image_url && (
                 <button
                   type="button"

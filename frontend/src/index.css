@@ -408,18 +408,6 @@ body {
   text-overflow: ellipsis;
 }
 
-.signal-param--full {
-  grid-column: 1 / -1;
-  text-align: left;
-}
-
-.signal-param__value--text {
-  white-space: normal;
-  text-align: left;
-  line-height: 1.4;
-  font-weight: 600;
-}
-
 .signal-section-label {
   margin: 0 0 6px;
   font-size: 0.6rem;
@@ -440,15 +428,23 @@ body {
   margin-top: 10px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+}
+
+.signal-supplements .tracker-hero.signal-supplement {
+  margin-bottom: 0;
+  padding: 14px 16px;
 }
 
 .signal-supplement .signal-card__time {
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
-.signal-card__params--sup {
-  margin-bottom: 8px;
+.signal-supplement__comment {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--text);
 }
 
 .signal-supplement__media {
