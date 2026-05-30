@@ -82,7 +82,7 @@ export function NewsTab({ isAdmin, onEdit, refreshKey = 0 }: Props) {
             <p className="news-card__body">{p.body}</p>
             {p.link && (
               <div className="news-card__link">
-                <LinkPreviewCard link={p.link} showUrl />
+                <LinkPreviewCard link={p.link} />
               </div>
             )}
           </li>

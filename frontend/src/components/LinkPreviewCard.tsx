@@ -1,10 +1,11 @@
+import { useState } from "react";
+import WebApp from "@twa-dev/sdk";
 import type { NewsLinkPreview } from "../api";
-import { isYouTubeUrl, linkSiteName } from "../utils/linkPreview";
+import { isYouTubeUrl, linkSiteName, youtubeEmbedUrl, youtubeVideoId } from "../utils/linkPreview";
 
 type Props = {
   link: NewsLinkPreview;
   compact?: boolean;
-  showUrl?: boolean;
 };
 
 function hostLabel(url: string): string {
@@ -27,24 +28,42 @@ function YouTubePlayIcon() {
   );
 }
 
-export function LinkPreviewCard({ link, compact = false, showUrl = false }: Props) {
+function openExternalLink(url: string) {
+  if (WebApp.openLink) {
+    WebApp.openLink(url);
+    return;
+  }
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+export function LinkPreviewCard({ link, compact = false }: Props) {
+  const [playing, setPlaying] = useState(false);
   const title = link.title?.trim() || hostLabel(link.url);
   const description = link.description?.trim();
   const site = linkSiteName(link.url);
   const isYouTube = isYouTubeUrl(link.url);
+  const videoId = isYouTube ? youtubeVideoId(link.url) : null;
+  const canEmbed = Boolean(videoId);
+
+  const onExternalClick = () => openExternalLink(link.url);
 
   return (
     <div className={`link-preview-wrap${compact ? " link-preview-wrap--compact" : ""}`}>
-      {showUrl && (
-        <a className="link-preview-wrap__url" href={link.url} target="_blank" rel="noopener noreferrer">
-          {link.url}
-        </a>
-      )}
-      <a
-        className={`link-preview${compact ? " link-preview--compact" : ""}`}
-        href={link.url}
-        target="_blank"
-        rel="noopener noreferrer"
+      <div
+        className={`link-preview${compact ? " link-preview--compact" : ""}${!isYouTube ? " link-preview--external" : ""}`}
+        role={!isYouTube ? "button" : undefined}
+        tabIndex={!isYouTube ? 0 : undefined}
+        onClick={!isYouTube ? onExternalClick : undefined}
+        onKeyDown={
+          !isYouTube
+            ? (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onExternalClick();
+                }
+              }
+            : undefined
+        }
       >
         <div className="link-preview__accent">
           <div className="link-preview__body">
@@ -52,18 +71,40 @@ export function LinkPreviewCard({ link, compact = false, showUrl = false }: Prop
             <strong className="link-preview__title">{title}</strong>
             {description && <p className="link-preview__desc">{description}</p>}
           </div>
-          {link.image_url && (
-            <div className={`link-preview__media${isYouTube ? " link-preview__media--video" : ""}`}>
-              <img src={link.image_url} alt="" loading="lazy" />
-              {isYouTube && (
-                <span className="link-preview__play" aria-hidden>
-                  <YouTubePlayIcon />
-                </span>
-              )}
-            </div>
-          )}
+          {link.image_url &&
+            (playing && canEmbed ? (
+              <div className="link-preview__media link-preview__media--embed">
+                <iframe
+                  title={title}
+                  src={youtubeEmbedUrl(videoId!)}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              </div>
+            ) : (
+              <button
+                type="button"
+                className={`link-preview__media${isYouTube && canEmbed ? " link-preview__media--video" : ""}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (canEmbed) {
+                    setPlaying(true);
+                    return;
+                  }
+                  onExternalClick();
+                }}
+                aria-label={canEmbed ? "Смотреть на месте" : "Открыть ссылку"}
+              >
+                <img src={link.image_url} alt="" loading="lazy" />
+                {isYouTube && canEmbed && (
+                  <span className="link-preview__play" aria-hidden>
+                    <YouTubePlayIcon />
+                  </span>
+                )}
+              </button>
+            ))}
         </div>
-      </a>
+      </div>
     </div>
   );
 }

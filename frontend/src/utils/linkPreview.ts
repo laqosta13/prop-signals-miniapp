@@ -8,6 +8,42 @@ export function isYouTubeUrl(url: string): boolean {
   }
 }
 
+const YT_ID = /^[\w-]{11}$/;
+
+export function youtubeVideoId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./i, "").toLowerCase();
+
+    if (host === "youtu.be") {
+      const vid = u.pathname.replace(/^\//, "").split("/")[0];
+      return YT_ID.test(vid) ? vid : null;
+    }
+
+    if (!host.endsWith("youtube.com")) return null;
+
+    const path = u.pathname;
+    if (path === "/watch" || path.startsWith("/watch/")) {
+      const vid = u.searchParams.get("v");
+      return vid && YT_ID.test(vid) ? vid : null;
+    }
+
+    for (const prefix of ["/embed/", "/shorts/", "/live/", "/v/"]) {
+      if (path.startsWith(prefix)) {
+        const vid = path.slice(prefix.length).split("/")[0];
+        return YT_ID.test(vid) ? vid : null;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function youtubeEmbedUrl(videoId: string): string {
+  return `https://www.youtube.com/embed/${encodeURIComponent(videoId)}?autoplay=1&playsinline=1&rel=0&modestbranding=1`;
+}
+
 export function linkSiteName(url: string): string {
   try {
     const u = new URL(url);

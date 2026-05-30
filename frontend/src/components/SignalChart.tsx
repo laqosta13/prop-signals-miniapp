@@ -27,7 +27,8 @@ import {
 } from "../utils/signalChartLevels";
 
 const CHART_POLL_MS = 30_000;
-const CHART_KLINE_LIMIT = 250;
+const CHART_KLINE_LIMIT = 1000;
+const CHART_VISIBLE_BARS = 180;
 const CHART_HISTORY_BEFORE_MS = 36 * 60 * 60 * 1000;
 
 type Props = {
@@ -177,6 +178,65 @@ function syncLineLeft(chart: IChartApi, time: UTCTimestamp | null): number | nul
   if (time == null) return null;
   const x = chart.timeScale().timeToCoordinate(time);
   return x != null && Number.isFinite(x) ? x : null;
+}
+
+function candleIndexForTime(candles: ChartCandle[], time: UTCTimestamp | null): number | null {
+  if (time == null || !candles.length) return null;
+  const exact = candles.findIndex((c) => c.time === time);
+  if (exact >= 0) return exact;
+  const t = Number(time);
+  for (let i = candles.length - 1; i >= 0; i -= 1) {
+    if (Number(candles[i].time) <= t) return i;
+  }
+  return 0;
+}
+
+/** На ленте показываем 180 свечей, центрируя вход и закрытие (не прижимая к правому краю). */
+function applyFeedVisibleRange(
+  chart: IChartApi,
+  candles: ChartCandle[],
+  entryTime: UTCTimestamp | null,
+  closeTime: UTCTimestamp | null,
+  createdAt: string | null | undefined,
+) {
+  if (!candles.length) return;
+
+  const entryIdx = candleIndexForTime(candles, entryTime);
+  const closeIdx = candleIndexForTime(candles, closeTime);
+
+  let focusIdx: number;
+  if (entryIdx != null && closeIdx != null) {
+    focusIdx = Math.round((entryIdx + closeIdx) / 2);
+  } else if (entryIdx != null) {
+    focusIdx = entryIdx;
+  } else if (closeIdx != null) {
+    focusIdx = closeIdx;
+  } else if (createdAt) {
+    const createdSec = Math.floor(parseApiDate(createdAt).getTime() / 1000);
+    const idx = candles.findIndex((c) => Number(c.time) >= createdSec);
+    focusIdx = idx >= 0 ? idx : candles.length - 1;
+  } else {
+    focusIdx = candles.length - 1;
+  }
+
+  if (candles.length <= CHART_VISIBLE_BARS) {
+    chart.timeScale().fitContent();
+    return;
+  }
+
+  const half = Math.floor(CHART_VISIBLE_BARS / 2);
+  let from = focusIdx - half;
+  let to = from + CHART_VISIBLE_BARS;
+  if (from < 0) {
+    from = 0;
+    to = CHART_VISIBLE_BARS;
+  }
+  if (to > candles.length) {
+    to = candles.length;
+    from = Math.max(0, to - CHART_VISIBLE_BARS);
+  }
+
+  chart.timeScale().setVisibleLogicalRange({ from, to });
 }
 
 export function SignalChart({
@@ -368,7 +428,7 @@ export function SignalChart({
         series.setData(data);
         applyLevelLines(series, lv);
         paintChartMarkers(series, data, candleSec, lv);
-        chart.timeScale().fitContent();
+        applyFeedVisibleRange(chart, data, entryCandleTimeRef.current, closeCandleTimeRef.current, createdAt);
         syncOverlayLines(chart);
         loadedRef.current = true;
       })
@@ -420,8 +480,16 @@ export function SignalChart({
           const chartNow = chartApi.current;
           const seriesNow = seriesRef.current;
           if (!chartNow || !seriesNow) return;
-          seriesNow.setData(candles);
-          paintChartMarkers(seriesNow, candles, candleSec, lv);
+          const data = clipCandlesForSignal(candles, createdAt, closedAt, candleSec, false);
+          seriesNow.setData(data);
+          paintChartMarkers(seriesNow, data, candleSec, lv);
+          applyFeedVisibleRange(
+            chartNow,
+            data,
+            entryCandleTimeRef.current,
+            closeCandleTimeRef.current,
+            createdAt,
+          );
           syncOverlayLines(chartNow);
         })
         .catch(() => {
@@ -431,7 +499,7 @@ export function SignalChart({
 
     const id = window.setInterval(refreshCandles, CHART_POLL_MS);
     return () => window.clearInterval(id);
-  }, [visible, pair, interval, frozen, entryFilledAt, entryPrice, entryLow, entryHigh, stopLoss, takeProfits]);
+  }, [visible, pair, interval, frozen, entryFilledAt, entryPrice, entryLow, entryHigh, stopLoss, takeProfits, createdAt, closedAt]);
 
   if (!pair) return null;
 
