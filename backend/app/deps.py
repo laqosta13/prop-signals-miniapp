@@ -6,10 +6,7 @@ from app.database import get_db
 from app.schemas import TelegramUser
 from app.signal_service import get_or_create_trader, register_subscriber
 from app.review_access import review_write_access
-from app.subscription_billing import (
-    has_active_paid_subscription,
-)
-from app.subscription_billing import subscription_active
+from app.subscription_billing import has_active_paid_subscription, subscription_active
 from app.telegram_auth import validate_init_data
 
 
@@ -33,7 +30,8 @@ def get_current_user(
                 last_name=user.last_name,
                 photo_url=user.photo_url,
             )
-        db.commit()
+        if db.new or db.dirty or db.deleted:
+            db.commit()
         return _telegram_user_from_sub(
             db,
             sub,
@@ -51,7 +49,10 @@ def get_current_user(
             raise HTTPException(status_code=400, detail="Bad dev user id") from e
         sub = register_subscriber(db, tid, None, None)
         is_admin = tid in settings.admin_id_set
-        db.commit()
+        if is_admin:
+            get_or_create_trader(db, tid, None)
+        if db.new or db.dirty or db.deleted:
+            db.commit()
         return _telegram_user_from_sub(
             db,
             sub,

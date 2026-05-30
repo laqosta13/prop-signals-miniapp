@@ -11,6 +11,7 @@ from app.media_storage import public_url
 from app.models import Signal, SignalLike, SignalSupplement, Trader
 from app.schemas import SignalRead, SignalSupplementRead
 from app.serializers import signal_display_number, trader_avatar_url, trader_display_name, trader_login
+from app.trader_stats import signal_realized_pnl_for_read
 
 FEED_SIGNAL_LIMIT = 80
 MAX_SUPPLEMENTS_PER_SIGNAL = 8
@@ -81,7 +82,7 @@ def signals_list_read(db: Session, signals: list[Signal], viewer_id: int | None)
                 leverage=s.leverage,
                 risk_percent=s.risk_percent,
                 tracker_balance=s.tracker_balance,
-                realized_pnl=s.realized_pnl,
+                realized_pnl=signal_realized_pnl_for_read(s),
                 entry_filled_at=s.entry_filled_at,
                 published_market_price=s.published_market_price,
                 published_market_source=s.published_market_source,

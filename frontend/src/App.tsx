@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, lazy, Suspense } from "react";
 import WebApp from "@twa-dev/sdk";
 import {
   fetchChallengeTrackers,
@@ -15,20 +15,25 @@ import {
   type Trader,
 } from "./api";
 import { FeedTab } from "./components/FeedTab";
-import { AppendSupplementModal } from "./components/AppendSupplementModal";
-import { EditSignalModal } from "./components/EditSignalModal";
-import { LeaderboardTab } from "./components/LeaderboardTab";
-import { NewSignalModal } from "./components/NewSignalModal";
-import { NewsModal } from "./components/NewsModal";
-import { NewsTab } from "./components/NewsTab";
-import { DisclaimerModal } from "./components/DisclaimerModal";
-import { RankConfirmModal } from "./components/RankConfirmModal";
-import { ReviewsTab } from "./components/ReviewsTab";
-import { SubscriptionTab } from "./components/SubscriptionTab";
-import { TrackerSettingsModal } from "./components/TrackerSettingsModal";
-import { TrackerTab } from "./components/TrackerTab";
 import { mergeFeedSignals } from "./utils/mergeFeedSignals";
 import { hasAcceptedDisclaimer, markDisclaimerAccepted } from "./utils/disclaimerStorage";
+
+const TrackerTab = lazy(() => import("./components/TrackerTab").then((m) => ({ default: m.TrackerTab })));
+const LeaderboardTab = lazy(() => import("./components/LeaderboardTab").then((m) => ({ default: m.LeaderboardTab })));
+const ReviewsTab = lazy(() => import("./components/ReviewsTab").then((m) => ({ default: m.ReviewsTab })));
+const NewsTab = lazy(() => import("./components/NewsTab").then((m) => ({ default: m.NewsTab })));
+const SubscriptionTab = lazy(() => import("./components/SubscriptionTab").then((m) => ({ default: m.SubscriptionTab })));
+const AppendSupplementModal = lazy(() =>
+  import("./components/AppendSupplementModal").then((m) => ({ default: m.AppendSupplementModal })),
+);
+const EditSignalModal = lazy(() => import("./components/EditSignalModal").then((m) => ({ default: m.EditSignalModal })));
+const NewSignalModal = lazy(() => import("./components/NewSignalModal").then((m) => ({ default: m.NewSignalModal })));
+const NewsModal = lazy(() => import("./components/NewsModal").then((m) => ({ default: m.NewsModal })));
+const DisclaimerModal = lazy(() => import("./components/DisclaimerModal").then((m) => ({ default: m.DisclaimerModal })));
+const RankConfirmModal = lazy(() => import("./components/RankConfirmModal").then((m) => ({ default: m.RankConfirmModal })));
+const TrackerSettingsModal = lazy(() =>
+  import("./components/TrackerSettingsModal").then((m) => ({ default: m.TrackerSettingsModal })),
+);
 
 type Tab = "feed" | "tracker" | "top" | "reviews" | "news" | "pay";
 
@@ -114,7 +119,6 @@ export default function App() {
   const [daysUntilReview, setDaysUntilReview] = useState<number | null>(null);
   const [notifyEnabled, setNotifyEnabled] = useState(true);
   const [notifyNewsEnabled, setNotifyNewsEnabled] = useState(false);
-  const [paidSub, setPaidSub] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showNewSignal, setShowNewSignal] = useState(false);
   const [editSignal, setEditSignal] = useState<Signal | null>(null);
@@ -135,8 +139,11 @@ export default function App() {
   const fullAccessRef = useRef(false);
   const trackersFetchedRef = useRef(false);
 
-  const patchSignal = (id: number, patch: Partial<Signal>) =>
-    setSignals((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  const patchSignal = useCallback(
+    (id: number, patch: Partial<Signal>) =>
+      setSignals((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s))),
+    [],
+  );
 
   const loadTrackers = useCallback(async () => {
     try {
@@ -166,7 +173,6 @@ export default function App() {
       setMyId(me.telegram_user_id);
       setNotifyEnabled(me.notify_enabled);
       setNotifyNewsEnabled(me.notify_news_enabled);
-      setPaidSub(me.paid_subscription);
       setError(null);
       const fullAccess = me.subscription_active || me.is_admin;
       fullAccessRef.current = fullAccess;
@@ -257,10 +263,10 @@ export default function App() {
   }, [tab, loadTop]);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || tab !== "feed") return;
     const id = window.setInterval(() => void refreshSignalsOnly(), FEED_POLL_MS);
     return () => clearInterval(id);
-  }, [loading, refreshSignalsOnly]);
+  }, [loading, tab, refreshSignalsOnly]);
 
   const openSettings = (tracker: ChallengeDashboard) => {
     setTrackerSettings(tracker);
@@ -381,33 +387,35 @@ export default function App() {
             onOpenTracker={() => setTab("tracker")}
           />
         )}
-        {tab === "tracker" && (
-          <TrackerTab
-            trackers={trackers}
-            signals={signals}
-            myId={myId}
-            isAdmin={isAdmin}
-            onSettings={openSettings}
-          />
-        )}
-        {tab === "top" && (
-          <LeaderboardTab traders={traders} loading={loading && !traders.length} myId={myId} />
-        )}
-        {tab === "reviews" && (
-          <ReviewsTab
-            isAdmin={isAdmin}
-            canWriteReview={canWriteReview}
-            reviewWriteBlockedReason={reviewWriteBlockedReason}
-            daysUntilReview={daysUntilReview}
-            refreshKey={reviewsRefreshKey}
-          />
-        )}
-        {tab === "news" && (
-          <NewsTab isAdmin={isAdmin} onEdit={openEditNews} refreshKey={newsRefreshKey} />
-        )}
-        {tab === "pay" && (
-          <SubscriptionTab onPaid={() => void loadBootstrap()} refreshKey={payRefreshKey} />
-        )}
+        <Suspense fallback={<p className="meta">Загрузка…</p>}>
+          {tab === "tracker" && (
+            <TrackerTab
+              trackers={trackers}
+              signals={signals}
+              myId={myId}
+              isAdmin={isAdmin}
+              onSettings={openSettings}
+            />
+          )}
+          {tab === "top" && (
+            <LeaderboardTab traders={traders} loading={loading && !traders.length} myId={myId} />
+          )}
+          {tab === "reviews" && (
+            <ReviewsTab
+              isAdmin={isAdmin}
+              canWriteReview={canWriteReview}
+              reviewWriteBlockedReason={reviewWriteBlockedReason}
+              daysUntilReview={daysUntilReview}
+              refreshKey={reviewsRefreshKey}
+            />
+          )}
+          {tab === "news" && (
+            <NewsTab isAdmin={isAdmin} onEdit={openEditNews} refreshKey={newsRefreshKey} />
+          )}
+          {tab === "pay" && (
+            <SubscriptionTab onPaid={() => void loadBootstrap()} refreshKey={payRefreshKey} />
+          )}
+        </Suspense>
       </main>
 
       {isAdmin && tab === "feed" && (
@@ -432,50 +440,52 @@ export default function App() {
         ))}
       </nav>
 
-      <NewSignalModal
-        open={showNewSignal}
-        onClose={() => setShowNewSignal(false)}
-        onCreated={reloadAfterSignalChange}
-        trackerBalance={trackers.find((t) => t.owner_telegram_id === myId)?.balance ?? null}
-      />
-      <EditSignalModal
-        signal={editSignal}
-        onClose={() => setEditSignal(null)}
-        onUpdated={reloadAfterSignalChange}
-        trackerBalance={trackers.find((t) => t.owner_telegram_id === myId)?.balance ?? null}
-      />
-      <AppendSupplementModal
-        signal={supplementSignal}
-        onClose={() => setSupplementSignal(null)}
-        onDone={reloadAfterSignalChange}
-      />
-      <NewsModal
-        open={newsModalOpen}
-        post={editNews}
-        onClose={() => setNewsModalOpen(false)}
-        onSaved={onNewsSaved}
-      />
-
-      {showDisclaimer && <DisclaimerModal onAccept={acceptDisclaimer} />}
-      {feedDisclaimerOpen && !showDisclaimer && (
-        <DisclaimerModal variant="info" onClose={() => setFeedDisclaimerOpen(false)} />
-      )}
-
-      {!showDisclaimer && rankPending && (
-        <RankConfirmModal
-          rank={rankPending}
-          onDone={() => {
-            setRankPending(null);
-            if (tab === "top") void loadTop();
-          }}
+      <Suspense fallback={null}>
+        <NewSignalModal
+          open={showNewSignal}
+          onClose={() => setShowNewSignal(false)}
+          onCreated={reloadAfterSignalChange}
+          trackerBalance={trackers.find((t) => t.owner_telegram_id === myId)?.balance ?? null}
         />
-      )}
+        <EditSignalModal
+          signal={editSignal}
+          onClose={() => setEditSignal(null)}
+          onUpdated={reloadAfterSignalChange}
+          trackerBalance={trackers.find((t) => t.owner_telegram_id === myId)?.balance ?? null}
+        />
+        <AppendSupplementModal
+          signal={supplementSignal}
+          onClose={() => setSupplementSignal(null)}
+          onDone={reloadAfterSignalChange}
+        />
+        <NewsModal
+          open={newsModalOpen}
+          post={editNews}
+          onClose={() => setNewsModalOpen(false)}
+          onSaved={onNewsSaved}
+        />
 
-      <TrackerSettingsModal
-        tracker={trackerSettings}
-        onClose={() => setTrackerSettings(null)}
-        onSaved={() => void loadTrackers()}
-      />
+        {showDisclaimer && <DisclaimerModal onAccept={acceptDisclaimer} />}
+        {feedDisclaimerOpen && !showDisclaimer && (
+          <DisclaimerModal variant="info" onClose={() => setFeedDisclaimerOpen(false)} />
+        )}
+
+        {!showDisclaimer && rankPending && (
+          <RankConfirmModal
+            rank={rankPending}
+            onDone={() => {
+              setRankPending(null);
+              if (tab === "top") void loadTop();
+            }}
+          />
+        )}
+
+        <TrackerSettingsModal
+          tracker={trackerSettings}
+          onClose={() => setTrackerSettings(null)}
+          onSaved={() => void loadTrackers()}
+        />
+      </Suspense>
     </div>
   );
 }

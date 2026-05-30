@@ -35,10 +35,9 @@ async def check_active_signals_once() -> int:
         if not active:
             return 0
 
-        symbols = {normalize_symbol(s.symbol) for s in active}
-        quotes_by_symbol: dict[str, list] = {}
-        for sym in symbols:
-            quotes_by_symbol[sym] = await fetch_market_quotes(sym)
+        symbols = sorted({normalize_symbol(s.symbol) for s in active})
+        quote_lists = await asyncio.gather(*(fetch_market_quotes(sym) for sym in symbols))
+        quotes_by_symbol = dict(zip(symbols, quote_lists, strict=True))
 
         for signal in active:
             sym = normalize_symbol(signal.symbol)

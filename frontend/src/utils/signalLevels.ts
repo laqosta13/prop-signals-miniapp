@@ -91,21 +91,3 @@ export function riskPctFromEntryStop(
   if (!Number.isFinite(pct) || pct <= 0) return null;
   return pct;
 }
-
-/** @deprecated use levelsFromEntryAndRisk */
-export const DEFAULT_LEVEL_OFFSET_PCT = DEFAULT_STOP_RISK_PCT;
-
-export function defaultLevelsFromEntry(
-  entry: number,
-  direction: "long" | "short",
-  offsetPct: number = DEFAULT_STOP_RISK_PCT,
-): { entry: string; stop: string; target: string } {
-  return levelsFromEntryAndRisk(entry, direction, offsetPct);
-}
-
-export function stopTargetFromEntry(
-  entryRaw: string,
-  direction: "long" | "short",
-): { stop: string; target: string } | null {
-  return stopTargetFromEntryAndRisk(entryRaw, direction, DEFAULT_STOP_RISK_PCT);
-}

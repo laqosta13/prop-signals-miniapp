@@ -3,19 +3,6 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
-class SignalCreate(BaseModel):
-    symbol: str = Field(..., min_length=1, max_length=32)
-    direction: str = Field(..., pattern="^(long|short)$")
-    entry_low: str | None = None
-    entry_high: str | None = None
-    stop_loss: str | None = None
-    take_profits: str | None = None
-    comment: str | None = None
-    leverage: int | None = Field(None, ge=1, le=5)
-    risk_percent: float | None = Field(None, ge=0, le=100.0)
-    tracker_balance: float | None = Field(None, ge=100)
-
-
 class SignalSupplementRead(BaseModel):
     id: int
     created_at: datetime
@@ -166,13 +153,6 @@ class TraderRead(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class ChallengeUpdate(BaseModel):
-    account_size: float | None = Field(None, ge=1000)
-    stage: int | None = Field(None, ge=1, le=3)
-    balance: float | None = Field(None, ge=0)
-    reset_day: bool = False
-
-
 class ChallengeDashboard(BaseModel):
     owner_telegram_id: int
     owner_username: str | None = None
@@ -198,16 +178,6 @@ class ChallengeDashboard(BaseModel):
     total_pnl: float
     max_leverage: str
     prop_screenshot_url: str | None = None
-
-
-class ReviewCreate(BaseModel):
-    text: str = Field(..., min_length=3, max_length=2000)
-    rating: int = Field(5, ge=1, le=5)
-
-
-class ReviewUpdate(BaseModel):
-    text: str = Field(..., min_length=3, max_length=2000)
-    rating: int = Field(..., ge=1, le=5)
 
 
 class ReviewRead(BaseModel):

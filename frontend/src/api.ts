@@ -267,7 +267,6 @@ export const fetchRankPending = () =>
 export const confirmMyRank = () => api<TraderRank>("/traders/me/rank/confirm", { method: "POST" });
 export const activateRankShield = () => api<TraderRank>("/traders/me/rank/shield", { method: "POST" });
 export const fetchChallengeTrackers = () => api<ChallengeDashboard[]>("/challenge/trackers");
-export const fetchChallengeRules = () => api<HashHedgeRules>("/challenge/rules");
 
 export const fetchReviews = () => api<Review[]>("/reviews");
 

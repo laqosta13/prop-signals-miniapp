@@ -21,6 +21,9 @@ from app.signal_utils import (
 )
 
 
+DEFAULT_ENTRY_STAKE_PCT = 10.0
+
+
 def signal_leverage(signal: Signal) -> int:
     lev = signal.leverage
     if lev is None or lev < 1:
@@ -29,16 +32,10 @@ def signal_leverage(signal: Signal) -> int:
 
 
 def signal_entry_stake_pct(signal: Signal) -> float:
-    """Маржа входа от трекера, % (хранится в risk_percent)."""
-    if signal.risk_percent is not None:
+    """Маржа входа от трекера, % (только risk_percent; points_percent — расстояние до стопа)."""
+    if signal.risk_percent is not None and signal.risk_percent > 0:
         return float(signal.risk_percent)
-    if signal.points_percent is not None:
-        return float(signal.points_percent)
-    return 1.0
-
-
-def signal_risk_percent(signal: Signal) -> float:
-    return signal_entry_stake_pct(signal)
+    return DEFAULT_ENTRY_STAKE_PCT
 
 
 def signal_tracker_balance(signal: Signal) -> float:
@@ -101,21 +98,16 @@ def closed_signal_move_pct(signal: Signal) -> float:
     return price_move_pct(entry, signal.direction, exit_px)
 
 
-def signal_trade_return_pct(signal: Signal, outcome: str, exit_price: float | None = None) -> float:
-    """Alias для signal_price_move_pct (обратная совместимость)."""
-    return signal_price_move_pct(signal, outcome, exit_price=exit_price)
-
-
-def pnl_usd_for_outcome(signal: Signal, outcome: str, exit_price: float | None = None) -> float:
-    """P/L в $ на трекер: номинал с плечом × чистое движение цены / 100."""
-    move = signal_price_move_pct(signal, outcome, exit_price)
-    nominal = signal_entry_stake_usd(signal)
-    return round(nominal * move / 100.0, 2)
-
-
 def closed_signal_pnl_usd(signal: Signal) -> float:
     move = closed_signal_move_pct(signal)
     return round(signal_entry_stake_usd(signal) * move / 100.0, 2)
+
+
+def signal_realized_pnl_for_read(signal: Signal) -> float | None:
+    """P/L для API: пересчёт по фактическому exit и сумме входа (risk_percent)."""
+    if signal.status not in ("win", "lose"):
+        return signal.realized_pnl
+    return closed_signal_pnl_usd(signal)
 
 
 def apply_outcome_to_trader(

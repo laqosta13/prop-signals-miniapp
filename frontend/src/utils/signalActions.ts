@@ -27,9 +27,6 @@ export function canViewActiveSignals(subscriptionActive: boolean, isAdmin: boole
   return subscriptionActive || isAdmin;
 }
 
-/** @deprecated alias */
-export const canViewFullSignals = canViewActiveSignals;
-
 /** Лента: без подписки — только win/lose (двойная защита поверх API /signals/preview). */
 export function visibleFeedSignals(signals: Signal[], subscriptionActive: boolean, isAdmin: boolean): Signal[] {
   if (canViewActiveSignals(subscriptionActive, isAdmin)) return signals;

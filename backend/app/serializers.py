@@ -5,6 +5,7 @@ from app.engagement import user_liked
 from app.media_storage import public_url
 from app.models import NewsPost, Review, Signal, SignalSupplement, Trader
 from app.rank_service import trader_rank_payload
+from app.trader_stats import signal_realized_pnl_for_read
 from app.schemas import (
     NewsRead,
     RankHistoryEntryRead,
@@ -83,7 +84,7 @@ def signal_to_read(db: Session, signal: Signal, viewer_id: int | None = None) ->
         leverage=signal.leverage,
         risk_percent=signal.risk_percent,
         tracker_balance=signal.tracker_balance,
-        realized_pnl=signal.realized_pnl,
+        realized_pnl=signal_realized_pnl_for_read(signal),
         entry_filled_at=signal.entry_filled_at,
         published_market_price=signal.published_market_price,
         published_market_source=signal.published_market_source,
@@ -100,7 +101,7 @@ def signal_to_read(db: Session, signal: Signal, viewer_id: int | None = None) ->
     )
 
 
-def _trader_rank_read(t: Trader, *, include_history: bool = False) -> TraderRankRead:
+def trader_rank_read(t: Trader, *, include_history: bool = False) -> TraderRankRead:
     p = trader_rank_payload(t, include_history=include_history)
     history = [RankHistoryEntryRead(**h) for h in p.get("rank_history", [])]
     return TraderRankRead(
@@ -133,7 +134,7 @@ def trader_to_read(
         win_rate=win_rate,
         avatar_url=trader_avatar_url(t),
         daily_stats=daily_stats or [],
-        trader_rank=_trader_rank_read(t),
+        trader_rank=trader_rank_read(t),
     )
 
 

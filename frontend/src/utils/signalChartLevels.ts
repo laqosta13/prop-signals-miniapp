@@ -163,17 +163,6 @@ export function signalOutcomeDisplay(
   return { label: "Активен", className: "active" };
 }
 
-export function resolveClosePrice(
-  levels: SignalChartLevels,
-  reason: CloseReason | null,
-  closedExitPrice: number | null | undefined,
-): number | null {
-  if (closedExitPrice != null && Number.isFinite(closedExitPrice)) return closedExitPrice;
-  if (reason === "stop") return levels.stop;
-  if (reason === "target") return levels.targets[0] ?? null;
-  return null;
-}
-
 /** Свеча, на которой зафиксирован вход (по времени entry_filled_at). */
 export function entryCandleTimeForFill(
   candles: ChartCandle[],

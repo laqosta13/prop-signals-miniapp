@@ -186,8 +186,41 @@ def run_migrations(engine: Engine) -> None:
     _purge_all_published_may2026_v2(engine)
     _purge_all_published_jun2026(engine)
     _sync_news_notify_flags_v1(engine)
-    _reset_news_notify_opt_in_v2(engine)
+    _sync_news_notify_opt_in_v2(engine)
     _recalc_market_close_ratings_v1(engine)
+    _recalc_closed_signal_pnl_v2(engine)
+
+
+def _recalc_closed_signal_pnl_v2(engine: Engine) -> None:
+    """Пересчёт P/L: сумма входа из risk_percent, exit из closed_exit_price."""
+    marker = _marker_path(engine, ".recalc_closed_signal_pnl_v2")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".recalc_closed_signal_pnl_v2"
+    if marker.exists():
+        return
+
+    from app.challenge_service import rebuild_tracker_balances_from_signals
+    from app.config import settings
+    from app.database import SessionLocal
+    from app.trader_stats import rebuild_trader_stats_from_signals
+
+    ids = sorted(settings.admin_id_set)
+    if not ids:
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+        return
+
+    db = SessionLocal()
+    try:
+        rebuild_trader_stats_from_signals(db, ids)
+        rebuild_tracker_balances_from_signals(db, ids)
+        db.commit()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
 
 
 def _recalc_market_close_ratings_v1(engine: Engine) -> None:
@@ -343,21 +376,8 @@ def _sync_news_notify_flags_v1(engine: Engine) -> None:
         marker = media_root() / ".synced_news_notify_v1"
     if marker.exists():
         return
-    from sqlalchemy import select
-
-    from app.database import SessionLocal
-    from app.models import Subscriber
-    from app.subscription_billing import sync_subscriber_notification_flags
-
-    db = SessionLocal()
-    try:
-        for sub in db.scalars(select(Subscriber)):
-            sync_subscriber_notification_flags(db, sub)
-        db.commit()
-        marker.parent.mkdir(parents=True, exist_ok=True)
-        marker.touch()
-    finally:
-        db.close()
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.touch()
 
 
 def _reset_news_notify_opt_in_v2(engine: Engine) -> None:

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import NewsPost, Signal, Subscriber, Trader
-from app.subscription_billing import subscriber_ids_for_news_notify, subscription_active_strict
+from app.subscription_billing import register_subscriber_with_meta, subscriber_ids_for_news_notify, subscription_active_strict
 from app.signal_utils import (
     compute_signal_points_percent,
     entry_zone_defined,
@@ -17,7 +17,8 @@ from app.signal_utils import (
     signal_in_trade,
     trade_move_pct,
 )
-from app.telegram_avatar import ensure_trader_avatar
+
+from app.trader_stats import DEFAULT_ENTRY_STAKE_PCT, apply_outcome_to_trader
 from app.schemas import TelegramUser
 from app.serializers import trader_display_name
 from app.telegram_notify import (
@@ -41,8 +42,7 @@ from app.price_service import (
     fetch_price,
     first_entry_quote,
 )
-from app.subscription_billing import register_subscriber_with_meta
-from app.trader_stats import apply_outcome_to_trader
+from app.telegram_avatar import ensure_trader_avatar
 
 logger = logging.getLogger(__name__)
 
@@ -88,30 +88,20 @@ def get_or_create_trader(
             trader.first_name = first_name
         if last_name and trader.last_name != last_name:
             trader.last_name = last_name
-    path = ensure_trader_avatar(telegram_id, photo_url)
-    if path:
-        trader.avatar_path = path
-        db.flush()
-    elif trader.avatar_path:
-        from app.media_storage import media_root
+    from app.media_storage import media_root
 
-        if not (media_root() / trader.avatar_path).is_file():
+    avatar_ok = bool(
+        trader.avatar_path and (media_root() / trader.avatar_path).is_file()
+    )
+    if not avatar_ok:
+        path = ensure_trader_avatar(telegram_id, photo_url)
+        if path:
+            trader.avatar_path = path
+            db.flush()
+        elif trader.avatar_path:
             trader.avatar_path = None
             db.flush()
     return trader
-
-
-def sync_admin_avatars(db: Session) -> None:
-    """Подтягивает аватары всех админов через Bot API (если ещё нет на диске)."""
-    for aid in settings.admin_id_set:
-        trader = db.get(Trader, aid)
-        get_or_create_trader(
-            db,
-            aid,
-            trader.username if trader else None,
-            first_name=trader.first_name if trader else None,
-            last_name=trader.last_name if trader else None,
-        )
 
 
 def register_subscriber(db: Session, telegram_id: int, username: str | None, start_param: str | None = None) -> Subscriber:
@@ -405,36 +395,6 @@ async def try_fill_entry_from_market(db: Session, signal: Signal, *, notify: boo
     return True
 
 
-async def sync_pending_entry_fills(
-    db: Session,
-    signals: list[Signal] | None = None,
-    *,
-    notify: bool = False,
-) -> int:
-    """Проверить активные сигналы без входа и отметить сработавшие по рынку."""
-    if signals is None:
-        stmt = select(Signal).where(Signal.status == "active", Signal.entry_filled_at.is_(None))
-        pending = list(db.scalars(stmt).all())
-    else:
-        pending = [
-            s
-            for s in signals
-            if s.status == "active"
-            and s.entry_filled_at is None
-            and entry_zone_defined(s.entry_low, s.entry_high)
-        ]
-    if not pending:
-        return 0
-    clear_price_cache()
-    filled = 0
-    for signal in pending:
-        if await try_fill_entry_from_market(db, signal, notify=notify):
-            filled += 1
-    if filled:
-        logger.info("Синхронизировано входов: %s", filled)
-    return filled
-
-
 def next_signal_number(db: Session) -> int:
     mx = db.scalar(select(func.max(Signal.number)))
     return 1 if mx is None else int(mx) + 1
@@ -458,7 +418,8 @@ def build_signal_row(
     author_first_name: str | None = None,
     author_last_name: str | None = None,
 ) -> Signal:
-    points = risk_percent if risk_percent is not None else compute_signal_points_percent(entry_low, entry_high, stop_loss)
+    stop_pts = compute_signal_points_percent(entry_low, entry_high, stop_loss)
+    stake = risk_percent if risk_percent is not None else DEFAULT_ENTRY_STAKE_PCT
     get_or_create_trader(
         db,
         author_telegram_id,
@@ -477,9 +438,9 @@ def build_signal_row(
         comment=comment,
         status="active",
         entry_filled_at=None,
-        points_percent=points,
+        points_percent=stop_pts,
         leverage=leverage,
-        risk_percent=risk_percent or points,
+        risk_percent=stake,
         tracker_balance=tracker_balance,
         views_count=0,
         likes_count=0,
@@ -510,8 +471,8 @@ def update_signal_fields(
     signal.take_profits = take_profits
     signal.comment = comment
     signal.leverage = leverage
+    signal.points_percent = compute_signal_points_percent(entry_low, entry_high, stop_loss)
     if risk_percent is not None:
         signal.risk_percent = risk_percent
-        signal.points_percent = risk_percent
     if tracker_balance is not None:
         signal.tracker_balance = tracker_balance

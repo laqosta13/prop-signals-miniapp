@@ -39,16 +39,9 @@ def _crypto_usdt_pair(sym: str) -> str | None:
         return s
     if s.endswith("USD") and len(s) > 3:
         return s[:-3] + "USDT"
-    # BTC, ETH, TON → …USDT; 6 букв (EURUSD) — форекс, не крипто
     if 2 <= len(s) <= 10 and s.isalnum() and not (len(s) == 6 and s.isalpha()):
         return f"{s}USDT"
     return None
-
-
-def _bingx_symbol(pair: str) -> str:
-    if pair.endswith("USDT") and len(pair) > 4:
-        return f"{pair[:-4]}-USDT"
-    return pair
 
 
 def _valid_price(value: float | None) -> float | None:
@@ -96,12 +89,6 @@ async def _get_json(url: str) -> dict | list | None:
     return None
 
 
-def _parse_binance_ticker(data: dict | list | None) -> float | None:
-    if isinstance(data, dict) and data.get("price") is not None:
-        return _valid_price(float(data["price"]))
-    return None
-
-
 def _parse_bybit_ticker(data: dict | list | None) -> float | None:
     if not isinstance(data, dict):
         return None
@@ -111,61 +98,10 @@ def _parse_bybit_ticker(data: dict | list | None) -> float | None:
     return None
 
 
-def _parse_bingx_price(data: dict | list | None) -> float | None:
-    if not isinstance(data, dict):
-        return None
-    if data.get("code") not in (0, "0", None):
-        return None
-    payload = data.get("data")
-    if isinstance(payload, dict):
-        raw = payload.get("price") or payload.get("lastPrice") or payload.get("last")
-        if raw is not None:
-            return _valid_price(float(raw))
-    if isinstance(payload, list) and payload:
-        row = payload[0]
-        if isinstance(row, dict):
-            raw = row.get("price") or row.get("lastPrice") or row.get("last")
-            if raw is not None:
-                return _valid_price(float(raw))
-    return None
-
-
-async def _fetch_binance_spot(pair: str) -> PriceQuote | None:
-    data = await _get_json(f"https://api.binance.com/api/v3/ticker/price?symbol={pair}")
-    price = _parse_binance_ticker(data)
-    return PriceQuote("binance_spot", price) if price is not None else None
-
-
-async def _fetch_binance_futures(pair: str) -> PriceQuote | None:
-    data = await _get_json(f"https://fapi.binance.com/fapi/v1/ticker/price?symbol={pair}")
-    price = _parse_binance_ticker(data)
-    return PriceQuote("binance_perp", price) if price is not None else None
-
-
-async def _fetch_bybit_spot(pair: str) -> PriceQuote | None:
-    data = await _get_json(f"https://api.bybit.com/v5/market/tickers?category=spot&symbol={pair}")
-    price = _parse_bybit_ticker(data)
-    return PriceQuote("bybit_spot", price) if price is not None else None
-
-
 async def _fetch_bybit_linear(pair: str) -> PriceQuote | None:
     data = await _get_json(f"https://api.bybit.com/v5/market/tickers?category=linear&symbol={pair}")
     price = _parse_bybit_ticker(data)
     return PriceQuote("bybit_perp", price) if price is not None else None
-
-
-async def _fetch_bingx_spot(pair: str) -> PriceQuote | None:
-    sym = _bingx_symbol(pair)
-    data = await _get_json(f"https://open-api.bingx.com/openApi/spot/v2/ticker/price?symbol={sym}")
-    price = _parse_bingx_price(data)
-    return PriceQuote("bingx_spot", price) if price is not None else None
-
-
-async def _fetch_bingx_swap(pair: str) -> PriceQuote | None:
-    sym = _bingx_symbol(pair)
-    data = await _get_json(f"https://open-api.bingx.com/openApi/swap/v2/quote/price?symbol={sym}")
-    price = _parse_bingx_price(data)
-    return PriceQuote("bingx_perp", price) if price is not None else None
 
 
 async def _fetch_frankfurter(base: str, quote: str) -> float | None:
@@ -199,7 +135,6 @@ def first_entry_quote(
     entry_low: str | None,
     entry_high: str | None,
 ) -> PriceQuote | None:
-    """Первая биржа (в порядке опроса), где сработал вход."""
     for q in quotes:
         if entry_triggered(q.price, direction, entry_low, entry_high):
             return q
@@ -212,7 +147,6 @@ def first_outcome_quote(
     stop_loss: str | None,
     take_profits: str | None,
 ) -> tuple[str, PriceQuote] | None:
-    """Первая биржа, где достигнут стоп или цель. Стоп важнее цели в одном цикле."""
     win: PriceQuote | None = None
     for q in quotes:
         outcome = evaluate_signal(q.price, direction, stop_loss, take_profits)
@@ -252,7 +186,6 @@ async def fetch_market_quotes(symbol: str) -> list[PriceQuote]:
 
 
 async def fetch_price(symbol: str) -> float | None:
-    """Текущая цена (Bybit USDT perpetual для крипто)."""
     q = await fetch_bybit_perp_quote(symbol)
     if q is not None:
         return q.price

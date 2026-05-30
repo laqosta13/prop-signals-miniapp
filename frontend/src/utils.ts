@@ -113,11 +113,6 @@ export function formatUsd(n: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 }
 
-export function traderName(username: string | null, id: number, displayName?: string | null) {
-  if (displayName) return displayName;
-  return username ? `@${username}` : `id ${id}`;
-}
-
 export function authorProfile(
   displayName: string | null | undefined,
   username: string | null | undefined,
@@ -154,17 +149,4 @@ export function calcRR(entry: string | null, stop: string | null, target: string
   const reward = Math.abs(t - e);
   if (risk === 0) return "—";
   return `1:${(reward / risk).toFixed(1)}`;
-}
-
-const MARKET_SOURCE_LABELS: Record<string, string> = {
-  binance_spot: "Binance spot",
-  binance_perp: "Binance perp",
-  bybit_spot: "Bybit spot",
-  bybit_perp: "Bybit бессрочный",
-  bingx_spot: "BingX spot",
-  bingx_perp: "BingX perp",
-};
-
-export function formatMarketSource(source: string): string {
-  return MARKET_SOURCE_LABELS[source] ?? source;
 }

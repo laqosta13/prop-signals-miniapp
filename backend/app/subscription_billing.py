@@ -69,17 +69,6 @@ def has_active_paid_subscription(db: Session, sub: Subscriber, is_admin: bool) -
     return has_paid_subscription(db, sub.telegram_user_id)
 
 
-def can_enable_news_notify(db: Session, sub: Subscriber, *, is_admin: bool = False) -> bool:
-    """Любой пользователь mini app может включить галочку «новости»."""
-    _ = db, sub, is_admin
-    return True
-
-
-def sync_subscriber_notification_flags(db: Session, sub: Subscriber, *, is_admin: bool = False) -> None:
-    """Новости не привязаны к подписке — флаги не сбрасываем."""
-    _ = db, sub, is_admin
-
-
 def subscriber_ids_for_news_notify(db: Session) -> list[int]:
     """Все зарегистрированные пользователи — подписка и оплата не проверяются."""
     return list(db.scalars(select(Subscriber.telegram_user_id)).all())

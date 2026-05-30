@@ -190,10 +190,6 @@ body {
   }
 }
 
-.notify-row--disabled {
-  opacity: 0.55;
-}
-
 .notify-row {
   display: flex;
   align-items: center;
@@ -419,15 +415,6 @@ body {
 
 .like-btn:disabled {
   opacity: 0.5;
-}
-
-.check-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 8px;
-  font-size: 0.85rem;
-  color: var(--muted);
 }
 
 .hashhedge-rules {
@@ -854,8 +841,6 @@ body {
   height: 240px;
 }
 
-.signal-chart__entry-line,
-.signal-chart__close-line,
 .signal-chart__marker-line {
   position: absolute;
   top: 0;
@@ -864,16 +849,6 @@ body {
   transform: translateX(-0.5px);
   pointer-events: none;
   z-index: 1;
-}
-
-.signal-chart__entry-line {
-  background: linear-gradient(
-    to bottom,
-    rgba(170, 240, 190, 0.05),
-    rgba(170, 240, 190, 0.28) 18%,
-    rgba(170, 240, 190, 0.28) 82%,
-    rgba(170, 240, 190, 0.05)
-  );
 }
 
 .signal-chart__marker-line--entry {
@@ -886,7 +861,6 @@ body {
   );
 }
 
-.signal-chart__close-line--stop,
 .signal-chart__marker-line--stop {
   background: linear-gradient(
     to bottom,
@@ -897,7 +871,6 @@ body {
   );
 }
 
-.signal-chart__close-line--target,
 .signal-chart__marker-line--target {
   background: linear-gradient(
     to bottom,
@@ -908,7 +881,6 @@ body {
   );
 }
 
-.signal-chart__close-line--market,
 .signal-chart__marker-line--market {
   background: linear-gradient(
     to bottom,
@@ -919,8 +891,6 @@ body {
   );
 }
 
-.signal-chart__close-badge,
-.signal-chart__entry-badge,
 .signal-chart__marker-badge {
   position: absolute;
   top: 6px;
@@ -939,25 +909,21 @@ body {
   -webkit-backdrop-filter: blur(8px);
 }
 
-.signal-chart__entry-badge,
 .signal-chart__marker-badge--entry {
   color: #9dffc0;
   background: rgba(61, 255, 138, 0.18);
 }
 
-.signal-chart__close-badge--stop,
 .signal-chart__marker-badge--stop {
   color: #ffb4b4;
   background: rgba(255, 70, 70, 0.22);
 }
 
-.signal-chart__close-badge--target,
 .signal-chart__marker-badge--target {
   color: #e8d0ff;
   background: rgba(160, 100, 220, 0.22);
 }
 
-.signal-chart__close-badge--market,
 .signal-chart__marker-badge--market {
   color: #ffe08a;
   background: rgba(255, 190, 60, 0.2);

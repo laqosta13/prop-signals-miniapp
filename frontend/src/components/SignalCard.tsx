@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { recordSignalView, toggleSignalLike, type Signal } from "../api";
 import { calcRR, authorProfile, formatTakeProfits, formatTime, formatUsd, mediaUrl } from "../utils";
+import { signalEntryStakePct, signalRealizedPnl } from "../utils/signalPnl";
 import { canEditOrDeleteSignal, canCloseAtMarketSignal, canSupplementSignal } from "../utils/signalActions";
 import { signalOutcomeDisplay } from "../utils/signalChartLevels";
 import { Avatar } from "./Avatar";
@@ -76,8 +77,8 @@ export function SignalCard({
   const entry = s.entry_low || s.entry_high || "—";
   const target = formatTakeProfits(s.take_profits);
   const isLong = s.direction === "long";
-  const pnl = s.realized_pnl;
-  const stake = s.risk_percent ?? s.points_percent ?? 1;
+  const pnl = signalRealizedPnl(s) ?? s.realized_pnl;
+  const stake = signalEntryStakePct(s);
   const tracker = s.tracker_balance;
   const entryDone = !!(s.entry_filled_at || (!s.entry_low && !s.entry_high));
   const outcome = signalOutcomeDisplay(

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { ChallengeDashboard, Signal } from "../api";
 import { HASHHEDGE_RULES } from "../data/hashhedgeRules";
 import { authorProfile, formatTakeProfits, formatUsd, mediaUrl, mskDayBoundsMs, parseApiDate } from "../utils";
+import { signalRealizedPnl } from "../utils/signalPnl";
 import { Avatar } from "./Avatar";
 import { HashHedgeRulesTable } from "./HashHedgeRulesTable";
 
@@ -19,11 +20,12 @@ export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Pro
   const todayLossUsd = useMemo(() => {
     const { startMs: dayStart, endMs: dayEnd } = mskDayBoundsMs();
     return signals.reduce((sum, s) => {
-      if (s.status === "active" || s.realized_pnl == null || s.realized_pnl >= 0) return sum;
+      const pnl = signalRealizedPnl(s) ?? s.realized_pnl;
+      if (s.status === "active" || pnl == null || pnl >= 0) return sum;
       const at = s.closed_at || s.created_at;
       const ts = parseApiDate(at).getTime();
       if (!Number.isFinite(ts) || ts < dayStart || ts >= dayEnd) return sum;
-      return sum + Math.abs(s.realized_pnl);
+      return sum + Math.abs(pnl);
     }, 0);
   }, [signals]);
   const totalAccountUsd = useMemo(
@@ -178,7 +180,9 @@ export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Pro
 
             {recent.length > 0 && (
               <ul className="trade-list">
-                {recent.map((s) => (
+                {recent.map((s) => {
+                  const pnl = signalRealizedPnl(s) ?? s.realized_pnl;
+                  return (
                   <li key={s.id}>
                     <div>
                       <strong>
@@ -187,13 +191,14 @@ export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Pro
                       </strong>
                       <span className="muted"> {s.direction.toUpperCase()}</span>
                     </div>
-                    <span className={s.realized_pnl != null && s.realized_pnl >= 0 ? "pnl-win" : "pnl-lose"}>
-                      {s.realized_pnl != null
-                        ? `${s.realized_pnl >= 0 ? "+" : ""}${formatUsd(s.realized_pnl)}`
+                    <span className={pnl != null && pnl >= 0 ? "pnl-win" : "pnl-lose"}>
+                      {pnl != null
+                        ? `${pnl >= 0 ? "+" : ""}${formatUsd(pnl)}`
                         : formatTakeProfits(s.take_profits)}
                     </span>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             )}
           </section>
