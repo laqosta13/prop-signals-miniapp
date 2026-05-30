@@ -18,7 +18,6 @@ import {
   closeReasonLabel,
   entryCandleTimeForFill,
   levelsFromSignal,
-  resolveClosePrice,
   resolveCloseReason,
   tradingViewSymbol,
   type ChartCandle,
@@ -144,11 +143,8 @@ function clipCandlesForSignal(
 
 function buildChartMarkers(
   entryTime: UTCTimestamp | null,
-  entryPrice: number | null | undefined,
   closeTime: UTCTimestamp | null,
-  closeLabel: string | null,
   closeColor: string,
-  closePrice: number | null,
 ): SeriesMarker<UTCTimestamp>[] {
   const markers: SeriesMarker<UTCTimestamp>[] = [];
   if (entryTime != null) {
@@ -157,18 +153,14 @@ function buildChartMarkers(
       position: "inBar",
       color: "#3dff8a",
       shape: "circle",
-      text: entryPrice != null ? `Вход ${entryPrice.toFixed(2)}` : "Вход",
     });
   }
   if (closeTime != null) {
-    const priceHint = closePrice != null ? ` · ${closePrice.toFixed(2)}` : "";
-    const text = closeLabel ? `${closeLabel}${priceHint}` : `Закрыт${priceHint}`;
     markers.push({
       time: closeTime,
       position: "inBar",
       color: closeColor,
       shape: "circle",
-      text,
     });
   }
   return markers.sort((a, b) => Number(a.time) - Number(b.time));
@@ -317,10 +309,7 @@ export function SignalChart({
       setCloseOverlay(null);
     }
 
-    const closePrice = resolveClosePrice(levels, reason, closedExitPrice);
-    series.setMarkers(
-      buildChartMarkers(entryTime, entryPrice, closeTime, label, closeReasonColor(reason), closePrice),
-    );
+    series.setMarkers(buildChartMarkers(entryTime, closeTime, closeReasonColor(reason)));
   };
 
   const syncOverlayLines = (chart: IChartApi) => {
