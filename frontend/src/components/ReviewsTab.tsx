@@ -212,7 +212,6 @@ export function ReviewsTab({
                 <Avatar url={r.author_avatar_url} displayName={profile.title} username={r.author_username} size={36} />
                 <div>
                   <strong>{profile.title}</strong>
-                  {profile.subtitle && <span className="author-line">{profile.subtitle}</span>}
                   <span className="meta">{formatTime(r.created_at)}</span>
                 </div>
                 {canDelete && (

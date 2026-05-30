@@ -133,11 +133,11 @@ def format_actor_label(
     login = (username or "").strip().lstrip("@")
     name = (display_name or "").strip()
     if name and login:
-        return f"{name} (@{login})"
+        return name
     if name:
         return name
     if login:
-        return f"@{login}"
+        return login
     if telegram_id is not None:
         return f"id {telegram_id}"
     return "—"

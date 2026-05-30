@@ -51,7 +51,7 @@ async def update_settings(
     db: Session = Depends(db_session),
     admin: TelegramUser = Depends(require_admin),
 ) -> ChallengeDashboard:
-    """Настройки трекера: коррекция баланса с пропа не сбрасывает прогресс (account_size, trading_days)."""
+    """Настройки трекера: баланс с пропа меняет balance; старт (account_size) и торговые дни сохраняются."""
     ch = get_or_create_challenge(db, admin.telegram_user_id)
 
     if stage is not None and stage.strip():

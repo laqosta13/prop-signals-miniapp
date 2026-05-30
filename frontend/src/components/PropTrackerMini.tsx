@@ -22,7 +22,6 @@ export function PropTrackerMini({ trackers, onOpen }: Props) {
         return (
           <div key={data.owner_telegram_id} className="prop-mini__item">
             <p className="prop-mini__owner">{authorProfile(data.owner_display_name, data.owner_username).title}</p>
-            {data.owner_username && <p className="prop-mini__login">@{data.owner_username}</p>}
             <p className="prop-mini__balance">{formatUsd(data.balance)}</p>
             <p className={`prop-mini__pct ${data.profit_pct >= 0 ? "up" : "down"}`}>
               {data.profit_pct >= 0 ? "+" : ""}

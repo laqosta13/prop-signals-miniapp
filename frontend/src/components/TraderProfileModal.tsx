@@ -57,7 +57,6 @@ export function TraderProfileModal({ trader, isMe, onClose }: Props) {
           <Avatar url={trader.avatar_url} displayName={trader.display_name} username={trader.username} size={56} />
           <div>
             <p className="trader-profile-sheet__name">{profile.title}</p>
-            {trader.username && <p className="trader-profile-sheet__login">@{trader.username}</p>}
           </div>
         </div>
 

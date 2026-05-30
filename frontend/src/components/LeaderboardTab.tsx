@@ -32,7 +32,6 @@ export function LeaderboardTab({ traders, loading, myId }: Props) {
                 <Avatar url={t.avatar_url} displayName={t.display_name} username={t.username} size={44} />
                 <div className="top-body">
                   <p className="top-name">{authorProfile(t.display_name, t.username).title}</p>
-                  {t.username && <p className="top-login">@{t.username}</p>}
                   <p className={`top-score ${t.rating_percent >= 0 ? "up" : "down"}`}>
                     {t.rating_percent >= 0 ? "+" : ""}
                     {t.rating_percent.toFixed(2)}%

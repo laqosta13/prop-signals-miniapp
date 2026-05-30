@@ -78,12 +78,12 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
         </header>
 
         <p className="meta tracker-settings-note">
-          Баланс с пропа сохраняется как основной баланс трекера — прогресс, лента и форма сигнала пересчитаются автоматически.
+          Баланс с пропа обновляет основной баланс и процент прогресса. Старт и цель не меняются.
         </p>
 
         <label className="field-label">Размер счёта ($)</label>
         <input type="text" className="readonly" value={accountSize} readOnly tabIndex={-1} aria-readonly />
-        <p className="meta signal-nominal-hint">Стартовый депозит — из баланса с пропа и истории закрытых сделок.</p>
+        <p className="meta signal-nominal-hint">Старт челленджа — база для шкалы прогресса и цели.</p>
 
         <label className="field-label">Этап</label>
         <div className="leverage-picker leverage-picker--3col">

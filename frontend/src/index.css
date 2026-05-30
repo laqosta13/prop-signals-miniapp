@@ -795,8 +795,46 @@ body {
   object-fit: cover;
 }
 
-.tracker-prop__balance {
-  margin: 8px 0 0;
+.tracker-trades {
+  margin-top: 12px;
+}
+
+.tracker-trades__toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tracker-trades__toggle--open {
+  border-radius: 12px 12px 0 0;
+  border-bottom-color: transparent;
+}
+
+.tracker-trades__chevron {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.tracker-trades__list {
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.tracker-trades__list li:last-child {
+  border-bottom: none;
 }
 
 .tracker-settings-note {

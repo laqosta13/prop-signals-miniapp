@@ -74,14 +74,12 @@ def _sync_trading_days(db: Session, ch: UserChallenge) -> None:
 
 
 def apply_prop_balance_sync(db: Session, ch: UserChallenge, new_balance: float) -> None:
-    """Сверка с пропом: balance = проп; account_size и метрики — из истории сделок."""
-    from app.trader_stats import closed_signal_pnl_usd
-
+    """Сверка с пропом: balance = проп; старт (account_size) и цель не меняются."""
     closed = _closed_signals(db, ch.telegram_user_id)
-    total_pnl = round(sum(closed_signal_pnl_usd(s) for s in closed), 2)
     bal = round(new_balance, 2)
+    if not closed:
+        ch.account_size = bal
     ch.balance = bal
-    ch.account_size = round(max(bal - total_pnl, 0.01), 2)
     rules = rules_for_stage(ch.stage)
     stats = compute_tracker_stats(
         ch,
@@ -89,7 +87,6 @@ def apply_prop_balance_sync(db: Session, ch: UserChallenge, new_balance: float) 
         max_daily_loss_pct=rules.max_daily_loss_pct,
     )
     ch.day_start_balance = stats.day_start_balance
-    ch.trading_days = stats.trading_days
     _sync_trading_days(db, ch)
     db.flush()
 

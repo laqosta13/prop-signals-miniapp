@@ -117,9 +117,9 @@ export function authorProfile(
   displayName: string | null | undefined,
   username: string | null | undefined,
 ): { title: string; subtitle: string | null } {
-  const login = username ? `@${username}` : null;
-  if (displayName && login) return { title: displayName, subtitle: login };
-  if (displayName) return { title: displayName, subtitle: null };
+  const name = displayName?.trim();
+  const login = username?.trim().replace(/^@/, "") || null;
+  if (name) return { title: name, subtitle: null };
   if (login) return { title: login, subtitle: null };
   return { title: "Трейдер", subtitle: null };
 }

@@ -16,6 +16,11 @@ type Props = {
 
 export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Props) {
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [tradesOpen, setTradesOpen] = useState<Record<number, boolean>>({});
+
+  const toggleTrades = (ownerId: number) => {
+    setTradesOpen((prev) => ({ ...prev, [ownerId]: !prev[ownerId] }));
+  };
   const dayLossLimitPct = 5;
   const todayLossUsd = useMemo(() => {
     const { startMs: dayStart, endMs: dayEnd } = mskDayBoundsMs();
@@ -80,6 +85,7 @@ export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Pro
           .slice(0, 5);
         const canEdit = isAdmin && myId === d.owner_telegram_id;
         const minDaysLabel = d.min_trading_days_unlimited ? "∞" : String(d.min_trading_days);
+        const tradesExpanded = !!tradesOpen[d.owner_telegram_id];
 
         return (
           <section key={d.owner_telegram_id} className="tracker-block">
@@ -87,7 +93,6 @@ export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Pro
               <Avatar url={d.owner_avatar_url} displayName={d.owner_display_name} username={d.owner_username} size={40} />
               <div>
                 <p className="tracker-block__name">{authorProfile(d.owner_display_name, d.owner_username).title}</p>
-                {d.owner_username && <p className="tracker-block__sub">@{d.owner_username}</p>}
                 <p className="tracker-block__sub">
                   Этап {d.stage} · плечо {d.max_leverage}
                 </p>
@@ -144,7 +149,6 @@ export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Pro
                 >
                   <img src={mediaUrl(d.prop_screenshot_url) ?? d.prop_screenshot_url} alt="Скрин с пропа" />
                 </button>
-                <p className="meta tracker-prop__balance">Баланс на пропе: {formatUsd(d.balance)}</p>
               </div>
             )}
 
@@ -179,27 +183,42 @@ export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Pro
             )}
 
             {recent.length > 0 && (
-              <ul className="trade-list">
-                {recent.map((s) => {
-                  const pnl = signalRealizedPnl(s) ?? s.realized_pnl;
-                  return (
-                  <li key={s.id}>
-                    <div>
-                      <strong>
-                        {s.number != null && <span className="signal-number">#{s.number} </span>}
-                        {s.symbol}
-                      </strong>
-                      <span className="muted"> {s.direction.toUpperCase()}</span>
-                    </div>
-                    <span className={pnl != null && pnl >= 0 ? "pnl-win" : "pnl-lose"}>
-                      {pnl != null
-                        ? `${pnl >= 0 ? "+" : ""}${formatUsd(pnl)}`
-                        : formatTakeProfits(s.take_profits)}
-                    </span>
-                  </li>
-                  );
-                })}
-              </ul>
+              <div className="tracker-trades">
+                <button
+                  type="button"
+                  className={`tracker-trades__toggle${tradesExpanded ? " tracker-trades__toggle--open" : ""}`}
+                  onClick={() => toggleTrades(d.owner_telegram_id)}
+                  aria-expanded={tradesExpanded}
+                >
+                  <span>Сделки · {recent.length}</span>
+                  <span className="tracker-trades__chevron" aria-hidden>
+                    {tradesExpanded ? "▾" : "▸"}
+                  </span>
+                </button>
+                {tradesExpanded && (
+                  <ul className="trade-list tracker-trades__list">
+                    {recent.map((s) => {
+                      const pnl = signalRealizedPnl(s) ?? s.realized_pnl;
+                      return (
+                        <li key={s.id}>
+                          <div>
+                            <strong>
+                              {s.number != null && <span className="signal-number">#{s.number} </span>}
+                              {s.symbol}
+                            </strong>
+                            <span className="muted"> {s.direction.toUpperCase()}</span>
+                          </div>
+                          <span className={pnl != null && pnl >= 0 ? "pnl-win" : "pnl-lose"}>
+                            {pnl != null
+                              ? `${pnl >= 0 ? "+" : ""}${formatUsd(pnl)}`
+                              : formatTakeProfits(s.take_profits)}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
             )}
           </section>
         );
