@@ -22,7 +22,7 @@
 
 ## Вкладки приложения
 
-1. **Лента** — сигналы, график на карточке, просмотры/лайки, мини-трекеры админов, галочка уведомлений, **дисклеймер** (кнопка **!** в шапке + принятие при первом заходе), **анимация WIN/LOSE** при **живом** закрытии сигнала
+1. **Лента** — сигналы с **нумерацией #N**, график на карточке, просмотры/лайки, мини-трекеры админов, галочка уведомлений, **дисклеймер** (кнопка **!** в шапке + принятие при первом заходе), **анимация WIN/LOSE** при **живом** закрытии сигнала
 2. **Трекер** — Hash Hedge challenge для каждого админа + таблица правил по этапам
 3. **ТОП** — рейтинг трейдеров, equity curve, **описание рангов** (раскрывающийся блок)
 4. **Отзывы** — оценка 1–5 и текст; один отзыв на пользователя
@@ -31,7 +31,7 @@
 
 **Шапка:** круглая кнопка **↻** (ручное обновление ленты/трекера/ТОП в зависимости от вкладки) вместо зелёной точки статуса.
 
-**Lazy-load:** вкладки Трекер, ТОП, Отзывы, Новости, Подписка подгружаются через `React.lazy`.
+**Вкладки:** все импортируются напрямую в `App.tsx` (без `React.lazy` — стабильнее в Telegram WebView после деплоя).
 
 ---
 
@@ -65,6 +65,7 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 
 ## Сигналы — поля и UI
 
+- **Номер #N** — сквозная нумерация по порядку публикации (`signals.number`); на карточке, в трекере, модалках, WIN/LOSE и Telegram; после полного purge снова с **#1**
 - **Инструмент**, **LONG/SHORT**
 - **Вход / Стоп / Цель**
 - **Плечо** (кнопки 1–5x, по умолчанию **1**)
@@ -74,6 +75,7 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 - **Скрин / Видео / Комментарий** (на русском)
 - **График на карточке** — `SignalChart.tsx`: свечи **Bybit USDT perpetual (linear)** 1m / 5m / 15m, линии входа / стопа / целей (`lightweight-charts` **v4**, `addCandlestickSeries`); lazy-load в viewport; TradingView `BYBIT:…` ↗; фон как у карточки, **без сетки**; **`z-index` ниже нижней панели** (график не перекрывает вкладки)
 - **График после win/lose** — `frozen`: свечи грузятся **один раз**, таймфреймы **скрыты**, график обрезается на свече `closed_at`, повторных запросов нет
+- **Закрытие на графике** (только frozen): **точка** на свече `closed_at`, **вертикальная линия**, бейдж **«Стоп»** / **«Цель»** / **«По рынку»** (цвет: красный / фиолетовый / жёлтый); поля `close_reason`, `closed_exit_price` в БД
 - **Активный график** — свечи обновляются каждые **30 с** (`CHART_POLL_MS`), пока сигнал не закрыт
 - **Вход на графике** — вертикальная линия + маркер «Вход» после срабатывания входа; маркер **привязан к свече `entry_filled_at`** (не к последней свече)
 - **Рынок при публикации** — `published_market_price` / `published_market_source` (`bybit_perp`) в БД и **Telegram**; на карточке — график, не текст
@@ -99,6 +101,8 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 | Активен (в сделке) | `entry_filled_at` есть | цвет **#E0AFFF** |
 | Цель достигнута | `win` | green |
 | Стоп | `lose` | red |
+
+**Причина закрытия** (`close_reason`): `target` (монитор / win), `stop` (монитор / lose), `market` (ручное «Закрыть по рынку»). Старые сигналы: win→target, lose→stop (миграция).
 
 ---
 
@@ -192,7 +196,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 ## WIN / LOSE reveal
 
-- Полноэкранная анимация при **живом** закрытии: переход статуса **не win/lose → win/lose** (не при первой загрузке истории)
+- Полноэкранная анимация при **живом** закрытии: переход **active → win/lose** (не при первом появлении уже закрытого сигнала в ленте)
 - При первом заходе `seedPlayedOutcomesForExistingFeed` помечает уже закрытые сигналы — **без** анимации на старой ленте
 - **Только сигналы, закрытые после `member_since`** (`subscribers.created_at` из `/auth/me`)
 - Логика в **`App.tsx`** (`useOutcomeReveal`), poll ленты **15 с** для быстрого обнаружения закрытия
@@ -205,14 +209,15 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 - Только **админы** (`UserChallenge`)
 - Все трекеры видны в ленте (`PropTrackerMini`) и на вкладке Трекер
-- **Настройки трекера** — модалка `TrackerSettingsModal.tsx` (вместо `prompt()`): размер счёта, этап 1–3, **баланс с пропа**, сброс дневного лимита
-- **Коррекция баланса с пропа не сбрасывает прогресс** — меняется только `balance`; смена `account_size` тоже **не** обнуляет `trading_days` / дневной прогресс
+- **Настройки трекера** — модалка `TrackerSettingsModal.tsx`: размер счёта, этап 1–3, **баланс с пропа**, скрин пропа («Заменить скрин»); `modal-backdrop--sheet` для клавиатуры
+- **Коррекция баланса с пропа не сбрасывает прогресс** — меняется только `balance`; смена `account_size` тоже **не** обнуляет `trading_days`
+- **Метрики трейдера** (`tracker_metrics.py`) — из **закрытых сигналов**, день **MSK**: **торговые дни**, **WR**, **лимит дня**, **просадка** от `account_size`
 - **Скрин с пропа** — один актуальный на трекер (`prop_screenshot_path`); новый заменяет старый; показ на вкладке Трекер + lightbox
-- `PUT /challenge/settings` — **multipart Form** (`account_size`, `stage`, `balance`, `reset_day`, `screenshot`, `remove_screenshot`); `updateChallengeSettings()` в `api.ts`
+- `PUT /challenge/settings` — **multipart Form** (`account_size`, `stage`, `balance`, `screenshot`, `remove_screenshot`); `updateChallengeSettings()` в `api.ts`
 - **Таблица правил** по этапам 1–3: `HashHedgeRulesTable.tsx`, данные **статически** в `frontend/src/data/hashhedgeRules.ts` (без лишнего API)
 - Backend: `hashhedge_rules.py`, `GET /challenge/rules` (опционально); скрины — `save_tracker_screenshot` в `media_storage.py`
 - P/L закрытых сигналов меняет `balance` трекера
-- Внизу блока правил: **«Лимит дня для всех трейдеров»** — фиксированный общий лимит **5%** (без бегунка), шкала убывает при минусах
+- Внизу блока правил: **«Лимит дня для всех трейдеров»** — общий лимит **5%** по сумме убытков всех админов за MSK-день; кнопка **«Регистрация на проп»** → Hash Hedge (`HASHHEDGE_REGISTER_URL`)
 
 ---
 
@@ -245,13 +250,13 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 | Событие | Содержание |
 |---|---|
-| Новый сигнал | Описание + **рынок при публикации** |
-| Редактирование | Diff + **кто изменил** (`format_actor_label`) |
-| Дополнение | Комментарий/медиа + **кто дополнил** |
-| Удаление | **Кто удалил** |
-| Вход в зоне | Позиция в работе |
-| WIN / LOSE | Доходность + P/L $ |
-| Закрыт по рынку | 📤 «ЗАКРЫТ ПО РЫНКУ» + движение и P/L |
+| Новый сигнал | **#N** + описание + **рынок при публикации** |
+| Редактирование | **#N** + diff + **кто изменил** |
+| Дополнение | **#N** + комментарий/медиа + **кто дополнил** |
+| Удаление | **#N** + **кто удалил** |
+| Вход в зоне | **#N** + позиция в работе |
+| WIN / LOSE | **Сигнал #N** + доходность + P/L $ |
+| Закрыт по рынку | 📤 **Сигнал #N ЗАКРЫТ ПО РЫНКУ** + движение и P/L |
 
 Новости: push **всем** зарегистрированным пользователям mini app при публикации — подписка и оплата не проверяются; галочка на вкладке «Новости» — для UI (рассылка идёт всем в БД)
 
@@ -266,7 +271,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 | Polling | Только сигналы, **15 с**, по всему приложению (для WIN/LOSE reveal) |
 | График active | Обновление свечей каждые **30 с** (`SignalChart.tsx`) |
 | Трекеры | Lazy fetch при первом открытии Лента/Трекер |
-| Вкладки | Code-splitting (`React.lazy`, chunks vendor/telegram) |
+| Вкладки | Один JS-бандл (без lazy-chunks вкладок — меньше «вечной загрузки» в WebView) |
 | Просмотры | IntersectionObserver, не N POST при загрузке ленты |
 | Нижняя панель | `z-index: 200`; график `z-index: 0` + `isolation` |
 
@@ -360,7 +365,7 @@ POST /admin/purge-published      — require_admin, полная очистка 
 | Очистка данных | `data_cleanup.py`, `routers/admin.py`, `scripts/purge_published.py` |
 | P/L, ТОП | `trader_stats.py`, `leaderboard_service.py` |
 | Ранги | `rank_service.py`, `rank_scheduler.py`, `rank_constants.py` |
-| Трекер | `challenge_service.py`, `hashhedge_rules.py` |
+| Трекер | `challenge_service.py`, `tracker_metrics.py`, `hashhedge_rules.py` |
 | Уведомления | `telegram_notify.py` |
 | Frontend shell | `App.tsx` |
 | Лента | `FeedTab.tsx`, `SignalCard.tsx`, `SignalChart.tsx`, `utils/signalChartLevels.ts` |
@@ -414,7 +419,7 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 
 - `.purged_test_v2`, `.purged_reset_v3`, `.purged_all_published_may2026`, `.purged_all_published_may2026_v2`, `.purged_all_published_jun2026` — purge через `data_cleanup.py` / `migrate.py`
 
-Новые колонки через `migrate.py`: `published_market_price`, `published_market_source`, `prop_screenshot_path`, rank fields и др.
+Новые колонки через `migrate.py`: `published_market_price`, `published_market_source`, `prop_screenshot_path`, `number`, `close_reason`, `closed_exit_price`, rank fields и др.
 
 ---
 
@@ -448,9 +453,13 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 26. **Форма сигнала** — R:R **1:3**, бегунок отступа стопа 0.1–5%, автокурс Bybit perp
 27. **Purge jun2026** — одноразовая миграция при деплое; кнопка purge убрана из UI
 28. **Настройки трекера** — модалка, скрин пропа, коррекция баланса без сброса прогресса; multipart `PUT /challenge/settings`
+29. **Tab loading fix** — убран `React.lazy`; WIN/LOSE только при **active→win/lose**
+30. **Метрики трекера** — торговые дни, WR, лимит дня, просадка из закрытых сигналов (MSK); `tracker_metrics.py`
+31. **Нумерация сигналов** — `signals.number`, #N в UI и Telegram
+32. **Маркер закрытия на графике** — точка + линия + бейдж стоп/цель/рынок; `close_reason`, `closed_exit_price`
 
 ---
 
 ## Быстрое напоминание для AI
 
-> **prop-signals-miniapp** — FastAPI + React Telegram Mini App на Amvera (SQLite, `/data`). Админы публикуют сигналы; активные — по подписке, win/lose + трекер + ТОП — бесплатно. **Цены и график: Bybit USDT perp (linear).** Форма: R:R 1:3 + бегунок стопа. После win/lose график frozen; вход на свече `entry_filled_at`. P/L = (трекер × сумма входа % × плечо) × % движения; ТОП — без плеча. Трекер: модалка настроек, скрин пропа, баланс без сброса прогресса. Дисклеймер на ленте. WIN/LOSE reveal — только живое закрытие, poll 15s. Purge — миграция jun2026 / скрипт (UI кнопки нет). Perf: batch `/signals`, lazy tabs, bottom nav поверх графика. Полный контекст — этот файл.
+> **prop-signals-miniapp** — FastAPI + React Telegram Mini App на Amvera (SQLite, `/data`). Админы публикуют сигналы **#N**; активные — по подписке, win/lose + трекер + ТОП — бесплатно. **Цены и график: Bybit USDT perp (linear).** Форма: R:R 1:3 + бегунок стопа. После win/lose график frozen + маркер закрытия (стоп/цель/рынок). Вход на свече `entry_filled_at`. P/L = (трекер × сумма входа % × плечо) × % движения; ТОП — без плеча. Трекер: метрики из сигналов (MSK), модалка настроек, скрин пропа. Дисклеймер на ленте. WIN/LOSE reveal — только **active→win/lose**, poll 15s. Вкладки без React.lazy. Purge — jun2026 / API (UI кнопки нет). Полный контекст — этот файл.
