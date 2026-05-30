@@ -31,7 +31,7 @@
 
 **Шапка:** круглая кнопка **↻** (ручное обновление ленты/трекера/ТОП в зависимости от вкладки) вместо зелёной точки статуса.
 
-**Вкладки:** все импортируются напрямую в `App.tsx` (без `React.lazy` — стабильнее в Telegram WebView после деплоя).
+**Вкладки:** **Лента** (`FeedTab`) — в основном бандле; остальные вкладки и тяжёлые модалки — `React.lazy` + `Suspense`.
 
 ---
 
@@ -71,7 +71,8 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 - **Плечо** (кнопки 1–5x, по умолчанию **1**)
 - **Сумма входа %** — бегунок 0–25–50–75–100; **при смене плеча сбрасывается на 10%** (`onLeveragePick` в `signalForm.ts`)
 - **Номинал позиции** = трекер × сумма входа % × плечо / 100 — в форме **выделен цветом** (сумма зелёным, % и плечо фиолетовым)
-- **Трекер $** — только чтение, баланс Hash Hedge трекера админа
+- **Трекер $** — только чтение, **баланс Hash Hedge**; при открытии формы подгружается **`GET /challenge/my-tracker`** (`useAdminTrackerSnapshot`)
+- **Дополнения** на карточке — отдельный блок с фиолетовым акцентом, бейдж «Доп. N», счётчик дополнений
 - **Скрин / Видео / Комментарий** (на русском)
 - **График на карточке** — `SignalChart.tsx`: свечи **Bybit USDT perpetual (linear)** 1m / 5m / 15m, линии входа / стопа / целей (`lightweight-charts` **v4**, `addCandlestickSeries`); lazy-load в viewport; TradingView `BYBIT:…` ↗; фон как у карточки, **без сетки**; **`z-index` ниже нижней панели** (график не перекрывает вкладки)
 - **График после win/lose** — `frozen`: свечи грузятся **один раз**, таймфреймы **скрыты**, график обрезается на свече `closed_at`, повторных запросов нет
@@ -156,13 +157,18 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 ## P/L, трекер и рейтинг
 
-**Номинал позиции** = `трекер × сумма входа % × плечо / 100`  
+**База номинала** = **`account_size`** (размер счёта Hash Hedge), не накопленный баланс трекера.  
+**Номинал позиции** = `account_size × сумма входа % × плечо / 100`  
 **P/L $** = номинал × **% движения цены** (вход → выход) / 100  
 **Рейтинг (ТОП)** = сумма **чистого % движения цены** по сделкам (**без плеча**).
 
+**Win rate (WR)** и W/L в трекере и ТОП — по **фактическому P/L в $** (≥ 0 → win, < 0 → loss), не только по статусу win/lose.
+
+**P/L на карточке после poll/refresh:** фронт пересчитывает exit из `closed_exit_price` или стоп/цели (`signalPnl.ts`); `mergeFeedSignals.ts` не теряет P/L при устаревшем ответе API.
+
 **Закрытие по рынку:** P/L и win/lose по фактическому движению вход→рыночная цена; в Telegram — «ЗАКРЫТ ПО РЫНКУ».
 
-Логика: `trader_stats.py`, `leaderboard_service.py`.  
+Логика: `trader_stats.py`, `leaderboard_service.py`, `tracker_metrics.py`.  
 ТОП: equity curve (`EquityCurve.tsx`), daily stats **14 дней** (не 30), без скачивания аватаров на каждый запрос.
 
 ---
@@ -210,8 +216,8 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 - Только **админы** (`UserChallenge`)
 - Все трекеры видны в ленте (`PropTrackerMini`) и на вкладке Трекер
 - **Настройки трекера** — модалка `TrackerSettingsModal.tsx`: размер счёта, этап 1–3, **баланс с пропа**, скрин пропа («Заменить скрин»); `modal-backdrop--sheet` для клавиатуры
-- **Коррекция баланса с пропа не сбрасывает прогресс** — меняется только `balance`; смена `account_size` тоже **не** обнуляет `trading_days`
-- **Метрики трейдера** (`tracker_metrics.py`) — из **закрытых сигналов**, день **MSK**: **торговые дни**, **WR**, **лимит дня**, **просадка** от `account_size`
+- **Баланс с пропа** (`apply_prop_balance_sync`) — обновляет **`balance`** везде (трекер, лента, форма сигнала); **`account_size`** = `balance − сумма P/L закрытых сигналов`; `trading_days` **не** сбрасываются. Если меняют только размер счёта (без баланса с пропа) — правится только `account_size`
+- **Метрики трейдера** (`tracker_metrics.py`) — из **закрытых сигналов**, день **MSK**: **торговые дни**, **WR по P/L $**, **лимит дня**, **просадка** от `account_size`
 - **Скрин с пропа** — один актуальный на трекер (`prop_screenshot_path`); новый заменяет старый; показ на вкладке Трекер + lightbox
 - `PUT /challenge/settings` — **multipart Form** (`account_size`, `stage`, `balance`, `screenshot`, `remove_screenshot`); `updateChallengeSettings()` в `api.ts`
 - **Таблица правил** по этапам 1–3: `HashHedgeRulesTable.tsx`, данные **статически** в `frontend/src/data/hashhedgeRules.ts` (без лишнего API)
@@ -251,7 +257,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 | Событие | Содержание |
 |---|---|
 | Новый сигнал | **#N** + описание + **рынок при публикации** |
-| Редактирование | **#N** + diff + **кто изменил** |
+| Редактирование | **#N** + diff + **кто изменил**; для закрытых — **P/L % и $** |
 | Дополнение | **#N** + комментарий/медиа + **кто дополнил** |
 | Удаление | **#N** + **кто удалил** |
 | Вход в зоне | **#N** + позиция в работе |
@@ -343,8 +349,9 @@ GET  /traders/leaderboard
 GET  /traders/{id}/rank
 GET  /traders/me/rank-pending | POST .../confirm | POST .../shield
 GET  /challenge/trackers
+GET  /challenge/my-tracker       — require_admin, свой трекер для формы сигнала
 GET  /challenge/rules
-PUT  /challenge/settings         — multipart: баланс, этап, скрин пропа (require_admin)
+PUT  /challenge/settings         — multipart: баланс с пропа / account_size, этап, скрин (require_admin)
 GET  /subscriptions/info | POST /subscriptions/pay | PUT /subscriptions/me
 POST /admin/purge-published      — require_admin, полная очистка ленты/новостей/отзывов
 ```
@@ -372,7 +379,8 @@ POST /admin/purge-published      — require_admin, полная очистка 
 | Дисклеймер | `DisclaimerModal.tsx`, `data/disclaimer.ts`, `utils/disclaimerStorage.ts` |
 | WIN/LOSE reveal | `OutcomeReveal.tsx`, `hooks/useOutcomeReveal.ts`, `utils/outcomeRevealStorage.ts`, `utils/outcomeSounds.ts` (логика в `App.tsx`) |
 | Подписка / рефералы | `SubscriptionTab.tsx`, `subscription_billing.py`, `ton_payments.py`, `referral_links.py`, `utils/referralShare.ts` |
-| Форма сигнала | `NewSignalModal.tsx`, `EditSignalModal.tsx`, `SignalLevelsFields.tsx`, `StopOffsetSlider.tsx`, `hooks/useSignalLevelFields.ts`, `utils/signalForm.ts`, `utils/signalLevels.ts` |
+| Форма сигнала | `NewSignalModal.tsx`, `EditSignalModal.tsx`, `hooks/useAdminTrackerSnapshot.ts`, `SignalLevelsFields.tsx`, `StopOffsetSlider.tsx`, `hooks/useSignalLevelFields.ts`, `utils/signalForm.ts`, `utils/signalLevels.ts` |
+| P/L на ленте | `utils/signalPnl.ts`, `utils/mergeFeedSignals.ts` |
 | Права на сигнал | `utils/signalActions.ts` (`canCloseAtMarketSignal`, …) |
 | Дополнения | `AppendSupplementModal.tsx` |
 | Трекер UI | `TrackerTab.tsx`, `TrackerSettingsModal.tsx`, `HashHedgeRulesTable.tsx`, `data/hashhedgeRules.ts` |
@@ -418,8 +426,10 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 ## Одноразовые миграции (маркеры на диске)
 
 - `.purged_test_v2`, `.purged_reset_v3`, `.purged_all_published_may2026`, `.purged_all_published_may2026_v2`, `.purged_all_published_jun2026` — purge через `data_cleanup.py` / `migrate.py`
+- `.recalc_closed_signal_pnl_v2`, `.recalc_closed_signal_pnl_v3` — пересчёт P/L от `account_size` и risk_percent
+- `.recalc_winrate_by_pnl_v1` — пересчёт W/L и WR по фактическому P/L ($)
 
-Новые колонки через `migrate.py`: `published_market_price`, `published_market_source`, `prop_screenshot_path`, `number`, `close_reason`, `closed_exit_price`, rank fields и др.
+Новые колонки через `migrate.py`: `published_market_price`, `published_market_source`, `prop_screenshot_path`, `number`, `close_reason`, `closed_exit_price`, `account_size`, rank fields и др.
 
 ---
 
@@ -457,9 +467,14 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 30. **Метрики трекера** — торговые дни, WR, лимит дня, просадка из закрытых сигналов (MSK); `tracker_metrics.py`
 31. **Нумерация сигналов** — `signals.number`, #N в UI и Telegram
 32. **Маркер закрытия на графике** — точка + линия + бейдж стоп/цель/рынок; `close_reason`, `closed_exit_price`
+33. **P/L от account_size** — база номинала = размер счёта, не баланс; миграции v2/v3 пересчёта
+34. **UI дополнений** — выделенный блок на карточке сигнала (бейдж, счётчик, фиолетовый акцент)
+35. **Авто-трекер в форме** — `GET /challenge/my-tracker`, `useAdminTrackerSnapshot` при открытии New/Edit
+36. **Синхрон баланса с пропа** — `apply_prop_balance_sync`: balance + account_size согласованы с историей сделок
+37. **P/L на refresh** — `signalPnl.ts` + `mergeFeedSignals.ts`; WR по P/L $; push при редактировании закрытого сигнала
 
 ---
 
 ## Быстрое напоминание для AI
 
-> **prop-signals-miniapp** — FastAPI + React Telegram Mini App на Amvera (SQLite, `/data`). Админы публикуют сигналы **#N**; активные — по подписке, win/lose + трекер + ТОП — бесплатно. **Цены и график: Bybit USDT perp (linear).** Форма: R:R 1:3 + бегунок стопа. После win/lose график frozen + маркер закрытия (стоп/цель/рынок). Вход на свече `entry_filled_at`. P/L = (трекер × сумма входа % × плечо) × % движения; ТОП — без плеча. Трекер: метрики из сигналов (MSK), модалка настроек, скрин пропа. Дисклеймер на ленте. WIN/LOSE reveal — только **active→win/lose**, poll 15s. Вкладки без React.lazy. Purge — jun2026 / API (UI кнопки нет). Полный контекст — этот файл.
+> **prop-signals-miniapp** — FastAPI + React Telegram Mini App на Amvera (SQLite, `/data`). Админы публикуют сигналы **#N**; активные — по подписке, win/lose + трекер + ТОП — бесплатно. **Цены и график: Bybit USDT perp (linear).** Форма: R:R 1:3 + бегунок стопа; трекер $ из `my-tracker`. После win/lose график frozen + маркер закрытия. P/L = (`account_size` × сумма входа % × плечо) × % движения; ТОП — без плеча; **WR по P/L $**. Баланс с пропа синхронизирует balance и account_size. Дисклеймер на ленте. WIN/LOSE reveal — **active→win/lose**, poll 15s. Purge — jun2026 / API. Полный контекст — этот файл.
