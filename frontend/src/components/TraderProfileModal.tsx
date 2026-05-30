@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import type { Trader, TraderRank } from "../api";
 import { activateRankShield, confirmMyRank, fetchTraderRank } from "../api";
-import { authorProfile } from "../utils";
+import { authorProfile, formatUsd } from "../utils";
+import { isVolnovoiTrader } from "../utils/volnovoi";
 import { rankStyle } from "../utils/ranks";
 import { Avatar } from "./Avatar";
 import { RankBadge } from "./RankBadge";
@@ -13,14 +14,19 @@ type Props = {
 };
 
 export function TraderProfileModal({ trader, isMe, onClose }: Props) {
+  const aggregate = isVolnovoiTrader(trader);
   const [rank, setRank] = useState<TraderRank | null>(trader.trader_rank ?? null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    if (aggregate) {
+      setRank(trader.trader_rank ?? null);
+      return;
+    }
     void fetchTraderRank(trader.telegram_id)
       .then(setRank)
       .catch(() => setRank(trader.trader_rank ?? null));
-  }, [trader.telegram_id, trader.trader_rank]);
+  }, [aggregate, trader.telegram_id, trader.trader_rank]);
 
   const st = rank ? rankStyle(rank.current_rank_id) : rankStyle(8);
   const profile = authorProfile(trader.display_name, trader.username);
@@ -57,22 +63,45 @@ export function TraderProfileModal({ trader, isMe, onClose }: Props) {
           <Avatar url={trader.avatar_url} displayName={trader.display_name} username={trader.username} size={56} />
           <div>
             <p className="trader-profile-sheet__name">{profile.title}</p>
+            {aggregate && <p className="trader-profile-sheet__sub">Аккаунт · все сделки трейдеров</p>}
           </div>
         </div>
 
+        {aggregate && (
+          <div className="trader-profile-sheet__stats">
+            <p>
+              Рейтинг{" "}
+              <strong className={trader.rating_percent >= 0 ? "up" : "down"}>
+                {trader.rating_percent >= 0 ? "+" : ""}
+                {trader.rating_percent.toFixed(2)}%
+              </strong>
+            </p>
+            <p>
+              P/L{" "}
+              <strong className={trader.total_pnl_usd >= 0 ? "up" : "down"}>{formatUsd(trader.total_pnl_usd)}</strong>
+            </p>
+            <p>
+              W {trader.wins} · L {trader.losses} · WR {trader.win_rate}%
+            </p>
+          </div>
+        )}
+
         {rank && (
           <div className="trader-profile-sheet__rank-block" style={{ background: st.bg }}>
-            <RankBadge rank={rank} />
+            <div className="trader-profile-sheet__rank-head">
+              <span className="trader-profile-sheet__rank-label">Ранг:</span>
+              <RankBadge rank={rank} />
+            </div>
             <p className="trader-profile-sheet__weekly">
               Неделя: {rank.weekly_pct >= 0 ? "+" : ""}
               {rank.weekly_pct.toFixed(1)}%
             </p>
-            {isMe && !rank.is_confirmed && !rank.rank_applied_this_week && (
+            {!aggregate && isMe && !rank.is_confirmed && !rank.rank_applied_this_week && (
               <button type="button" className="btn-primary" disabled={busy} onClick={() => void onConfirm()}>
                 Подтвердить результат
               </button>
             )}
-            {isMe && !rank.shield_used_this_month && (
+            {!aggregate && isMe && !rank.shield_used_this_month && (
               <button type="button" className="btn-ghost" disabled={busy} onClick={() => void onShield()}>
                 Активировать страховку
               </button>
@@ -80,7 +109,7 @@ export function TraderProfileModal({ trader, isMe, onClose }: Props) {
           </div>
         )}
 
-        {rank && rank.rank_history.length > 0 && (
+        {rank && !aggregate && rank.rank_history.length > 0 && (
           <section className="rank-history">
             <h3>История рангов</h3>
             <ul>

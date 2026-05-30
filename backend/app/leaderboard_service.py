@@ -13,6 +13,7 @@ from app.serializers import trader_to_read
 from app.signal_service import get_or_create_trader
 from app.rank_service import ensure_rank_fields
 from app.trader_stats import closed_signal_move_pct, closed_signal_pnl_usd
+from app.volnovoi_account import build_volnovoi_read
 
 
 def _day_key(closed_at: datetime | None) -> str:
@@ -52,7 +53,7 @@ def daily_stats_map(db: Session, admin_ids: list[int]) -> dict[int, list[TraderD
             TraderDayStat(date=d, pnl_usd=v["pnl"], rating_delta=v["rating"], wins=v["w"], losses=v["l"])
             for d, v in sorted(days.items(), reverse=True)
         ]
-        out[tid] = stats[:14]
+        out[tid] = stats[:90]
     return out
 
 
@@ -71,6 +72,10 @@ def build_leaderboard(db: Session) -> list[TraderRead]:
         key=lambda t: (-(t.rating_percent or 0), -(t.wins or 0)),
     )
     result: list[TraderRead] = []
+    volnovoi = build_volnovoi_read(db)
+    if volnovoi is not None:
+        result.append(volnovoi)
+
     for rank, t in enumerate(ranked, start=1):
         ensure_rank_fields(t)
         total = (t.wins or 0) + (t.losses or 0)

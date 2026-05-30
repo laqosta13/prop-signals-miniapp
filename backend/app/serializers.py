@@ -136,6 +136,7 @@ def trader_to_read(
         avatar_url=trader_avatar_url(t),
         daily_stats=daily_stats or [],
         trader_rank=trader_rank_read(t),
+        is_aggregate=False,
     )
 
 

@@ -150,6 +150,7 @@ class TraderRead(BaseModel):
     avatar_url: str | None = None
     daily_stats: list[TraderDayStat] = []
     trader_rank: TraderRankRead | None = None
+    is_aggregate: bool = False
 
     model_config = {"from_attributes": True}
 

@@ -126,6 +126,7 @@ export type Trader = {
   avatar_url: string | null;
   daily_stats: TraderDayStat[];
   trader_rank: TraderRank | null;
+  is_aggregate?: boolean;
 };
 
 export type ChallengeDashboard = {

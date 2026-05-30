@@ -9,6 +9,7 @@ from app.rank_service import activate_shield, confirm_rank, ensure_rank_fields, 
 from app.schemas import TelegramUser, TraderRankRead, TraderRead
 from app.serializers import trader_rank_read
 from app.signal_service import get_or_create_trader
+from app.volnovoi_account import build_volnovoi_read, is_volnovoi_account
 
 router = APIRouter(prefix="/traders", tags=["traders"])
 
@@ -69,6 +70,11 @@ def trader_rank_profile(
     user: TelegramUser = Depends(get_current_user),
 ) -> TraderRankRead:
     _ = user
+    if is_volnovoi_account(telegram_id):
+        row = build_volnovoi_read(db)
+        if row is None or row.trader_rank is None:
+            raise HTTPException(status_code=404, detail="trader_not_found")
+        return row.trader_rank
     if telegram_id not in settings.admin_id_set:
         raise HTTPException(status_code=404, detail="trader_not_found")
     trader = db.get(Trader, telegram_id)
