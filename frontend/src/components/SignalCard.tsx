@@ -84,10 +84,9 @@ export function SignalCard({
   const movePct = signalPriceMovePct(s);
   const entryDone = !!(s.entry_filled_at || (!s.entry_low && !s.entry_high));
   const livePnl = useSignalLivePnl(s, s.status === "active" && entryDone, cardRef);
-  const headerPnl =
-    s.status === "active" && entryDone ? livePnl.pnl : pnl ?? null;
-  const headerMove =
-    s.status === "active" && entryDone ? livePnl.movePct : movePct ?? null;
+  const headerPnl = s.status === "active" && entryDone ? livePnl.pnl : pnl ?? null;
+  const headerMove = s.status === "active" && entryDone ? livePnl.movePct : movePct ?? null;
+  const pnlUp = (headerPnl ?? headerMove ?? 0) >= 0;
   const outcome = signalOutcomeDisplay(
     s.status,
     entryDone,
@@ -100,8 +99,9 @@ export function SignalCard({
   );
   const statusBadge = outcome.label;
   const statusClass = outcome.className;
-
   const author = authorProfile(s.author_display_name, s.author_username);
+  const rr = calcRR(entry === "—" ? null : entry, s.stop_loss, s.take_profits);
+  const showResult = headerPnl != null || headerMove != null || (livePnl.loading && s.status === "active" && entryDone);
 
   const handleLike = async () => {
     if (liking) return;
@@ -129,67 +129,83 @@ export function SignalCard({
           <img src={lightbox} alt="" className="lightbox__img" onClick={(e) => e.stopPropagation()} />
         </div>
       )}
-      <header className="signal-card__head">
-        <div className="signal-card__author">
-          <Avatar url={s.author_avatar_url} displayName={s.author_display_name} username={s.author_username} size={36} />
-          <div className="signal-card__author-meta">
-            <span className="author-line author-line--name">{author.title}</span>
-            <div className="signal-card__title-row">
+
+      <header className="signal-card__top">
+        <div className="signal-card__identity">
+          <Avatar url={s.author_avatar_url} displayName={s.author_display_name} username={s.author_username} size={40} />
+          <div className="signal-card__who">
+            <p className="signal-card__name">{author.title}</p>
+            <div className="signal-card__sym">
               <span className="signal-number">#{s.number}</span>
               <span className="signal-ticker">{s.symbol}</span>
               <span className={`dir-badge ${isLong ? "long" : "short"}`}>
                 {isLong ? "↑ LONG" : "↓ SHORT"}
               </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="signal-card__perf">
+          {showResult && (
+            <div className={`signal-card__result ${pnlUp ? "up" : "down"}`} aria-live="polite">
+              {headerPnl != null ? (
+                <span className="signal-card__result-usd">
+                  {headerPnl >= 0 ? "+" : ""}
+                  {formatUsd(headerPnl)}
+                </span>
+              ) : livePnl.loading ? (
+                <span className="signal-card__result-usd signal-card__result-usd--pending">…</span>
+              ) : null}
               {headerMove != null && (
-                <span
-                  className={`signal-card__pnl-inline ${headerMove >= 0 ? "up" : "down"}`}
-                  aria-live="polite"
-                >
+                <span className="signal-card__result-pct">
                   {headerMove >= 0 ? "+" : ""}
                   {headerMove.toFixed(2)}%
                 </span>
               )}
-              {livePnl.loading && s.status === "active" && entryDone && headerMove == null && (
-                <span className="signal-card__pnl-inline">…</span>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="signal-card__actions">
-          {headerPnl != null && (
-            <div
-              className={`signal-card__pnl ${headerPnl >= 0 ? "up" : "down"}`}
-              aria-live="polite"
-            >
-              <span className="signal-card__pnl-usd">
-                {headerPnl >= 0 ? "+" : ""}
-                {formatUsd(headerPnl)}
-              </span>
             </div>
           )}
-          {isAdmin && canEditOrDeleteSignal(s, myId, !!isAdmin) && (
-            <div className="admin-actions">
-              {onEdit && (
-                <button type="button" className="edit-btn" onClick={() => onEdit(s)}>
-                  Изменить
-                </button>
-              )}
-              {onDelete && (
-                <button type="button" className="delete-btn" disabled={deleting} onClick={() => onDelete(s.id)}>
-                  Удалить
-                </button>
-              )}
-            </div>
-          )}
+          <span className={`outcome outcome--head ${statusClass}`} data-outcome-badge={s.id}>
+            {statusBadge}
+          </span>
         </div>
       </header>
-      <p className="signal-card__time">{formatTime(s.created_at)}</p>
-      <div className="signal-card__entry-row" aria-label="Условие входа">
-        <span>Вход {stake}%</span>
-        {sizingBase > 0 && <span>Счёт {formatUsd(sizingBase)}</span>}
-        <span>Плечо {s.leverage ?? 1}x</span>
-        <span>RR {calcRR(entry === "—" ? null : entry, s.stop_loss, s.take_profits)}</span>
+
+      {isAdmin && canEditOrDeleteSignal(s, myId, !!isAdmin) && (
+        <div className="signal-card__admin-bar">
+          {onEdit && (
+            <button type="button" className="edit-btn" onClick={() => onEdit(s)}>
+              Изменить
+            </button>
+          )}
+          {onDelete && (
+            <button type="button" className="delete-btn" disabled={deleting} onClick={() => onDelete(s.id)}>
+              Удалить
+            </button>
+          )}
+        </div>
+      )}
+
+      <time className="signal-card__time">{formatTime(s.created_at)}</time>
+
+      <div className="signal-card__params" aria-label="Условия входа">
+        <div className="signal-param">
+          <span className="signal-param__label">Вход</span>
+          <span className="signal-param__value">{stake}%</span>
+        </div>
+        <div className="signal-param">
+          <span className="signal-param__label">Счёт</span>
+          <span className="signal-param__value">{sizingBase > 0 ? formatUsd(sizingBase) : "—"}</span>
+        </div>
+        <div className="signal-param">
+          <span className="signal-param__label">Плечо</span>
+          <span className="signal-param__value">{s.leverage ?? 1}x</span>
+        </div>
+        <div className="signal-param">
+          <span className="signal-param__label">RR</span>
+          <span className="signal-param__value">{rr}</span>
+        </div>
       </div>
+
       <SignalChart
         key={`${s.id}-${s.status}-${s.closed_at ?? "open"}`}
         symbol={s.symbol}
@@ -206,6 +222,7 @@ export function SignalCard({
         entryPrice={s.published_market_price}
         frozen={s.status === "win" || s.status === "lose"}
       />
+
       <div className="levels-grid">
         <div>
           <span>вход</span>
@@ -220,6 +237,7 @@ export function SignalCard({
           <strong>{target}</strong>
         </div>
       </div>
+
       {s.media_image_url && (
         <button type="button" className="media-thumb" onClick={() => setLightbox(mediaUrl(s.media_image_url))}>
           <img src={mediaUrl(s.media_image_url)!} alt="Скрин" className="signal-media-img" />
@@ -229,6 +247,7 @@ export function SignalCard({
         <video src={mediaUrl(s.media_video_url)!} controls className="signal-media-video" playsInline />
       )}
       {s.comment && <p className="signal-card__comment">{s.comment}</p>}
+
       {(s.supplements?.length ?? 0) > 0 && (
         <section className="signal-supplements" aria-label="Дополнения к сигналу">
           <header className="signal-supplements__head">
@@ -257,6 +276,7 @@ export function SignalCard({
           ))}
         </section>
       )}
+
       {isAdmin &&
         ((canSupplementSignal(s, myId, !!isAdmin) && onSupplement) ||
           (canCloseAtMarketSignal(s, myId, !!isAdmin) && onCloseAtMarket)) && (
@@ -281,6 +301,7 @@ export function SignalCard({
             )}
           </div>
         )}
+
       <div className="signal-engagement">
         <span className="engagement-stat" title="Просмотры">
           👁 {views}
@@ -294,23 +315,6 @@ export function SignalCard({
           {liked ? "♥" : "♡"} {likes}
         </button>
       </div>
-      <footer className="signal-card__foot">
-        {movePct != null && s.status !== "active" && (
-          <span className={movePct >= 0 ? "pnl-win" : "pnl-lose"}>
-            {movePct >= 0 ? "+" : ""}
-            {movePct.toFixed(2)}%
-          </span>
-        )}
-        {pnl != null && headerPnl == null && (
-          <span className={pnl >= 0 ? "pnl-win" : "pnl-lose"}>
-            {pnl >= 0 ? "+" : ""}
-            {formatUsd(pnl)}
-          </span>
-        )}
-        <span className={`outcome ${statusClass}`} data-outcome-badge={s.id}>
-          {statusBadge}
-        </span>
-      </footer>
     </article>
   );
 }
