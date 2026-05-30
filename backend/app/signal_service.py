@@ -10,7 +10,13 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.models import NewsPost, Signal, Subscriber, Trader
 from app.subscription_billing import subscriber_ids_for_news_notify, subscription_active_strict
-from app.signal_utils import compute_signal_points_percent, entry_zone_defined, signal_in_trade, trade_move_pct
+from app.signal_utils import (
+    compute_signal_points_percent,
+    entry_zone_defined,
+    outcome_from_move,
+    signal_in_trade,
+    trade_move_pct,
+)
 from app.telegram_avatar import ensure_trader_avatar
 from app.schemas import TelegramUser
 from app.serializers import trader_display_name
@@ -250,8 +256,11 @@ async def close_signal_at_market(db: Session, signal: Signal, *, notify: bool = 
         signal.direction,
         "win",
         exit_price=exit_price,
+        stop_loss=signal.stop_loss,
+        take_profits=signal.take_profits,
+        published_market_price=signal.published_market_price,
     )
-    outcome = "win" if move > 0 else "lose"
+    outcome = outcome_from_move(move)
     if notify:
         await close_signal_and_notify(db, signal, outcome, exit_price=exit_price, market_close=True)
     elif not close_signal(db, signal, outcome, exit_price=exit_price, close_reason="market"):

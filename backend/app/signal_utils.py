@@ -46,6 +46,41 @@ def entry_mid(entry_low: str | None, entry_high: str | None) -> float | None:
     return low if low is not None else high
 
 
+def effective_entry_price(
+    entry_low: str | None,
+    entry_high: str | None,
+    published_market_price: float | None = None,
+) -> float | None:
+    """Цена входа: лимитная зона или снимок рынка при публикации (market-entry)."""
+    mid = entry_mid(entry_low, entry_high)
+    if mid is not None:
+        return mid
+    if published_market_price is not None and published_market_price > 0:
+        return float(published_market_price)
+    return None
+
+
+def outcome_from_move(move: float) -> str:
+    """win/lose по знаку движения цены (0% = win)."""
+    return "win" if move >= 0 else "lose"
+
+
+def price_move_pct(
+    entry: float,
+    direction: str,
+    exit_price: float,
+) -> float:
+    """Чистый % движения цены вход→выход."""
+    if entry <= 0:
+        return 0.0
+    d = direction.lower()
+    if d == "long":
+        return round((exit_price - entry) / entry * 100.0, 2)
+    if d == "short":
+        return round((entry - exit_price) / entry * 100.0, 2)
+    return 0.0
+
+
 def entry_zone_defined(entry_low: str | None, entry_high: str | None) -> bool:
     return parse_price(entry_low) is not None or parse_price(entry_high) is not None
 
@@ -173,19 +208,14 @@ def trade_move_pct(
     exit_price: float | None = None,
     stop_loss: str | None = None,
     take_profits: str | None = None,
+    published_market_price: float | None = None,
 ) -> float:
     """% изменения цены от входа до выхода (положительный = профит для направления)."""
-    entry = entry_mid(entry_low, entry_high)
+    entry = effective_entry_price(entry_low, entry_high, published_market_price)
     if exit_price is None:
         exit_price = exit_price_for_outcome(
             outcome, stop_loss=stop_loss, take_profits=take_profits, direction=direction
         )
-    if entry is None or entry <= 0 or exit_price is None:
+    if entry is None or exit_price is None:
         return 0.0
-
-    d = direction.lower()
-    if d == "long":
-        return round((exit_price - entry) / entry * 100.0, 2)
-    if d == "short":
-        return round((entry - exit_price) / entry * 100.0, 2)
-    return 0.0
+    return price_move_pct(entry, direction, exit_price)

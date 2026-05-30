@@ -15,7 +15,7 @@ from app.trader_stats import (
     signal_entry_stake_pct,
     signal_entry_stake_usd,
     signal_leverage,
-    signal_price_move_pct,
+    closed_signal_move_pct,
     signal_tracker_balance,
 )
 
@@ -258,10 +258,7 @@ def format_deleted_signal_message(signal: Signal, *, actor_label: str | None = N
 
 
 def _closed_price_move_pct(signal: Signal) -> float:
-    nominal = signal_entry_stake_usd(signal)
-    if signal.realized_pnl is not None and nominal > 0:
-        return round(signal.realized_pnl / nominal * 100.0, 2)
-    return signal_price_move_pct(signal, signal.status)
+    return closed_signal_move_pct(signal)
 
 
 def format_closed_signal_message(signal: Signal, *, market_close: bool = False) -> str:

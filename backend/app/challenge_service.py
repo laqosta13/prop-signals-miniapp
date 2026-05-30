@@ -68,6 +68,18 @@ def _sync_trading_days(db: Session, ch: UserChallenge) -> None:
     ch.trading_days = len({msk_day_key(s.closed_at) for s in closed if msk_day_key(s.closed_at)})
 
 
+def rebuild_tracker_balances_from_signals(db: Session, admin_ids: list[int]) -> None:
+    """Баланс трекера = стартовый депозит + сумма realized_pnl закрытых сигналов."""
+    from app.trader_stats import closed_signal_pnl_usd
+
+    for aid in admin_ids:
+        ch = get_or_create_challenge(db, aid)
+        closed = _closed_signals(db, aid)
+        total_pnl = round(sum(closed_signal_pnl_usd(s) for s in closed), 2)
+        ch.balance = round(ch.account_size + total_pnl, 2)
+        _sync_trading_days(db, ch)
+
+
 def apply_signal_to_tracker(db: Session, signal: Signal) -> None:
     if signal.author_telegram_id not in settings.admin_id_set or signal.realized_pnl is None:
         return

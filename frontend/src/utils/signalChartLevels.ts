@@ -151,7 +151,10 @@ export function signalOutcomeDisplay(
     const levels = levelsFromSignal(entryLow, entryHigh, stopLoss, takeProfits);
     const reason = resolveCloseReason(closeReason, status, closedExitPrice, levels);
     const label = closeReasonLabel(reason);
-    if (reason === "market") return { label: label ?? "По рынку", className: "market" };
+    if (reason === "market") {
+      const moveClass = status === "win" ? "win" : status === "lose" ? "lose" : "market";
+      return { label: label ?? "По рынку", className: moveClass };
+    }
     if (reason === "target") return { label: label ?? "Цель достигнута", className: "win" };
     return { label: label ?? "Стоп", className: "lose" };
   }

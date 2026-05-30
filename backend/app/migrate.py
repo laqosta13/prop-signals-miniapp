@@ -186,7 +186,40 @@ def run_migrations(engine: Engine) -> None:
     _purge_all_published_may2026_v2(engine)
     _purge_all_published_jun2026(engine)
     _sync_news_notify_flags_v1(engine)
-    _reset_news_notify_opt_in_v2(engine)
+    _sync_news_notify_opt_in_v2(engine)
+    _recalc_market_close_ratings_v1(engine)
+
+
+def _recalc_market_close_ratings_v1(engine: Engine) -> None:
+    """Пересчёт рейтинга/PnL по фактической цене закрытия (fix market close)."""
+    marker = _marker_path(engine, ".recalc_market_close_ratings_v1")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".recalc_market_close_ratings_v1"
+    if marker.exists():
+        return
+
+    from app.challenge_service import rebuild_tracker_balances_from_signals
+    from app.config import settings
+    from app.database import SessionLocal
+    from app.trader_stats import rebuild_trader_stats_from_signals
+
+    ids = sorted(settings.admin_id_set)
+    if not ids:
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+        return
+
+    db = SessionLocal()
+    try:
+        rebuild_trader_stats_from_signals(db, ids)
+        rebuild_tracker_balances_from_signals(db, ids)
+        db.commit()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
 
 
 def _purge_signals_reset_v3(engine: Engine) -> None:

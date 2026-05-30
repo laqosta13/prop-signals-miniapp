@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 from app.models import Signal, UserChallenge
-from app.trader_stats import pnl_usd_for_outcome
+from app.trader_stats import closed_signal_pnl_usd
 
 MSK = ZoneInfo("Europe/Moscow")
 
@@ -24,7 +24,7 @@ def signal_pnl_usd(signal: Signal) -> float:
     if signal.realized_pnl is not None:
         return float(signal.realized_pnl)
     if signal.status in ("win", "lose"):
-        return pnl_usd_for_outcome(signal, signal.status)
+        return closed_signal_pnl_usd(signal)
     return 0.0
 
 

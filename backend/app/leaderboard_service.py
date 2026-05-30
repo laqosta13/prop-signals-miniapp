@@ -12,7 +12,7 @@ from app.schemas import TraderDayStat, TraderRead
 from app.serializers import trader_to_read
 from app.signal_service import get_or_create_trader
 from app.rank_service import ensure_rank_fields
-from app.trader_stats import pnl_usd_for_outcome, signal_price_move_pct
+from app.trader_stats import closed_signal_move_pct, closed_signal_pnl_usd
 
 
 def _day_key(closed_at: datetime | None) -> str:
@@ -35,8 +35,8 @@ def daily_stats_map(db: Session, admin_ids: list[int]) -> dict[int, list[TraderD
     buckets: dict[int, dict[str, dict]] = defaultdict(lambda: defaultdict(lambda: {"pnl": 0.0, "rating": 0.0, "w": 0, "l": 0}))
 
     for s in rows:
-        pnl = s.realized_pnl if s.realized_pnl is not None else pnl_usd_for_outcome(s, s.status)
-        ret = signal_price_move_pct(s, s.status)
+        pnl = s.realized_pnl if s.realized_pnl is not None else closed_signal_pnl_usd(s)
+        ret = closed_signal_move_pct(s)
         day = _day_key(s.closed_at)
         b = buckets[s.author_telegram_id][day]
         b["pnl"] = round(b["pnl"] + pnl, 2)
