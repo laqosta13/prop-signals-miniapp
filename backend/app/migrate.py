@@ -47,6 +47,7 @@ def run_migrations(engine: Engine) -> None:
                 ("media_image_path", "ALTER TABLE signals ADD COLUMN media_image_path VARCHAR(256)"),
                 ("media_video_path", "ALTER TABLE signals ADD COLUMN media_video_path VARCHAR(256)"),
                 ("tracker_balance", "ALTER TABLE signals ADD COLUMN tracker_balance REAL"),
+                ("account_size", "ALTER TABLE signals ADD COLUMN account_size REAL"),
                 ("views_count", "ALTER TABLE signals ADD COLUMN views_count INTEGER DEFAULT 0"),
                 ("likes_count", "ALTER TABLE signals ADD COLUMN likes_count INTEGER DEFAULT 0"),
                 ("entry_filled_at", "ALTER TABLE signals ADD COLUMN entry_filled_at DATETIME"),
@@ -189,6 +190,51 @@ def run_migrations(engine: Engine) -> None:
     _reset_news_notify_opt_in_v2(engine)
     _recalc_market_close_ratings_v1(engine)
     _recalc_closed_signal_pnl_v2(engine)
+    _recalc_closed_signal_pnl_v3(engine)
+
+
+def _recalc_closed_signal_pnl_v3(engine: Engine) -> None:
+    """P/L от размера счёта (account_size), не накопленного баланса; пересчёт ТОП и трекеров."""
+    marker = _marker_path(engine, ".recalc_closed_signal_pnl_v3")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".recalc_closed_signal_pnl_v3"
+    if marker.exists():
+        return
+
+    from sqlalchemy import select
+
+    from app.challenge_service import rebuild_tracker_balances_from_signals
+    from app.config import settings
+    from app.database import SessionLocal
+    from app.models import Signal, UserChallenge
+    from app.trader_stats import rebuild_trader_stats_from_signals
+
+    ids = sorted(settings.admin_id_set)
+    if not ids:
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+        return
+
+    db = SessionLocal()
+    try:
+        for aid in ids:
+            ch = db.get(UserChallenge, aid)
+            acct = ch.account_size if ch is not None and ch.account_size > 0 else None
+            if acct is None:
+                continue
+            for signal in db.scalars(select(Signal).where(Signal.author_telegram_id == aid)).all():
+                if signal.account_size is None or signal.account_size <= 0:
+                    signal.account_size = acct
+
+        rebuild_trader_stats_from_signals(db, ids)
+        rebuild_tracker_balances_from_signals(db, ids)
+        db.commit()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
 
 
 def _recalc_closed_signal_pnl_v2(engine: Engine) -> None:

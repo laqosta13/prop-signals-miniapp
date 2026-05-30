@@ -20,7 +20,7 @@ from app.schemas import LikeResponse, MarketPriceRead, SignalRead, TelegramUser,
 from app.feed_serializers import FEED_SIGNAL_LIMIT, signals_list_read
 from app.serializers import signal_to_read
 from app.price_service import fetch_bybit_perp_quote, normalize_symbol
-from app.challenge_service import admin_tracker_balance, ensure_tracker_for_new_signal
+from app.challenge_service import admin_account_size, admin_tracker_balance, ensure_tracker_for_new_signal
 from app.signal_service import (
     build_signal_row,
     close_signal_at_market,
@@ -109,6 +109,7 @@ async def create_signal(
     admin: TelegramUser = Depends(require_admin),
 ) -> SignalRead:
     tb = admin_tracker_balance(db, admin.telegram_user_id)
+    acct = admin_account_size(db, admin.telegram_user_id)
     row = build_signal_row(
         db,
         symbol=symbol.strip().upper(),
@@ -125,6 +126,7 @@ async def create_signal(
         leverage=leverage,
         risk_percent=risk_percent,
         tracker_balance=tb,
+        account_size=acct,
     )
     db.add(row)
     db.flush()
@@ -186,6 +188,7 @@ async def update_signal(
         leverage=leverage,
         risk_percent=risk_percent,
         tracker_balance=admin_tracker_balance(db, admin.telegram_user_id),
+        account_size=admin_account_size(db, admin.telegram_user_id),
     )
 
     if remove_screenshot and row.media_image_path:

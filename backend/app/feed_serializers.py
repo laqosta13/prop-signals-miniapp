@@ -82,6 +82,7 @@ def signals_list_read(db: Session, signals: list[Signal], viewer_id: int | None)
                 leverage=s.leverage,
                 risk_percent=s.risk_percent,
                 tracker_balance=s.tracker_balance,
+                account_size=s.account_size,
                 realized_pnl=signal_realized_pnl_for_read(s),
                 entry_filled_at=s.entry_filled_at,
                 published_market_price=s.published_market_price,

@@ -35,7 +35,7 @@ def daily_stats_map(db: Session, admin_ids: list[int]) -> dict[int, list[TraderD
     buckets: dict[int, dict[str, dict]] = defaultdict(lambda: defaultdict(lambda: {"pnl": 0.0, "rating": 0.0, "w": 0, "l": 0}))
 
     for s in rows:
-        pnl = s.realized_pnl if s.realized_pnl is not None else closed_signal_pnl_usd(s)
+        pnl = closed_signal_pnl_usd(s)
         ret = closed_signal_move_pct(s)
         day = _day_key(s.closed_at)
         b = buckets[s.author_telegram_id][day]

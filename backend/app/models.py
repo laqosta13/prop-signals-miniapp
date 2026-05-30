@@ -33,6 +33,7 @@ class Signal(Base):
     media_image_path: Mapped[str | None] = mapped_column(String(256), nullable=True)
     media_video_path: Mapped[str | None] = mapped_column(String(256), nullable=True)
     tracker_balance: Mapped[float | None] = mapped_column(Float, nullable=True)
+    account_size: Mapped[float | None] = mapped_column(Float, nullable=True)
     views_count: Mapped[int] = mapped_column(Integer, default=0)
     likes_count: Mapped[int] = mapped_column(Integer, default=0)
     author_telegram_id: Mapped[int] = mapped_column(Integer, nullable=False)

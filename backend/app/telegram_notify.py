@@ -16,6 +16,8 @@ from app.trader_stats import (
     signal_entry_stake_usd,
     signal_leverage,
     closed_signal_move_pct,
+    signal_pnl_base_usd,
+    signal_realized_pnl_for_read,
     signal_tracker_balance,
 )
 
@@ -263,7 +265,7 @@ def _closed_price_move_pct(signal: Signal) -> float:
 
 def format_closed_signal_message(signal: Signal, *, market_close: bool = False) -> str:
     ret = _closed_price_move_pct(signal)
-    pnl = signal.realized_pnl or 0
+    pnl = signal_realized_pnl_for_read(signal) or 0
     sign = "+" if ret >= 0 else ""
     lev = signal_leverage(signal)
     lev_note = f" · {lev}x" if lev > 1 else ""
@@ -278,7 +280,7 @@ def format_closed_signal_message(signal: Signal, *, market_close: bool = False) 
         f"{emoji} <b>Сигнал #{num} {label}</b>\n"
         f"{_esc(signal.symbol)} · {_esc(signal.direction.upper())}\n"
         f"Движение цены: {sign}{ret:.2f}% · P/L трекера{lev_note}: {pnl:+.0f}$\n"
-        f"Трекер сигнала: ${signal_tracker_balance(signal):,.0f}\n"
+        f"Счёт сигнала: ${signal_pnl_base_usd(signal):,.0f}\n"
         f"Автор: {_esc(_signal_author_label(signal))}"
     )
 

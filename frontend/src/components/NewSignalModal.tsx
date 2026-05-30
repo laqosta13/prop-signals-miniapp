@@ -22,12 +22,12 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
-  trackerBalance?: number | null;
+  accountSize?: number | null;
 };
 
 const DEFAULT_SYMBOL = "BTCUSDT";
 
-export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Props) {
+export function NewSignalModal({ open, onClose, onCreated, accountSize }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [priceLoading, setPriceLoading] = useState(false);
@@ -102,9 +102,9 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
 
   if (!open) return null;
 
-  const tracker = trackerBalance ?? 0;
+  const account = accountSize ?? 0;
   const lev = parseLeverage(leverage);
-  const stakeUsd = entryNominalUsd(tracker, parseRiskPercent(risk), lev);
+  const stakeUsd = entryNominalUsd(account, parseRiskPercent(risk), lev);
 
   const onScreenshot = (file: File | null) => {
     setScreenshot(file);
@@ -207,9 +207,9 @@ export function NewSignalModal({ open, onClose, onCreated, trackerBalance }: Pro
 
         <RiskPercentSlider value={risk} onChange={setRisk} />
 
-        <label className="field-label">Трекер $</label>
-        <input value={tracker > 0 ? String(Math.round(tracker)) : "—"} readOnly className="readonly" />
-        {tracker > 0 && (
+        <label className="field-label">Счёт $</label>
+        <input value={account > 0 ? String(Math.round(account)) : "—"} readOnly className="readonly" />
+        {account > 0 && (
           <p className="meta signal-nominal">
             Номинал позиции:{" "}
             <span className="signal-nominal__usd">

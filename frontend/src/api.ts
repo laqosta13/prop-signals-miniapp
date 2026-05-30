@@ -35,6 +35,7 @@ export type Signal = {
   leverage: number | null;
   risk_percent: number | null;
   tracker_balance: number | null;
+  account_size: number | null;
   realized_pnl: number | null;
   entry_filled_at?: string | null;
   published_market_price?: number | null;

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { recordSignalView, toggleSignalLike, type Signal } from "../api";
 import { calcRR, authorProfile, formatTakeProfits, formatTime, formatUsd, mediaUrl } from "../utils";
-import { signalEntryStakePct, signalRealizedPnl } from "../utils/signalPnl";
+import { signalEntryStakePct, signalPnlBaseUsd, signalPriceMovePct, signalRealizedPnl } from "../utils/signalPnl";
 import { canEditOrDeleteSignal, canCloseAtMarketSignal, canSupplementSignal } from "../utils/signalActions";
 import { signalOutcomeDisplay } from "../utils/signalChartLevels";
 import { Avatar } from "./Avatar";
@@ -79,7 +79,8 @@ export function SignalCard({
   const isLong = s.direction === "long";
   const pnl = signalRealizedPnl(s) ?? s.realized_pnl;
   const stake = signalEntryStakePct(s);
-  const tracker = s.tracker_balance;
+  const sizingBase = signalPnlBaseUsd(s);
+  const movePct = signalPriceMovePct(s);
   const entryDone = !!(s.entry_filled_at || (!s.entry_low && !s.entry_high));
   const outcome = signalOutcomeDisplay(
     s.status,
@@ -139,7 +140,7 @@ export function SignalCard({
         </div>
         <div className="signal-card__actions">
           <span className="risk-tag">Вход {stake}%</span>
-          {tracker != null && tracker > 0 && <span className="risk-tag">Трекер {formatUsd(tracker)}</span>}
+          {sizingBase > 0 && <span className="risk-tag">Счёт {formatUsd(sizingBase)}</span>}
           {isAdmin && canEditOrDeleteSignal(s, myId, !!isAdmin) && (
             <div className="admin-actions">
               {onEdit && (
@@ -253,8 +254,14 @@ export function SignalCard({
         </button>
       </div>
       <footer className="signal-card__foot">
-        <span>Плечо {s.leverage ?? 5}x</span>
+        <span>Плечо {s.leverage ?? 1}x</span>
         <span>RR {calcRR(entry === "—" ? null : entry, s.stop_loss, s.take_profits)}</span>
+        {movePct != null && (
+          <span className={movePct >= 0 ? "pnl-win" : "pnl-lose"}>
+            {movePct >= 0 ? "+" : ""}
+            {movePct.toFixed(2)}%
+          </span>
+        )}
         {pnl != null && (
           <span className={pnl >= 0 ? "pnl-win" : "pnl-lose"}>
             {pnl >= 0 ? "+" : ""}

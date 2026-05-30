@@ -39,6 +39,11 @@ def admin_tracker_balance(db: Session, admin_id: int) -> float:
     return get_or_create_challenge(db, admin_id).balance
 
 
+def admin_account_size(db: Session, admin_id: int) -> float:
+    """Размер счёта Hash Hedge — база для номинала позиции и P/L."""
+    return get_or_create_challenge(db, admin_id).account_size
+
+
 def ensure_tracker_for_new_signal(db: Session, signal: Signal) -> None:
     if signal.author_telegram_id not in settings.admin_id_set:
         return

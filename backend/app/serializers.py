@@ -84,6 +84,7 @@ def signal_to_read(db: Session, signal: Signal, viewer_id: int | None = None) ->
         leverage=signal.leverage,
         risk_percent=signal.risk_percent,
         tracker_balance=signal.tracker_balance,
+        account_size=signal.account_size,
         realized_pnl=signal_realized_pnl_for_read(signal),
         entry_filled_at=signal.entry_filled_at,
         published_market_price=signal.published_market_price,

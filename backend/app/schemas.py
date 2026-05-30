@@ -30,6 +30,7 @@ class SignalRead(BaseModel):
     leverage: int | None = None
     risk_percent: float | None = None
     tracker_balance: float | None = None
+    account_size: float | None = None
     realized_pnl: float | None = None
     entry_filled_at: datetime | None = None
     published_market_price: float | None = None

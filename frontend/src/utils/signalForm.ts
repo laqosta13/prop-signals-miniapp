@@ -22,11 +22,11 @@ export function formatRiskPercent(value: number): string {
   return rounded.toFixed(2).replace(/\.?0+$/, "");
 }
 
-/** Номинал позиции: трекер × сумма входа % × плечо / 100. */
-export function entryNominalUsd(tracker: number, riskPercent: number, leverage: number): number {
-  if (tracker <= 0) return 0;
+/** Номинал позиции: счёт × сумма входа % × плечо / 100. */
+export function entryNominalUsd(accountUsd: number, riskPercent: number, leverage: number): number {
+  if (accountUsd <= 0) return 0;
   const lev = Math.max(1, leverage);
-  return (tracker * riskPercent * lev) / 100;
+  return (accountUsd * riskPercent * lev) / 100;
 }
 
 export function onLeveragePick(newLeverage: number): { leverage: string; risk: string } {

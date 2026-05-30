@@ -415,6 +415,7 @@ def build_signal_row(
     leverage: int | None = None,
     risk_percent: float | None = None,
     tracker_balance: float | None = None,
+    account_size: float | None = None,
     author_first_name: str | None = None,
     author_last_name: str | None = None,
 ) -> Signal:
@@ -442,6 +443,7 @@ def build_signal_row(
         leverage=leverage,
         risk_percent=stake,
         tracker_balance=tracker_balance,
+        account_size=account_size,
         views_count=0,
         likes_count=0,
         author_telegram_id=author_telegram_id,
@@ -462,6 +464,7 @@ def update_signal_fields(
     leverage: int | None,
     risk_percent: float | None,
     tracker_balance: float | None,
+    account_size: float | None = None,
 ) -> None:
     signal.symbol = symbol
     signal.direction = direction
@@ -476,3 +479,5 @@ def update_signal_fields(
         signal.risk_percent = risk_percent
     if tracker_balance is not None:
         signal.tracker_balance = tracker_balance
+    if account_size is not None:
+        signal.account_size = account_size

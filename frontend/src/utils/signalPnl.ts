@@ -36,13 +36,20 @@ function leverage(s: Signal): number {
   return Math.min(Math.max(Math.trunc(lev), 1), MAX_LEVERAGE);
 }
 
-/** P/L в $: трекер × сумма входа % × плечо × движение цены / 100. */
+/** База для номинала: размер счёта (account_size), иначе баланс на момент публикации. */
+export function signalPnlBaseUsd(s: Signal): number {
+  if (s.account_size != null && s.account_size > 0) return s.account_size;
+  if (s.tracker_balance != null && s.tracker_balance > 0) return s.tracker_balance;
+  return 10_000;
+}
+
+/** P/L в $: счёт × сумма входа % × плечо × движение цены / 100. */
 export function signalRealizedPnl(s: Signal): number | null {
   if (s.status !== "win" && s.status !== "lose") return null;
   const move = priceMovePct(s);
   if (move == null) return s.realized_pnl;
-  const tracker = s.tracker_balance != null && s.tracker_balance > 0 ? s.tracker_balance : 10_000;
-  const nominal = (tracker * stakePct(s) * leverage(s)) / 100;
+  const base = signalPnlBaseUsd(s);
+  const nominal = (base * stakePct(s) * leverage(s)) / 100;
   return Math.round((nominal * move) / 100 * 100) / 100;
 }
 

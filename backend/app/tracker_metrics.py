@@ -21,10 +21,10 @@ def msk_day_key(dt: datetime | None) -> str | None:
 
 
 def signal_pnl_usd(signal: Signal) -> float:
-    if signal.realized_pnl is not None:
-        return float(signal.realized_pnl)
     if signal.status in ("win", "lose"):
         return closed_signal_pnl_usd(signal)
+    if signal.realized_pnl is not None:
+        return float(signal.realized_pnl)
     return 0.0
 
 
