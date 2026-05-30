@@ -241,7 +241,27 @@ body {
 .signal-card__author {
   display: flex;
   gap: 10px;
-  align-items: flex-start;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.signal-card__author-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.signal-card__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.signal-ticker {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .signal-card__author h3 {
@@ -252,8 +272,8 @@ body {
 .signal-number {
   color: var(--muted);
   font-weight: 700;
+  font-size: 0.88rem;
   font-variant-numeric: tabular-nums;
-  margin-right: 6px;
 }
 
 .author-line {
@@ -265,8 +285,24 @@ body {
 
 .author-line--name {
   color: var(--text);
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 0.92rem;
+  margin-bottom: 6px;
+  line-height: 1.2;
+}
+
+.signal-card__pnl-inline {
   font-size: 0.82rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.signal-card__pnl-inline.up {
+  color: var(--green);
+}
+
+.signal-card__pnl-inline.down {
+  color: var(--red);
 }
 
 .author-line--login {
@@ -709,7 +745,30 @@ body {
 .signal-card__time {
   font-size: 0.78rem;
   color: var(--muted);
-  margin: 8px 0;
+  margin: 4px 0 8px;
+}
+
+.signal-card__entry-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 0;
+  margin: 0 0 12px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(224, 175, 255, 0.14), rgba(61, 255, 138, 0.07));
+  border: 1px solid rgba(224, 175, 255, 0.28);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+
+.signal-card__entry-row span + span::before {
+  content: "·";
+  margin: 0 8px;
+  color: rgba(255, 255, 255, 0.35);
+  font-weight: 400;
 }
 
 .levels-grid {

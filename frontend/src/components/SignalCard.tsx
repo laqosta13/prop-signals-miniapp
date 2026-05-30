@@ -88,7 +88,6 @@ export function SignalCard({
     s.status === "active" && entryDone ? livePnl.pnl : pnl ?? null;
   const headerMove =
     s.status === "active" && entryDone ? livePnl.movePct : movePct ?? null;
-  const showHeaderPnl = headerPnl != null || headerMove != null;
   const outcome = signalOutcomeDisplay(
     s.status,
     entryDone,
@@ -133,44 +132,41 @@ export function SignalCard({
       <header className="signal-card__head">
         <div className="signal-card__author">
           <Avatar url={s.author_avatar_url} displayName={s.author_display_name} username={s.author_username} size={36} />
-          <div>
-            <h3>
-              <span className="signal-number">#{s.number}</span>
-              {s.symbol}
-            </h3>
+          <div className="signal-card__author-meta">
             <span className="author-line author-line--name">{author.title}</span>
-            <span className={`dir-badge ${isLong ? "long" : "short"}`}>
-              {isLong ? "↑ LONG" : "↓ SHORT"}
-            </span>
-          </div>
-        </div>
-        <div className="signal-card__actions">
-          {showHeaderPnl && (
-            <div
-              className={`signal-card__pnl ${
-                (headerPnl ?? headerMove ?? 0) >= 0 ? "up" : "down"
-              }`}
-              aria-live="polite"
-            >
-              {headerPnl != null && (
-                <span className="signal-card__pnl-usd">
-                  {headerPnl >= 0 ? "+" : ""}
-                  {formatUsd(headerPnl)}
-                </span>
-              )}
+            <div className="signal-card__title-row">
+              <span className="signal-number">#{s.number}</span>
+              <span className="signal-ticker">{s.symbol}</span>
+              <span className={`dir-badge ${isLong ? "long" : "short"}`}>
+                {isLong ? "↑ LONG" : "↓ SHORT"}
+              </span>
               {headerMove != null && (
-                <span className="signal-card__pnl-pct">
+                <span
+                  className={`signal-card__pnl-inline ${headerMove >= 0 ? "up" : "down"}`}
+                  aria-live="polite"
+                >
                   {headerMove >= 0 ? "+" : ""}
                   {headerMove.toFixed(2)}%
                 </span>
               )}
-              {livePnl.loading && s.status === "active" && headerPnl == null && (
-                <span className="signal-card__pnl-pct">…</span>
+              {livePnl.loading && s.status === "active" && entryDone && headerMove == null && (
+                <span className="signal-card__pnl-inline">…</span>
               )}
             </div>
+          </div>
+        </div>
+        <div className="signal-card__actions">
+          {headerPnl != null && (
+            <div
+              className={`signal-card__pnl ${headerPnl >= 0 ? "up" : "down"}`}
+              aria-live="polite"
+            >
+              <span className="signal-card__pnl-usd">
+                {headerPnl >= 0 ? "+" : ""}
+                {formatUsd(headerPnl)}
+              </span>
+            </div>
           )}
-          <span className="risk-tag">Вход {stake}%</span>
-          {sizingBase > 0 && <span className="risk-tag">Счёт {formatUsd(sizingBase)}</span>}
           {isAdmin && canEditOrDeleteSignal(s, myId, !!isAdmin) && (
             <div className="admin-actions">
               {onEdit && (
@@ -188,6 +184,12 @@ export function SignalCard({
         </div>
       </header>
       <p className="signal-card__time">{formatTime(s.created_at)}</p>
+      <div className="signal-card__entry-row" aria-label="Условие входа">
+        <span>Вход {stake}%</span>
+        {sizingBase > 0 && <span>Счёт {formatUsd(sizingBase)}</span>}
+        <span>Плечо {s.leverage ?? 1}x</span>
+        <span>RR {calcRR(entry === "—" ? null : entry, s.stop_loss, s.take_profits)}</span>
+      </div>
       <SignalChart
         key={`${s.id}-${s.status}-${s.closed_at ?? "open"}`}
         symbol={s.symbol}
@@ -293,15 +295,13 @@ export function SignalCard({
         </button>
       </div>
       <footer className="signal-card__foot">
-        <span>Плечо {s.leverage ?? 1}x</span>
-        <span>RR {calcRR(entry === "—" ? null : entry, s.stop_loss, s.take_profits)}</span>
-        {movePct != null && (
+        {movePct != null && s.status !== "active" && (
           <span className={movePct >= 0 ? "pnl-win" : "pnl-lose"}>
             {movePct >= 0 ? "+" : ""}
             {movePct.toFixed(2)}%
           </span>
         )}
-        {pnl != null && (
+        {pnl != null && headerPnl == null && (
           <span className={pnl >= 0 ? "pnl-win" : "pnl-lose"}>
             {pnl >= 0 ? "+" : ""}
             {formatUsd(pnl)}
