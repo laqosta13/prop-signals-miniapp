@@ -56,7 +56,75 @@ function buildPoints(dailyStats: TraderDayStat[]): Point[] {
   return points;
 }
 
-function yTicks(minV: number, maxV: number, zeroY: number) {
+function interpolateZero(
+  a: { x: number; y: number; value: number },
+  b: { x: number; y: number; value: number },
+  zeroY: number,
+): { x: number; y: number; value: number } | null {
+  if (a.value === b.value) return null;
+  if ((a.value < 0 && b.value < 0) || (a.value >= 0 && b.value >= 0)) return null;
+  const t = (0 - a.value) / (b.value - a.value);
+  return {
+    x: a.x + t * (b.x - a.x),
+    y: zeroY,
+    value: 0,
+  };
+}
+
+type ChartCoord = { x: number; y: number; value: number; date: string; i: number };
+
+function splitAtZero(
+  coords: ChartCoord[],
+  zeroY: number,
+): { tone: "up" | "down"; points: ChartCoord[] }[] {
+  const expanded: ChartCoord[] = [];
+  for (let i = 0; i < coords.length; i += 1) {
+    if (i > 0) {
+      const cross = interpolateZero(coords[i - 1], coords[i], zeroY);
+      if (cross) {
+        expanded.push({ ...cross, date: coords[i].date, i: coords[i].i });
+      }
+    }
+    expanded.push(coords[i]);
+  }
+
+  const segments: { tone: "up" | "down"; points: ChartCoord[] }[] = [];
+  let current: ChartCoord[] = [];
+  let tone: "up" | "down" | null = null;
+
+  const flush = () => {
+    if (current.length >= 2 && tone) segments.push({ tone, points: current });
+    current = [];
+  };
+
+  for (const p of expanded) {
+    const nextTone: "up" | "down" = p.value >= 0 ? "up" : "down";
+    if (tone != null && nextTone !== tone) {
+      current.push(p);
+      flush();
+      current = [p];
+    } else {
+      current.push(p);
+    }
+    tone = nextTone;
+  }
+  flush();
+  return segments;
+}
+
+function segmentLine(points: ChartCoord[]): string {
+  return points.map((p) => `${p.x},${p.y}`).join(" ");
+}
+
+function segmentArea(points: ChartCoord[], zeroY: number): string {
+  if (points.length < 2) return "";
+  const line = segmentLine(points);
+  const first = points[0];
+  const last = points[points.length - 1];
+  return `${first.x},${zeroY} ${line} ${last.x},${zeroY}`;
+}
+
+function yTicks(minV: number, maxV: number, _zeroY: number) {
   const span = maxV - minV || 1;
   const steps = span <= 2 ? 3 : span <= 8 ? 4 : 5;
   const raw: number[] = [];
@@ -94,8 +162,7 @@ export function EquityCurve({ dailyStats, className = "" }: Props) {
     }));
 
     const zeroY = toY(0);
-    const line = coords.map((c) => `${c.x},${c.y}`).join(" ");
-    const area = `${coords[0].x},${zeroY} ${line} ${coords[coords.length - 1].x},${zeroY}`;
+    const segments = splitAtZero(coords, zeroY);
     const last = coords[coords.length - 1];
     const positive = last.value >= 0;
     const ticks = yTicks(minV, maxV, zeroY);
@@ -109,12 +176,12 @@ export function EquityCurve({ dailyStats, className = "" }: Props) {
       xLabels.splice(1, 0, { i: mid, label: formatDayLabel(points[mid].date) });
     }
 
-    return { points, coords, zeroY, line, area, last, positive, ticks, xLabels, toY, plotW, plotH };
+    return { points, coords, zeroY, segments, last, positive, ticks, xLabels, toY, plotW, plotH };
   }, [dailyStats]);
 
   if (!chart) return null;
 
-  const { coords, zeroY, line, area, last, positive, ticks, xLabels, toY } = chart;
+  const { coords, zeroY, segments, last, positive, ticks, xLabels, toY } = chart;
   const active = hoverIdx != null ? coords[hoverIdx] : last;
 
   const onMove = (e: React.MouseEvent<SVGSVGElement>) => {
@@ -165,9 +232,13 @@ export function EquityCurve({ dailyStats, className = "" }: Props) {
           onTouchEnd={() => setHoverIdx(null)}
         >
           <defs>
-            <linearGradient id={`eq-fill-${gradId}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={positive ? "var(--green)" : "var(--red)"} stopOpacity="0.35" />
-              <stop offset="100%" stopColor={positive ? "var(--green)" : "var(--red)"} stopOpacity="0.02" />
+            <linearGradient id={`eq-fill-up-${gradId}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--green)" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="var(--green)" stopOpacity="0.02" />
+            </linearGradient>
+            <linearGradient id={`eq-fill-down-${gradId}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--red)" stopOpacity="0.02" />
+              <stop offset="100%" stopColor="var(--red)" stopOpacity="0.35" />
             </linearGradient>
           </defs>
 
@@ -188,11 +259,25 @@ export function EquityCurve({ dailyStats, className = "" }: Props) {
 
           <line x1={PAD.left} y1={zeroY} x2={W - PAD.right} y2={zeroY} className="equity-curve__zero" />
 
-          <polygon points={area} fill={`url(#eq-fill-${gradId})`} className="equity-curve__area" />
-          <polyline
-            points={line}
-            className={`equity-curve__line ${positive ? "equity-curve__line--up" : "equity-curve__line--down"}`}
-          />
+          {segments.map((seg, idx) => {
+            const areaPoints = segmentArea(seg.points, zeroY);
+            if (!areaPoints) return null;
+            return (
+              <polygon
+                key={`area-${idx}`}
+                points={areaPoints}
+                fill={`url(#eq-fill-${seg.tone === "up" ? "up" : "down"}-${gradId})`}
+                className="equity-curve__area"
+              />
+            );
+          })}
+          {segments.map((seg, idx) => (
+            <polyline
+              key={`line-${idx}`}
+              points={segmentLine(seg.points)}
+              className={`equity-curve__line equity-curve__line--${seg.tone === "up" ? "up" : "down"}`}
+            />
+          ))}
 
           {xLabels.map(({ i, label }) => (
             <text key={`${i}-${label}`} x={coords[i].x} y={H - 6} className="equity-curve__xlabel" textAnchor="middle">
@@ -200,7 +285,12 @@ export function EquityCurve({ dailyStats, className = "" }: Props) {
             </text>
           ))}
 
-          <circle cx={last.x} cy={last.y} r={3.5} className={`equity-curve__dot ${positive ? "pnl-win" : "pnl-lose"}`} />
+          <circle
+            cx={last.x}
+            cy={last.y}
+            r={3.5}
+            className={`equity-curve__dot ${last.value >= 0 ? "pnl-win" : "pnl-lose"}`}
+          />
 
           {hoverIdx != null && (
             <>
