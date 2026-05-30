@@ -26,6 +26,7 @@ from app.telegram_notify import (
     notify_subscribers,
 )
 from app.challenge_service import apply_signal_to_tracker, ensure_tracker_for_new_signal
+from app.database import SessionLocal
 from app.price_service import (
     PriceQuote,
     clear_price_cache,
@@ -232,7 +233,7 @@ async def close_signal_and_notify(
         await notify_subscribers(format_closed_signal_message(signal, market_close=market_close), ids)
 
 
-async def close_signal_at_market(db: Session, signal: Signal) -> None:
+async def close_signal_at_market(db: Session, signal: Signal, *, notify: bool = True) -> None:
     """Ручное закрытие активного сигнала по текущей рыночной цене."""
     if signal.status in ("win", "lose"):
         return
@@ -251,9 +252,28 @@ async def close_signal_at_market(db: Session, signal: Signal) -> None:
         exit_price=exit_price,
     )
     outcome = "win" if move > 0 else "lose"
-    await close_signal_and_notify(db, signal, outcome, exit_price=exit_price, market_close=True)
+    if notify:
+        await close_signal_and_notify(db, signal, outcome, exit_price=exit_price, market_close=True)
+    elif not close_signal(db, signal, outcome, exit_price=exit_price, close_reason="market"):
+        raise ValueError("close_failed")
     if signal.status == "active":
         raise ValueError("close_failed")
+
+
+async def notify_market_closed(signal_id: int) -> None:
+    """Telegram-уведомление после ручного закрытия (отдельная сессия, не блокирует API)."""
+    db = SessionLocal()
+    try:
+        signal = db.get(Signal, signal_id)
+        if signal is None or signal.status == "active":
+            return
+        ids = subscriber_ids_for_notify(db)
+        if ids:
+            await notify_subscribers(format_closed_signal_message(signal, market_close=True), ids)
+    except Exception:
+        logger.exception("notify market close failed for signal #%s", signal_id)
+    finally:
+        db.close()
 
 
 async def notify_entry_filled(db: Session, signal: Signal) -> None:

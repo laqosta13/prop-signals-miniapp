@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
@@ -24,6 +24,7 @@ from app.challenge_service import admin_tracker_balance, ensure_tracker_for_new_
 from app.signal_service import (
     build_signal_row,
     close_signal_at_market,
+    notify_market_closed,
     notify_deleted_signal,
     notify_new_signal,
     notify_signal_supplement,
@@ -292,6 +293,7 @@ async def add_supplement(
 @router.post("/{signal_id}/close-market", response_model=SignalRead)
 async def close_market(
     signal_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(db_session),
     admin: TelegramUser = Depends(require_admin),
 ) -> SignalRead:
@@ -305,7 +307,7 @@ async def close_market(
             detail="Закрыть по рынку можно только активный сигнал после входа",
         )
     try:
-        await close_signal_at_market(db, row)
+        await close_signal_at_market(db, row, notify=False)
     except ValueError as e:
         if str(e) == "no_price":
             raise HTTPException(
@@ -324,6 +326,7 @@ async def close_market(
             status_code=status.HTTP_409_CONFLICT,
             detail="Сигнал не удалось закрыть — обновите ленту",
         )
+    background_tasks.add_task(notify_market_closed, row.id)
     return signal_to_read(db, row, admin.telegram_user_id)
 
 

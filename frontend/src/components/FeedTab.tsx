@@ -13,6 +13,7 @@ type Props = {
   myId: number | null;
   subscriptionActive: boolean;
   onChanged: () => void;
+  onReloadTrackers?: () => void | Promise<void>;
   onEdit: (signal: Signal) => void;
   onSupplement: (signal: Signal) => void;
   onPatch: (id: number, patch: Partial<Signal>) => void;
@@ -28,6 +29,7 @@ export function FeedTab({
   myId,
   subscriptionActive,
   onChanged,
+  onReloadTrackers,
   onEdit,
   onSupplement,
   onPatch,
@@ -59,10 +61,10 @@ export function FeedTab({
       const updated = await closeSignalAtMarket(id);
       onPatch(id, updated);
       WebApp.HapticFeedback.notificationOccurred("success");
-      onChanged();
+      void onReloadTrackers?.();
     } catch (e) {
       alert(e instanceof Error ? e.message : "Не удалось закрыть");
-      onChanged();
+      void onChanged();
     } finally {
       setClosingId(null);
     }

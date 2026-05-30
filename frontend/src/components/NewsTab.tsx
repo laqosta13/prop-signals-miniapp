@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { deleteNewsPost, fetchNews, type NewsPost } from "../api";
 import { formatTime, mediaUrl } from "../utils";
+import { LinkPreviewCard } from "./LinkPreviewCard";
 
 type Props = {
   isAdmin: boolean;
@@ -77,6 +78,11 @@ export function NewsTab({ isAdmin, onEdit, refreshKey = 0 }: Props) {
             )}
             {videoSrc && (
               <video className="news-card__video" src={videoSrc} controls playsInline preload="metadata" />
+            )}
+            {p.link && (
+              <div className="news-card__link">
+                <LinkPreviewCard link={p.link} />
+              </div>
             )}
             <p className="news-card__body">{p.body}</p>
           </li>

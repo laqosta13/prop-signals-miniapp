@@ -195,6 +195,13 @@ export type Review = {
   is_mine: boolean;
 };
 
+export type NewsLinkPreview = {
+  url: string;
+  title: string | null;
+  description: string | null;
+  image_url: string | null;
+};
+
 export type NewsPost = {
   id: number;
   created_at: string;
@@ -203,6 +210,7 @@ export type NewsPost = {
   body: string;
   image_url: string | null;
   video_url: string | null;
+  link: NewsLinkPreview | null;
   author_telegram_id: number;
   author_display_name: string | null;
 };
@@ -273,6 +281,9 @@ export async function deleteReview(id: number): Promise<void> {
 }
 
 export const fetchNews = () => api<NewsPost[]>("/news");
+
+export const fetchNewsLinkPreview = (url: string) =>
+  api<NewsLinkPreview>(`/news/link-preview?url=${encodeURIComponent(url.trim())}`);
 
 export const createNewsPost = (form: FormData) => sendForm<NewsPost>("/news", "POST", form);
 
@@ -406,7 +417,11 @@ export async function deleteSignal(signalId: number): Promise<void> {
 }
 
 export const closeSignalAtMarket = (signalId: number) =>
-  api<Signal>(`/signals/${signalId}/close-market`, { method: "POST" });
+  api<Signal>(`/signals/${signalId}/close-market`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
 
 export const setNotifications = (patch: { notify_enabled?: boolean; notify_news_enabled?: boolean }) =>
   api<Me>("/subscriptions/me", {

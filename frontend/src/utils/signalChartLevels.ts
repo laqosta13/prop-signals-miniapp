@@ -92,13 +92,26 @@ export function candleTimeForInstant(
 
 export type CloseReason = "stop" | "target" | "market";
 
+function pricesNear(a: number, b: number, tolerancePct = 0.12): boolean {
+  return (Math.abs(a - b) / Math.max(Math.abs(b), 1e-12)) * 100 <= tolerancePct;
+}
+
 export function resolveCloseReason(
   closeReason: string | null | undefined,
   status: string,
+  closedExitPrice?: number | null,
+  levels?: Pick<SignalChartLevels, "stop" | "targets">,
 ): CloseReason | null {
-  if (closeReason === "stop" || closeReason === "target" || closeReason === "market") {
-    return closeReason;
+  if (closeReason === "market") return "market";
+
+  if (closedExitPrice != null && levels && (status === "win" || status === "lose")) {
+    const { stop, targets } = levels;
+    if (stop != null && pricesNear(closedExitPrice, stop)) return "stop";
+    if (targets.some((tp) => pricesNear(closedExitPrice, tp))) return "target";
+    if (status === "win" || status === "lose") return "market";
   }
+
+  if (closeReason === "stop" || closeReason === "target") return closeReason;
   if (status === "win") return "target";
   if (status === "lose") return "stop";
   return null;
@@ -116,6 +129,35 @@ export function closeReasonColor(reason: CloseReason | null): string {
   if (reason === "target") return "#e0afff";
   if (reason === "market") return "#ffd166";
   return "#aab4c7";
+}
+
+export type SignalOutcomeDisplay = {
+  label: string;
+  className: "win" | "lose" | "market" | "active" | "waiting" | "active-in";
+};
+
+/** Подпись и стиль бейджа исхода в карточке сигнала. */
+export function signalOutcomeDisplay(
+  status: string,
+  entryDone: boolean,
+  closeReason: string | null | undefined,
+  closedExitPrice: number | null | undefined,
+  entryLow: string | null,
+  entryHigh: string | null,
+  stopLoss: string | null,
+  takeProfits: string | null,
+): SignalOutcomeDisplay {
+  if (status === "win" || status === "lose") {
+    const levels = levelsFromSignal(entryLow, entryHigh, stopLoss, takeProfits);
+    const reason = resolveCloseReason(closeReason, status, closedExitPrice, levels);
+    const label = closeReasonLabel(reason);
+    if (reason === "market") return { label: label ?? "По рынку", className: "market" };
+    if (reason === "target") return { label: label ?? "Цель достигнута", className: "win" };
+    return { label: label ?? "Стоп", className: "lose" };
+  }
+  if (!entryDone) return { label: "Ожидание входа", className: "waiting" };
+  if (status === "active") return { label: "Активен", className: "active-in" };
+  return { label: "Активен", className: "active" };
 }
 
 export function resolveClosePrice(

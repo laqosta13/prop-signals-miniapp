@@ -3,6 +3,7 @@ import WebApp from "@twa-dev/sdk";
 import { recordSignalView, toggleSignalLike, type Signal } from "../api";
 import { calcRR, authorProfile, formatTakeProfits, formatTime, formatUsd, mediaUrl } from "../utils";
 import { canEditOrDeleteSignal, canCloseAtMarketSignal, canSupplementSignal } from "../utils/signalActions";
+import { signalOutcomeDisplay } from "../utils/signalChartLevels";
 import { Avatar } from "./Avatar";
 import { SignalChart } from "./SignalChart";
 
@@ -79,21 +80,18 @@ export function SignalCard({
   const stake = s.risk_percent ?? s.points_percent ?? 1;
   const tracker = s.tracker_balance;
   const entryDone = !!(s.entry_filled_at || (!s.entry_low && !s.entry_high));
-
-  let statusBadge = "Активен";
-  let statusClass = "active";
-  if (s.status === "win") {
-    statusBadge = "Цель достигнута";
-    statusClass = "win";
-  } else if (s.status === "lose") {
-    statusBadge = "Стоп";
-    statusClass = "lose";
-  } else if (!entryDone) {
-    statusBadge = "Ожидание входа";
-    statusClass = "waiting";
-  } else {
-    statusClass = "active-in";
-  }
+  const outcome = signalOutcomeDisplay(
+    s.status,
+    entryDone,
+    s.close_reason,
+    s.closed_exit_price,
+    s.entry_low,
+    s.entry_high,
+    s.stop_loss,
+    s.take_profits,
+  );
+  const statusBadge = outcome.label;
+  const statusClass = outcome.className;
 
   const author = authorProfile(s.author_display_name, s.author_username);
 
@@ -161,6 +159,7 @@ export function SignalCard({
       <SignalChart
         key={`${s.id}-${s.status}-${s.closed_at ?? "open"}`}
         symbol={s.symbol}
+        createdAt={s.created_at}
         entryLow={s.entry_low}
         entryHigh={s.entry_high}
         stopLoss={s.stop_loss}

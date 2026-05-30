@@ -161,7 +161,17 @@ def review_to_read(db: Session, row: Review, viewer_id: int) -> ReviewRead:
 
 
 def news_to_read(db: Session, row: NewsPost) -> NewsRead:
+    from app.schemas import NewsLinkPreview
+
     display, _, _ = _author_profile(db, row.author_telegram_id, None)
+    link = None
+    if row.link_url:
+        link = NewsLinkPreview(
+            url=row.link_url,
+            title=row.link_title,
+            description=row.link_description,
+            image_url=row.link_image_url,
+        )
     return NewsRead(
         id=row.id,
         created_at=row.created_at,
@@ -170,6 +180,7 @@ def news_to_read(db: Session, row: NewsPost) -> NewsRead:
         body=row.body,
         image_url=public_url(row.image_path),
         video_url=public_url(row.video_path),
+        link=link,
         author_telegram_id=row.author_telegram_id,
         author_display_name=display,
     )

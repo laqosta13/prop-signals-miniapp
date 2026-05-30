@@ -158,4 +158,8 @@ class NewsPost(Base):
     body: Mapped[str] = mapped_column(Text, nullable=False)
     image_path: Mapped[str | None] = mapped_column(String(256), nullable=True)
     video_path: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    link_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    link_title: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    link_description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    link_image_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     author_telegram_id: Mapped[int] = mapped_column(Integer, nullable=False)

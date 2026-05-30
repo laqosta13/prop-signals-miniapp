@@ -28,6 +28,7 @@ import { ReviewsTab } from "./components/ReviewsTab";
 import { SubscriptionTab } from "./components/SubscriptionTab";
 import { TrackerSettingsModal } from "./components/TrackerSettingsModal";
 import { TrackerTab } from "./components/TrackerTab";
+import { mergeFeedSignals } from "./utils/mergeFeedSignals";
 import { useOutcomeReveal } from "./hooks/useOutcomeReveal";
 import { hasAcceptedDisclaimer, markDisclaimerAccepted } from "./utils/disclaimerStorage";
 
@@ -151,11 +152,15 @@ export default function App() {
   const refreshSignalsOnly = useCallback(async () => {
     try {
       const sig = fullAccessRef.current ? await fetchSignals() : await fetchSignalsPreview();
-      setSignals(sig);
+      setSignals((prev) => mergeFeedSignals(prev, sig));
     } catch {
       /* keep previous feed on poll errors */
     }
   }, []);
+
+  const reloadTrackersOnly = useCallback(async () => {
+    if (trackersFetchedRef.current) await loadTrackers();
+  }, [loadTrackers]);
 
   const loadBootstrap = useCallback(async () => {
     try {
@@ -380,6 +385,7 @@ export default function App() {
             myId={myId}
             subscriptionActive={subActive}
             onChanged={reloadAfterSignalChange}
+            onReloadTrackers={reloadTrackersOnly}
             onEdit={setEditSignal}
             onSupplement={setSupplementSignal}
             onPatch={patchSignal}

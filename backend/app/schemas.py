@@ -224,6 +224,13 @@ class ReviewRead(BaseModel):
     is_mine: bool = False
 
 
+class NewsLinkPreview(BaseModel):
+    url: str
+    title: str | None = None
+    description: str | None = None
+    image_url: str | None = None
+
+
 class NewsRead(BaseModel):
     id: int
     created_at: datetime
@@ -232,5 +239,6 @@ class NewsRead(BaseModel):
     body: str
     image_url: str | None = None
     video_url: str | None = None
+    link: NewsLinkPreview | None = None
     author_telegram_id: int
     author_display_name: str | None = None

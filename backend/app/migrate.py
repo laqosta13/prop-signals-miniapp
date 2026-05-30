@@ -170,6 +170,14 @@ def run_migrations(engine: Engine) -> None:
         if "news_posts" in tables:
             if not _has_column(engine, "news_posts", "video_path"):
                 conn.execute(text("ALTER TABLE news_posts ADD COLUMN video_path VARCHAR(256)"))
+            for col, ddl in (
+                ("link_url", "ALTER TABLE news_posts ADD COLUMN link_url VARCHAR(512)"),
+                ("link_title", "ALTER TABLE news_posts ADD COLUMN link_title VARCHAR(300)"),
+                ("link_description", "ALTER TABLE news_posts ADD COLUMN link_description TEXT"),
+                ("link_image_url", "ALTER TABLE news_posts ADD COLUMN link_image_url VARCHAR(512)"),
+            ):
+                if not _has_column(engine, "news_posts", col):
+                    conn.execute(text(ddl))
 
     _backfill_referral_codes(engine)
     _purge_test_data_once(engine)

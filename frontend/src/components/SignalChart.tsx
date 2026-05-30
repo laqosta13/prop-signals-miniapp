@@ -27,9 +27,12 @@ import {
 } from "../utils/signalChartLevels";
 
 const CHART_POLL_MS = 30_000;
+const CHART_KLINE_LIMIT = 1000;
+const CHART_HISTORY_BEFORE_MS = 36 * 60 * 60 * 1000;
 
 type Props = {
   symbol: string;
+  createdAt?: string | null;
   entryLow: string | null;
   entryHigh: string | null;
   stopLoss: string | null;
@@ -44,13 +47,18 @@ type Props = {
   frozen?: boolean;
 };
 
-async function fetchBybitKlines(pair: string, interval: string, endMs?: number): Promise<ChartCandle[]> {
+async function fetchBybitKlines(
+  pair: string,
+  interval: string,
+  options?: { endMs?: number; limit?: number },
+): Promise<ChartCandle[]> {
   const params = new URLSearchParams({
     category: "linear",
     symbol: pair,
     interval,
-    limit: "180",
+    limit: String(options?.limit ?? CHART_KLINE_LIMIT),
   });
+  const endMs = options?.endMs;
   if (endMs != null && Number.isFinite(endMs)) {
     params.set("end", String(Math.ceil(endMs)));
   }
@@ -116,6 +124,23 @@ function clipCandlesAtClose(candles: ChartCandle[], closedAt: string | null | un
   return candles.slice(0, 1);
 }
 
+function clipCandlesForSignal(
+  candles: ChartCandle[],
+  createdAt: string | null | undefined,
+  closedAt: string | null | undefined,
+  candleSec: number,
+  isFrozen: boolean,
+): ChartCandle[] {
+  let data = isFrozen ? clipCandlesAtClose(candles, closedAt, candleSec) : candles;
+  if (!createdAt || !data.length) return data;
+  const minStartMs = parseApiDate(createdAt).getTime() - CHART_HISTORY_BEFORE_MS;
+  if (!Number.isFinite(minStartMs)) return data;
+  const minStartSec = Math.floor(minStartMs / 1000);
+  const idx = data.findIndex((c) => Number(c.time) >= minStartSec);
+  if (idx > 0) return data.slice(idx);
+  return data;
+}
+
 function buildChartMarkers(
   entryTime: UTCTimestamp | null,
   entryPrice: number | null | undefined,
@@ -156,6 +181,7 @@ function syncLineLeft(chart: IChartApi, time: UTCTimestamp | null): number | nul
 
 export function SignalChart({
   symbol,
+  createdAt,
   entryLow,
   entryHigh,
   stopLoss,
@@ -217,7 +243,8 @@ export function SignalChart({
     const entryTime = resolvePinnedEntryTime(candles, candleSec);
     entryCandleTimeRef.current = entryTime;
 
-    const reason = frozen && closedAt ? resolveCloseReason(closeReason, status) : null;
+    const reason =
+      frozen && closedAt ? resolveCloseReason(closeReason, status, closedExitPrice, levels) : null;
     const label = closeReasonLabel(reason);
     const closeTime = frozen && closedAt ? resolvePinnedCloseTime(candles, candleSec) : null;
     closeCandleTimeRef.current = closeTime;
@@ -250,7 +277,7 @@ export function SignalChart({
     setEntryLineLeft(null);
     setCloseLineLeft(null);
     setCloseOverlay(null);
-  }, [symbol, frozen, interval, entryFilledAt, closedAt, closeReason, closedExitPrice, status]);
+  }, [symbol, frozen, interval, entryFilledAt, createdAt, closedAt, closeReason, closedExitPrice, status]);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -323,12 +350,12 @@ export function SignalChart({
         ? parseApiDate(closedAt).getTime() + candleSec * 1000
         : undefined;
 
-    void fetchBybitKlines(pair, bybitIv, closeEndMs)
+    void fetchBybitKlines(pair, bybitIv, { endMs: closeEndMs, limit: CHART_KLINE_LIMIT })
       .then((candles) => {
         if (ac.signal.aborted) return;
         const chart = chartApi.current;
         if (!chart) return;
-        const data = frozen ? clipCandlesAtClose(candles, closedAt, candleSec) : candles;
+        const data = clipCandlesForSignal(candles, createdAt, closedAt, candleSec, frozen);
         if (seriesRef.current) chart.removeSeries(seriesRef.current);
         const series = chart.addCandlestickSeries({
           upColor: "#3dff8a",
@@ -367,6 +394,7 @@ export function SignalChart({
     stopLoss,
     takeProfits,
     closedAt,
+    createdAt,
     closeReason,
     closedExitPrice,
     status,
@@ -387,7 +415,7 @@ export function SignalChart({
       const series = seriesRef.current;
       if (!chart || !series || !loadedRef.current) return;
 
-      void fetchBybitKlines(pair, bybitIv)
+      void fetchBybitKlines(pair, bybitIv, { limit: CHART_KLINE_LIMIT })
         .then((candles) => {
           const chartNow = chartApi.current;
           const seriesNow = seriesRef.current;
@@ -432,15 +460,22 @@ export function SignalChart({
         {loading && <p className="signal-chart__loading meta">Загрузка графика…</p>}
         {err && <p className="signal-chart__err err">{err}</p>}
         <div ref={chartRef} className="signal-chart__canvas" />
-        {entryLineLeft != null && <div className="signal-chart__entry-line" style={{ left: `${entryLineLeft}px` }} />}
+        {entryLineLeft != null && entryFilledAt && (
+          <>
+            <div className="signal-chart__marker-line signal-chart__marker-line--entry" style={{ left: `${entryLineLeft}px` }} />
+            <div className="signal-chart__marker-badge signal-chart__marker-badge--entry" style={{ left: `${entryLineLeft}px` }}>
+              Вход
+            </div>
+          </>
+        )}
         {closeLineLeft != null && closeOverlay && (
           <>
             <div
-              className={`signal-chart__close-line signal-chart__close-line--${closeOverlay.reason}`}
+              className={`signal-chart__marker-line signal-chart__marker-line--${closeOverlay.reason}`}
               style={{ left: `${closeLineLeft}px` }}
             />
             <div
-              className={`signal-chart__close-badge signal-chart__close-badge--${closeOverlay.reason}`}
+              className={`signal-chart__marker-badge signal-chart__marker-badge--${closeOverlay.reason}`}
               style={{ left: `${closeLineLeft}px` }}
             >
               {closeOverlay.label}

@@ -319,6 +319,8 @@ def format_new_news_message(post: NewsPost, *, author_label: str | None = None) 
         lines.append(_esc(body))
     if post.video_path:
         lines.append("🎬 Есть видео в приложении")
+    if post.link_url:
+        lines.append(f"🔗 {_esc(post.link_url)}")
     if author_label:
         lines.append(f"Автор: {_esc(author_label)}")
     return "\n".join(lines)
