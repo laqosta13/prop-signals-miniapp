@@ -5,6 +5,7 @@ import App from "./App";
 import "./index.css";
 
 WebApp.ready();
+WebApp.expand();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

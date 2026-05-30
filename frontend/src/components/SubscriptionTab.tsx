@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { fetchSubscriptionInfo, submitPayment, type SubscriptionInfo } from "../api";
-import { copyToClipboard, formatDateTimeMsk } from "../utils";
+import { PasteButton } from "./PasteButton";
+import { copyToClipboard, formatDateTimeMsk, selectFieldText } from "../utils";
 import { copyReferralLink, openReferralShare } from "../utils/referralShare";
 
 export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void; refreshKey?: number }) {
@@ -12,6 +13,8 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [refCopied, setRefCopied] = useState(false);
+  const walletRef = useRef<HTMLInputElement>(null);
+  const referralRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     try {
@@ -50,9 +53,14 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void
     if (ok) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
-    } else {
-      WebApp.showAlert("Не удалось скопировать. Выделите адрес вручную.");
+      return;
     }
+    if (walletRef.current) {
+      selectFieldText(walletRef.current);
+      WebApp.showAlert("Адрес выделен — нажмите Ctrl+C (или ⌘+C).");
+      return;
+    }
+    WebApp.showAlert("Не удалось скопировать. Выделите адрес вручную.");
   };
 
   const shareReferral = () => {
@@ -71,9 +79,14 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void
     if (ok) {
       setRefCopied(true);
       window.setTimeout(() => setRefCopied(false), 2000);
-    } else {
-      WebApp.showAlert("Не удалось скопировать ссылку.");
+      return;
     }
+    if (referralRef.current) {
+      selectFieldText(referralRef.current);
+      WebApp.showAlert("Ссылка выделена — нажмите Ctrl+C (или ⌘+C).");
+      return;
+    }
+    WebApp.showAlert("Не удалось скопировать ссылку.");
   };
 
   if (!info) return <p className="meta">{err || "Загрузка…"}</p>;
@@ -94,9 +107,15 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void
         <h3>Оплата USDT в сети TON</h3>
         <p className="meta">TXID проверяется on-chain и засчитывается только после подтверждений сети.</p>
         <div className="pay-addr-row">
-          <code className="pay-addr" title={info.usdt_ton_address}>
-            {info.usdt_ton_address}
-          </code>
+          <input
+            ref={walletRef}
+            readOnly
+            className="pay-addr"
+            value={info.usdt_ton_address}
+            onFocus={(e) => selectFieldText(e.currentTarget)}
+            onClick={(e) => selectFieldText(e.currentTarget)}
+            aria-label="Адрес USDT TON"
+          />
           <button type="button" className={`copy-btn${copied ? " copied" : ""}`} onClick={() => void copyWallet()}>
             {copied ? "Скопировано ✓" : "Копировать адрес"}
           </button>
@@ -114,11 +133,17 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void
         </div>
 
         <form onSubmit={pay} className="pay-form">
-          <label className="field-label">TXID транзакции</label>
+          <div className="field-row">
+            <label className="field-label">TXID транзакции</label>
+            <PasteButton onPaste={setTx} disabled={busy} />
+          </div>
           <input
             value={tx}
             onChange={(e) => setTx(e.target.value)}
             placeholder="Вставьте hash транзакции TON"
+            lang="en"
+            autoComplete="off"
+            spellCheck={false}
             required
           />
           <p className="meta small">Убедитесь, что оплата отправлена именно в USDT (TON) на адрес выше.</p>
@@ -143,9 +168,15 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void
 
         {hasReferralLink ? (
           <>
-            <code className="referral-link" title={info.referral_link}>
-              {info.referral_link}
-            </code>
+            <input
+              ref={referralRef}
+              readOnly
+              className="referral-link"
+              value={info.referral_link}
+              onFocus={(e) => selectFieldText(e.currentTarget)}
+              onClick={(e) => selectFieldText(e.currentTarget)}
+              aria-label="Реферальная ссылка"
+            />
             <div className="referral-actions">
               <button type="button" className="referral-btn referral-btn--primary" onClick={shareReferral}>
                 Пригласить друга

@@ -3,6 +3,7 @@ import WebApp from "@twa-dev/sdk";
 import { updateSignalWithMedia, type Signal, type UploadProgress } from "../api";
 import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
 import { formatTakeProfits, normalizeTakeProfits } from "../utils";
+import { ruTextFieldProps } from "../utils/textFieldProps";
 import { entryNominalUsd, parseLeverage, parseRiskPercent } from "../utils/signalForm";
 import {
   initialUploadProgress,
@@ -14,6 +15,7 @@ import { LeveragePicker } from "./LeveragePicker";
 import { RiskPercentSlider } from "./RiskPercentSlider";
 import { SignalLevelsFields } from "./SignalLevelsFields";
 import { SignalMediaPicker } from "./SignalMediaPicker";
+import { FieldLabelWithPaste, appendPastedText } from "./FieldLabelWithPaste";
 
 type Props = {
   signal: Signal | null;
@@ -211,8 +213,12 @@ export function EditSignalModal({ signal, onClose, onUpdated, trackerBalance }: 
           onRemoveVideo={setRemoveVideo}
         />
 
-        <label className="field-label">Комментарий (на русском)</label>
-        <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Краткий анализ по-русски…" />
+        <FieldLabelWithPaste
+          label="Комментарий (на русском)"
+          onPaste={(text) => setComment((prev) => appendPastedText(prev, text))}
+          disabled={submitting}
+        />
+        <textarea {...ruTextFieldProps} value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Краткий анализ по-русски…" />
 
         {error && <p className="err">{error}</p>}
 

@@ -2,7 +2,9 @@ import { useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { appendSignalSupplement, type Signal, type UploadProgress } from "../api";
 import { initialUploadProgress, mediaBytesInForm, uploadProgressLabel } from "../utils/upload";
+import { ruTextFieldProps } from "../utils/textFieldProps";
 import { SignalMediaPicker } from "./SignalMediaPicker";
+import { FieldLabelWithPaste, appendPastedText } from "./FieldLabelWithPaste";
 import { UploadProgressBar } from "./UploadProgressBar";
 
 type Props = {
@@ -83,8 +85,12 @@ export function AppendSupplementModal({ signal, onClose, onDone }: Props) {
           </button>
         </header>
 
-        <label className="field-label">Комментарий (на русском)</label>
-        <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Обновление по сделке…" />
+        <FieldLabelWithPaste
+          label="Комментарий (на русском)"
+          onPaste={(text) => setComment((prev) => appendPastedText(prev, text))}
+          disabled={submitting}
+        />
+        <textarea {...ruTextFieldProps} value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Обновление по сделке…" />
 
         <SignalMediaPicker
           screenshot={screenshot}

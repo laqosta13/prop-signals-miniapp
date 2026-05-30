@@ -8,7 +8,9 @@ import {
   type Review,
 } from "../api";
 import { authorProfile, formatTime, mediaUrl } from "../utils";
+import { ruTextFieldProps } from "../utils/textFieldProps";
 import { Avatar } from "./Avatar";
+import { FieldLabelWithPaste, appendPastedText } from "./FieldLabelWithPaste";
 
 type Props = {
   isAdmin: boolean;
@@ -158,8 +160,13 @@ export function ReviewsTab({
                 </button>
               ))}
             </div>
-            <label className="field-label">Текст</label>
+            <FieldLabelWithPaste
+              label="Текст"
+              onPaste={(text) => setText((prev) => appendPastedText(prev, text))}
+              disabled={!canEdit || busy}
+            />
             <textarea
+              {...ruTextFieldProps}
               rows={4}
               value={text}
               onChange={(e) => setText(e.target.value)}

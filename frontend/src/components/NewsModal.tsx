@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { createNewsPost, fetchNewsLinkPreview, updateNewsPost, type NewsLinkPreview, type NewsPost } from "../api";
 import { LinkPreviewCard } from "./LinkPreviewCard";
+import { FieldLabelWithPaste, appendPastedText } from "./FieldLabelWithPaste";
+import { ruTextFieldProps } from "../utils/textFieldProps";
 
 type Props = {
   open: boolean;
@@ -127,11 +129,15 @@ export function NewsModal({ open, post, onClose, onSaved }: Props) {
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h2>{post ? "Редактировать новость" : "Новая новость"}</h2>
         <form onSubmit={submit}>
-          <label className="field-label">Заголовок</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} required />
+          <FieldLabelWithPaste label="Заголовок" onPaste={setTitle} disabled={busy} />
+          <input {...ruTextFieldProps} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} required />
 
-          <label className="field-label">Текст</label>
-          <textarea rows={6} value={body} onChange={(e) => setBody(e.target.value)} maxLength={10000} required />
+          <FieldLabelWithPaste
+            label="Текст"
+            onPaste={(text) => setBody((prev) => appendPastedText(prev, text))}
+            disabled={busy}
+          />
+          <textarea {...ruTextFieldProps} rows={6} value={body} onChange={(e) => setBody(e.target.value)} maxLength={10000} required />
 
           <label className="field-label">Ссылка (необязательно)</label>
           <input

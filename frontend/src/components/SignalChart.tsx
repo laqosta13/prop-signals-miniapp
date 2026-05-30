@@ -27,7 +27,7 @@ import {
 } from "../utils/signalChartLevels";
 
 const CHART_POLL_MS = 30_000;
-const CHART_KLINE_LIMIT = 1000;
+const CHART_KLINE_LIMIT = 250;
 const CHART_HISTORY_BEFORE_MS = 36 * 60 * 60 * 1000;
 
 type Props = {
