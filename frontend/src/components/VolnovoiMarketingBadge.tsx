@@ -51,7 +51,8 @@ export function VolnovoiMarketingBadge({ trader, className = "" }: Props) {
 
       <div id={tipId} role="tooltip" className="volnovoi-marketing__tip">
         <p className="volnovoi-marketing__tip-head">{pitch.headline}</p>
-        <p className="volnovoi-marketing__tip-body">{pitch.body}</p>
+        <p className={`volnovoi-marketing__tip-profit${pitch.positive ? " up" : " down"}`}>{pitch.profitLine}</p>
+        <p className="volnovoi-marketing__tip-body">{pitch.depositLine}</p>
         <p className="volnovoi-marketing__tip-cta">Подключите Bybit под карточкой ↓</p>
       </div>
     </div>

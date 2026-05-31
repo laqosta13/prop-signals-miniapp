@@ -426,6 +426,15 @@ body {
   background: linear-gradient(135deg, var(--purple-soft), var(--green-soft));
 }
 
+[data-theme="light"] .volnovoi-marketing__tip {
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
+}
+
+[data-theme="light"] .volnovoi-marketing__badge--up {
+  animation: none;
+  box-shadow: 0 2px 8px rgba(4, 120, 87, 0.18);
+}
+
 [data-theme="light"] .volnovoi-copy__toggle {
   color: var(--prop-cta-text);
 }

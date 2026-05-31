@@ -5,7 +5,8 @@ import { VOLNOVOI_CAPITAL_USD } from "./volnovoi";
 export type VolnovoiPitch = {
   badgeLabel: string;
   headline: string;
-  body: string;
+  profitLine: string;
+  depositLine: string;
   positive: boolean;
 };
 
@@ -19,10 +20,9 @@ export function volnovoiCopyPitch(trader: Pick<Trader, "total_pnl_usd" | "rating
 
   return {
     badgeLabel: positive ? pnlText : "Копируй",
-    headline: positive ? "Вы бы уже заработали" : "Результат копирования",
-    body: positive
-      ? `Если бы вы копировали volnovoi с депозитом $${capital}, вы бы уже получили ${pnlText} (${pctText}) — все сделки трейдеров CULT/A.`
-      : `При копировании volnovoi на $${capital} результат был бы ${pnlText} (${pctText}). Подключите Bybit и следите за сделками в реальном времени.`,
+    headline: "Ваш профит",
+    profitLine: `${pnlText} (${pctText})`,
+    depositLine: `Если копируете volnovoi с депозитом $${capital}`,
     positive,
   };
 }

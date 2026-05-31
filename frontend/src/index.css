@@ -1905,7 +1905,8 @@
   font-size: 0.68rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--text-secondary);
+  font-weight: 600;
 }
 
 .top-aggregate-rank {
@@ -1922,16 +1923,16 @@
   align-items: center;
   gap: 4px;
   padding: 4px 9px;
-  border: 1px solid rgba(52, 211, 153, 0.45);
+  border: 1px solid color-mix(in srgb, var(--green) 55%, transparent);
   border-radius: 999px;
-  background: linear-gradient(135deg, rgba(52, 211, 153, 0.22), rgba(129, 140, 248, 0.18));
+  background: var(--green-soft);
   color: var(--green);
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.02em;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: 0 2px 10px rgba(52, 211, 153, 0.15);
+  box-shadow: var(--shadow-sm);
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
@@ -1966,9 +1967,9 @@
   width: min(280px, calc(100vw - 48px));
   padding: 12px 14px;
   border-radius: 12px;
-  border: 1px solid rgba(129, 140, 248, 0.35);
-  background: var(--card);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-md);
   opacity: 0;
   visibility: hidden;
   transform: translateY(-4px);
@@ -2002,24 +2003,45 @@
 }
 
 .volnovoi-marketing__tip-head {
-  margin: 0 0 6px;
-  font-size: 0.88rem;
+  margin: 0 0 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.volnovoi-marketing__tip-profit {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
   font-weight: 800;
-  color: var(--text);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.volnovoi-marketing__tip-profit.up {
+  color: var(--green);
+}
+
+.volnovoi-marketing__tip-profit.down {
+  color: var(--red);
 }
 
 .volnovoi-marketing__tip-body {
-  margin: 0 0 8px;
-  font-size: 0.78rem;
+  margin: 0 0 10px;
+  font-size: 0.82rem;
+  font-weight: 500;
   line-height: 1.45;
-  color: var(--muted);
+  color: var(--text);
 }
 
 .volnovoi-marketing__tip-cta {
   margin: 0;
-  font-size: 0.72rem;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.78rem;
   font-weight: 700;
-  color: var(--purple);
+  color: var(--accent);
 }
 
 .top-list__item--aggregate {
