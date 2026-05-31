@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { updateSignalWithMedia, type Signal, type UploadProgress } from "../api";
 import { useAdminTrackerSnapshot } from "../hooks/useAdminTrackerSnapshot";
+import { preserveAccountStopOnLeverageChange, useDailyStopSync } from "../hooks/useDailyStopSync";
 import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
 import { formatTakeProfits, normalizeTakeProfits } from "../utils";
 import { ruTextFieldProps } from "../utils/textFieldProps";
@@ -54,6 +55,17 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
 
   const { snapshot: trackerSnap, loading: trackerLoading } = useAdminTrackerSnapshot(signal != null);
 
+  const stakePct = parseRiskPercent(risk);
+  const lev = parseLeverage(leverage);
+  const { dailyRemaining, dailyLossPct, blocked: dailyStopBlocked } = useDailyStopSync({
+    enabled: signal != null && !trackerLoading,
+    riskPct,
+    onRiskPctChange,
+    dailyLossPct: trackerSnap?.dailyLossPct,
+    stakePct,
+    leverage: lev,
+  });
+
   useEffect(() => {
     if (!signal) return;
     setSymbol(signal.symbol);
@@ -80,8 +92,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
   const trackerBalance = trackerSnap?.balance ?? signal.tracker_balance ?? 0;
   const accountForNominal =
     trackerSnap?.accountSize ?? signal.account_size ?? signal.tracker_balance ?? 0;
-  const lev = parseLeverage(leverage);
-  const stakeUsd = entryNominalUsd(accountForNominal, parseRiskPercent(risk), lev);
+  const stakeUsd = entryNominalUsd(accountForNominal, stakePct, lev);
 
   const onScreenshot = (file: File | null) => {
     setScreenshot(file);
@@ -174,14 +185,30 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
           onTargetChange={onTargetChange}
           onRiskPctChange={onRiskPctChange}
           showPriceHint={false}
+          stakePct={stakePct}
+          leverage={lev}
+          dailyRemainingPct={dailyRemaining}
+          dailyLossPct={dailyLossPct}
+          dailyStopBlocked={dailyStopBlocked}
         />
 
         <label className="field-label">Плечо</label>
         <LeveragePicker
           leverage={leverage}
           onLeverageChange={(nextLev, nextRisk) => {
+            const prevStake = parseRiskPercent(risk);
+            const prevLev = parseLeverage(leverage);
             setLeverage(nextLev);
             setRisk(nextRisk);
+            const nextPrice = preserveAccountStopOnLeverageChange({
+              riskPct,
+              prevStakePct: prevStake,
+              prevLeverage: prevLev,
+              nextStakePct: parseRiskPercent(nextRisk),
+              nextLeverage: parseLeverage(nextLev),
+              dailyRemaining: dailyRemaining ?? 2,
+            });
+            if (nextPrice) onRiskPctChange(nextPrice);
           }}
         />
 
@@ -244,7 +271,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
           />
         )}
 
-        <button type="submit" className="submit-btn" disabled={submitting}>
+        <button type="submit" className="submit-btn" disabled={submitting || dailyStopBlocked}>
           {submitting && uploadProgress
             ? uploadProgress.phase === "processing"
               ? "Сохранение…"

@@ -708,8 +708,15 @@
   width: 100%;
 }
 
-.cta-btn__label svg {
+.cta-btn__label svg,
+.cta-btn__label .brand-logo {
   flex-shrink: 0;
+}
+
+.brand-logo {
+  display: block;
+  object-fit: cover;
+  border-radius: 6px;
 }
 
 .hashhedge-rules__register:active {
@@ -1970,11 +1977,11 @@
   margin: 0 0 10px;
   font-size: 0.78rem;
   line-height: 1.45;
-  color: var(--prop-cta-muted);
+  color: var(--prop-cta-panel-muted);
 }
 
 .volnovoi-copy__desc strong {
-  color: var(--prop-cta-text);
+  color: var(--prop-cta-panel-strong);
 }
 
 .volnovoi-copy__hints {
@@ -1986,7 +1993,11 @@
   gap: 6px;
   font-size: 0.74rem;
   line-height: 1.4;
-  color: var(--prop-cta-muted);
+  color: var(--prop-cta-panel-muted);
+}
+
+.volnovoi-copy__hints li strong {
+  color: var(--prop-cta-panel-strong);
 }
 
 .volnovoi-copy__hints li {
@@ -2015,7 +2026,7 @@
   gap: 6px 12px;
   margin: 0 0 12px;
   font-size: 0.72rem;
-  color: var(--prop-cta-muted);
+  color: var(--prop-cta-panel-muted);
 }
 
 .volnovoi-copy__stats span {
@@ -2044,7 +2055,7 @@
   gap: 10px;
   margin: 0 0 6px;
   font-size: 0.78rem;
-  color: var(--muted);
+  color: var(--prop-cta-panel-muted);
 }
 
 .volnovoi-copy__bill-row--due strong {
@@ -2090,8 +2101,8 @@
   box-sizing: border-box;
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
   color: var(--text);
   font: inherit;
   font-size: 0.88rem;
@@ -2123,7 +2134,7 @@
 .volnovoi-copy__status {
   margin: 0 0 10px;
   font-size: 0.75rem;
-  color: var(--muted);
+  color: var(--prop-cta-panel-muted);
 }
 
 .volnovoi-copy__err {
@@ -2147,8 +2158,12 @@
   gap: 8px;
   margin: 0;
   font-size: 0.78rem;
-  color: var(--muted);
+  color: var(--prop-cta-panel-muted);
   cursor: pointer;
+}
+
+.volnovoi-copy__panel .field-label {
+  color: var(--prop-cta-panel-muted);
 }
 
 .volnovoi-copy__actions {
@@ -3619,6 +3634,25 @@ input.readonly {
 
 .stop-offset-slider__marks {
   grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.stop-offset-slider__budget {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.stop-offset-slider__budget strong {
+  color: var(--text-strong, inherit);
+}
+
+.stop-offset-slider--blocked .stop-offset-slider__budget {
+  margin-bottom: 4px;
+}
+
+.stop-offset-slider__blocked {
+  margin: 0;
+  font-size: 0.78rem;
 }
 
 .levels-grid-form__hint {

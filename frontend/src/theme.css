@@ -71,7 +71,10 @@
   --prop-cta-text: #1a1400;
   --prop-cta-muted: rgba(26, 20, 0, 0.62);
   --prop-cta-border: rgba(255, 193, 7, 0.45);
-  --prop-cta-panel-bg: rgba(255, 193, 7, 0.1);
+  --prop-cta-panel-bg: rgba(255, 193, 7, 0.12);
+  --prop-cta-panel-text: #eceff4;
+  --prop-cta-panel-muted: #b4bcc9;
+  --prop-cta-panel-strong: #ffd54f;
   --prop-cta-shadow: 0 2px 10px rgba(255, 193, 7, 0.35);
 
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -138,6 +141,9 @@
   --icon-btn-border: rgba(15, 23, 42, 0.08);
 
   --prop-cta-panel-bg: rgba(255, 193, 7, 0.14);
+  --prop-cta-panel-text: var(--prop-cta-text);
+  --prop-cta-panel-muted: var(--prop-cta-muted);
+  --prop-cta-panel-strong: var(--prop-cta-text);
 }
 
 /* ── Base ────────────────────────────────────────────────── */

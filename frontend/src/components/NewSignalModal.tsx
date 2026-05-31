@@ -3,6 +3,7 @@ import WebApp from "@twa-dev/sdk";
 import { createSignalWithMedia, fetchMarketPrice } from "../api";
 import type { UploadProgress } from "../api";
 import { useAdminTrackerSnapshot } from "../hooks/useAdminTrackerSnapshot";
+import { preserveAccountStopOnLeverageChange, useDailyStopSync } from "../hooks/useDailyStopSync";
 import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
 import { normalizeTakeProfits } from "../utils";
 import { ruTextFieldProps } from "../utils/textFieldProps";
@@ -60,6 +61,17 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
 
   const { snapshot: trackerSnap, loading: trackerLoading } = useAdminTrackerSnapshot(open);
 
+  const stakePct = parseRiskPercent(risk);
+  const lev = parseLeverage(leverage);
+  const { dailyRemaining, dailyLossPct, blocked: dailyStopBlocked } = useDailyStopSync({
+    enabled: open && !trackerLoading,
+    riskPct,
+    onRiskPctChange,
+    dailyLossPct: trackerSnap?.dailyLossPct,
+    stakePct,
+    leverage: lev,
+  });
+
   const loadMarketPrice = useCallback(
     async (sym: string) => {
       const normalized = sym.trim().toUpperCase();
@@ -106,8 +118,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
 
   const trackerBalance = trackerSnap?.balance ?? 0;
   const accountForNominal = trackerSnap?.accountSize ?? 0;
-  const lev = parseLeverage(leverage);
-  const stakeUsd = entryNominalUsd(accountForNominal, parseRiskPercent(risk), lev);
+  const stakeUsd = entryNominalUsd(accountForNominal, stakePct, lev);
 
   const onScreenshot = (file: File | null) => {
     setScreenshot(file);
@@ -196,6 +207,11 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
           onStopChange={onStopChange}
           onTargetChange={onTargetChange}
           onRiskPctChange={onRiskPctChange}
+          stakePct={stakePct}
+          leverage={lev}
+          dailyRemainingPct={dailyRemaining}
+          dailyLossPct={dailyLossPct}
+          dailyStopBlocked={dailyStopBlocked}
         />
         {priceLoading && <p className="meta">Загрузка курса Bybit USDT perpetual…</p>}
 
@@ -203,8 +219,19 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
         <LeveragePicker
           leverage={leverage}
           onLeverageChange={(nextLev, nextRisk) => {
+            const prevStake = parseRiskPercent(risk);
+            const prevLev = parseLeverage(leverage);
             setLeverage(nextLev);
             setRisk(nextRisk);
+            const nextPrice = preserveAccountStopOnLeverageChange({
+              riskPct,
+              prevStakePct: prevStake,
+              prevLeverage: prevLev,
+              nextStakePct: parseRiskPercent(nextRisk),
+              nextLeverage: parseLeverage(nextLev),
+              dailyRemaining: dailyRemaining ?? 2,
+            });
+            if (nextPrice) onRiskPctChange(nextPrice);
           }}
         />
 
@@ -261,7 +288,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
           />
         )}
 
-        <button type="submit" className="submit-btn" disabled={submitting || priceLoading}>
+        <button type="submit" className="submit-btn" disabled={submitting || priceLoading || dailyStopBlocked}>
           {submitting && uploadProgress
             ? uploadProgress.phase === "processing"
               ? "Сохранение…"

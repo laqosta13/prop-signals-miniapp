@@ -4,6 +4,8 @@ import { fetchMyTracker } from "../api";
 export type TrackerSnapshot = {
   balance: number;
   accountSize: number;
+  dailyLossPct: number;
+  maxDailyLossPct: number;
 };
 
 export function useAdminTrackerSnapshot(enabled: boolean) {
@@ -24,6 +26,8 @@ export function useAdminTrackerSnapshot(enabled: boolean) {
           setSnapshot({
             balance: d.balance,
             accountSize: d.account_size,
+            dailyLossPct: d.daily_loss_pct,
+            maxDailyLossPct: d.max_daily_loss_pct,
           });
         }
       })
