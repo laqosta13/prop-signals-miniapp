@@ -7,7 +7,6 @@ import { RankBadge } from "./RankBadge";
 import { RankGuide } from "./RankGuide";
 import { TraderProfileModal } from "./TraderProfileModal";
 import { VolnovoiCopyPanel } from "./VolnovoiCopyPanel";
-import { PartnerLinks } from "./PartnerLinks";
 import { VolnovoiMarketingBadge } from "./VolnovoiMarketingBadge";
 import { authorProfile } from "../utils";
 import { isVolnovoiTrader, VOLNOVOI_SUBTITLE } from "../utils/volnovoi";
@@ -111,7 +110,6 @@ export function LeaderboardTab({
             </ol>
           )}
           {volnovoi && <VolnovoiCopyPanel />}
-          {volnovoi && <PartnerLinks />}
           {traderCandidates.length > 0 && (
             <ol className={`top-list${volnovoi ? " top-list--after-volnovoi" : ""}`}>
               {traderCandidates.map((trader) => (

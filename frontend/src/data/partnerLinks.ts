@@ -1,3 +1,5 @@
+import type { PartnerBrandId } from "../components/BrandLogos";
+
 /** Реферальные ссылки на биржи и вывод средств. */
 
 export const BYBIT_REGISTER_URL =
@@ -9,8 +11,8 @@ export const ANTARCTIC_WALLET_URL =
   "https://t.me/antarctic_wallet_bot/app?startapp=ref_878d8194ae";
 
 export type PartnerLink = {
-  id: string;
-  label: string;
+  id: PartnerBrandId;
+  shortLabel: string;
   hint: string;
   url: string;
 };
@@ -18,20 +20,20 @@ export type PartnerLink = {
 export const PARTNER_LINKS: PartnerLink[] = [
   {
     id: "bybit",
-    label: "Регистрация Bybit",
-    hint: "Биржа для копирования volnovoi",
+    shortLabel: "Bybit",
+    hint: "Регистрация Bybit — копирование volnovoi",
     url: BYBIT_REGISTER_URL,
   },
   {
     id: "bingx",
-    label: "Регистрация BingX",
-    hint: "Альтернативная биржа",
+    shortLabel: "BingX",
+    hint: "Регистрация BingX",
     url: BINGX_REGISTER_URL,
   },
   {
     id: "antarctic",
-    label: "Вывод крипты · оплата по СБП",
-    hint: "Antarctic Wallet",
+    shortLabel: "Antarctic",
+    hint: "Вывод крипты и оплата по СБП",
     url: ANTARCTIC_WALLET_URL,
   },
 ];

@@ -105,6 +105,7 @@ class SubscriptionInfo(BaseModel):
     referral_share_text: str = ""
     bot_username: str = ""
     referral_link_hint: str
+    subscription_pause_hint: str = ""
 
 
 class TraderDayStat(BaseModel):

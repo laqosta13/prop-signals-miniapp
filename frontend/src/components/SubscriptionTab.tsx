@@ -4,6 +4,7 @@ import { fetchSubscriptionInfo, submitPayment, type SubscriptionInfo } from "../
 import { PasteButton } from "./PasteButton";
 import { copyToClipboard, formatDateTimeMsk, selectFieldText } from "../utils";
 import { copyReferralLink, openReferralShare } from "../utils/referralShare";
+import { PartnerLinks } from "./PartnerLinks";
 
 export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void; refreshKey?: number }) {
   const [info, setInfo] = useState<SubscriptionInfo | null>(null);
@@ -102,6 +103,9 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void
           <>Подписка не активна. Новым пользователям — {info.trial_days} дня бесплатно.</>
         )}
       </p>
+      {info.subscription_pause_hint && (
+        <p className="meta sub-pay__pause-hint">{info.subscription_pause_hint}</p>
+      )}
 
       <section className="sub-card sub-card--pay">
         <h3>Оплата USDT в сети TON</h3>
@@ -194,6 +198,8 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void
           <p className="meta referral-warn">{info.referral_link_hint}</p>
         )}
       </section>
+
+      <PartnerLinks title="Биржи и вывод" />
     </div>
   );
 }

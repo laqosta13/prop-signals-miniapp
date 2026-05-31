@@ -9,10 +9,10 @@ import {
   saveCopyTradingSettings,
   testCopyTradingConnection,
 } from "../api";
-import { openExternalLink } from "../utils/openExternalLink";
-import { BYBIT_REGISTER_URL } from "../data/partnerLinks";
+import { copyToClipboard, formatUsd, selectFieldText } from "../utils";
 import { PasteButton } from "./PasteButton";
 import { BybitLogo } from "./BrandLogos";
+import { PartnerLinks } from "./PartnerLinks";
 import { RiskPercentSlider } from "./RiskPercentSlider";
 
 const EMPTY_STATUS: CopyTradingStatus = {
@@ -193,17 +193,6 @@ export function VolnovoiCopyPanel() {
             целью. Оплата отдельная от подписки на ленту.
           </p>
 
-          <button
-            type="button"
-            className="partner-links__btn partner-links__btn--inline"
-            onClick={() => openExternalLink(BYBIT_REGISTER_URL)}
-          >
-            <span className="cta-btn__label">
-              <BybitLogo size={22} />
-              <span>Регистрация на Bybit</span>
-            </span>
-          </button>
-
           <ul className="volnovoi-copy__hints">
             <li>Комиссия — <strong>{status?.fee_percent ?? 20}%</strong> от прибыли с момента подключения</li>
             <li>Счёт выставляется раз в сутки при росте прибыли</li>
@@ -355,6 +344,8 @@ export function VolnovoiCopyPanel() {
                   </button>
                 )}
               </div>
+
+              <PartnerLinks title="Нет аккаунта?" ids={["bybit"]} />
             </>
           )}
         </div>

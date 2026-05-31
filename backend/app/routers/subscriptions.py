@@ -14,6 +14,7 @@ from app.subscription_billing import (
     record_payment,
     usdt_pay_address,
 )
+from app.subscription_pause import SUBSCRIPTION_PAUSE_HINT
 
 router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
 
@@ -45,6 +46,7 @@ def _info(db, user: TelegramUser) -> SubscriptionInfo:
         referral_share_text=referral_share_text(bonus_days=REFERRAL_BONUS_DAYS) if link else "",
         bot_username=bot,
         referral_link_hint=hint,
+        subscription_pause_hint=SUBSCRIPTION_PAUSE_HINT,
     )
 
 

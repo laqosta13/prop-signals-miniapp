@@ -270,6 +270,20 @@ def run_migrations(engine: Engine) -> None:
                 )
             )
 
+        if "subscription_pause_days" not in inspect(engine).get_table_names():
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS subscription_pause_days (
+                        msk_date VARCHAR(10) PRIMARY KEY,
+                        signals_count INTEGER DEFAULT 0,
+                        subscribers_extended INTEGER DEFAULT 0,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
+            )
+
         if "cult_channels" not in inspect(engine).get_table_names():
             conn.execute(
                 text(

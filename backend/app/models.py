@@ -215,6 +215,17 @@ class Subscriber(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class SubscriptionPauseDay(Base):
+    """Обработанные MSK-сутки: при 0 сигналов подписчикам начислен +1 день."""
+
+    __tablename__ = "subscription_pause_days"
+
+    msk_date: Mapped[str] = mapped_column(String(10), primary_key=True)
+    signals_count: Mapped[int] = mapped_column(Integer, default=0)
+    subscribers_extended: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class PaymentTx(Base):
     __tablename__ = "payment_txs"
 

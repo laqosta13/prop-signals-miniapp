@@ -17,6 +17,7 @@ from app.migrate import run_migrations
 from app.price_monitor import price_monitor_loop
 from app.copy_billing_scheduler import copy_billing_scheduler_loop
 from app.rank_scheduler import rank_scheduler_loop
+from app.subscription_pause_scheduler import run_subscription_pause_sync, subscription_pause_scheduler_loop
 from app.telegram_updates import telegram_updates_loop
 from app.routers import admin, auth, challenge, copy_trading, cult_channels, news, reviews, signals, subscriptions, traders
 
@@ -32,12 +33,17 @@ async def lifespan(app: FastAPI):
     from app.price_monitor import check_active_signals_once
 
     await check_active_signals_once()
+    try:
+        run_subscription_pause_sync()
+    except Exception:
+        logging.getLogger(__name__).exception("subscription pause startup run failed")
     price_task = asyncio.create_task(price_monitor_loop())
     rank_task = asyncio.create_task(rank_scheduler_loop())
     billing_task = asyncio.create_task(copy_billing_scheduler_loop())
+    pause_task = asyncio.create_task(subscription_pause_scheduler_loop())
     tg_task = asyncio.create_task(telegram_updates_loop())
     yield
-    for task in (price_task, rank_task, billing_task, tg_task):
+    for task in (price_task, rank_task, billing_task, pause_task, tg_task):
         task.cancel()
         try:
             await task

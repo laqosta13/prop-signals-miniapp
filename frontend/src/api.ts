@@ -81,6 +81,7 @@ export type SubscriptionInfo = {
   referral_share_text: string;
   bot_username: string;
   referral_link_hint: string;
+  subscription_pause_hint: string;
 };
 
 export type TraderDayStat = {
