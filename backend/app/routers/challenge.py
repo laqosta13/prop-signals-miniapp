@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.challenge_service import apply_prop_balance_sync, build_dashboard, get_or_create_challenge, list_admin_trackers
@@ -32,13 +32,14 @@ def trackers(
 
 @router.get("/my-tracker", response_model=ChallengeDashboard)
 def my_tracker(
+    exclude_signal_id: int | None = Query(None, ge=1),
     db: Session = Depends(db_session),
     admin: TelegramUser = Depends(require_admin),
 ) -> ChallengeDashboard:
     """Текущий трекер админа — для формы сигнала (баланс и размер счёта)."""
     ch = get_or_create_challenge(db, admin.telegram_user_id)
     db.commit()
-    return build_dashboard(db, ch)
+    return build_dashboard(db, ch, exclude_signal_id=exclude_signal_id)
 
 
 @router.put("/settings", response_model=ChallengeDashboard)

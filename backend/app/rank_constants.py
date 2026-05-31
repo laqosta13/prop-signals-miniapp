@@ -26,3 +26,19 @@ TRADER_RANKS: Final[tuple[TraderRankDef, ...]] = (
 RANK_BY_ID: Final[dict[int, TraderRankDef]] = {r.id: r for r in TRADER_RANKS}
 
 DEFAULT_RANK_ID = 8
+
+# Макс. сумма входа % в одном сигнале по рангу (1 = Легенда — выше лимит).
+RANK_MAX_STAKE_PCT: Final[dict[int, float]] = {
+    1: 50.0,
+    2: 45.0,
+    3: 40.0,
+    4: 35.0,
+    5: 30.0,
+    6: 25.0,
+    7: 20.0,
+    8: 15.0,
+}
+
+
+def rank_name(rank_id: int) -> str:
+    return RANK_BY_ID.get(rank_id, RANK_BY_ID[DEFAULT_RANK_ID]).name

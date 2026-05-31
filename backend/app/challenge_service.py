@@ -111,7 +111,13 @@ def apply_signal_to_tracker(db: Session, signal: Signal) -> None:
     _sync_trading_days(db, ch)
 
 
-def build_dashboard(db: Session, ch: UserChallenge, trader: Trader | None = None) -> dict:
+def build_dashboard(
+    db: Session,
+    ch: UserChallenge,
+    trader: Trader | None = None,
+    *,
+    exclude_signal_id: int | None = None,
+) -> dict:
     from app.schemas import ChallengeDashboard
 
     owner_id = ch.telegram_user_id
@@ -129,6 +135,10 @@ def build_dashboard(db: Session, ch: UserChallenge, trader: Trader | None = None
 
     if trader is None:
         trader = db.get(Trader, owner_id)
+    if trader is None:
+        from app.signal_service import get_or_create_trader
+
+        trader = get_or_create_trader(db, owner_id, None)
     login = trader_login(trader, db.scalar(
         select(Signal.author_username)
         .where(Signal.author_telegram_id == owner_id, Signal.author_username.isnot(None))
@@ -143,6 +153,12 @@ def build_dashboard(db: Session, ch: UserChallenge, trader: Trader | None = None
     from app.daily_stop_limit import SIGNAL_DAILY_TRADE_LIMIT, admin_signals_today_count
 
     daily_trades_count = admin_signals_today_count(db, owner_id)
+
+    from app.rank_service import ensure_rank_fields
+    from app.signal_stake_pool import stake_pool_snapshot
+
+    ensure_rank_fields(trader)
+    pool = stake_pool_snapshot(db, trader, exclude_signal_id=exclude_signal_id)
 
     return ChallengeDashboard(
         owner_telegram_id=owner_id,
@@ -171,6 +187,12 @@ def build_dashboard(db: Session, ch: UserChallenge, trader: Trader | None = None
         total_pnl=round(balance - start, 2),
         max_leverage=rules.max_leverage,
         prop_screenshot_url=public_url(ch.prop_screenshot_path),
+        current_rank_id=int(pool["current_rank_id"]),
+        current_rank_name=str(pool["current_rank_name"]),
+        rank_max_stake_pct=float(pool["rank_max_stake_pct"]),
+        stake_pool_used_pct=float(pool["stake_pool_used_pct"]),
+        stake_pool_remaining_pct=float(pool["stake_pool_remaining_pct"]),
+        max_stake_pct=float(pool["max_stake_pct"]),
     )
 
 

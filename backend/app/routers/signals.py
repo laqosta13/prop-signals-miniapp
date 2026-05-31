@@ -22,6 +22,7 @@ from app.serializers import signal_to_read
 from app.price_service import fetch_bybit_perp_quote, normalize_symbol
 from app.challenge_service import admin_account_size, admin_tracker_balance, ensure_tracker_for_new_signal
 from app.daily_stop_limit import validate_signal_daily_stop, validate_signal_daily_trades
+from app.signal_stake_pool import validate_signal_stake_pool
 from app.signal_service import (
     build_signal_row,
     close_signal_at_market,
@@ -123,6 +124,7 @@ async def create_signal(
         stake,
         min(int(lev), 5),
     )
+    validate_signal_stake_pool(db, admin.telegram_user_id, stake)
     row = build_signal_row(
         db,
         symbol=symbol.strip().upper(),
@@ -200,6 +202,7 @@ async def update_signal(
         stake,
         min(int(lev), 5),
     )
+    validate_signal_stake_pool(db, admin.telegram_user_id, stake, exclude_signal_id=signal_id)
 
     update_signal_fields(
         row,

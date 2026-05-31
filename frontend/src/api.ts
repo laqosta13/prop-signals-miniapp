@@ -170,6 +170,12 @@ export type ChallengeDashboard = {
   total_pnl: number;
   max_leverage: string;
   prop_screenshot_url: string | null;
+  current_rank_id: number;
+  current_rank_name: string;
+  rank_max_stake_pct: number;
+  stake_pool_used_pct: number;
+  stake_pool_remaining_pct: number;
+  max_stake_pct: number;
 };
 
 export type HashHedgeStageRules = {
@@ -372,7 +378,12 @@ export const activateRankShield = () => api<TraderRank>("/traders/me/rank/shield
 export const fetchChallengeTrackers = () => api<ChallengeDashboard[]>("/challenge/trackers");
 
 /** Трекер текущего админа (баланс + счёт) — для формы сигнала. */
-export const fetchMyTracker = () => api<ChallengeDashboard>("/challenge/my-tracker");
+export const fetchMyTracker = (excludeSignalId?: number) =>
+  api<ChallengeDashboard>(
+    excludeSignalId != null
+      ? `/challenge/my-tracker?exclude_signal_id=${excludeSignalId}`
+      : "/challenge/my-tracker",
+  );
 
 export const fetchReviews = () => api<Review[]>("/reviews");
 

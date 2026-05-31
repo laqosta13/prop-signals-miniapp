@@ -7,8 +7,9 @@ import { preserveAccountStopOnLeverageChange, useDailyStopSync } from "../hooks/
 import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
 import { normalizeTakeProfits } from "../utils";
 import { ruTextFieldProps } from "../utils/textFieldProps";
-import { entryNominalUsd, parseLeverage, parseRiskPercent } from "../utils/signalForm";
+import { entryNominalUsd, formatRiskPercent, parseLeverage, parseRiskPercent } from "../utils/signalForm";
 import { formatRiskPct } from "../utils/signalLevels";
+import { stakePoolBlockedMessage } from "../utils/stakePool";
 import {
   dailyLimitBlockedMessage,
   dailyTradingBlocked,
@@ -67,6 +68,17 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
   directionRef.current = direction;
 
   const { snapshot: trackerSnap, loading: trackerLoading } = useAdminTrackerSnapshot(open);
+
+  const maxStakePct = trackerSnap?.maxStakePct ?? 100;
+  const stakePoolBlocked = !trackerLoading && maxStakePct <= 0;
+
+  useEffect(() => {
+    if (!open || trackerLoading || trackerSnap == null) return;
+    const cap = trackerSnap.maxStakePct;
+    if (parseRiskPercent(risk) > cap) {
+      setRisk(formatRiskPercent(Math.max(0, cap)));
+    }
+  }, [open, trackerLoading, trackerSnap?.maxStakePct, risk]);
 
   const stakePct = parseRiskPercent(risk);
   const lev = parseLeverage(leverage);
@@ -133,7 +145,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
     dailyTradesCount,
     dailyTradesLimit,
   });
-  const formBlocked = dailyLimit.blocked;
+  const formBlocked = dailyLimit.blocked || stakePoolBlocked;
   const dailyTradesRemainingCount = dailyTradesRemaining(dailyTradesCount, dailyTradesLimit);
 
   const onScreenshot = (file: File | null) => {
@@ -251,7 +263,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
           }}
         />
 
-        <RiskPercentSlider value={risk} onChange={setRisk} />
+        <RiskPercentSlider value={risk} onChange={setRisk} max={maxStakePct} disabled={stakePoolBlocked} />
 
         <label className="field-label">Трекер $</label>
         <input
@@ -276,6 +288,20 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
         )}
         {balanceForNominal > 0 && (
           <p className="meta signal-nominal-hint">Номинал от текущего баланса трекера</p>
+        )}
+        {!trackerLoading && trackerSnap && (
+          <p className="meta signal-stake-pool">
+            Пул копирующих: занято <strong>{formatRiskPct(trackerSnap.stakePoolUsedPct)}%</strong> · доступно{" "}
+            <strong>{formatRiskPct(trackerSnap.stakePoolRemainingPct)}%</strong>
+            {" · "}
+            ваш ранг <strong>{trackerSnap.currentRankName}</strong> — до{" "}
+            <strong>{formatRiskPct(trackerSnap.rankMaxStakePct)}%</strong> входа
+          </p>
+        )}
+        {stakePoolBlocked && (
+          <p className="err signal-stake-pool-blocked">
+            {stakePoolBlockedMessage(maxStakePct, trackerSnap?.stakePoolRemainingPct ?? 0)}
+          </p>
         )}
         {!trackerLoading && (
           <>

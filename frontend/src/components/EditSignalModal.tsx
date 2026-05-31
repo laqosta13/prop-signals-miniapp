@@ -6,7 +6,9 @@ import { preserveAccountStopOnLeverageChange, useDailyStopSync } from "../hooks/
 import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
 import { formatTakeProfits, normalizeTakeProfits } from "../utils";
 import { ruTextFieldProps } from "../utils/textFieldProps";
-import { entryNominalUsd, parseLeverage, parseRiskPercent } from "../utils/signalForm";
+import { entryNominalUsd, formatRiskPercent, parseLeverage, parseRiskPercent } from "../utils/signalForm";
+import { formatRiskPct } from "../utils/signalLevels";
+import { stakePoolBlockedMessage } from "../utils/stakePool";
 import {
   initialUploadProgress,
   mediaBytesInForm,
@@ -53,7 +55,21 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
     loadLevels,
   } = useSignalLevelFields("long");
 
-  const { snapshot: trackerSnap, loading: trackerLoading } = useAdminTrackerSnapshot(signal != null);
+  const { snapshot: trackerSnap, loading: trackerLoading } = useAdminTrackerSnapshot(
+    signal != null,
+    signal?.id,
+  );
+
+  const maxStakePct = trackerSnap?.maxStakePct ?? 100;
+  const stakePoolBlocked = signal != null && !trackerLoading && maxStakePct <= 0;
+
+  useEffect(() => {
+    if (!signal || trackerLoading || trackerSnap == null) return;
+    const cap = trackerSnap.maxStakePct;
+    if (parseRiskPercent(risk) > cap) {
+      setRisk(formatRiskPercent(Math.max(0, cap)));
+    }
+  }, [signal, trackerLoading, trackerSnap?.maxStakePct, risk]);
 
   const stakePct = parseRiskPercent(risk);
   const lev = parseLeverage(leverage);
@@ -214,7 +230,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
           }}
         />
 
-        <RiskPercentSlider value={risk} onChange={setRisk} />
+        <RiskPercentSlider value={risk} onChange={setRisk} max={maxStakePct} disabled={stakePoolBlocked} />
 
         <label className="field-label">Трекер $</label>
         <input
@@ -239,6 +255,20 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
         )}
         {balanceForNominal > 0 && (
           <p className="meta signal-nominal-hint">Номинал от текущего баланса трекера</p>
+        )}
+        {!trackerLoading && trackerSnap && (
+          <p className="meta signal-stake-pool">
+            Пул копирующих: занято <strong>{formatRiskPct(trackerSnap.stakePoolUsedPct)}%</strong> · доступно{" "}
+            <strong>{formatRiskPct(trackerSnap.stakePoolRemainingPct)}%</strong>
+            {" · "}
+            ваш ранг <strong>{trackerSnap.currentRankName}</strong> — до{" "}
+            <strong>{formatRiskPct(trackerSnap.rankMaxStakePct)}%</strong> входа
+          </p>
+        )}
+        {stakePoolBlocked && (
+          <p className="err signal-stake-pool-blocked">
+            {stakePoolBlockedMessage(maxStakePct, trackerSnap?.stakePoolRemainingPct ?? 0)}
+          </p>
         )}
 
         <SignalMediaPicker
@@ -271,7 +301,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
           />
         )}
 
-        <button type="submit" className="submit-btn" disabled={submitting || dailyStopBlocked}>
+        <button type="submit" className="submit-btn" disabled={submitting || dailyStopBlocked || stakePoolBlocked}>
           {submitting && uploadProgress
             ? uploadProgress.phase === "processing"
               ? "Сохранение…"

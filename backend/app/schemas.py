@@ -200,6 +200,12 @@ class ChallengeDashboard(BaseModel):
     total_pnl: float
     max_leverage: str
     prop_screenshot_url: str | None = None
+    current_rank_id: int = 8
+    current_rank_name: str = "Нулёвый"
+    rank_max_stake_pct: float = 15.0
+    stake_pool_used_pct: float = 0.0
+    stake_pool_remaining_pct: float = 100.0
+    max_stake_pct: float = 15.0
 
 
 class ReviewRead(BaseModel):

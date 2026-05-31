@@ -8,9 +8,15 @@ export type TrackerSnapshot = {
   maxDailyLossPct: number;
   dailyTradesCount: number;
   dailyTradesLimit: number;
+  currentRankId: number;
+  currentRankName: string;
+  rankMaxStakePct: number;
+  stakePoolUsedPct: number;
+  stakePoolRemainingPct: number;
+  maxStakePct: number;
 };
 
-export function useAdminTrackerSnapshot(enabled: boolean) {
+export function useAdminTrackerSnapshot(enabled: boolean, excludeSignalId?: number) {
   const [snapshot, setSnapshot] = useState<TrackerSnapshot | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -22,7 +28,7 @@ export function useAdminTrackerSnapshot(enabled: boolean) {
     }
     let cancelled = false;
     setLoading(true);
-    void fetchMyTracker()
+    void fetchMyTracker(excludeSignalId)
       .then((d) => {
         if (!cancelled) {
           setSnapshot({
@@ -32,6 +38,12 @@ export function useAdminTrackerSnapshot(enabled: boolean) {
             maxDailyLossPct: d.max_daily_loss_pct,
             dailyTradesCount: d.daily_trades_count,
             dailyTradesLimit: d.daily_trades_limit,
+            currentRankId: d.current_rank_id,
+            currentRankName: d.current_rank_name,
+            rankMaxStakePct: d.rank_max_stake_pct,
+            stakePoolUsedPct: d.stake_pool_used_pct,
+            stakePoolRemainingPct: d.stake_pool_remaining_pct,
+            maxStakePct: d.max_stake_pct,
           });
         }
       })
@@ -44,7 +56,7 @@ export function useAdminTrackerSnapshot(enabled: boolean) {
     return () => {
       cancelled = true;
     };
-  }, [enabled]);
+  }, [enabled, excludeSignalId]);
 
   return { snapshot, loading };
 }
