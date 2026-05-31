@@ -83,7 +83,23 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 - **Рынок при публикации** — `published_market_price` / `published_market_source` (`bybit_perp`) в БД и **Telegram**; на карточке — график, не текст
 
 **Кнопка «+» новый сигнал** — **FAB снизу** на вкладке Лента (`fab-bottom`).  
-При открытии формы: **`GET /signals/market-price`** → курс **Bybit perp**, стоп/цель **R:R 1:3** (по умолчанию риск **1%**); **бегунок отступа стопа** 0.1–5% (шаг 0.1, метки 0.5/1/1.5/2/3/5); подсказки «Цена с Bybit perp», «R:R 1:3 · по умолчанию». Смена LONG/SHORT пересчитывает уровни (`utils/signalLevels.ts`, `SignalLevelsFields.tsx`, `StopOffsetSlider.tsx`, `useSignalLevelFields.ts`).
+При открытии формы: **`GET /signals/market-price`** → курс **Bybit perp**, стоп/цель **R:R 1:3**; **`GET /challenge/my-tracker`** — баланс, дневные потери, счётчик сделок за MSK-день.
+
+**Дневной лимит трейдера в форме** (`daily_stop_limit.py`, `utils/dailyStopLimit.ts`):
+
+| Параметр | Значение |
+|---|---|
+| Условие | **3 сделки или 2% стопа** за MSK-день — что наступит **раньше**, торговля блокируется |
+| Сделки | Считаются **опубликованные** сигналы автора за сегодня (MSK) |
+| Стоп | Сумма **убытков закрытых** сигналов за сегодня (% от счёта на начало дня) |
+| Бегунок стопа | **% счёта** (не % цены): шкала **0 → остаток** на **весь трек**; метки равномерно по остатку |
+| Весь риск в одну сделку | Можно выставить **весь остаток** стопа на один сигнал |
+| Конвертация | риск счёта ↔ % цены: `(priceStop × stake% × leverage) / 100` |
+| UI | `StopOffsetSlider.tsx`, `useDailyStopSync.ts`, `SignalLevelsFields.tsx`; остаток «N сделок · X% стопа» в `NewSignalModal` |
+| Backend | `validate_signal_daily_trades` + `validate_signal_daily_stop` при `POST /signals`; `daily_trades_count` / `daily_trades_limit` в `GET /challenge/my-tracker` |
+| Редактирование | Лимит **сделок** не применяется; лимит **стопа** — да |
+
+Подсказки формы: «Цена с Bybit perp», «R:R 1:3 · лимит: 3 сделки или 2% стопа». Смена LONG/SHORT / плеча пересчитывает уровни (`utils/signalLevels.ts`, `useSignalLevelFields.ts`).
 
 **Кнопка «+» новость** — **FAB сверху** на вкладке Новости (`fab-top`).
 
@@ -302,7 +318,8 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 - Все трекеры видны в ленте (`PropTrackerMini`) и на вкладке Трекер
 - **Настройки трекера** — модалка `TrackerSettingsModal.tsx`: размер счёта, этап 1–3, **баланс с пропа**, скрин пропа («Заменить скрин»); `modal-backdrop--sheet` для клавиатуры
 - **Баланс с пропа** (`apply_prop_balance_sync`) — обновляет **`balance`** везде (трекер, лента, форма сигнала); **`account_size`** = `balance − сумма P/L закрытых сигналов`; `trading_days` **не** сбрасываются. Если меняют только размер счёта (без баланса с пропа) — правится только `account_size`
-- **Метрики трейдера** (`tracker_metrics.py`) — из **закрытых сигналов**, день **MSK**: **торговые дни**, **WR по P/L $**, **лимит дня**, **просадка** от `account_size`
+- **Метрики трейдера** (`tracker_metrics.py`) — из **закрытых сигналов**, день **MSK**: **торговые дни**, **WR по P/L $**, **дневной убыток %**, **просадка** от `account_size`
+- **Лимит дня в форме сигнала** — отдельно от Hash Hedge **5%**: у каждого админа **3 сделки или 2% стопа** (см. раздел «Сигналы — поля и UI»)
 - **Список сделок** на вкладке Трекер — **свёрнут** по умолчанию («Сделки · N»)
 - **Баланс с пропа** под скрином пропа **скрыт** в UI трекера
 - **Скрин с пропа** — один актуальный на трекер (`prop_screenshot_path`); новый заменяет старый; показ на вкладке Трекер + lightbox
@@ -372,6 +389,8 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 ## Дизайн-система (актуально)
 
+- **Светлая / тёмная тема** — переключатель в шапке (`ThemeToggle.tsx`, `theme.css`, `utils/theme.ts`); CSS-переменные для карточек, форм, CTA
+- Жёлтые CTA пропа / Bybit — общие токены `--prop-cta-*`; логотипы **Hash Hedge** и **Bybit** (`BrandLogos.tsx`, `public/brands/`)
 - Единый стиль **glassmorphism**: полупрозрачные карточки/модалки/кнопки, blur, мягкие тени
 - Нижнее меню: вместо эмодзи используются SVG-иконки (современный iOS-like стиль)
 - Полиш взаимодействий: active/focus состояния, мягкие микро-анимации, поддержка `prefers-reduced-motion`
@@ -383,13 +402,13 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 `data_cleanup.py` → `purge_all_published_content()`:
 
-- Удаляет **сигналы**, **новости**, **отзывы** + медиа; сброс ТОП и трекеров админов ($10k); очистка скринов пропа (`prop_screenshot_path`)
-- **Не** трогает подписчиков, trial, `payment_txs`
-- **Кнопки в UI нет** (убрана из админки)
+- Удаляет **сигналы** (+ copy-trades, лайки, просмотры, дополнения), **CULT-сигналы** (каналы остаются, stats=0), **новости**, **отзывы** + медиа
+- Сброс ТОП (рейтинг, ранги) и трекеров админов ($10k); очистка скринов пропа
+- **Не** трогает подписчиков, trial, `payment_txs`, подключённые CULT-каналы, настройки Bybit
 
 | Способ | Как |
 |---|---|
-| Одноразово при деплое | маркер `.purged_all_published_jun2026` в `migrate.py` |
+| Одноразово при деплое | маркеры `.purged_all_published_*` в `migrate.py` (актуально: `.purged_all_published_may2026_v3`) |
 | API (без UI) | `POST /admin/purge-published` — `require_admin` |
 | Скрипт на сервере | `python backend/scripts/purge_published.py` |
 
@@ -440,7 +459,7 @@ GET  /copy-trading/me | PUT /copy-trading/me | PATCH /copy-trading/me
 POST /copy-trading/me/test | POST /copy-trading/me/pay | DELETE /copy-trading/me
 GET  /cult-channels | POST /cult-channels | DELETE /cult-channels/{id}
 GET  /challenge/trackers
-GET  /challenge/my-tracker       — require_admin, свой трекер для формы сигнала
+GET  /challenge/my-tracker       — require_admin: balance, daily_loss_pct, daily_trades_count/limit
 GET  /challenge/rules
 PUT  /challenge/settings         — multipart: баланс с пропа / account_size, этап, скрин (require_admin)
 GET  /subscriptions/info | POST /subscriptions/pay | PUT /subscriptions/me
@@ -461,6 +480,7 @@ POST /admin/purge-published      — require_admin, полная очистка 
 | Сигналы логика | `signal_service.py`, `signal_utils.py`, `signal_permissions.py` |
 | Цены | `price_service.py`, `price_monitor.py` |
 | Очистка данных | `data_cleanup.py`, `routers/admin.py`, `scripts/purge_published.py` |
+| Лимиты формы сигнала | `daily_stop_limit.py`, `utils/dailyStopLimit.ts`, `hooks/useDailyStopSync.ts` |
 | P/L, ТОП | `trader_stats.py`, `leaderboard_service.py`, `volnovoi_account.py` |
 | Copy-trading Bybit | `bybit_trading.py`, `copy_trading_service.py`, `copy_billing.py`, `copy_billing_scheduler.py`, `credentials_crypto.py`, `routers/copy_trading.py` |
 | CULT каналы | `cult_channel_service.py`, `channel_signal_parser.py`, `telegram_updates.py`, `telegram_bot_api.py`, `routers/cult_channels.py` |
@@ -472,7 +492,9 @@ POST /admin/purge-published      — require_admin, полная очистка 
 | Дисклеймер | `DisclaimerModal.tsx`, `data/disclaimer.ts`, `utils/disclaimerStorage.ts` |
 | WIN/LOSE reveal | `OutcomeReveal.tsx`, `hooks/useOutcomeReveal.ts`, `utils/outcomeRevealStorage.ts`, `utils/outcomeSounds.ts` (логика в `App.tsx`) |
 | Подписка / рефералы | `SubscriptionTab.tsx`, `subscription_billing.py`, `ton_payments.py`, `referral_links.py`, `utils/referralShare.ts` |
-| Форма сигнала | `NewSignalModal.tsx`, `EditSignalModal.tsx`, `hooks/useAdminTrackerSnapshot.ts`, `SignalLevelsFields.tsx`, `StopOffsetSlider.tsx`, `hooks/useSignalLevelFields.ts`, `utils/signalForm.ts`, `utils/signalLevels.ts` |
+| Форма сигнала | `NewSignalModal.tsx`, `EditSignalModal.tsx`, `hooks/useAdminTrackerSnapshot.ts`, `SignalLevelsFields.tsx`, `StopOffsetSlider.tsx`, `hooks/useSignalLevelFields.ts`, `hooks/useDailyStopSync.ts`, `utils/signalForm.ts`, `utils/signalLevels.ts`, `utils/dailyStopLimit.ts` |
+| Тема | `theme.css`, `ThemeToggle.tsx`, `utils/theme.ts` |
+| Логотипы CTA | `BrandLogos.tsx`, `public/brands/` |
 | P/L на ленте | `utils/signalPnl.ts`, `utils/mergeFeedSignals.ts` |
 | Права на сигнал | `utils/signalActions.ts` (`canCloseAtMarketSignal`, …) |
 | Дополнения | `AppendSupplementModal.tsx` |
@@ -519,7 +541,7 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 
 ## Одноразовые миграции (маркеры на диске)
 
-- `.purged_test_v2`, `.purged_reset_v3`, `.purged_all_published_may2026`, `.purged_all_published_may2026_v2`, `.purged_all_published_jun2026` — purge через `data_cleanup.py` / `migrate.py`
+- `.purged_test_v2`, `.purged_reset_v3`, `.purged_all_published_may2026`, `.purged_all_published_may2026_v2`, `.purged_all_published_jun2026`, **`.purged_all_published_may2026_v3`** — purge через `data_cleanup.py` / `migrate.py`
 - `.recalc_closed_signal_pnl_v2`, `.recalc_closed_signal_pnl_v3` — пересчёт P/L от `account_size` и risk_percent
 - `.recalc_winrate_by_pnl_v1` — пересчёт W/L и WR по фактическому P/L ($)
 
@@ -576,9 +598,12 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 45. **График сигнала** — шире (~220 баров), 268px, скругление 12px внутри карточки
 46. **Трекер UI** — свёрнутые сделки; баланс под скрином скрыт; prop sync без смены старта/цели
 47. **CULT каналы** — Telegram-каналы в кандидатах, парсинг сигналов, % с `connected_at`, polling `channel_post`
+48. **UI redesign** — светлая/тёмная тема, glassmorphism, жёлтые CTA пропа/Bybit, PNG-логотипы
+49. **Лимит формы сигнала** — **3 сделки или 2% стопа** / MSK / трейдер; бегунок в % счёта на весь остаток; backend validation
+50. **Purge v3** — очистка контента incl. CULT-сигналы и copy-trades; маркер `.purged_all_published_may2026_v3`
 
 ---
 
 ## Быстрое напоминание для AI
 
-> **prop-signals-miniapp** — FastAPI + React Telegram Mini App на Amvera (SQLite, `/data`). Админы публикуют сигналы **#N**; активные — по подписке, win/lose + трекер + ТОП — бесплатно. **volnovoi** — сводный портфель всех админов в ТОП; подписчики **копируют на свой Bybit** (ключи шифруются, **20% прибыли** отдельно от подписки). **Цены и график: Bybit USDT perp.** Equity curve 7/30/90д. P/L = (`account_size` × сумма входа % × плечо) × % движения; WR по P/L $. WIN/LOSE reveal — **active→win/lose**, poll 15s. Полный контекст — этот файл.
+> **prop-signals-miniapp** — FastAPI + React Telegram Mini App на Amvera (SQLite, `/data`). Админы публикуют сигналы **#N**; активные — по подписке, win/lose + трекер + ТОП — бесплатно. **Лимит дня в форме:** 3 сделки **или** 2% стопа (MSK). **volnovoi** — сводный портфель всех админов; копирование на Bybit (**20% прибыли**). **Цены и график: Bybit USDT perp.** P/L = (`account_size` × сумма входа % × плечо) × % движения. WIN/LOSE reveal — **active→win/lose**, poll 15s. Полный контекст — этот файл.
