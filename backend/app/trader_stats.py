@@ -1,8 +1,8 @@
 """P/L и рейтинг.
 
 ТОП / rating_percent / weekly rank — чистый % движения цены (без плеча).
-Трекер / realized_pnl — номинал (счёт × сумма входа % × плечо) × движение цены.
-База номинала — account_size (размер счёта Hash Hedge), не накопленный баланс.
+Трекер / realized_pnl — номинал (баланс × сумма входа % × плечо) × движение цены.
+База номинала — tracker_balance на момент публикации, иначе account_size.
 """
 
 from __future__ import annotations
@@ -47,7 +47,9 @@ def signal_tracker_balance(signal: Signal) -> float:
 
 
 def signal_pnl_base_usd(signal: Signal) -> float:
-    """База для номинала и P/L: размер счёта (account_size), не накопленный баланс."""
+    """База для номинала и P/L: баланс трекера на публикации, иначе размер счёта."""
+    if signal.tracker_balance is not None and signal.tracker_balance > 0:
+        return float(signal.tracker_balance)
     if signal.account_size is not None and signal.account_size > 0:
         return float(signal.account_size)
     return signal_tracker_balance(signal)

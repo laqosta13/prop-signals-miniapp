@@ -124,8 +124,8 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
   if (!open) return null;
 
   const trackerBalance = trackerSnap?.balance ?? 0;
-  const accountForNominal = trackerSnap?.accountSize ?? 0;
-  const stakeUsd = entryNominalUsd(accountForNominal, stakePct, lev);
+  const balanceForNominal = trackerBalance > 0 ? trackerBalance : (trackerSnap?.accountSize ?? 0);
+  const stakeUsd = entryNominalUsd(balanceForNominal, stakePct, lev);
   const dailyTradesCount = trackerSnap?.dailyTradesCount ?? 0;
   const dailyTradesLimit = trackerSnap?.dailyTradesLimit ?? SIGNAL_DAILY_TRADE_LIMIT;
   const dailyLimit = dailyTradingBlocked({
@@ -265,7 +265,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
           readOnly
           className="readonly"
         />
-        {accountForNominal > 0 && (
+        {balanceForNominal > 0 && (
           <p className="meta signal-nominal">
             Номинал позиции:{" "}
             <span className="signal-nominal__usd">
@@ -274,10 +274,8 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
             (<span className="signal-nominal__pct">{risk}%</span> × <span className="signal-nominal__lev">{lev}x</span>)
           </p>
         )}
-        {accountForNominal > 0 && accountForNominal !== trackerBalance && (
-          <p className="meta signal-nominal-hint">
-            Номинал от счёта ${accountForNominal.toLocaleString("en-US", { maximumFractionDigits: 0 })}, не от текущего баланса
-          </p>
+        {balanceForNominal > 0 && (
+          <p className="meta signal-nominal-hint">Номинал от текущего баланса трекера</p>
         )}
         {!trackerLoading && (
           <>

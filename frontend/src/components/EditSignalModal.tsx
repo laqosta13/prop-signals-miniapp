@@ -90,9 +90,11 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
   if (!signal) return null;
 
   const trackerBalance = trackerSnap?.balance ?? signal.tracker_balance ?? 0;
-  const accountForNominal =
-    trackerSnap?.accountSize ?? signal.account_size ?? signal.tracker_balance ?? 0;
-  const stakeUsd = entryNominalUsd(accountForNominal, stakePct, lev);
+  const balanceForNominal =
+    trackerBalance > 0
+      ? trackerBalance
+      : trackerSnap?.accountSize ?? signal.account_size ?? 0;
+  const stakeUsd = entryNominalUsd(balanceForNominal, stakePct, lev);
 
   const onScreenshot = (file: File | null) => {
     setScreenshot(file);
@@ -226,7 +228,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
           readOnly
           className="readonly"
         />
-        {accountForNominal > 0 && (
+        {balanceForNominal > 0 && (
           <p className="meta signal-nominal">
             Номинал позиции:{" "}
             <span className="signal-nominal__usd">
@@ -235,10 +237,8 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
             (<span className="signal-nominal__pct">{risk}%</span> × <span className="signal-nominal__lev">{lev}x</span>)
           </p>
         )}
-        {accountForNominal > 0 && accountForNominal !== trackerBalance && (
-          <p className="meta signal-nominal-hint">
-            Номинал от счёта ${accountForNominal.toLocaleString("en-US", { maximumFractionDigits: 0 })}, не от текущего баланса
-          </p>
+        {balanceForNominal > 0 && (
+          <p className="meta signal-nominal-hint">Номинал от текущего баланса трекера</p>
         )}
 
         <SignalMediaPicker
