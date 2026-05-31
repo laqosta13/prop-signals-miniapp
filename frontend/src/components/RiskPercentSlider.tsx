@@ -5,9 +5,10 @@ const MARKS = [0, 25, 50, 75, 100] as const;
 type Props = {
   value: string;
   onChange: (value: string) => void;
+  label?: string;
 };
 
-export function RiskPercentSlider({ value, onChange }: Props) {
+export function RiskPercentSlider({ value, onChange, label = "Сумма входа %" }: Props) {
   const current = parseRiskPercent(value);
 
   const setPercent = (n: number) => onChange(formatRiskPercent(n));
@@ -15,7 +16,7 @@ export function RiskPercentSlider({ value, onChange }: Props) {
   return (
     <div className="risk-slider">
       <div className="risk-slider__head">
-        <span className="field-label risk-slider__label">Сумма входа %</span>
+        <span className="field-label risk-slider__label">{label}</span>
         <strong className="risk-slider__value">{formatRiskPercent(current)}%</strong>
       </div>
       <input

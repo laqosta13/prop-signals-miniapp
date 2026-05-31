@@ -2141,6 +2141,24 @@
   color: var(--red);
 }
 
+.volnovoi-copy__deposit {
+  margin: 4px 0 10px;
+}
+
+.volnovoi-copy__deposit .risk-slider {
+  margin-bottom: 6px;
+}
+
+.volnovoi-copy__deposit-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.volnovoi-copy__deposit-hint strong {
+  color: var(--prop-cta-panel-strong);
+}
+
 .volnovoi-copy__row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

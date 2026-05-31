@@ -55,8 +55,14 @@ class CopyTradingSaveBody(BaseModel):
     api_secret: str = Field(min_length=8, max_length=128)
     testnet: bool = True
     enabled: bool = True
-    account_balance_usd: float = Field(default=10_000.0, ge=100, le=10_000_000)
+    account_balance_usd: float | None = Field(default=None, ge=100, le=10_000_000)
     stake_percent: float = Field(default=10.0, ge=0.1, le=100)
+
+
+def _sync_deposit_from_balance(row: UserBybitSettings, balance: float | None) -> None:
+    if balance is not None and balance > 0:
+        row.account_balance_usd = round(balance, 2)
+        row.last_equity_usd = round(balance, 2)
 
 
 class CopyTradingPatchBody(BaseModel):
@@ -149,6 +155,7 @@ async def get_my_copy_trading(
     if row is None:
         return _build_status(db, None)
     balance, balance_error = await _fetch_balance(row)
+    _sync_deposit_from_balance(row, balance)
     ensure_baseline_on_connect(row, balance)
     upsert_daily_invoice(db, row, balance)
     db.commit()
@@ -176,11 +183,13 @@ async def save_my_copy_trading(
 
     row.enabled = body.enabled
     row.testnet = body.testnet
-    row.account_balance_usd = round(body.account_balance_usd, 2)
     row.stake_percent = round(body.stake_percent, 2)
     db.flush()
 
     balance, balance_error = await _fetch_balance(row)
+    _sync_deposit_from_balance(row, balance)
+    if balance is None and body.account_balance_usd is not None:
+        row.account_balance_usd = round(body.account_balance_usd, 2)
     if is_new or row.equity_baseline_usd is None:
         ensure_baseline_on_connect(row, balance)
     upsert_daily_invoice(db, row, balance)
@@ -202,13 +211,14 @@ async def patch_my_copy_trading(
         row.enabled = body.enabled
     if body.testnet is not None:
         row.testnet = body.testnet
-    if body.account_balance_usd is not None:
-        row.account_balance_usd = round(body.account_balance_usd, 2)
     if body.stake_percent is not None:
         row.stake_percent = round(body.stake_percent, 2)
+    balance, balance_error = await _fetch_balance(row)
+    _sync_deposit_from_balance(row, balance)
+    if body.account_balance_usd is not None and (balance is None or balance <= 0):
+        row.account_balance_usd = round(body.account_balance_usd, 2)
     db.commit()
     db.refresh(row)
-    balance, balance_error = await _fetch_balance(row)
     return _build_status(db, row, balance=balance, balance_error=balance_error)
 
 
@@ -238,6 +248,7 @@ async def test_my_copy_trading(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Не удалось подключиться к Bybit: {balance_error}",
         )
+    _sync_deposit_from_balance(row, balance)
     ensure_baseline_on_connect(row, balance)
     db.commit()
     return _build_status(db, row, balance=balance)

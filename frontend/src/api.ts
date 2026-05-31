@@ -311,8 +311,14 @@ export type CopyTradingSaveBody = {
   api_secret: string;
   testnet: boolean;
   enabled: boolean;
-  account_balance_usd: number;
+  account_balance_usd?: number;
   stake_percent: number;
+};
+
+export type CopyTradingPatchBody = {
+  enabled?: boolean;
+  testnet?: boolean;
+  stake_percent?: number;
 };
 
 export const fetchCopyTradingStatus = () => api<CopyTradingStatus>("/copy-trading/me");
@@ -320,6 +326,13 @@ export const fetchCopyTradingStatus = () => api<CopyTradingStatus>("/copy-tradin
 export const saveCopyTradingSettings = (body: CopyTradingSaveBody) =>
   api<CopyTradingStatus>("/copy-trading/me", {
     method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+export const patchCopyTradingSettings = (body: CopyTradingPatchBody) =>
+  api<CopyTradingStatus>("/copy-trading/me", {
+    method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });

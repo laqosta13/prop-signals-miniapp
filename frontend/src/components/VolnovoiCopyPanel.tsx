@@ -5,12 +5,14 @@ import {
   deleteCopyTradingSettings,
   fetchCopyTradingStatus,
   payCopyTradingFee,
+  patchCopyTradingSettings,
   saveCopyTradingSettings,
   testCopyTradingConnection,
 } from "../api";
 import { copyToClipboard, formatUsd, selectFieldText } from "../utils";
 import { PasteButton } from "./PasteButton";
 import { BybitLogo } from "./BrandLogos";
+import { RiskPercentSlider } from "./RiskPercentSlider";
 
 const EMPTY_STATUS: CopyTradingStatus = {
   configured: false,
@@ -38,7 +40,6 @@ export function VolnovoiCopyPanel() {
   const [apiSecret, setApiSecret] = useState("");
   const [testnet, setTestnet] = useState(true);
   const [enabled, setEnabled] = useState(true);
-  const [accountBalance, setAccountBalance] = useState("10000");
   const [stakePercent, setStakePercent] = useState("10");
 
   const walletRef = useRef<HTMLInputElement>(null);
@@ -49,7 +50,6 @@ export function VolnovoiCopyPanel() {
     if (s.configured) {
       setTestnet(s.testnet);
       setEnabled(s.enabled);
-      setAccountBalance(String(s.account_balance_usd));
       setStakePercent(String(s.stake_percent));
     }
     return s;
@@ -61,22 +61,28 @@ export function VolnovoiCopyPanel() {
       .finally(() => setLoading(false));
   }, []);
 
+  const stakePayload = {
+    testnet,
+    enabled,
+    stake_percent: Number(stakePercent) || 10,
+  };
+
   const onSave = async () => {
-    if (!apiKey.trim() || !apiSecret.trim()) {
+    const hasNewKeys = apiKey.trim() && apiSecret.trim();
+    if (!hasNewKeys && !status?.configured) {
       setErr("Введите API Key и Secret");
       return;
     }
     setBusy(true);
     setErr(null);
     try {
-      const s = await saveCopyTradingSettings({
-        api_key: apiKey.trim(),
-        api_secret: apiSecret.trim(),
-        testnet,
-        enabled,
-        account_balance_usd: Number(accountBalance) || 10000,
-        stake_percent: Number(stakePercent) || 10,
-      });
+      const s = hasNewKeys
+        ? await saveCopyTradingSettings({
+            api_key: apiKey.trim(),
+            api_secret: apiSecret.trim(),
+            ...stakePayload,
+          })
+        : await patchCopyTradingSettings(stakePayload);
       setStatus(s);
       setApiKey("");
       setApiSecret("");
@@ -96,13 +102,12 @@ export function VolnovoiCopyPanel() {
         await saveCopyTradingSettings({
           api_key: apiKey.trim(),
           api_secret: apiSecret.trim(),
-          testnet,
-          enabled,
-          account_balance_usd: Number(accountBalance) || 10000,
-          stake_percent: Number(stakePercent) || 10,
+          ...stakePayload,
         });
         setApiKey("");
         setApiSecret("");
+      } else if (status?.configured) {
+        await patchCopyTradingSettings(stakePayload);
       }
       setStatus(await testCopyTradingConnection());
       WebApp.HapticFeedback.notificationOccurred("success");
@@ -193,7 +198,7 @@ export function VolnovoiCopyPanel() {
             <li>Оплата USDT TON на наш кошелёк, проверка TXID on-chain</li>
             <li>Без оплаты счёта копирование приостанавливается</li>
             <li>Ключи шифруются; права API — только <strong>Trade</strong></li>
-            <li>Размер позиции = депозит × % входа × плечо сигнала</li>
+            <li>Размер позиции = баланс Bybit × % депозита × плечо сигнала</li>
           </ul>
 
           {loading ? (
@@ -285,28 +290,24 @@ export function VolnovoiCopyPanel() {
                   />
                 </label>
 
-                <div className="volnovoi-copy__row">
-                  <label className="volnovoi-copy__field">
-                    <span className="field-label">Депозит для расчёта, $</span>
-                    <input
-                      type="number"
-                      min={100}
-                      step={100}
-                      value={accountBalance}
-                      onChange={(e) => setAccountBalance(e.target.value)}
-                    />
-                  </label>
-                  <label className="volnovoi-copy__field">
-                    <span className="field-label">Сумма входа, %</span>
-                    <input
-                      type="number"
-                      min={0.1}
-                      max={100}
-                      step={0.5}
-                      value={stakePercent}
-                      onChange={(e) => setStakePercent(e.target.value)}
-                    />
-                  </label>
+                <div className="volnovoi-copy__deposit">
+                  <RiskPercentSlider
+                    value={stakePercent}
+                    onChange={setStakePercent}
+                    label="Депозит для расчёта, %"
+                  />
+                  <p className="meta volnovoi-copy__deposit-hint">
+                    {status?.current_equity_usd != null ? (
+                      <>
+                        Баланс Bybit для расчёта:{" "}
+                        <strong>{formatUsd(status.current_equity_usd)}</strong>
+                      </>
+                    ) : status?.configured ? (
+                      "Нажмите «Проверить» — баланс подтянется с Bybit"
+                    ) : (
+                      "После подключения API баланс подтянется автоматически"
+                    )}
+                  </p>
                 </div>
 
                 <div className="volnovoi-copy__checks">

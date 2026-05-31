@@ -59,10 +59,17 @@ def _user_credentials(row: UserBybitSettings) -> BybitCredentials:
     )
 
 
+def copy_deposit_base_usd(settings_row: UserBybitSettings) -> float:
+    """База номинала: последний баланс Bybit, иначе сохранённый депозит."""
+    if settings_row.last_equity_usd is not None and settings_row.last_equity_usd > 0:
+        return float(settings_row.last_equity_usd)
+    return max(float(settings_row.account_balance_usd or 0), 0)
+
+
 def copy_notional_usd(settings_row: UserBybitSettings, signal: Signal) -> float:
     stake = signal_entry_stake_pct(signal)
     lev = signal_leverage(signal)
-    base = max(float(settings_row.account_balance_usd or 0), 0)
+    base = copy_deposit_base_usd(settings_row)
     custom = float(settings_row.stake_percent or 0)
     if custom > 0:
         stake = custom
