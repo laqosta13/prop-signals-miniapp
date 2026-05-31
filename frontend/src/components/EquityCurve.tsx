@@ -35,6 +35,11 @@ function fmtPct(v: number) {
   return `${sign}${Math.abs(v).toFixed(2)}%`;
 }
 
+function fmtUsd(v: number) {
+  const sign = v > 0 ? "+" : "";
+  return `${sign}${formatUsd(v)}`;
+}
+
 export function filterDailyStatsByPeriod(dailyStats: TraderDayStat[], period: EquityPeriod): TraderDayStat[] {
   if (!dailyStats.length) return [];
   const cutoff = new Date();
@@ -173,7 +178,7 @@ export function EquityCurve({ dailyStats, className = "", showDayList = true, pe
 
     const plotW = W - PAD.left - PAD.right;
     const plotH = H - PAD.top - PAD.bottom;
-    const values = points.map((p) => p.value);
+    const values = points.map((p) => (percentOnly ? p.value : p.cumPnl));
     const minV = Math.min(0, ...values);
     const maxV = Math.max(0, ...values);
     const span = maxV - minV || 1;
@@ -181,12 +186,16 @@ export function EquityCurve({ dailyStats, className = "", showDayList = true, pe
     const toX = (i: number) => PAD.left + (i / (points.length - 1)) * plotW;
     const toY = (v: number) => PAD.top + (1 - (v - minV) / span) * plotH;
 
-    const coords = points.map((p, i) => ({
-      ...p,
-      x: toX(i),
-      y: toY(p.value),
-      i,
-    }));
+    const coords = points.map((p, i) => {
+      const chartValue = percentOnly ? p.value : p.cumPnl;
+      return {
+        ...p,
+        value: chartValue,
+        x: toX(i),
+        y: toY(chartValue),
+        i,
+      };
+    });
 
     const zeroY = toY(0);
     const segments = splitAtZero(coords, zeroY);
@@ -204,7 +213,7 @@ export function EquityCurve({ dailyStats, className = "", showDayList = true, pe
     }
 
     return { points, coords, zeroY, segments, last, positive, ticks, xLabels, toY };
-  }, [filtered]);
+  }, [filtered, percentOnly]);
 
   const onPickPeriod = (next: EquityPeriod) => {
     setPeriod(next);
@@ -235,7 +244,7 @@ export function EquityCurve({ dailyStats, className = "", showDayList = true, pe
           <span className="equity-curve__title">Доходность</span>
           {chart && (
             <span className={`equity-curve__live ${chart.positive ? "pnl-win" : "pnl-lose"}`}>
-              {fmtPct(chart.last.value)}
+              {percentOnly ? fmtPct(chart.last.value) : fmtUsd(chart.last.value)}
             </span>
           )}
         </div>
@@ -288,7 +297,7 @@ export function EquityCurve({ dailyStats, className = "", showDayList = true, pe
               <g key={v}>
                 <line x1={PAD.left} y1={chart.toY(v)} x2={W - PAD.right} y2={chart.toY(v)} className="equity-curve__grid" />
                 <text x={W - PAD.right + 6} y={chart.toY(v) + 4} className="equity-curve__ylabel">
-                  {fmtPct(v)}
+                  {percentOnly ? fmtPct(v) : formatUsd(v)}
                 </text>
               </g>
             ))}
@@ -339,7 +348,9 @@ export function EquityCurve({ dailyStats, className = "", showDayList = true, pe
           {hoverIdx != null && active && !active.isOrigin && (
             <div className="equity-curve__tip" style={{ left: `${(active.x / W) * 100}%` }}>
               <span className="equity-curve__tip-date">{formatDayLabel(active.date)}</span>
-              <span className={active.value >= 0 ? "pnl-win" : "pnl-lose"}>{fmtPct(active.value)}</span>
+              <span className={active.value >= 0 ? "pnl-win" : "pnl-lose"}>
+                {percentOnly ? fmtPct(active.value) : fmtUsd(active.value)}
+              </span>
               <span className="equity-curve__tip-sub">
                 {percentOnly ? (
                   <>
@@ -348,9 +359,9 @@ export function EquityCurve({ dailyStats, className = "", showDayList = true, pe
                   </>
                 ) : (
                   <>
-                    день {active.dayDelta >= 0 ? "+" : ""}
-                    {active.dayDelta.toFixed(2)}% · {active.dayPnl >= 0 ? "+" : ""}
-                    {formatUsd(active.dayPnl)}
+                    день {active.dayPnl >= 0 ? "+" : ""}
+                    {formatUsd(active.dayPnl)} · {active.dayDelta >= 0 ? "+" : ""}
+                    {active.dayDelta.toFixed(2)}%
                   </>
                 )}
               </span>
