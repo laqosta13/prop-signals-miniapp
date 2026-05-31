@@ -17,6 +17,7 @@ import {
   type Trader,
 } from "./api";
 import { FeedTab } from "./components/FeedTab";
+import { ThemeToggle } from "./components/ThemeToggle";
 import { mergeFeedSignals } from "./utils/mergeFeedSignals";
 import { hasAcceptedDisclaimer, markDisclaimerAccepted } from "./utils/disclaimerStorage";
 
@@ -340,6 +341,7 @@ export default function App() {
           <p>{head.sub}</p>
         </div>
         <div className="topbar__actions">
+          <ThemeToggle />
           {isAdmin && tab === "news" && (
             <button type="button" className="fab-top" onClick={openNewNews} aria-label="Новая новость">
               +
