@@ -8,7 +8,6 @@ from app.hashhedge_rules import rules_for_stage
 from app.media_storage import public_url
 from app.serializers import trader_display_name, trader_login
 from app.models import Signal, Trader, UserChallenge
-from app.daily_stop_limit import SIGNAL_DAILY_TRADE_LIMIT, admin_signals_today_count
 from app.tracker_metrics import compute_tracker_stats, msk_day_key
 from app.trader_stats import signal_tracker_balance
 
@@ -141,6 +140,8 @@ def build_dashboard(db: Session, ch: UserChallenge, trader: Trader | None = None
     min_days_unlimited = rules.min_trading_days is None
     target_pct = rules.profit_target_pct or 0.0
     goal = balance if profit_unlimited else round(start * (1 + target_pct / 100.0), 2)
+    from app.daily_stop_limit import SIGNAL_DAILY_TRADE_LIMIT, admin_signals_today_count
+
     daily_trades_count = admin_signals_today_count(db, owner_id)
 
     return ChallengeDashboard(

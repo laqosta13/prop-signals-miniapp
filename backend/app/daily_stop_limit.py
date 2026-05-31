@@ -8,7 +8,6 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.challenge_service import _closed_signals, get_or_create_challenge
 from app.hashhedge_rules import rules_for_stage
 from app.models import Signal
 from app.signal_utils import compute_signal_points_percent
@@ -43,6 +42,8 @@ def account_risk_at_stop(
 
 
 def admin_daily_loss_pct(db: Session, admin_id: int) -> float:
+    from app.challenge_service import _closed_signals, get_or_create_challenge
+
     ch = get_or_create_challenge(db, admin_id)
     closed = _closed_signals(db, admin_id)
     rules = rules_for_stage(ch.stage)
