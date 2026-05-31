@@ -22,6 +22,9 @@ from app.telegram_updates import telegram_updates_loop
 from app.routers import admin, auth, challenge, copy_trading, cult_channels, news, reviews, signals, subscriptions, traders
 
 logging.basicConfig(level=logging.INFO)
+# httpx/httpcore логируют полные URL (в т.ч. BOT_TOKEN в api.telegram.org) — только ошибки.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 Base.metadata.create_all(bind=engine)
 run_migrations(engine)
