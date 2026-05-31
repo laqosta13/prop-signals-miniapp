@@ -2,6 +2,7 @@ import { useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import type { HashHedgeRules } from "../api";
 import { HASHHEDGE_REGISTER_URL } from "../data/hashhedgeRules";
+import { HashHedgeLogo } from "./BrandLogos";
 
 type Props = {
   rules: HashHedgeRules | null;
@@ -72,7 +73,10 @@ export function HashHedgeRulesTable({ rules, loading }: Props) {
         ))}
         <div className="hashhedge-rules__footer">
           <button type="button" className="hashhedge-rules__register" onClick={openPropRegistration}>
-            Регистрация на проп
+            <span className="cta-btn__label">
+              <HashHedgeLogo size={22} />
+              Регистрация на проп
+            </span>
           </button>
         </div>
       </div>

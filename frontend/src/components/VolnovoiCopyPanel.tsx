@@ -10,6 +10,7 @@ import {
 } from "../api";
 import { copyToClipboard, formatUsd, selectFieldText } from "../utils";
 import { PasteButton } from "./PasteButton";
+import { BybitLogo } from "./BrandLogos";
 
 const EMPTY_STATUS: CopyTradingStatus = {
   configured: false,
@@ -170,7 +171,10 @@ export function VolnovoiCopyPanel() {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        <span>Копирование volnovoi · Bybit</span>
+        <span className="cta-btn__label">
+          <BybitLogo size={22} />
+          <span>Копирование volnovoi · Bybit</span>
+        </span>
         <span className="volnovoi-copy__chevron" aria-hidden>
           {open ? "▾" : "▸"}
         </span>
