@@ -136,6 +136,7 @@ export function initialsFromAuthor(displayName: string | null | undefined, usern
 export function mediaUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  if (url.startsWith("/avatars/") || url.startsWith("/brands/")) return url;
   const base = import.meta.env.VITE_API_URL?.replace(/\/$/, "") || "";
   return base ? `${base}${url}` : url;
 }

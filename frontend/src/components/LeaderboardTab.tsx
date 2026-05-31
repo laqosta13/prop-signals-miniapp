@@ -7,8 +7,9 @@ import { RankBadge } from "./RankBadge";
 import { RankGuide } from "./RankGuide";
 import { TraderProfileModal } from "./TraderProfileModal";
 import { VolnovoiCopyPanel } from "./VolnovoiCopyPanel";
+import { VolnovoiMarketingBadge } from "./VolnovoiMarketingBadge";
 import { authorProfile } from "../utils";
-import { isVolnovoiTrader } from "../utils/volnovoi";
+import { isVolnovoiTrader, VOLNOVOI_SUBTITLE } from "../utils/volnovoi";
 import { Avatar } from "./Avatar";
 
 type Props = {
@@ -35,9 +36,18 @@ function TopTraderCard({ trader, onOpen }: { trader: Trader; onOpen: () => void 
             <div className="top-body">
               <div className="top-name-row">
                 <p className="top-name">{authorProfile(trader.display_name, trader.username).title}</p>
-                {trader.trader_rank && <RankBadge rank={trader.trader_rank} compact />}
+                {aggregate ? (
+                  <VolnovoiMarketingBadge trader={trader} />
+                ) : (
+                  trader.trader_rank && <RankBadge rank={trader.trader_rank} compact />
+                )}
               </div>
-              {aggregate && <p className="top-aggregate-hint">Копирует · все сделки трейдеров</p>}
+              {aggregate && trader.trader_rank && (
+                <div className="top-aggregate-rank">
+                  <RankBadge rank={trader.trader_rank} compact />
+                </div>
+              )}
+              {aggregate && <p className="top-aggregate-hint">{VOLNOVOI_SUBTITLE}</p>}
               <p className={`top-score ${trader.rating_percent >= 0 ? "up" : "down"}`}>
                 {trader.rating_percent >= 0 ? "+" : ""}
                 {trader.rating_percent.toFixed(2)}%

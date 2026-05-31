@@ -12,15 +12,35 @@ from app.config import settings
 from app.models import Signal
 from app.rank_service import get_rank_by_pct, next_sunday_deadline, rank_name
 from app.schemas import TraderDayStat, TraderRankRead, TraderRead
-from app.trader_stats import closed_signal_move_pct, closed_signal_pnl_usd
+from app.trader_stats import (
+    closed_signal_move_pct,
+    signal_entry_stake_pct,
+    signal_leverage,
+)
 
 VOLNOVOI_TELEGRAM_ID = 0
 VOLNOVOI_DISPLAY_NAME = "volnovoi"
 VOLNOVOI_USERNAME = "volnovoi"
+VOLNOVOI_CAPITAL_USD = 100_000.0
+VOLNOVOI_AVATAR_URL = "/avatars/volnovoi.png"
 
 
 def is_volnovoi_account(telegram_id: int) -> bool:
     return telegram_id == VOLNOVOI_TELEGRAM_ID
+
+
+def volnovoi_signal_pnl_usd(signal: Signal) -> float:
+    """P/L сделки на капитале volnovoi: те же вход % и плечо, база $100k."""
+    move = closed_signal_move_pct(signal)
+    stake = signal_entry_stake_pct(signal)
+    lev = signal_leverage(signal)
+    nominal = VOLNOVOI_CAPITAL_USD * stake / 100.0 * lev
+    return round(nominal * move / 100.0, 2)
+
+
+def volnovoi_signal_return_pct(signal: Signal) -> float:
+    """Доходность сделки в % от капитала volnovoi."""
+    return round(volnovoi_signal_pnl_usd(signal) / VOLNOVOI_CAPITAL_USD * 100.0, 2)
 
 
 def _day_key(closed_at: datetime | None) -> str:
@@ -55,8 +75,8 @@ def _closed_admin_signals(db: Session, admin_ids: list[int]) -> list[Signal]:
 def volnovoi_daily_stats(signals: list[Signal]) -> list[TraderDayStat]:
     buckets: dict[str, dict] = defaultdict(lambda: {"pnl": 0.0, "rating": 0.0, "w": 0, "l": 0})
     for s in signals:
-        pnl = closed_signal_pnl_usd(s)
-        ret = closed_signal_move_pct(s)
+        pnl = volnovoi_signal_pnl_usd(s)
+        ret = volnovoi_signal_return_pct(s)
         day = _day_key(s.closed_at)
         b = buckets[day]
         b["pnl"] = round(b["pnl"] + pnl, 2)
@@ -105,12 +125,12 @@ def build_volnovoi_read(db: Session) -> TraderRead | None:
     losses = 0
 
     for s in signals:
-        move = closed_signal_move_pct(s)
-        pnl = closed_signal_pnl_usd(s)
-        rating = round(rating + move, 2)
+        ret = volnovoi_signal_return_pct(s)
+        pnl = volnovoi_signal_pnl_usd(s)
+        rating = round(rating + ret, 2)
         pnl_total = round(pnl_total + pnl, 2)
         if _in_current_iso_week(s.closed_at, now):
-            weekly = round(weekly + move, 2)
+            weekly = round(weekly + ret, 2)
         if pnl >= 0:
             wins += 1
         else:
@@ -129,7 +149,7 @@ def build_volnovoi_read(db: Session) -> TraderRead | None:
         losses=losses,
         rank=0,
         win_rate=wr,
-        avatar_url=None,
+        avatar_url=VOLNOVOI_AVATAR_URL,
         daily_stats=volnovoi_daily_stats(signals),
         trader_rank=volnovoi_rank_read(weekly) if total else None,
         is_aggregate=True,

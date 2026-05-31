@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import type { Trader, TraderRank } from "../api";
 import { activateRankShield, confirmMyRank, fetchTraderRank } from "../api";
 import { authorProfile, formatUsd } from "../utils";
-import { isVolnovoiTrader } from "../utils/volnovoi";
+import { isVolnovoiTrader, VOLNOVOI_SUBTITLE } from "../utils/volnovoi";
 import { rankStyle } from "../utils/ranks";
 import { Avatar } from "./Avatar";
 import { RankBadge } from "./RankBadge";
+import { VolnovoiMarketingBadge } from "./VolnovoiMarketingBadge";
 
 type Props = {
   trader: Trader;
@@ -71,9 +72,13 @@ export function TraderProfileModal({ trader, isMe, isAdmin, onClose }: Props) {
               <p className="trader-profile-sheet__name">{profile.title}</p>
               {rank && <RankBadge rank={rank} compact />}
             </div>
-            {aggregate && <p className="trader-profile-sheet__sub">Копирует · все сделки трейдеров</p>}
+            {aggregate && <p className="trader-profile-sheet__sub">{VOLNOVOI_SUBTITLE}</p>}
           </div>
         </div>
+
+        {aggregate && (
+          <VolnovoiMarketingBadge trader={trader} className="volnovoi-marketing--profile" />
+        )}
 
         {aggregate && (
           <div className="trader-profile-sheet__stats">
