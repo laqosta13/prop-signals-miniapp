@@ -1,7 +1,7 @@
 import { useState } from "react";
-import WebApp from "@twa-dev/sdk";
 import type { HashHedgeRules } from "../api";
 import { HASHHEDGE_REGISTER_URL } from "../data/hashhedgeRules";
+import { openExternalLink } from "../utils/openExternalLink";
 import { HashHedgeLogo } from "./BrandLogos";
 
 type Props = {
@@ -10,12 +10,7 @@ type Props = {
 };
 
 function openPropRegistration() {
-  WebApp.HapticFeedback.impactOccurred("light");
-  if (WebApp.openLink) {
-    WebApp.openLink(HASHHEDGE_REGISTER_URL);
-    return;
-  }
-  window.open(HASHHEDGE_REGISTER_URL, "_blank", "noopener,noreferrer");
+  openExternalLink(HASHHEDGE_REGISTER_URL);
 }
 
 export function HashHedgeRulesTable({ rules, loading }: Props) {

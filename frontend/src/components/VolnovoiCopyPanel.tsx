@@ -9,7 +9,8 @@ import {
   saveCopyTradingSettings,
   testCopyTradingConnection,
 } from "../api";
-import { copyToClipboard, formatUsd, selectFieldText } from "../utils";
+import { openExternalLink } from "../utils/openExternalLink";
+import { BYBIT_REGISTER_URL } from "../data/partnerLinks";
 import { PasteButton } from "./PasteButton";
 import { BybitLogo } from "./BrandLogos";
 import { RiskPercentSlider } from "./RiskPercentSlider";
@@ -191,6 +192,17 @@ export function VolnovoiCopyPanel() {
             Сделки аккаунта <strong>volnovoi</strong> копируются на ваш Bybit USDT perpetual с теми же стопом и
             целью. Оплата отдельная от подписки на ленту.
           </p>
+
+          <button
+            type="button"
+            className="partner-links__btn partner-links__btn--inline"
+            onClick={() => openExternalLink(BYBIT_REGISTER_URL)}
+          >
+            <span className="cta-btn__label">
+              <BybitLogo size={22} />
+              <span>Регистрация на Bybit</span>
+            </span>
+          </button>
 
           <ul className="volnovoi-copy__hints">
             <li>Комиссия — <strong>{status?.fee_percent ?? 20}%</strong> от прибыли с момента подключения</li>
