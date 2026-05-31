@@ -18,6 +18,6 @@ def purge_published(
     db.commit()
     return {
         "ok": True,
-        "purged": ["signals", "news", "reviews"],
-        "reset": ["trader_stats", "admin_trackers"],
+        "purged": ["signals", "cult_channel_signals", "news", "reviews"],
+        "reset": ["trader_stats", "cult_channel_stats", "admin_trackers"],
     }

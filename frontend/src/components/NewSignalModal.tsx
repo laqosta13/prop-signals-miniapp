@@ -8,6 +8,13 @@ import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
 import { normalizeTakeProfits } from "../utils";
 import { ruTextFieldProps } from "../utils/textFieldProps";
 import { entryNominalUsd, parseLeverage, parseRiskPercent } from "../utils/signalForm";
+import { formatRiskPct } from "../utils/signalLevels";
+import {
+  dailyLimitBlockedMessage,
+  dailyTradingBlocked,
+  dailyTradesRemaining,
+  SIGNAL_DAILY_TRADE_LIMIT,
+} from "../utils/dailyStopLimit";
 import {
   initialUploadProgress,
   mediaBytesInForm,
@@ -119,6 +126,15 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
   const trackerBalance = trackerSnap?.balance ?? 0;
   const accountForNominal = trackerSnap?.accountSize ?? 0;
   const stakeUsd = entryNominalUsd(accountForNominal, stakePct, lev);
+  const dailyTradesCount = trackerSnap?.dailyTradesCount ?? 0;
+  const dailyTradesLimit = trackerSnap?.dailyTradesLimit ?? SIGNAL_DAILY_TRADE_LIMIT;
+  const dailyLimit = dailyTradingBlocked({
+    dailyLossPct,
+    dailyTradesCount,
+    dailyTradesLimit,
+  });
+  const formBlocked = dailyLimit.blocked;
+  const dailyTradesRemainingCount = dailyTradesRemaining(dailyTradesCount, dailyTradesLimit);
 
   const onScreenshot = (file: File | null) => {
     setScreenshot(file);
@@ -263,6 +279,21 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
             Номинал от счёта ${accountForNominal.toLocaleString("en-US", { maximumFractionDigits: 0 })}, не от текущего баланса
           </p>
         )}
+        {!trackerLoading && (
+          <>
+            <p className="meta signal-daily-trades">
+              Лимит: 3 сделки или 2% стопа · остаток{" "}
+              <strong>
+                {dailyTradesRemainingCount} сделок · {formatRiskPct(dailyRemaining ?? 0)}% стопа
+              </strong>
+            </p>
+            {formBlocked && (
+              <p className="err signal-daily-trades-blocked">
+                {dailyLimitBlockedMessage(dailyLimit.reason)}
+              </p>
+            )}
+          </>
+        )}
 
         <SignalMediaPicker
           screenshot={screenshot}
@@ -288,7 +319,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
           />
         )}
 
-        <button type="submit" className="submit-btn" disabled={submitting || priceLoading || dailyStopBlocked}>
+        <button type="submit" className="submit-btn" disabled={submitting || priceLoading || formBlocked}>
           {submitting && uploadProgress
             ? uploadProgress.phase === "processing"
               ? "Сохранение…"

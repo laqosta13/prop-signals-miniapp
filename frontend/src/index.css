@@ -3633,7 +3633,7 @@ input.readonly {
 }
 
 .stop-offset-slider__marks {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--stop-marks-count, 4), minmax(0, 1fr));
 }
 
 .stop-offset-slider__budget {
@@ -3653,6 +3653,19 @@ input.readonly {
 .stop-offset-slider__blocked {
   margin: 0;
   font-size: 0.78rem;
+}
+
+.signal-daily-trades {
+  margin: 0 0 8px;
+}
+
+.signal-daily-trades-blocked {
+  margin: 0 0 12px;
+  font-size: 0.78rem;
+}
+
+.signal-daily-trades--blocked {
+  color: var(--danger);
 }
 
 .levels-grid-form__hint {

@@ -159,6 +159,8 @@ export type ChallengeDashboard = {
   daily_loss_pct: number;
   max_daily_loss_pct: number;
   daily_remaining_usd: number;
+  daily_trades_count: number;
+  daily_trades_limit: number;
   trading_days: number;
   min_trading_days: number;
   min_trading_days_unlimited?: boolean;

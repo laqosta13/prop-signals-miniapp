@@ -6,6 +6,8 @@ export type TrackerSnapshot = {
   accountSize: number;
   dailyLossPct: number;
   maxDailyLossPct: number;
+  dailyTradesCount: number;
+  dailyTradesLimit: number;
 };
 
 export function useAdminTrackerSnapshot(enabled: boolean) {
@@ -28,6 +30,8 @@ export function useAdminTrackerSnapshot(enabled: boolean) {
             accountSize: d.account_size,
             dailyLossPct: d.daily_loss_pct,
             maxDailyLossPct: d.max_daily_loss_pct,
+            dailyTradesCount: d.daily_trades_count,
+            dailyTradesLimit: d.daily_trades_limit,
           });
         }
       })

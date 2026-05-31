@@ -10,9 +10,12 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.media_storage import clear_tracker_screenshot_dir, delete_media_files, media_root
 from app.models import (
+    CultChannel,
+    CultChannelSignal,
     NewsPost,
     Review,
     Signal,
+    SignalCopyTrade,
     SignalLike,
     SignalSupplement,
     SignalView,
@@ -31,12 +34,21 @@ def _clear_media_subdir(name: str) -> None:
         path.mkdir(parents=True, exist_ok=True)
 
 
+def _purge_cult_channel_content(db: Session) -> None:
+    db.execute(delete(CultChannelSignal))
+    for ch in db.scalars(select(CultChannel)):
+        ch.rating_percent = 0.0
+        ch.wins = 0
+        ch.losses = 0
+
+
 def _purge_signals_media_and_rows(db: Session) -> None:
     for s in db.scalars(select(Signal)):
         delete_media_files(s.media_image_path, s.media_video_path)
     for sup in db.scalars(select(SignalSupplement)):
         delete_media_files(sup.media_image_path, sup.media_video_path)
     _clear_media_subdir("signals")
+    db.execute(delete(SignalCopyTrade))
     db.execute(delete(SignalLike))
     db.execute(delete(SignalView))
     db.execute(delete(SignalSupplement))
@@ -114,8 +126,9 @@ def purge_all_signals(db: Session) -> None:
 
 
 def purge_all_published_content(db: Session) -> None:
-    """Сигналы, новости, отзывы, медиа; рейтинг и трекеры админов — сброс."""
+    """Сигналы, CULT, новости, отзывы, медиа; рейтинг и трекеры админов — сброс."""
     _purge_signals_media_and_rows(db)
+    _purge_cult_channel_content(db)
     _purge_news_and_reviews(db)
     _reset_trader_leaderboard(db, reset_ranks=True)
     _reset_admin_trackers(db)

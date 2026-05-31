@@ -5,14 +5,17 @@ import {
   formatRiskPct,
   parseRiskPctValue,
 } from "../utils/signalLevels";
-import { SIGNAL_DAILY_STOP_LIMIT_PCT } from "../utils/dailyStopLimit";
-
-const ACCOUNT_MARKS = [0.5, 1, 1.5, 2] as const;
+import {
+  ACCOUNT_STOP_MIN_STEP,
+  accountStopSliderMarks,
+  accountStopSliderStep,
+  SIGNAL_DAILY_STOP_LIMIT_PCT,
+} from "../utils/dailyStopLimit";
 
 type Props = {
   value: string;
   onChange: (value: string) => void;
-  /** Остаток дневного лимита стопа (% счёта). Если задан — бегунок в % счёта, max = remaining. */
+  /** Остаток дневного лимита стопа (% счёта). Бегунок 0…remaining на весь трек. */
   dailyRemainingPct?: number;
   dailyLossPct?: number;
   blocked?: boolean;
@@ -27,26 +30,34 @@ export function StopOffsetSlider({
 }: Props) {
   const accountMode = dailyRemainingPct !== undefined;
   const maxPct = accountMode ? Math.max(0, dailyRemainingPct) : 5;
-  const minPct = accountMode ? 0.1 : STOP_OFFSET_MIN_PCT;
+  const minPct = accountMode ? 0 : STOP_OFFSET_MIN_PCT;
+  const step = accountMode ? accountStopSliderStep(maxPct) : STOP_OFFSET_STEP;
   const currentRaw = parseRiskPctValue(value);
   const current = accountMode
     ? Math.min(maxPct, Math.max(minPct, currentRaw))
     : clampStopOffsetPct(currentRaw);
-  const barPct = maxPct > minPct ? ((current - minPct) / (maxPct - minPct)) * 100 : 0;
+  const barPct = accountMode
+    ? maxPct > 0
+      ? (current / maxPct) * 100
+      : 0
+    : maxPct > minPct
+      ? ((current - minPct) / (maxPct - minPct)) * 100
+      : 0;
 
   const marks = accountMode
-    ? ACCOUNT_MARKS.filter((m) => m <= maxPct + 0.001)
+    ? accountStopSliderMarks(maxPct)
     : ([0.5, 1, 1.5, 2, 3, 5] as const).filter((m) => m <= maxPct);
 
   const setPercent = (n: number) => {
-    if (blocked || maxPct < minPct) return;
+    if (blocked || maxPct < ACCOUNT_STOP_MIN_STEP) return;
     const clamped = accountMode
-      ? Math.min(maxPct, Math.max(minPct, Math.round(n * 10) / 10))
+      ? Math.min(maxPct, Math.max(0, Math.round(n / step) * step))
       : clampStopOffsetPct(n);
+    if (accountMode && clamped < ACCOUNT_STOP_MIN_STEP) return;
     onChange(formatRiskPct(clamped));
   };
 
-  const disabled = blocked || maxPct < minPct;
+  const disabled = blocked || (accountMode ? maxPct < ACCOUNT_STOP_MIN_STEP : maxPct < minPct);
 
   return (
     <div className={`risk-slider stop-offset-slider${disabled ? " stop-offset-slider--blocked" : ""}`}>
@@ -58,12 +69,15 @@ export function StopOffsetSlider({
       </div>
       {accountMode && (
         <p className="stop-offset-slider__budget meta">
-          Лимит дня {SIGNAL_DAILY_STOP_LIMIT_PCT}% · потери {formatRiskPct(dailyLossPct)}% · остаток{" "}
+          Лимит {SIGNAL_DAILY_STOP_LIMIT_PCT}% стопа · потери {formatRiskPct(dailyLossPct)}% · остаток{" "}
           <strong>{formatRiskPct(maxPct)}%</strong>
+          {maxPct >= ACCOUNT_STOP_MIN_STEP && " · можно весь остаток в одну сделку"}
         </p>
       )}
       {disabled ? (
-        <p className="stop-offset-slider__blocked err">Дневной лимит стопа исчерпан — новые сигналы сегодня недоступны</p>
+        <p className="stop-offset-slider__blocked err">
+          Дневной лимит {SIGNAL_DAILY_STOP_LIMIT_PCT}% стопа исчерпан
+        </p>
       ) : (
         <>
           <input
@@ -71,9 +85,14 @@ export function StopOffsetSlider({
             className="risk-slider__input"
             min={minPct}
             max={maxPct}
-            step={STOP_OFFSET_STEP}
+            step={step}
             value={current}
-            style={{ "--risk-pct": `${barPct}%` } as React.CSSProperties}
+            style={
+              {
+                "--risk-pct": `${Math.min(100, Math.max(0, barPct))}%`,
+                "--stop-marks-count": String(Math.max(marks.length, 1)),
+              } as React.CSSProperties
+            }
             onChange={(e) => setPercent(parseFloat(e.target.value))}
             aria-valuemin={minPct}
             aria-valuemax={maxPct}
@@ -86,10 +105,10 @@ export function StopOffsetSlider({
                 <button
                   key={m}
                   type="button"
-                  className={`risk-slider__mark${Math.abs(current - m) < STOP_OFFSET_STEP / 2 ? " on" : ""}`}
+                  className={`risk-slider__mark${Math.abs(current - m) < step / 2 ? " on" : ""}`}
                   onClick={() => setPercent(m)}
                 >
-                  {m}
+                  {formatRiskPct(m)}
                 </button>
               ))}
             </div>

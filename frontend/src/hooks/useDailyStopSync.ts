@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import {
   accountRiskToPriceStopPct,
+  ACCOUNT_STOP_MIN_STEP,
   dailyStopRemainingPct,
   priceStopToAccountRiskPct,
 } from "../utils/dailyStopLimit";
@@ -17,15 +18,15 @@ export function useDailyStopSync(opts: {
   const { enabled, riskPct, onRiskPctChange, dailyLossPct, stakePct, leverage } = opts;
   const dailyRemaining =
     dailyLossPct !== undefined ? dailyStopRemainingPct(dailyLossPct) : undefined;
-  const blocked = dailyRemaining !== undefined && dailyRemaining < 0.1;
+  const blocked = dailyRemaining !== undefined && dailyRemaining < ACCOUNT_STOP_MIN_STEP;
 
   useEffect(() => {
-    if (!enabled || dailyRemaining === undefined || dailyRemaining < 0.1) return;
+    if (!enabled || dailyRemaining === undefined || dailyRemaining < ACCOUNT_STOP_MIN_STEP) return;
     const account = priceStopToAccountRiskPct(parseRiskPctValue(riskPct), stakePct, leverage);
-    if (account > dailyRemaining + 0.01) {
+    if (account > dailyRemaining + 0.005) {
       const pricePct = accountRiskToPriceStopPct(dailyRemaining, stakePct, leverage);
       if (pricePct > 0) {
-        onRiskPctChange(formatRiskPct(Math.max(0.1, pricePct)));
+        onRiskPctChange(formatRiskPct(Math.max(ACCOUNT_STOP_MIN_STEP, pricePct)));
       }
     }
   }, [enabled, dailyRemaining, stakePct, leverage, riskPct, onRiskPctChange]);
@@ -51,7 +52,7 @@ export function preserveAccountStopOnLeverageChange(opts: {
     opts.prevLeverage,
   );
   const clamped = Math.min(account, Math.max(0, opts.dailyRemaining));
-  if (clamped < 0.1) return null;
+  if (clamped < ACCOUNT_STOP_MIN_STEP) return null;
   const pricePct = accountRiskToPriceStopPct(clamped, opts.nextStakePct, opts.nextLeverage);
-  return pricePct > 0 ? formatRiskPct(Math.max(0.1, pricePct)) : null;
+  return pricePct > 0 ? formatRiskPct(Math.max(ACCOUNT_STOP_MIN_STEP, pricePct)) : null;
 }

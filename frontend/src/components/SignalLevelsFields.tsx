@@ -1,9 +1,9 @@
 import { StopOffsetSlider } from "./StopOffsetSlider";
-import { accountRiskToPriceStopPct, priceStopToAccountRiskPct } from "../utils/dailyStopLimit";
+import { accountRiskToPriceStopPct, priceStopToAccountRiskPct, ACCOUNT_STOP_MIN_STEP } from "../utils/dailyStopLimit";
 import { clampStopOffsetPct, formatRiskPct, parseRiskPctValue } from "../utils/signalLevels";
 
 const LEVEL_HINTS = ["Цена с Bybit perp", "R:R 1:3"] as const;
-const LEVEL_HINTS_DAILY = ["Цена с Bybit perp", "R:R 1:3 · лимит стопа 2%/день"] as const;
+const LEVEL_HINTS_DAILY = ["Цена с Bybit perp", "R:R 1:3 · лимит: 3 сделки или 2% стопа"] as const;
 
 type Props = {
   entry: string;
@@ -52,7 +52,7 @@ export function SignalLevelsFields({
   const handleSliderChange = (value: string) => {
     if (accountMode) {
       const accountPct = parseFloat(value.trim().replace(",", "."));
-      if (!Number.isFinite(accountPct) || accountPct <= 0) return;
+      if (!Number.isFinite(accountPct) || accountPct < ACCOUNT_STOP_MIN_STEP) return;
       const pricePct = accountRiskToPriceStopPct(accountPct, stakePct, leverage);
       onRiskPctChange(formatRiskPct(clampStopOffsetPct(pricePct)));
       return;

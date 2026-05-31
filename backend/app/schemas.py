@@ -189,6 +189,8 @@ class ChallengeDashboard(BaseModel):
     daily_loss_pct: float
     max_daily_loss_pct: float
     daily_remaining_usd: float
+    daily_trades_count: int = 0
+    daily_trades_limit: int = 3
     trading_days: int
     min_trading_days: int
     min_trading_days_unlimited: bool = False

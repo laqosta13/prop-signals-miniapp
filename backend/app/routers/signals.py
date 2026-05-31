@@ -21,7 +21,7 @@ from app.feed_serializers import FEED_SIGNAL_LIMIT, signals_list_read
 from app.serializers import signal_to_read
 from app.price_service import fetch_bybit_perp_quote, normalize_symbol
 from app.challenge_service import admin_account_size, admin_tracker_balance, ensure_tracker_for_new_signal
-from app.daily_stop_limit import validate_signal_daily_stop
+from app.daily_stop_limit import validate_signal_daily_stop, validate_signal_daily_trades
 from app.signal_service import (
     build_signal_row,
     close_signal_at_market,
@@ -111,6 +111,7 @@ async def create_signal(
 ) -> SignalRead:
     tb = admin_tracker_balance(db, admin.telegram_user_id)
     acct = admin_account_size(db, admin.telegram_user_id)
+    validate_signal_daily_trades(db, admin.telegram_user_id)
     stake = risk_percent if risk_percent is not None and risk_percent > 0 else 10.0
     lev = leverage if leverage is not None and leverage >= 1 else 1
     validate_signal_daily_stop(
