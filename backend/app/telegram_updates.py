@@ -38,15 +38,17 @@ def _save_offset(offset: int) -> None:
 async def process_updates_once() -> int:
     if not settings.bot_token:
         return 0
-    offset = _load_offset()
-    updates = await get_updates(offset=offset, timeout=0 if offset is None else 25)
-    if not updates:
-        return 0
 
-    processed = 0
-    next_offset: int | None = None
     db = SessionLocal()
     try:
+        offset = _load_offset()
+        updates = await get_updates(offset=offset, timeout=0 if offset is None else 25)
+        if not updates:
+            return 0
+
+        processed = 0
+        next_offset: int | None = None
+
         for upd in updates:
             upd_id = int(upd["update_id"])
             next_offset = upd_id + 1
@@ -70,7 +72,8 @@ async def process_updates_once() -> int:
                 sig = ingest_channel_post(db, int(chat_id), msg, is_edit=is_edit)
             except Exception:
                 logger.exception("ingest channel post failed update_id=%s", upd_id)
-                raise
+                db.rollback()
+                return 0
 
             if sig:
                 processed += 1

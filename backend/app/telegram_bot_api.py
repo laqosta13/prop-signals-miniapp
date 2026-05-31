@@ -64,6 +64,8 @@ def delete_webhook() -> None:
         logger.info("telegram: webhook cleared for polling")
     except TelegramApiError as e:
         logger.warning("telegram deleteWebhook: %s", e)
+    except httpx.HTTPError as e:
+        logger.warning("telegram deleteWebhook http error: %s", e)
 
 
 def get_chat(chat_id: str | int) -> dict[str, Any]:
@@ -93,10 +95,39 @@ def verify_bot_is_channel_admin(chat_id: int) -> None:
 
 
 async def get_updates(offset: int | None = None, timeout: int = 25) -> list[dict[str, Any]]:
-    payload: dict[str, Any] = {"timeout": timeout, "allowed_updates": ["channel_post", "edited_channel_post"]}
+    payload: dict[str, Any] = {
+        "timeout": timeout,
+        "allowed_updates": ["channel_post", "edited_channel_post"],
+    }
     if offset is not None:
         payload["offset"] = offset
-    data = await _api_async("getUpdates", payload)
-    if not data.get("ok"):
+
+    token = settings.bot_token
+    if not token:
         return []
+
+    # Telegram держит соединение ~timeout сек — клиентский таймаут должен быть больше.
+    client_timeout = max(35.0, float(timeout) + 15.0)
+    url = API.format(token=token, method="getUpdates")
+
+    try:
+        async with httpx.AsyncClient(timeout=client_timeout) as client:
+            r = await client.post(url, json=payload)
+            data = _parse_response(r)
+    except TelegramApiError as e:
+        msg = str(e).lower()
+        if "conflict" in msg:
+            logger.error(
+                "telegram getUpdates conflict: другой процесс или webhook использует того же бота"
+            )
+        else:
+            logger.warning("telegram getUpdates failed: %s", e)
+        return []
+    except httpx.TimeoutException:
+        # Ожидаемо при long poll — просто повторим на следующем цикле.
+        return []
+    except httpx.HTTPError as e:
+        logger.warning("telegram getUpdates http error: %s", e)
+        return []
+
     return data.get("result") or []
