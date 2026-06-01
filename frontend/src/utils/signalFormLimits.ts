@@ -63,12 +63,21 @@ export function formatPriceRiskFromAccountStop(
   return formatRiskPct(priceStopPctFromAccountRisk(accountRiskPct, stakePct, leverage));
 }
 
-/** Сумма входа %: по умолчанию весь доступный остаток пула (с учётом ранга). */
-export function defaultStakePct(maxStakePct: number | undefined): number {
+/** Сумма входа %: по умолчанию максимум (при полном пуле — 100% в пределах ранга). */
+export function defaultStakePct(
+  maxStakePct: number | undefined,
+  poolRemainingPct?: number,
+): number {
   if (maxStakePct === undefined || maxStakePct <= 0) return DEFAULT_RISK_PERCENT;
+  if (poolRemainingPct != null && poolRemainingPct >= 99.5) {
+    return Math.min(100, maxStakePct);
+  }
   return maxStakePct;
 }
 
-export function formatStakeForForm(maxStakePct: number | undefined): string {
-  return formatRiskPercent(defaultStakePct(maxStakePct));
+export function formatStakeForForm(
+  maxStakePct: number | undefined,
+  poolRemainingPct?: number,
+): string {
+  return formatRiskPercent(defaultStakePct(maxStakePct, poolRemainingPct));
 }

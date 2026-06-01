@@ -9,6 +9,7 @@ import {
   ACCOUNT_STOP_MIN_STEP,
   accountStopSliderMarks,
   accountStopSliderStep,
+  roundStopPct,
   SIGNAL_DAILY_STOP_LIMIT_PCT,
 } from "../utils/dailyStopLimit";
 
@@ -33,7 +34,7 @@ export function StopOffsetSlider({
 }: Props) {
   const accountMode = dailyRemainingPct !== undefined;
   const maxPct = accountMode ? Math.max(0, dailyRemainingPct) : 5;
-  const minPct = accountMode ? 0 : STOP_OFFSET_MIN_PCT;
+  const minPct = accountMode ? ACCOUNT_STOP_MIN_STEP : STOP_OFFSET_MIN_PCT;
   const step = accountMode ? accountStopSliderStep(maxPct) : STOP_OFFSET_STEP;
   const currentRaw = parseRiskPctValue(value);
   const current = accountMode
@@ -54,7 +55,7 @@ export function StopOffsetSlider({
   const setPercent = (n: number) => {
     if (blocked || maxPct < ACCOUNT_STOP_MIN_STEP) return;
     const clamped = accountMode
-      ? Math.min(maxPct, Math.max(0, Math.round(n / step) * step))
+      ? Math.min(maxPct, Math.max(minPct, roundStopPct(n)))
       : clampStopOffsetPct(n);
     if (accountMode && clamped < ACCOUNT_STOP_MIN_STEP) return;
     onChange(formatRiskPct(clamped));
@@ -94,6 +95,7 @@ export function StopOffsetSlider({
               } as React.CSSProperties
             }
             onChange={(e) => setPercent(parseFloat(e.target.value))}
+            onInput={(e) => setPercent(parseFloat((e.target as HTMLInputElement).value))}
             aria-valuemin={minPct}
             aria-valuemax={maxPct}
             aria-valuenow={current}

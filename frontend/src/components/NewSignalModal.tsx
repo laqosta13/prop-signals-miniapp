@@ -57,6 +57,8 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
   const [video, setVideo] = useState<File | null>(null);
   const [shotPreview, setShotPreview] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const [accountStopSel, setAccountStopSel] = useState<number | null>(null);
+  const priceInitKeyRef = useRef<string | null>(null);
 
   const {
     direction,
@@ -98,20 +100,27 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
     dailyLossPct: trackerSnap?.dailyLossPct,
     stakePct,
     leverage: lev,
+    onAccountStopClamped: setAccountStopSel,
   });
 
   const loadMarketPrice = useCallback(
-    async (sym: string, stakeOverride?: number) => {
+    async (sym: string, opts?: { stake?: number; accountStop?: number }) => {
       const normalized = sym.trim().toUpperCase();
       if (!normalized) return;
       setPriceLoading(true);
       try {
         const { price } = await fetchMarketPrice(normalized);
         const stake =
-          stakeOverride ??
-          (trackerSnap != null ? defaultStakePct(trackerSnap.maxStakePct) : parseRiskPercent(risk));
+          opts?.stake ??
+          (trackerSnap != null
+            ? defaultStakePct(trackerSnap.maxStakePct, trackerSnap.stakePoolRemainingPct)
+            : parseRiskPercent(risk));
         const lev = parseLeverage(leverage);
-        const accountStop = accountStopPctFromTracker(trackerSnap?.dailyLossPct);
+        const accountStop =
+          opts?.accountStop ?? accountStopPctFromTracker(trackerSnap?.dailyLossPct);
+        if (accountStop != null) {
+          setAccountStopSel(accountStop);
+        }
         const priceRisk =
           accountStop != null
             ? parseRiskPctValue(formatPriceRiskFromAccountStop(accountStop, stake, lev))
@@ -124,11 +133,15 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
         setPriceLoading(false);
       }
     },
-    [applyMarketPrice, trackerSnap, risk, leverage, riskPct],
+    [applyMarketPrice, trackerSnap, leverage, risk, riskPct],
   );
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      priceInitKeyRef.current = null;
+      setAccountStopSel(null);
+      return;
+    }
     setError(null);
     setSymbol(DEFAULT_SYMBOL);
     setLeverage("1");
@@ -145,10 +158,17 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
 
   useEffect(() => {
     if (!open || trackerLoading || trackerSnap == null) return;
-    const stakeDefault = defaultStakePct(trackerSnap.maxStakePct);
-    setRisk(formatStakeForForm(trackerSnap.maxStakePct));
+    const key = `${symbol}|${trackerSnap.dailyLossPct}|${trackerSnap.maxStakePct}|${trackerSnap.stakePoolRemainingPct}`;
+    if (priceInitKeyRef.current === key) return;
+    priceInitKeyRef.current = key;
+
+    const stakeDefault = defaultStakePct(
+      trackerSnap.maxStakePct,
+      trackerSnap.stakePoolRemainingPct,
+    );
+    setRisk(formatStakeForForm(trackerSnap.maxStakePct, trackerSnap.stakePoolRemainingPct));
     const t = window.setTimeout(() => {
-      void loadMarketPrice(symbol, stakeDefault);
+      void loadMarketPrice(symbol, { stake: stakeDefault });
     }, 150);
     return () => clearTimeout(t);
   }, [symbol, open, trackerLoading, trackerSnap, loadMarketPrice]);
@@ -171,12 +191,16 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
   const onStakeChange = (nextRisk: string) => {
     const prevStake = stakePct;
     const account =
-      entry && dailyRemaining != null
-        ? Math.min(dailyRemaining, priceStopToAccountRiskPct(parseRiskPctValue(riskPct), prevStake, lev))
-        : null;
+      accountStopSel ??
+      (entry && dailyRemaining != null
+        ? Math.min(
+            dailyRemaining,
+            priceStopToAccountRiskPct(parseRiskPctValue(riskPct), prevStake, lev),
+          )
+        : null);
     setRisk(nextRisk);
     const newStake = parseRiskPercent(nextRisk);
-    if (account != null && account >= ACCOUNT_STOP_MIN_STEP) {
+    if (account != null && account >= ACCOUNT_STOP_MIN_STEP && newStake > 0) {
       onRiskPctChange(formatPriceRiskFromAccountStop(account, newStake, lev));
     }
   };
@@ -310,6 +334,8 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
             dailyRemainingPct={dailyRemaining}
             dailyLossPct={dailyLossPct}
             dailyStopBlocked={dailyStopBlocked}
+            accountStopPct={accountStopSel}
+            onAccountStopChange={setAccountStopSel}
           />
         </SignalFormSection>
 
@@ -319,18 +345,31 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
             onLeverageChange={(nextLev) => {
               const prevStake = parseRiskPercent(risk);
               const prevLev = parseLeverage(leverage);
-              const nextStake = defaultStakePct(maxStakePct);
+              const nextLevNum = parseLeverage(nextLev);
+              const nextStake = parseRiskPercent(risk);
               setLeverage(nextLev);
-              setRisk(formatStakeForForm(maxStakePct));
-              const nextPrice = preserveAccountStopOnLeverageChange({
-                riskPct,
-                prevStakePct: prevStake,
-                prevLeverage: prevLev,
-                nextStakePct: nextStake,
-                nextLeverage: parseLeverage(nextLev),
-                dailyRemaining: dailyRemaining ?? 2,
-              });
-              if (nextPrice) onRiskPctChange(nextPrice);
+              const account =
+                accountStopSel ??
+                (dailyRemaining != null
+                  ? Math.min(
+                      dailyRemaining,
+                      priceStopToAccountRiskPct(parseRiskPctValue(riskPct), prevStake, prevLev),
+                    )
+                  : null);
+              if (account != null && account >= ACCOUNT_STOP_MIN_STEP && nextStake > 0) {
+                setAccountStopSel(account);
+                onRiskPctChange(formatPriceRiskFromAccountStop(account, nextStake, nextLevNum));
+              } else {
+                const nextPrice = preserveAccountStopOnLeverageChange({
+                  riskPct,
+                  prevStakePct: prevStake,
+                  prevLeverage: prevLev,
+                  nextStakePct: nextStake,
+                  nextLeverage: nextLevNum,
+                  dailyRemaining: dailyRemaining ?? 2,
+                });
+                if (nextPrice) onRiskPctChange(nextPrice);
+              }
             }}
             risk={risk}
             onRiskChange={onStakeChange}

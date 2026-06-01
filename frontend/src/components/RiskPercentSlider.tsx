@@ -1,5 +1,8 @@
+import { roundStopPct } from "../utils/dailyStopLimit";
 import { formatRiskPercent, parseRiskPercent } from "../utils/signalForm";
 import { stakeSliderMarks } from "../utils/stakePool";
+
+const STAKE_SLIDER_STEP = 0.01;
 
 type Props = {
   value: string;
@@ -22,7 +25,10 @@ export function RiskPercentSlider({
   const marks = stakeSliderMarks(cap);
   const current = Math.min(parseRiskPercent(value), cap);
 
-  const setPercent = (n: number) => onChange(formatRiskPercent(Math.min(n, cap)));
+  const setPercent = (n: number) => {
+    const clamped = Math.min(cap, Math.max(0, roundStopPct(n)));
+    onChange(formatRiskPercent(clamped));
+  };
 
   return (
     <div className="risk-slider">
@@ -38,11 +44,12 @@ export function RiskPercentSlider({
         className="risk-slider__input"
         min={0}
         max={cap}
-        step={1}
+        step={STAKE_SLIDER_STEP}
         value={current}
         disabled={disabled || cap <= 0}
         style={{ "--risk-pct": cap > 0 ? `${(current / cap) * 100}%` : "0%" } as React.CSSProperties}
         onChange={(e) => setPercent(parseFloat(e.target.value))}
+        onInput={(e) => setPercent(parseFloat((e.target as HTMLInputElement).value))}
         aria-valuemin={0}
         aria-valuemax={cap}
         aria-valuenow={current}
@@ -52,7 +59,7 @@ export function RiskPercentSlider({
           <button
             key={m}
             type="button"
-            className={`risk-slider__mark${current === m ? " on" : ""}`}
+            className={`risk-slider__mark${Math.abs(current - m) < STAKE_SLIDER_STEP / 2 ? " on" : ""}`}
             disabled={disabled || cap <= 0}
             onClick={() => setPercent(m)}
           >

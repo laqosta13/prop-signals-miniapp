@@ -19,11 +19,8 @@ export function dailyStopRemainingPct(dailyLossPct: number): number {
   return roundStopPct(Math.max(0, SIGNAL_DAILY_STOP_LIMIT_PCT - Math.max(0, dailyLossPct)));
 }
 
-export function accountStopSliderStep(remaining: number): number {
-  if (remaining <= 0) return ACCOUNT_STOP_MIN_STEP;
-  if (remaining <= 0.2) return 0.01;
-  if (remaining <= 0.5) return 0.05;
-  return 0.1;
+export function accountStopSliderStep(_remaining?: number): number {
+  return ACCOUNT_STOP_MIN_STEP;
 }
 
 /** Метки бегунка: равномерно от 0 до остатка (на весь трек). */

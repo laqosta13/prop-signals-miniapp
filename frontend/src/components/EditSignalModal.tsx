@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { updateSignalWithMedia, type Signal, type UploadProgress } from "../api";
 import { useAdminTrackerSnapshot } from "../hooks/useAdminTrackerSnapshot";
@@ -8,10 +8,14 @@ import { formatTakeProfits, normalizeTakeProfits } from "../utils";
 import { ruTextFieldProps } from "../utils/textFieldProps";
 import { entryNominalUsd, formatRiskPercent, parseLeverage, parseRiskPercent } from "../utils/signalForm";
 import {
+  ACCOUNT_STOP_MIN_STEP,
   dailyTradingBlocked,
   dailyTradesRemaining,
+  priceStopToAccountRiskPct,
   SIGNAL_DAILY_TRADE_LIMIT,
 } from "../utils/dailyStopLimit";
+import { parseRiskPctValue } from "../utils/signalLevels";
+import { formatPriceRiskFromAccountStop } from "../utils/signalFormLimits";
 import {
   initialUploadProgress,
   mediaBytesInForm,
@@ -46,6 +50,8 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
   const [removeScreenshot, setRemoveScreenshot] = useState(false);
   const [removeVideo, setRemoveVideo] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const [accountStopSel, setAccountStopSel] = useState<number | null>(null);
+  const levelsInitRef = useRef<number | null>(null);
 
   const {
     direction,
@@ -86,6 +92,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
     dailyLossPct: trackerSnap?.dailyLossPct,
     stakePct,
     leverage: lev,
+    onAccountStopClamped: setAccountStopSel,
   });
 
   useEffect(() => {
@@ -107,7 +114,19 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
     setRemoveScreenshot(false);
     setRemoveVideo(false);
     setError(null);
+    levelsInitRef.current = null;
+    setAccountStopSel(null);
   }, [signal, loadLevels]);
+
+  useEffect(() => {
+    if (!signal || !entry || stakePct <= 0) return;
+    if (levelsInitRef.current === signal.id) return;
+    levelsInitRef.current = signal.id;
+    const inferred = priceStopToAccountRiskPct(parseRiskPctValue(riskPct), stakePct, lev);
+    if (inferred >= ACCOUNT_STOP_MIN_STEP) {
+      setAccountStopSel(inferred);
+    }
+  }, [signal, entry, stakePct, lev, riskPct]);
 
   if (!signal) return null;
 
@@ -256,6 +275,8 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
             dailyRemainingPct={dailyRemaining}
             dailyLossPct={dailyLossPct}
             dailyStopBlocked={dailyStopBlocked}
+            accountStopPct={accountStopSel}
+            onAccountStopChange={setAccountStopSel}
           />
         </SignalFormSection>
 
@@ -278,7 +299,22 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
               if (nextPrice) onRiskPctChange(nextPrice);
             }}
             risk={risk}
-            onRiskChange={setRisk}
+            onRiskChange={(nextRisk) => {
+              const prevStake = stakePct;
+              const account =
+                accountStopSel ??
+                (entry && dailyRemaining != null
+                  ? Math.min(
+                      dailyRemaining,
+                      priceStopToAccountRiskPct(parseRiskPctValue(riskPct), prevStake, lev),
+                    )
+                  : null);
+              setRisk(nextRisk);
+              const newStake = parseRiskPercent(nextRisk);
+              if (account != null && account >= ACCOUNT_STOP_MIN_STEP && newStake > 0) {
+                onRiskPctChange(formatPriceRiskFromAccountStop(account, newStake, lev));
+              }
+            }}
             maxStakePct={maxStakePct}
             disabled={stakePoolBlocked}
             balanceUsd={balanceForNominal}

@@ -19,6 +19,9 @@ type Props = {
   dailyRemainingPct?: number;
   dailyLossPct?: number;
   dailyStopBlocked?: boolean;
+  /** Явный % риска счёта (бегунок), без пересчёта из цены — не «прыгает». */
+  accountStopPct?: number | null;
+  onAccountStopChange?: (pct: number) => void;
 };
 
 export function SignalLevelsFields({
@@ -37,18 +40,24 @@ export function SignalLevelsFields({
   dailyRemainingPct,
   dailyLossPct = 0,
   dailyStopBlocked = false,
+  accountStopPct = null,
+  onAccountStopChange,
 }: Props) {
   const accountMode =
     dailyRemainingPct !== undefined && stakePct !== undefined && leverage !== undefined;
 
-  const sliderValue = accountMode
-    ? formatRiskPct(priceStopToAccountRiskPct(parseRiskPctValue(riskPct), stakePct, leverage))
-    : riskPct;
+  const sliderValue =
+    accountMode && accountStopPct != null
+      ? formatRiskPct(accountStopPct)
+      : accountMode
+        ? formatRiskPct(priceStopToAccountRiskPct(parseRiskPctValue(riskPct), stakePct, leverage))
+        : riskPct;
 
   const handleSliderChange = (value: string) => {
     if (accountMode) {
       const accountPct = parseFloat(value.trim().replace(",", "."));
       if (!Number.isFinite(accountPct) || accountPct < ACCOUNT_STOP_MIN_STEP) return;
+      onAccountStopChange?.(accountPct);
       onRiskPctChange(formatPriceRiskFromAccountStop(accountPct, stakePct, leverage));
       return;
     }
