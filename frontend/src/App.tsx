@@ -350,7 +350,7 @@ export default function App() {
           {tab === "feed" && (
             <button
               type="button"
-              className="disclaimer-btn"
+              className={`disclaimer-btn${feedDisclaimerOpen ? " disclaimer-btn--paused" : ""}`}
               onClick={() => setFeedDisclaimerOpen(true)}
               aria-label="Дисклеймер"
             >
