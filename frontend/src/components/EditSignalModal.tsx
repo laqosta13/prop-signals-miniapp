@@ -20,6 +20,7 @@ import { RiskPercentSlider } from "./RiskPercentSlider";
 import { SignalLevelsFields } from "./SignalLevelsFields";
 import { SignalMediaPicker } from "./SignalMediaPicker";
 import { FieldLabelWithPaste, appendPastedText } from "./FieldLabelWithPaste";
+import { SignalDailyResetTimer } from "./SignalDailyResetTimer";
 
 type Props = {
   signal: Signal | null;
@@ -270,6 +271,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
             {stakePoolBlockedMessage(maxStakePct, trackerSnap?.stakePoolRemainingPct ?? 0)}
           </p>
         )}
+        {signal != null && !trackerLoading && <SignalDailyResetTimer active />}
 
         <SignalMediaPicker
           screenshot={screenshot}

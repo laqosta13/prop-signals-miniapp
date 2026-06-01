@@ -23,13 +23,17 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
     setTarget(next.target);
   }, []);
 
-  const applyMarketPrice = useCallback((price: number, dir: "long" | "short") => {
-    const levels = levelsFromEntryAndRisk(price, dir, DEFAULT_STOP_RISK_PCT);
-    setEntry(levels.entry);
-    setStop(levels.stop);
-    setTarget(levels.target);
-    setRiskPct(String(DEFAULT_STOP_RISK_PCT));
-  }, []);
+  const applyMarketPrice = useCallback(
+    (price: number, dir: "long" | "short", priceRiskPct?: number) => {
+      const risk = priceRiskPct ?? DEFAULT_STOP_RISK_PCT;
+      const levels = levelsFromEntryAndRisk(price, dir, risk);
+      setEntry(levels.entry);
+      setStop(levels.stop);
+      setTarget(levels.target);
+      setRiskPct(formatRiskPct(risk));
+    },
+    [],
+  );
 
   const resetForm = useCallback(() => {
     setDirectionState("long");

@@ -8,14 +8,17 @@ import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
 import { normalizeTakeProfits } from "../utils";
 import { ruTextFieldProps } from "../utils/textFieldProps";
 import { entryNominalUsd, formatRiskPercent, parseLeverage, parseRiskPercent } from "../utils/signalForm";
-import { formatRiskPct } from "../utils/signalLevels";
+import { formatRiskPct, parseRiskPctValue } from "../utils/signalLevels";
 import { stakePoolBlockedMessage } from "../utils/stakePool";
 import {
   dailyLimitBlockedMessage,
+  dailyStopRemainingPct,
   dailyTradingBlocked,
   dailyTradesRemaining,
   SIGNAL_DAILY_TRADE_LIMIT,
+  ACCOUNT_STOP_MIN_STEP,
 } from "../utils/dailyStopLimit";
+import { formatPriceRiskForForm } from "../utils/signalFormLimits";
 import {
   initialUploadProgress,
   mediaBytesInForm,
@@ -27,6 +30,7 @@ import { RiskPercentSlider } from "./RiskPercentSlider";
 import { SignalLevelsFields } from "./SignalLevelsFields";
 import { SignalMediaPicker } from "./SignalMediaPicker";
 import { FieldLabelWithPaste, appendPastedText } from "./FieldLabelWithPaste";
+import { SignalDailyResetTimer } from "./SignalDailyResetTimer";
 
 type Props = {
   open: boolean;
@@ -66,6 +70,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
 
   const directionRef = useRef(direction);
   directionRef.current = direction;
+  const limitsSyncedRef = useRef(false);
 
   const { snapshot: trackerSnap, loading: trackerLoading } = useAdminTrackerSnapshot(open);
 
@@ -98,7 +103,11 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
       setPriceLoading(true);
       try {
         const { price } = await fetchMarketPrice(normalized);
-        applyMarketPrice(price, directionRef.current);
+        const stake = parseRiskPercent(risk);
+        const lev = parseLeverage(leverage);
+        const priceRiskStr = formatPriceRiskForForm(trackerSnap?.dailyLossPct, stake, lev);
+        applyMarketPrice(price, directionRef.current, parseRiskPctValue(priceRiskStr));
+        limitsSyncedRef.current = true;
         setError(null);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Не удалось загрузить курс");
@@ -106,11 +115,14 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
         setPriceLoading(false);
       }
     },
-    [applyMarketPrice],
+    [applyMarketPrice, trackerSnap?.dailyLossPct, risk, leverage],
   );
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      limitsSyncedRef.current = false;
+      return;
+    }
     setError(null);
     setSymbol(DEFAULT_SYMBOL);
     setLeverage("1");
@@ -132,6 +144,14 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
     }, 150);
     return () => clearTimeout(t);
   }, [symbol, open, loadMarketPrice]);
+
+  useEffect(() => {
+    if (!open || trackerLoading || trackerSnap == null || !entry || limitsSyncedRef.current) return;
+    const rem = dailyStopRemainingPct(trackerSnap.dailyLossPct);
+    if (rem < ACCOUNT_STOP_MIN_STEP) return;
+    onRiskPctChange(formatPriceRiskForForm(trackerSnap.dailyLossPct, stakePct, lev));
+    limitsSyncedRef.current = true;
+  }, [open, trackerLoading, trackerSnap, entry, stakePct, lev, onRiskPctChange]);
 
   if (!open) return null;
 
@@ -305,6 +325,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
         )}
         {!trackerLoading && (
           <>
+            <SignalDailyResetTimer active={open} />
             <p className="meta signal-daily-trades">
               Лимит: 3 сделки или 2% стопа · остаток{" "}
               <strong>

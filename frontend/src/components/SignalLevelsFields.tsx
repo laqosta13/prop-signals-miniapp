@@ -3,7 +3,11 @@ import { accountRiskToPriceStopPct, priceStopToAccountRiskPct, ACCOUNT_STOP_MIN_
 import { clampStopOffsetPct, formatRiskPct, parseRiskPctValue } from "../utils/signalLevels";
 
 const LEVEL_HINTS = ["Цена с Bybit perp", "R:R 1:3"] as const;
-const LEVEL_HINTS_DAILY = ["Цена с Bybit perp", "R:R 1:3 · лимит: 3 сделки или 2% стопа"] as const;
+const LEVEL_HINTS_DAILY = [
+  "Цена с Bybit perp",
+  "Стоп и цель по остатку лимита · R:R 1:3",
+  "Лимит: 3 сделки или 2% стопа",
+] as const;
 
 type Props = {
   entry: string;

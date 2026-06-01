@@ -3889,6 +3889,18 @@ input.readonly {
   color: var(--danger);
 }
 
+.signal-daily-reset-timer {
+  margin: 0 0 10px;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.signal-daily-reset-timer__clock {
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, monospace;
+  color: var(--text);
+}
+
 .levels-grid-form__hint {
   grid-column: 1 / -1;
   margin: 0 0 4px;
