@@ -1,35 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { updateSignalWithMedia, type Signal, type UploadProgress } from "../api";
-import { useAdminTrackerSnapshot } from "../hooks/useAdminTrackerSnapshot";
-import { preserveAccountStopOnLeverageChange, useDailyStopSync } from "../hooks/useDailyStopSync";
+import { useSignalFormTracker } from "../hooks/useSignalFormTracker";
 import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
-import { formatTakeProfits, normalizeTakeProfits } from "../utils";
-import { ruTextFieldProps } from "../utils/textFieldProps";
-import { entryNominalUsd, formatRiskPercent, parseLeverage, parseRiskPercent } from "../utils/signalForm";
-import {
-  ACCOUNT_STOP_MIN_STEP,
-  dailyTradingBlocked,
-  dailyTradesRemaining,
-  priceStopToAccountRiskPct,
-  SIGNAL_DAILY_TRADE_LIMIT,
-} from "../utils/dailyStopLimit";
+import { useSignalPositionControls } from "../hooks/useSignalPositionControls";
+import { formatTakeProfits } from "../utils";
+import { parseLeverage } from "../utils/signalForm";
+import { buildSignalFormData } from "../utils/buildSignalFormData";
+import { ACCOUNT_STOP_MIN_STEP, priceStopToAccountRiskPct } from "../utils/dailyStopLimit";
 import { parseRiskPctValue } from "../utils/signalLevels";
-import { formatPriceRiskFromAccountStop } from "../utils/signalFormLimits";
-import {
-  initialUploadProgress,
-  mediaBytesInForm,
-  uploadProgressLabel,
-} from "../utils/upload";
-import { UploadProgressBar } from "./UploadProgressBar";
+import { initialUploadProgress, mediaBytesInForm } from "../utils/upload";
 import { SignalLevelsFields } from "./SignalLevelsFields";
 import { SignalMediaPicker } from "./SignalMediaPicker";
-import { appendPastedText } from "./FieldLabelWithPaste";
-import { isTelegramDesktop } from "../utils/platform";
-import { PasteButton } from "./PasteButton";
-import { SignalFormSection } from "./signal-form/SignalFormSection";
+import { SignalFormCommentSection } from "./signal-form/SignalFormCommentSection";
+import { SignalFormDealSection } from "./signal-form/SignalFormDealSection";
 import { SignalFormLimitsBar } from "./signal-form/SignalFormLimitsBar";
 import { SignalFormPositionCard } from "./signal-form/SignalFormPositionCard";
+import { SignalFormSection } from "./signal-form/SignalFormSection";
+import { SignalFormShell } from "./signal-form/SignalFormShell";
+import { SignalFormSubmitFooter } from "./signal-form/SignalFormSubmitFooter";
 
 type Props = {
   signal: Signal | null;
@@ -67,32 +56,28 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
     loadLevels,
   } = useSignalLevelFields("long");
 
-  const { snapshot: trackerSnap, loading: trackerLoading } = useAdminTrackerSnapshot(
+  const tracker = useSignalFormTracker(
     signal != null,
+    { riskPct, onRiskPctChange },
+    { risk, setRisk },
+    leverage,
+    setAccountStopSel,
     signal?.id,
   );
 
-  const maxStakePct = trackerSnap?.maxStakePct ?? 100;
-  const stakePoolBlocked = signal != null && !trackerLoading && maxStakePct <= 0;
-
-  useEffect(() => {
-    if (!signal || trackerLoading || trackerSnap == null) return;
-    const cap = trackerSnap.maxStakePct;
-    if (parseRiskPercent(risk) > cap) {
-      setRisk(formatRiskPercent(Math.max(0, cap)));
-    }
-  }, [signal, trackerLoading, trackerSnap?.maxStakePct, risk]);
-
-  const stakePct = parseRiskPercent(risk);
-  const lev = parseLeverage(leverage);
-  const { dailyRemaining, dailyLossPct, blocked: dailyStopBlocked } = useDailyStopSync({
-    enabled: signal != null && !trackerLoading,
+  const { onStakeChange, onLeverageChange } = useSignalPositionControls({
+    risk,
+    setRisk,
+    leverage,
+    setLeverage,
+    stakePct: tracker.stakePct,
+    lev: tracker.lev,
     riskPct,
+    entry,
+    dailyRemaining: tracker.dailyRemaining,
+    accountStopSel,
+    setAccountStopSel,
     onRiskPctChange,
-    dailyLossPct: trackerSnap?.dailyLossPct,
-    stakePct,
-    leverage: lev,
-    onAccountStopClamped: setAccountStopSel,
   });
 
   useEffect(() => {
@@ -119,75 +104,40 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
   }, [signal, loadLevels]);
 
   useEffect(() => {
-    if (!signal || !entry || stakePct <= 0) return;
+    if (!signal || !entry || tracker.stakePct <= 0) return;
     if (levelsInitRef.current === signal.id) return;
     levelsInitRef.current = signal.id;
-    const inferred = priceStopToAccountRiskPct(parseRiskPctValue(riskPct), stakePct, lev);
-    if (inferred >= ACCOUNT_STOP_MIN_STEP) {
-      setAccountStopSel(inferred);
-    }
-  }, [signal, entry, stakePct, lev, riskPct]);
+    const inferred = priceStopToAccountRiskPct(parseRiskPctValue(riskPct), tracker.stakePct, tracker.lev);
+    if (inferred >= ACCOUNT_STOP_MIN_STEP) setAccountStopSel(inferred);
+  }, [signal, entry, riskPct, tracker.stakePct, tracker.lev]);
 
   if (!signal) return null;
 
-  const trackerBalance = trackerSnap?.balance ?? signal.tracker_balance ?? 0;
-  const balanceForNominal =
-    trackerBalance > 0
-      ? trackerBalance
-      : trackerSnap?.accountSize ?? signal.account_size ?? 0;
-  const stakeUsd = entryNominalUsd(balanceForNominal, stakePct, lev);
-  const dailyTradesCount = trackerSnap?.dailyTradesCount ?? 0;
-  const dailyTradesLimit = trackerSnap?.dailyTradesLimit ?? SIGNAL_DAILY_TRADE_LIMIT;
-  const dailyLimit = dailyTradingBlocked({
-    dailyLossPct,
-    dailyTradesCount,
-    dailyTradesLimit,
-  });
-  const dailyTradesRemainingCount = dailyTradesRemaining(dailyTradesCount, dailyTradesLimit);
-
-  const onScreenshot = (file: File | null) => {
-    setScreenshot(file);
-    setRemoveScreenshot(false);
-    if (shotPreview) URL.revokeObjectURL(shotPreview);
-    setShotPreview(file ? URL.createObjectURL(file) : null);
-  };
-
-  const onVideo = (file: File | null) => {
-    setVideo(file);
-    setRemoveVideo(false);
-  };
+  const balance = tracker.balanceForNominal(signal.account_size ?? 0);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
     try {
-      const fd = new FormData();
-      fd.append("symbol", symbol);
-      fd.append("direction", direction);
-      if (entry) {
-        fd.append("entry_low", entry);
-        fd.append("entry_high", entry);
-      }
-      if (stop) fd.append("stop_loss", stop);
-      const tp = normalizeTakeProfits(target);
-      if (tp) fd.append("take_profits", tp);
-      fd.append("comment", comment);
-      fd.append("leverage", String(parseLeverage(leverage)));
-      fd.append("risk_percent", String(parseRiskPercent(risk)));
-      fd.append("remove_screenshot", removeScreenshot ? "true" : "false");
-      fd.append("remove_video", removeVideo ? "true" : "false");
-      if (screenshot) fd.append("screenshot", screenshot);
-      if (video) fd.append("video", video);
-
+      const fd = buildSignalFormData({
+        symbol,
+        direction,
+        entry,
+        stop,
+        target,
+        comment,
+        leverage,
+        risk,
+        screenshot,
+        video,
+        removeScreenshot,
+        removeVideo,
+        alwaysSendComment: true,
+      });
       const uploadBytes = mediaBytesInForm(fd);
       const trackUpload = uploadBytes > 0;
-      if (trackUpload) {
-        setUploadProgress(initialUploadProgress(uploadBytes));
-      } else {
-        setUploadProgress(null);
-      }
-
+      setUploadProgress(trackUpload ? initialUploadProgress(uploadBytes) : null);
       await updateSignalWithMedia(signal.id, fd, trackUpload ? (p) => setUploadProgress(p) : undefined);
       WebApp.HapticFeedback.notificationOccurred("success");
       onUpdated();
@@ -201,190 +151,108 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
   };
 
   return (
-    <div className="modal-backdrop modal-backdrop--sheet modal-backdrop--signal" onClick={onClose}>
-      <form className="modal signal-form" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
-        <header className="modal__head signal-form__head">
-          <div>
-            <h2>Редактирование</h2>
-            <p>
-              #{signal.number} · {signal.symbol}
-            </p>
-          </div>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Закрыть">
-            ×
-          </button>
-        </header>
+    <SignalFormShell
+      title="Редактирование"
+      subtitle={`#${signal.number} · ${signal.symbol}`}
+      onClose={onClose}
+      onBackdropClick={onClose}
+      onSubmit={submit}
+    >
+      <SignalFormLimitsBar
+        active
+        loading={tracker.trackerLoading}
+        dailyRemaining={tracker.dailyRemaining}
+        dailyTradesRemaining={tracker.dailyTradesRemainingCount}
+        dailyTradesLimit={tracker.dailyTradesLimit}
+        stakePoolRemainingPct={tracker.trackerSnap?.stakePoolRemainingPct}
+        rankName={tracker.trackerSnap?.currentRankName}
+        rankMaxStakePct={tracker.trackerSnap?.rankMaxStakePct}
+        dailyBlocked={tracker.dailyLimit.blocked}
+        dailyBlockReason={tracker.dailyLimit.reason}
+        stakePoolBlocked={tracker.stakePoolBlocked}
+        maxStakePct={tracker.maxStakePct}
+      />
 
-        <SignalFormLimitsBar
-          active={signal != null}
-          loading={trackerLoading}
-          dailyRemaining={dailyRemaining}
-          dailyTradesRemaining={dailyTradesRemainingCount}
-          dailyTradesLimit={dailyTradesLimit}
-          stakePoolRemainingPct={trackerSnap?.stakePoolRemainingPct}
-          rankName={trackerSnap?.currentRankName}
-          rankMaxStakePct={trackerSnap?.rankMaxStakePct}
-          dailyBlocked={dailyLimit.blocked}
-          dailyBlockReason={dailyLimit.reason}
-          stakePoolBlocked={stakePoolBlocked}
-          maxStakePct={maxStakePct}
+      <SignalFormSection title="Сделка">
+        <SignalFormDealSection
+          symbol={symbol}
+          onSymbolChange={setSymbol}
+          direction={direction}
+          onDirectionChange={setDirection}
         />
+      </SignalFormSection>
 
-        <SignalFormSection title="Сделка">
-          <div className="signal-form__deal">
-            <label className="signal-form__deal-symbol">
-              <span className="signal-form__deal-k">Тикер</span>
-              <input
-                className="signal-form__symbol-input"
-                value={symbol}
-                onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                required
-              />
-            </label>
-            <div className="dir-toggle dir-toggle--compact" role="group" aria-label="Направление">
-              <button
-                type="button"
-                className={direction === "long" ? "active long" : ""}
-                onClick={() => setDirection("long")}
-              >
-                Long
-              </button>
-              <button
-                type="button"
-                className={direction === "short" ? "active short" : ""}
-                onClick={() => setDirection("short")}
-              >
-                Short
-              </button>
-            </div>
-          </div>
-        </SignalFormSection>
+      <SignalFormSection title="Уровни" hint="Стоп — бегунок · цель 1:3">
+        <SignalLevelsFields
+          entry={entry}
+          stop={stop}
+          target={target}
+          riskPct={riskPct}
+          onEntryChange={onEntryChange}
+          onStopChange={onStopChange}
+          onTargetChange={onTargetChange}
+          onRiskPctChange={onRiskPctChange}
+          stakePct={tracker.stakePct}
+          leverage={tracker.lev}
+          dailyRemainingPct={tracker.dailyRemaining}
+          dailyLossPct={tracker.dailyLossPct}
+          dailyStopBlocked={tracker.dailyStopBlocked}
+          accountStopPct={accountStopSel}
+          onAccountStopChange={setAccountStopSel}
+        />
+      </SignalFormSection>
 
-        <SignalFormSection title="Уровни" hint="Стоп — бегунок · цель 1:3">
-          <SignalLevelsFields
-            entry={entry}
-            stop={stop}
-            target={target}
-            riskPct={riskPct}
-            onEntryChange={onEntryChange}
-            onStopChange={onStopChange}
-            onTargetChange={onTargetChange}
-            onRiskPctChange={onRiskPctChange}
-            stakePct={stakePct}
-            leverage={lev}
-            dailyRemainingPct={dailyRemaining}
-            dailyLossPct={dailyLossPct}
-            dailyStopBlocked={dailyStopBlocked}
-            accountStopPct={accountStopSel}
-            onAccountStopChange={setAccountStopSel}
-          />
-        </SignalFormSection>
+      <SignalFormSection title="Размер позиции">
+        <SignalFormPositionCard
+          leverage={leverage}
+          onLeverageChange={onLeverageChange}
+          risk={risk}
+          onRiskChange={onStakeChange}
+          maxStakePct={tracker.maxStakePct}
+          disabled={tracker.stakePoolBlocked}
+          balanceUsd={balance}
+          stakeUsd={tracker.stakeUsd(balance)}
+          stakePct={tracker.stakePct}
+          lev={tracker.lev}
+        />
+      </SignalFormSection>
 
-        <SignalFormSection title="Размер позиции">
-          <SignalFormPositionCard
-            leverage={leverage}
-            onLeverageChange={(nextLev, nextRisk) => {
-              const prevStake = parseRiskPercent(risk);
-              const prevLev = parseLeverage(leverage);
-              setLeverage(nextLev);
-              setRisk(nextRisk);
-              const nextPrice = preserveAccountStopOnLeverageChange({
-                riskPct,
-                prevStakePct: prevStake,
-                prevLeverage: prevLev,
-                nextStakePct: parseRiskPercent(nextRisk),
-                nextLeverage: parseLeverage(nextLev),
-                dailyRemaining: dailyRemaining ?? 2,
-              });
-              if (nextPrice) onRiskPctChange(nextPrice);
-            }}
-            risk={risk}
-            onRiskChange={(nextRisk) => {
-              const prevStake = stakePct;
-              const account =
-                accountStopSel ??
-                (entry && dailyRemaining != null
-                  ? Math.min(
-                      dailyRemaining,
-                      priceStopToAccountRiskPct(parseRiskPctValue(riskPct), prevStake, lev),
-                    )
-                  : null);
-              setRisk(nextRisk);
-              const newStake = parseRiskPercent(nextRisk);
-              if (account != null && account >= ACCOUNT_STOP_MIN_STEP && newStake > 0) {
-                onRiskPctChange(formatPriceRiskFromAccountStop(account, newStake, lev));
-              }
-            }}
-            maxStakePct={maxStakePct}
-            disabled={stakePoolBlocked}
-            balanceUsd={balanceForNominal}
-            stakeUsd={stakeUsd}
-            stakePct={stakePct}
-            lev={lev}
-          />
-        </SignalFormSection>
+      <SignalFormSection title="Медиа">
+        <SignalMediaPicker
+          screenshot={screenshot}
+          video={video}
+          shotPreview={shotPreview}
+          onScreenshot={(file) => {
+            setScreenshot(file);
+            setRemoveScreenshot(false);
+            if (shotPreview) URL.revokeObjectURL(shotPreview);
+            setShotPreview(file ? URL.createObjectURL(file) : null);
+          }}
+          onVideo={(file) => {
+            setVideo(file);
+            setRemoveVideo(false);
+          }}
+          existingImageUrl={signal.media_image_url}
+          existingVideoUrl={signal.media_video_url}
+          removeScreenshot={removeScreenshot}
+          removeVideo={removeVideo}
+          onRemoveScreenshot={setRemoveScreenshot}
+          onRemoveVideo={setRemoveVideo}
+        />
+      </SignalFormSection>
 
-        <SignalFormSection title="Медиа">
-          <SignalMediaPicker
-            screenshot={screenshot}
-            video={video}
-            shotPreview={shotPreview}
-            onScreenshot={onScreenshot}
-            onVideo={onVideo}
-            existingImageUrl={signal.media_image_url}
-            existingVideoUrl={signal.media_video_url}
-            removeScreenshot={removeScreenshot}
-            removeVideo={removeVideo}
-            onRemoveScreenshot={setRemoveScreenshot}
-            onRemoveVideo={setRemoveVideo}
-          />
-        </SignalFormSection>
+      <SignalFormSection title="Комментарий">
+        <SignalFormCommentSection value={comment} onChange={setComment} disabled={submitting} />
+      </SignalFormSection>
 
-        <SignalFormSection title="Комментарий">
-          {isTelegramDesktop() ? (
-            <div className="signal-form__paste-row">
-              <PasteButton
-                onPaste={(text) => setComment((prev) => appendPastedText(prev, text))}
-                disabled={submitting}
-              />
-            </div>
-          ) : null}
-          <textarea
-            {...ruTextFieldProps}
-            className="signal-form__comment"
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="Краткий разбор…"
-          />
-        </SignalFormSection>
-
-        {error ? (
-          <p className="signal-form__alert signal-form__alert--err" role="alert">
-            {error}
-          </p>
-        ) : null}
-
-        {submitting && uploadProgress ? (
-          <UploadProgressBar
-            progress={uploadProgress}
-            label={uploadProgressLabel(!!video, uploadProgress.phase)}
-          />
-        ) : null}
-
-        <button
-          type="submit"
-          className="submit-btn signal-form__submit"
-          disabled={submitting || dailyStopBlocked || stakePoolBlocked}
-        >
-          {submitting && uploadProgress
-            ? uploadProgress.phase === "processing"
-              ? "Сохранение…"
-              : `Загрузка… ${uploadProgress.percent}%`
-            : submitting
-              ? "Сохранение…"
-              : "Сохранить"}
-        </button>
-      </form>
-    </div>
+      <SignalFormSubmitFooter
+        error={error}
+        submitting={submitting}
+        uploadProgress={uploadProgress}
+        hasVideo={!!video}
+        disabled={submitting || tracker.dailyStopBlocked || tracker.stakePoolBlocked}
+        publishLabel="Сохранить"
+      />
+    </SignalFormShell>
   );
 }

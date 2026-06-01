@@ -1,7 +1,7 @@
 import { StopOffsetSlider } from "./StopOffsetSlider";
 import { priceStopToAccountRiskPct, ACCOUNT_STOP_MIN_STEP } from "../utils/dailyStopLimit";
 import { formatRiskPct, parseRiskPctValue } from "../utils/signalLevels";
-import { formatPriceRiskFromAccountStop } from "../utils/signalFormLimits";
+import { priceRiskLabelFromAccountStop } from "../utils/signalFormAccountStop";
 
 type Props = {
   entry: string;
@@ -58,7 +58,7 @@ export function SignalLevelsFields({
       const accountPct = parseFloat(value.trim().replace(",", "."));
       if (!Number.isFinite(accountPct) || accountPct < ACCOUNT_STOP_MIN_STEP) return;
       onAccountStopChange?.(accountPct);
-      onRiskPctChange(formatPriceRiskFromAccountStop(accountPct, stakePct, leverage));
+      onRiskPctChange(priceRiskLabelFromAccountStop(accountPct, stakePct, leverage));
       return;
     }
     onRiskPctChange(value);

@@ -7,6 +7,8 @@ import {
 } from "../utils/dailyStopLimit";
 import { formatRiskPct, parseRiskPctValue } from "../utils/signalLevels";
 
+export { preserveAccountStopOnLeverageChange } from "../utils/signalFormAccountStop";
+
 export function useDailyStopSync(opts: {
   enabled: boolean;
   riskPct: string;
@@ -39,23 +41,4 @@ export function useDailyStopSync(opts: {
     dailyLossPct: dailyLossPct ?? 0,
     blocked,
   };
-}
-
-export function preserveAccountStopOnLeverageChange(opts: {
-  riskPct: string;
-  prevStakePct: number;
-  prevLeverage: number;
-  nextStakePct: number;
-  nextLeverage: number;
-  dailyRemaining: number;
-}): string | null {
-  const account = priceStopToAccountRiskPct(
-    parseRiskPctValue(opts.riskPct),
-    opts.prevStakePct,
-    opts.prevLeverage,
-  );
-  const clamped = Math.min(account, Math.max(0, opts.dailyRemaining));
-  if (clamped < ACCOUNT_STOP_MIN_STEP) return null;
-  const pricePct = accountRiskToPriceStopPct(clamped, opts.nextStakePct, opts.nextLeverage);
-  return pricePct > 0 ? formatRiskPct(Math.max(ACCOUNT_STOP_MIN_STEP, pricePct)) : null;
 }
