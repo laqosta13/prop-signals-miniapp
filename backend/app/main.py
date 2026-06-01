@@ -19,7 +19,19 @@ from app.copy_billing_scheduler import copy_billing_scheduler_loop
 from app.rank_scheduler import rank_scheduler_loop
 from app.subscription_pause_scheduler import run_subscription_pause_sync, subscription_pause_scheduler_loop
 from app.telegram_updates import telegram_updates_loop
-from app.routers import admin, auth, challenge, copy_trading, cult_channels, news, reviews, signals, subscriptions, traders
+from app.routers import (
+    admin,
+    auth,
+    challenge,
+    copy_trading,
+    cult_candidates,
+    cult_channels,
+    news,
+    reviews,
+    signals,
+    subscriptions,
+    traders,
+)
 
 logging.basicConfig(level=logging.INFO)
 # httpx/httpcore логируют полные URL (в т.ч. BOT_TOKEN в api.telegram.org) — только ошибки.
@@ -68,6 +80,7 @@ app.add_middleware(
 
 app.include_router(copy_trading.router)
 app.include_router(cult_channels.router)
+app.include_router(cult_candidates.router)
 app.include_router(admin.router)
 app.include_router(auth.router)
 app.include_router(challenge.router)

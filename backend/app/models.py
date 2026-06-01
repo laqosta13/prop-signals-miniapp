@@ -38,6 +38,7 @@ class Signal(Base):
     likes_count: Mapped[int] = mapped_column(Integer, default=0)
     author_telegram_id: Mapped[int] = mapped_column(Integer, nullable=False)
     author_username: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    is_cult_candidate: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class UserBybitSettings(Base):
@@ -157,6 +158,21 @@ class Trader(Base):
     rank_applied_this_week: Mapped[bool] = mapped_column(Boolean, default=False)
     rank_history_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class CultCandidate(Base):
+    """Пользователь-кандидат в CULT: свои сигналы и сделки на Bybit."""
+
+    __tablename__ = "cult_candidates"
+
+    telegram_user_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    display_name: Mapped[str] = mapped_column(String(64), nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    rating_percent: Mapped[float] = mapped_column(Float, default=0.0)
+    wins: Mapped[int] = mapped_column(Integer, default=0)
+    losses: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class CultChannel(Base):

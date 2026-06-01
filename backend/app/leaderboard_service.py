@@ -57,8 +57,21 @@ def daily_stats_map(db: Session, admin_ids: list[int]) -> dict[int, list[TraderD
     return out
 
 
-def build_leaderboard(db: Session) -> list[TraderRead]:
-    ids = sorted(settings.admin_id_set)
+def fired_trader_ids(db: Session) -> list[int]:
+    active = settings.admin_id_set
+    explicit = {tid for tid in settings.former_admin_id_set if tid not in active and tid != 0}
+    if explicit:
+        return sorted(explicit)
+
+    rows = db.scalars(
+        select(Signal.author_telegram_id)
+        .where(Signal.status.in_(("win", "lose")))
+        .distinct()
+    ).all()
+    return sorted({tid for tid in rows if tid not in active and tid != 0})
+
+
+def _traders_leaderboard_rows(db: Session, ids: list[int]) -> list[TraderRead]:
     if not ids:
         return []
     daily = daily_stats_map(db, ids)
@@ -72,13 +85,25 @@ def build_leaderboard(db: Session) -> list[TraderRead]:
         key=lambda t: (-(t.rating_percent or 0), -(t.wins or 0)),
     )
     result: list[TraderRead] = []
-    volnovoi = build_volnovoi_read(db)
-    if volnovoi is not None:
-        result.append(volnovoi)
-
     for rank, t in enumerate(ranked, start=1):
         ensure_rank_fields(t)
         total = (t.wins or 0) + (t.losses or 0)
         wr = round((t.wins or 0) / total * 100, 1) if total else 0.0
         result.append(trader_to_read(t, rank, wr, daily.get(t.telegram_id, [])))
     return result
+
+
+def build_leaderboard(db: Session) -> list[TraderRead]:
+    ids = sorted(settings.admin_id_set)
+    if not ids:
+        return []
+    result: list[TraderRead] = []
+    volnovoi = build_volnovoi_read(db)
+    if volnovoi is not None:
+        result.append(volnovoi)
+    result.extend(_traders_leaderboard_rows(db, ids))
+    return result
+
+
+def build_fired_leaderboard(db: Session) -> list[TraderRead]:
+    return _traders_leaderboard_rows(db, fired_trader_ids(db))

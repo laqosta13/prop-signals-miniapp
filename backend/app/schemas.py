@@ -174,6 +174,48 @@ class CultChannelCreateBody(BaseModel):
     url: str = Field(min_length=4, max_length=256)
 
 
+class CultCandidateActiveSignalRead(BaseModel):
+    id: int
+    symbol: str
+    direction: str
+    entry: str
+    level_label: str
+    stake_percent: float
+
+
+class CultCandidateRead(BaseModel):
+    telegram_user_id: int
+    display_name: str
+    username: str | None = None
+    avatar_url: str | None = None
+    rating_percent: float
+    wins: int
+    losses: int
+    rank: int
+    win_rate: float
+    joined_at: datetime
+    daily_stats: list[TraderDayStat] = []
+    active_signals: list[CultCandidateActiveSignalRead] = []
+    is_me: bool = False
+
+
+class CultCandidateMeRead(BaseModel):
+    is_candidate: bool
+    display_name: str | None = None
+    can_join: bool
+    blockers: list[str] = []
+    bybit_configured: bool = False
+    subscription_paid: bool = False
+
+
+class CultCandidateJoinBody(BaseModel):
+    display_name: str = Field(min_length=2, max_length=64)
+
+
+class CultCandidatePatchBody(BaseModel):
+    display_name: str = Field(min_length=2, max_length=64)
+
+
 class ChallengeDashboard(BaseModel):
     owner_telegram_id: int
     owner_username: str | None = None

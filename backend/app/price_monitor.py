@@ -19,7 +19,7 @@ from app.price_service import (
     first_outcome_quote,
     normalize_symbol,
 )
-from app.copy_trading_service import open_signal_copies
+from app.copy_trading_service import open_signal_copies, open_signal_copy_for_user
 from app.signal_service import close_signal_and_notify, notify_entry_filled
 from app.signal_utils import entry_zone_defined
 
@@ -32,11 +32,27 @@ async def check_active_signals_once() -> int:
     clear_price_cache()
     db = SessionLocal()
     try:
-        admin_active = list(db.scalars(select(Signal).where(Signal.status == "active")).all())
+        admin_active = list(
+            db.scalars(
+                select(Signal).where(
+                    Signal.status == "active",
+                    Signal.is_cult_candidate.is_(False),
+                )
+            ).all()
+        )
+        cult_trader_active = list(
+            db.scalars(
+                select(Signal).where(
+                    Signal.status == "active",
+                    Signal.is_cult_candidate.is_(True),
+                )
+            ).all()
+        )
         cult_active = list(db.scalars(select(CultChannelSignal).where(CultChannelSignal.status == "active")).all())
 
         symbols = sorted(
             {normalize_symbol(s.symbol) for s in admin_active}
+            | {normalize_symbol(s.symbol) for s in cult_trader_active}
             | {normalize_symbol(s.symbol) for s in cult_active}
         )
         if not symbols:
@@ -86,6 +102,36 @@ async def check_active_signals_once() -> int:
                     hit.source,
                     hit.price,
                 )
+                await close_signal_and_notify(
+                    db,
+                    signal,
+                    outcome,
+                    exit_price=hit.price,
+                    close_reason="target" if outcome == "win" else "stop",
+                )
+                closed += 1
+
+        for signal in cult_trader_active:
+            sym = normalize_symbol(signal.symbol)
+            quotes = quotes_by_symbol.get(sym) or []
+            if not quotes:
+                continue
+            if signal.entry_filled_at is None:
+                if not entry_zone_defined(signal.entry_low, signal.entry_high):
+                    continue
+                hit = first_entry_quote(quotes, signal.direction, signal.entry_low, signal.entry_high)
+                if hit is None:
+                    continue
+                signal.entry_filled_at = datetime.now(timezone.utc)
+                db.commit()
+                logger.info("CULT кандидат: вход #%s %s", signal.id, signal.symbol)
+                await open_signal_copy_for_user(db, signal, signal.author_telegram_id)
+                continue
+            outcome_hit = first_outcome_quote(quotes, signal.direction, signal.stop_loss, signal.take_profits)
+            if outcome_hit is None:
+                continue
+            outcome, hit = outcome_hit
+            if outcome in ("win", "lose"):
                 await close_signal_and_notify(
                     db,
                     signal,

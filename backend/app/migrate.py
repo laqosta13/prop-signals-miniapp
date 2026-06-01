@@ -61,6 +61,7 @@ def run_migrations(engine: Engine) -> None:
                 ("exchange_qty", "ALTER TABLE signals ADD COLUMN exchange_qty REAL"),
                 ("exchange_order_id", "ALTER TABLE signals ADD COLUMN exchange_order_id VARCHAR(64)"),
                 ("exchange_error", "ALTER TABLE signals ADD COLUMN exchange_error TEXT"),
+                ("is_cult_candidate", "ALTER TABLE signals ADD COLUMN is_cult_candidate BOOLEAN DEFAULT 0"),
             ):
                 if not _has_column(engine, "signals", col):
                     conn.execute(text(ddl))
@@ -343,6 +344,24 @@ def run_migrations(engine: Engine) -> None:
                 text(
                     "CREATE UNIQUE INDEX IF NOT EXISTS ix_cult_channel_signals_msg "
                     "ON cult_channel_signals (cult_channel_id, telegram_message_id)"
+                )
+            )
+
+        if "cult_candidates" not in inspect(engine).get_table_names():
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS cult_candidates (
+                        telegram_user_id INTEGER PRIMARY KEY,
+                        display_name VARCHAR(64) NOT NULL,
+                        enabled BOOLEAN DEFAULT 1,
+                        joined_at DATETIME NOT NULL,
+                        rating_percent REAL DEFAULT 0,
+                        wins INTEGER DEFAULT 0,
+                        losses INTEGER DEFAULT 0,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
                 )
             )
 

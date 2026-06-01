@@ -54,7 +54,12 @@ async def list_signals(
     user: TelegramUser = Depends(require_active_subscription),
 ) -> list[SignalRead]:
     """Полная лента — только с активной подпиской (или админ)."""
-    stmt = select(Signal).order_by(Signal.created_at.desc()).limit(FEED_SIGNAL_LIMIT)
+    stmt = (
+        select(Signal)
+        .where(Signal.is_cult_candidate.is_(False))
+        .order_by(Signal.created_at.desc())
+        .limit(FEED_SIGNAL_LIMIT)
+    )
     rows = list(db.scalars(stmt).all())
     return signals_list_read(db, rows, user.telegram_user_id)
 
@@ -67,7 +72,10 @@ async def list_signals_preview(
     """Бесплатная лента — только отработанные сигналы (win/lose), без активных."""
     stmt = (
         select(Signal)
-        .where(Signal.status.in_(("win", "lose")))
+        .where(
+            Signal.status.in_(("win", "lose")),
+            Signal.is_cult_candidate.is_(False),
+        )
         .order_by(Signal.created_at.desc())
         .limit(FEED_SIGNAL_LIMIT)
     )
@@ -78,9 +86,17 @@ async def list_signals_preview(
 @router.get("/market-price", response_model=MarketPriceRead)
 async def market_price(
     symbol: str,
-    _admin: TelegramUser = Depends(require_admin),
+    user: TelegramUser = Depends(get_current_user),
+    db: Session = Depends(db_session),
 ) -> MarketPriceRead:
-    """Текущий курс Bybit USDT perpetual для формы нового сигнала (админ)."""
+    """Курс Bybit perp для формы сигнала (админ или кандидат CULT)."""
+    from app.cult_candidate_service import is_cult_candidate
+    from app.models import Subscriber
+
+    if not user.is_admin:
+        sub = db.get(Subscriber, user.telegram_user_id)
+        if sub is None or not is_cult_candidate(db, user.telegram_user_id):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="forbidden")
     sym = normalize_symbol(symbol)
     if not sym:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="symbol required")

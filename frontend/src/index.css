@@ -2601,6 +2601,11 @@
   padding-top: 4px;
 }
 
+.top-cult-block--fired {
+  margin-top: 20px;
+  padding-top: 4px;
+}
+
 .top-list--solo {
   margin-bottom: 0;
 }
@@ -2626,6 +2631,155 @@
 .top-cult-label--candidates {
   margin-bottom: 10px;
   color: var(--muted);
+}
+
+.top-cult-label--fired {
+  margin-bottom: 10px;
+  color: var(--red);
+}
+
+.top-card--fired {
+  opacity: 0.88;
+  border-color: rgba(239, 68, 68, 0.22);
+}
+
+.top-rank--fired {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.top-card--candidate {
+  border-color: rgba(109, 40, 217, 0.2);
+}
+
+.top-card--candidate-me {
+  border-color: rgba(109, 40, 217, 0.45);
+}
+
+.top-rank--candidate {
+  color: var(--purple);
+}
+
+.cult-candidate-trades {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cult-candidate-trades__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.cult-candidate-trades__sym {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.cult-candidate-trades__dir {
+  font-weight: 600;
+  color: var(--purple);
+}
+
+.cult-candidate-trades__pct {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.cult-candidate-trade-btn {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.cult-candidate-join {
+  margin-bottom: 12px;
+}
+
+.cult-candidate-join__cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px dashed rgba(109, 40, 217, 0.45);
+  border-radius: 12px;
+  background: var(--purple-soft);
+  color: var(--purple);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.cult-candidate-join__plus {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.cult-candidate-join__modal {
+  max-height: min(92vh, 720px);
+  overflow-y: auto;
+}
+
+.cult-candidate-join__intro {
+  margin: 0 0 12px;
+}
+
+.cult-candidate-join__checklist {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  font-size: 0.85rem;
+}
+
+.cult-candidate-join__checklist li {
+  padding: 4px 0;
+}
+
+.cult-candidate-join__checklist li.ok {
+  color: var(--green);
+}
+
+.cult-candidate-join__checklist li.pending {
+  color: var(--muted);
+}
+
+.cult-candidate-join__label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.cult-candidate-join__label input {
+  width: 100%;
+}
+
+.cult-candidate-join__pay {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.cult-candidate-signal-hint {
+  margin: 0 0 12px;
+}
+
+.top-list--user-candidates {
+  margin-bottom: 12px;
 }
 
 .top-score {

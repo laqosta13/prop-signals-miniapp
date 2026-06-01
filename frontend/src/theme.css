@@ -417,6 +417,14 @@ body {
   color: var(--purple);
 }
 
+[data-theme="light"] .top-cult-label--fired {
+  color: #b91c1c;
+}
+
+[data-theme="light"] .top-card--fired {
+  border-color: rgba(185, 28, 28, 0.2);
+}
+
 [data-theme="light"] .top-rank--aggregate {
   color: var(--purple);
 }

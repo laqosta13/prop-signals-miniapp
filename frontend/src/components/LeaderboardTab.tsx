@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
-import type { CultChannel, Trader } from "../api";
+import type { CultCandidate, CultChannel, Trader } from "../api";
 import { EquityCurve } from "./EquityCurve";
+import { CultCandidateCard } from "./CultCandidateCard";
+import { CultCandidateJoinPanel } from "./CultCandidateJoinPanel";
+import { CultCandidateSignalModal } from "./CultCandidateSignalModal";
 import { CultChannelAdminPanel } from "./CultChannelAdminPanel";
 import { CultChannelCard } from "./CultChannelCard";
 import { RankBadge } from "./RankBadge";
@@ -14,23 +17,39 @@ import { Avatar } from "./Avatar";
 
 type Props = {
   traders: Trader[];
+  firedTraders: Trader[];
+  cultCandidates: CultCandidate[];
   cultChannels: CultChannel[];
   loading: boolean;
   myId: number | null;
   isAdmin: boolean;
   onCultChannelsChange: () => void;
+  onCultCandidatesChange: () => void;
+  onOpenPay?: () => void;
 };
 
-function TopTraderCard({ trader, onOpen }: { trader: Trader; onOpen: () => void }) {
+function TopTraderCard({
+  trader,
+  onOpen,
+  fired = false,
+}: {
+  trader: Trader;
+  onOpen: () => void;
+  fired?: boolean;
+}) {
   const aggregate = isVolnovoiTrader(trader);
 
   return (
     <li className={aggregate ? "top-list__item--aggregate" : undefined}>
-      <div className={`top-card${aggregate ? " top-card--aggregate" : ""}`}>
+      <div
+        className={`top-card${aggregate ? " top-card--aggregate" : ""}${fired ? " top-card--fired" : ""}`}
+      >
         <button type="button" className="top-card__head-btn" onClick={onOpen}>
           <div className="top-card__head">
-            <span className={`top-rank${aggregate ? " top-rank--aggregate" : ""}`}>
-              {aggregate ? "∑" : `#${trader.rank}`}
+            <span
+              className={`top-rank${aggregate ? " top-rank--aggregate" : ""}${fired ? " top-rank--fired" : ""}`}
+            >
+              {aggregate ? "∑" : fired ? "—" : `#${trader.rank}`}
             </span>
             <Avatar url={trader.avatar_url} displayName={trader.display_name} username={trader.username} size={44} />
             <div className="top-body">
@@ -67,13 +86,18 @@ function TopTraderCard({ trader, onOpen }: { trader: Trader; onOpen: () => void 
 
 export function LeaderboardTab({
   traders,
+  firedTraders,
+  cultCandidates,
   cultChannels,
   loading,
   myId,
   isAdmin,
   onCultChannelsChange,
+  onCultCandidatesChange,
+  onOpenPay,
 }: Props) {
   const [profileTrader, setProfileTrader] = useState<Trader | null>(null);
+  const [signalModalOpen, setSignalModalOpen] = useState(false);
 
   const volnovoi = traders.find((t) => isVolnovoiTrader(t));
   const traderCandidates = useMemo(
@@ -83,19 +107,29 @@ export function LeaderboardTab({
         .sort((a, b) => b.rating_percent - a.rating_percent),
     [traders],
   );
+  const userCandidates = useMemo(
+    () => [...cultCandidates].sort((a, b) => b.rating_percent - a.rating_percent),
+    [cultCandidates],
+  );
   const channelCandidates = useMemo(
     () => [...cultChannels].sort((a, b) => b.rating_percent - a.rating_percent),
     [cultChannels],
   );
+  const firedList = useMemo(
+    () => [...firedTraders].sort((a, b) => b.rating_percent - a.rating_percent),
+    [firedTraders],
+  );
 
   const showTradersBlock = Boolean(volnovoi || traderCandidates.length > 0);
-  const showCandidatesBlock = channelCandidates.length > 0 || isAdmin;
+  const showCandidatesBlock =
+    userCandidates.length > 0 || channelCandidates.length > 0 || isAdmin || myId != null;
+  const showFiredBlock = firedList.length > 0;
 
   if (loading) return <p className="meta">Загрузка…</p>;
 
   return (
     <>
-      {!traders.length && !cultChannels.length && (
+      {!traders.length && !firedList.length && !userCandidates.length && !cultChannels.length && (
         <p className="meta">Рейтинг появится после закрытых сигналов.</p>
       )}
 
@@ -127,16 +161,53 @@ export function LeaderboardTab({
       {showCandidatesBlock && (
         <section className="top-cult-block top-cult-block--candidates">
           <p className="top-cult-label top-cult-label--candidates">КОНДИДАТЫ В CULT</p>
-          {channelCandidates.length > 0 ? (
+          {!isAdmin && myId != null && (
+            <CultCandidateJoinPanel onJoined={onCultCandidatesChange} onOpenPay={onOpenPay} />
+          )}
+          {userCandidates.length > 0 && (
+            <ol className="top-list top-list--user-candidates">
+              {userCandidates.map((candidate) => (
+                <CultCandidateCard
+                  key={candidate.telegram_user_id}
+                  candidate={candidate}
+                  onTrade={candidate.is_me ? () => setSignalModalOpen(true) : undefined}
+                />
+              ))}
+            </ol>
+          )}
+          {channelCandidates.length > 0 && (
             <ol className="top-list">
               {channelCandidates.map((channel) => (
                 <CultChannelCard key={channel.id} channel={channel} />
               ))}
             </ol>
-          ) : (
-            !isAdmin && <p className="meta">Кандидаты появятся после подключения каналов.</p>
+          )}
+          {userCandidates.length === 0 && channelCandidates.length === 0 && !isAdmin && (
+            <p className="meta">Станьте кандидатом или дождитесь подключения каналов.</p>
           )}
           {isAdmin && <CultChannelAdminPanel channels={cultChannels} onChange={onCultChannelsChange} />}
+        </section>
+      )}
+
+      <CultCandidateSignalModal
+        open={signalModalOpen}
+        onClose={() => setSignalModalOpen(false)}
+        onCreated={onCultCandidatesChange}
+      />
+
+      {showFiredBlock && (
+        <section className="top-cult-block top-cult-block--fired">
+          <p className="top-cult-label top-cult-label--fired">УВОЛЕННЫЕ ТРЕЙДЕРЫ</p>
+          <ol className="top-list">
+            {firedList.map((trader) => (
+              <TopTraderCard
+                key={trader.telegram_id}
+                trader={trader}
+                fired
+                onOpen={() => setProfileTrader(trader)}
+              />
+            ))}
+          </ol>
         </section>
       )}
 

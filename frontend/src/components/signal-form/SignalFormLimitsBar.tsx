@@ -4,8 +4,7 @@ import {
   SIGNAL_DAILY_STOP_LIMIT_PCT,
   SIGNAL_DAILY_TRADE_LIMIT,
 } from "../../utils/dailyStopLimit";
-import { formatRiskPct } from "../../utils/signalLevels";
-import { STAKE_POOL_TOTAL_PCT, stakePoolBlockedMessage } from "../../utils/stakePool";
+import { formatPoolChipPct, STAKE_POOL_TOTAL_PCT, stakePoolBlockedMessage } from "../../utils/stakePool";
 
 type Props = {
   active: boolean;
@@ -61,20 +60,20 @@ export function SignalFormLimitsBar({
         <div className="signal-form__chip">
           <span className="signal-form__chip-k">Стоп</span>
           <span className="signal-form__chip-v">
-            {formatRiskPct(dailyRemaining ?? 0)}%
+            {formatPoolChipPct(dailyRemaining ?? 0)}%
             <span className="signal-form__chip-dim">/{SIGNAL_DAILY_STOP_LIMIT_PCT}%</span>
           </span>
         </div>
         <div className="signal-form__chip">
           <span className="signal-form__chip-k">Пул</span>
           <span className="signal-form__chip-v">
-            {formatRiskPct(poolFree)}%
+            {formatPoolChipPct(poolFree)}%
             <span className="signal-form__chip-dim">/{STAKE_POOL_TOTAL_PCT}%</span>
           </span>
         </div>
         <div className="signal-form__chip signal-form__chip--wide">
           <span className="signal-form__chip-k">В рынке</span>
-          <span className="signal-form__chip-v">{formatRiskPct(inMarket)}%</span>
+          <span className="signal-form__chip-v">{formatPoolChipPct(inMarket)}%</span>
         </div>
       </div>
       {active && resetIn ? (

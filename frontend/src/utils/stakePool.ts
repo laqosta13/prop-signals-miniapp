@@ -2,6 +2,13 @@
 
 export const STAKE_POOL_TOTAL_PCT = 100;
 
+/** Формат % для чипов лимитов (0 остаётся 0, без подстановки дефолта стопа 0.7). */
+export function formatPoolChipPct(pct: number): string {
+  if (!Number.isFinite(pct) || pct < 0) return "0";
+  const rounded = Math.round(pct * 100) / 100;
+  return String(rounded).replace(/\.?0+$/, "");
+}
+
 export const STAKE_POOL_MARKS = [0, 25, 50, 75, 100] as const;
 
 export function stakeSliderMarks(maxPct: number): number[] {

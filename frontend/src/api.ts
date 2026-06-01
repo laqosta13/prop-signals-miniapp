@@ -144,6 +144,40 @@ export type CultChannel = {
   daily_stats: TraderDayStat[];
 };
 
+export type CultCandidateActiveSignal = {
+  id: number;
+  symbol: string;
+  direction: string;
+  entry: string;
+  level_label: string;
+  stake_percent: number;
+};
+
+export type CultCandidate = {
+  telegram_user_id: number;
+  display_name: string;
+  username: string | null;
+  avatar_url: string | null;
+  rating_percent: number;
+  wins: number;
+  losses: number;
+  rank: number;
+  win_rate: number;
+  joined_at: string;
+  daily_stats: TraderDayStat[];
+  active_signals: CultCandidateActiveSignal[];
+  is_me: boolean;
+};
+
+export type CultCandidateMe = {
+  is_candidate: boolean;
+  display_name: string | null;
+  can_join: boolean;
+  blockers: string[];
+  bybit_configured: boolean;
+  subscription_paid: boolean;
+};
+
 export type ChallengeDashboard = {
   owner_telegram_id: number;
   owner_username: string | null;
@@ -360,6 +394,7 @@ export const payCopyTradingFee = (invoice_id: number, tx_id: string) =>
   });
 
 export const fetchLeaderboard = () => api<Trader[]>("/traders/leaderboard");
+export const fetchFiredLeaderboard = () => api<Trader[]>("/traders/fired-leaderboard");
 export const fetchCultChannels = () => api<CultChannel[]>("/cult-channels");
 export const createCultChannel = (url: string) =>
   api<CultChannel>("/cult-channels", {
@@ -371,6 +406,45 @@ export async function deleteCultChannel(id: number): Promise<void> {
   const res = await fetch(`${base}/cult-channels/${id}`, { method: "DELETE", headers: authHeaders() });
   if (!res.ok) throw new Error(await parseApiError(res));
 }
+
+export const fetchCultCandidates = () => api<CultCandidate[]>("/cult-candidates");
+export const fetchCultCandidateMe = () => api<CultCandidateMe>("/cult-candidates/me");
+export const joinCultCandidate = (display_name: string) =>
+  api<CultCandidate>("/cult-candidates/me", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ display_name }),
+  });
+export const patchCultCandidateMe = (display_name: string) =>
+  api<CultCandidate>("/cult-candidates/me", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ display_name }),
+  });
+export const createCultCandidateSignal = (form: FormData, onProgress?: (p: UploadProgress) => void) => {
+  if (!onProgress) return sendForm<Signal>("/cult-candidates/me/signals", "POST", form);
+  return new Promise<Signal>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${base}/cult-candidates/me/signals`);
+    applyAuthHeaders(xhr);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress({ loaded: e.loaded, total: e.total });
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText) as Signal);
+        } catch {
+          reject(new Error("Invalid response"));
+        }
+      } else {
+        reject(new Error(parseUploadError(xhr.responseText, xhr.status)));
+      }
+    };
+    xhr.onerror = () => reject(new Error(parseUploadError("Network error")));
+    xhr.send(form);
+  });
+};
 export const fetchTraderRank = (telegramId: number) => api<TraderRank>(`/traders/${telegramId}/rank`);
 export const fetchRankPending = () =>
   api<{ needs_confirm: boolean; rank: TraderRank }>("/traders/me/rank-pending");

@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     bot_token: str = ""
     telegram_bot_username: str = ""
     telegram_admin_ids: str = ""
+    telegram_former_admin_ids: str = ""
     database_url: str = "sqlite:///./signals.db"
     cors_origins: str = "http://localhost:5173"
     default_signal_points_percent: float = 1.0
@@ -28,6 +29,13 @@ class Settings(BaseSettings):
     @property
     def admin_id_set(self) -> set[int]:
         raw = self.telegram_admin_ids.strip()
+        if not raw:
+            return set()
+        return {int(x.strip()) for x in raw.split(",") if x.strip().isdigit()}
+
+    @property
+    def former_admin_id_set(self) -> set[int]:
+        raw = self.telegram_former_admin_ids.strip()
         if not raw:
             return set()
         return {int(x.strip()) for x in raw.split(",") if x.strip().isdigit()}

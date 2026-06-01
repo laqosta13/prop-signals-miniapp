@@ -197,8 +197,20 @@ async def _close_copy_for_user(db: Session, copy_row: SignalCopyTrade, signal: S
         _mark_copy_failed(db, copy_row, f"close: {e}")
 
 
+async def open_signal_copy_for_user(db: Session, signal: Signal, telegram_user_id: int) -> None:
+    """Открыть сделку на Bybit только у указанного пользователя (кандидат CULT)."""
+    if signal.entry_filled_at is None or signal.status != "active":
+        return
+    row = db.get(UserBybitSettings, telegram_user_id)
+    if row is None or not row.enabled:
+        return
+    await _open_copy_for_user(db, signal, row)
+
+
 async def open_signal_copies(db: Session, signal: Signal) -> None:
     """Открыть копии сигнала на Bybit у всех подписчиков с API."""
+    if getattr(signal, "is_cult_candidate", False):
+        return
     if signal.entry_filled_at is None or signal.status != "active":
         return
     users = eligible_copy_settings(db)

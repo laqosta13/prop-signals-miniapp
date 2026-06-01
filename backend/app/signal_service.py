@@ -32,7 +32,7 @@ from app.telegram_notify import (
     format_updated_signal_message,
     notify_subscribers,
 )
-from app.copy_trading_service import close_signal_copies, open_signal_copies
+from app.copy_trading_service import close_signal_copies, open_signal_copies, open_signal_copy_for_user
 from app.challenge_service import apply_signal_to_tracker, ensure_tracker_for_new_signal
 from app.database import SessionLocal
 from app.price_service import (
@@ -194,6 +194,21 @@ def close_signal(
 ) -> bool:
     if signal.status != "active":
         return False
+    if getattr(signal, "is_cult_candidate", False):
+        from app.cult_candidate_service import apply_outcome_to_cult_candidate
+        from app.models import CultCandidate
+
+        candidate = db.get(CultCandidate, signal.author_telegram_id)
+        if candidate is None:
+            return False
+        if exit_price is None:
+            return False
+        if not apply_outcome_to_cult_candidate(db, candidate, signal, outcome, exit_price):
+            return False
+        db.commit()
+        db.refresh(signal)
+        return True
+
     signal.status = outcome
     signal.closed_at = datetime.now(timezone.utc)
     if close_reason:
@@ -226,6 +241,8 @@ async def close_signal_and_notify(
     if not close_signal(db, signal, outcome, exit_price, close_reason=reason):
         return
     await close_signal_copies(db, signal)
+    if getattr(signal, "is_cult_candidate", False):
+        return
     ids = subscriber_ids_for_notify(db)
     if ids:
         await notify_subscribers(format_closed_signal_message(signal, market_close=market_close), ids)
@@ -360,6 +377,11 @@ async def stamp_signal_at_publication(
     else:
         logger.warning("Публикация signal #%s %s: цена бирж не получена", signal.id, signal.symbol)
 
+    if getattr(signal, "is_cult_candidate", False):
+        if signal.entry_filled_at is not None:
+            await open_signal_copy_for_user(db, signal, signal.author_telegram_id)
+        return
+
     if notify_entry and entry_hit:
         await notify_entry_filled(db, signal)
 
@@ -397,6 +419,9 @@ async def try_fill_entry_from_market(db: Session, signal: Signal, *, notify: boo
         signal.entry_low,
         signal.entry_high,
     )
+    if getattr(signal, "is_cult_candidate", False):
+        await open_signal_copy_for_user(db, signal, signal.author_telegram_id)
+        return True
     if notify:
         await notify_entry_filled(db, signal)
     await open_signal_copies(db, signal)
@@ -426,6 +451,7 @@ def build_signal_row(
     account_size: float | None = None,
     author_first_name: str | None = None,
     author_last_name: str | None = None,
+    is_cult_candidate: bool = False,
 ) -> Signal:
     stop_pts = compute_signal_points_percent(entry_low, entry_high, stop_loss)
     stake = risk_percent if risk_percent is not None else DEFAULT_ENTRY_STAKE_PCT
@@ -456,6 +482,7 @@ def build_signal_row(
         likes_count=0,
         author_telegram_id=author_telegram_id,
         author_username=author_username,
+        is_cult_candidate=is_cult_candidate,
     )
 
 

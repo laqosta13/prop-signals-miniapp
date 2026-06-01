@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.deps import db_session, get_current_user, require_admin
-from app.leaderboard_service import build_leaderboard
+from app.leaderboard_service import build_fired_leaderboard, build_leaderboard, fired_trader_ids
 from app.models import Trader
 from app.rank_service import activate_shield, confirm_rank, ensure_rank_fields, needs_confirm_prompt
 from app.schemas import TelegramUser, TraderRankRead, TraderRead
@@ -21,6 +21,17 @@ def leaderboard(
 ) -> list[TraderRead]:
     _ = user
     result = build_leaderboard(db)
+    db.commit()
+    return result
+
+
+@router.get("/fired-leaderboard", response_model=list[TraderRead])
+def fired_leaderboard(
+    db: Session = Depends(db_session),
+    user: TelegramUser = Depends(get_current_user),
+) -> list[TraderRead]:
+    _ = user
+    result = build_fired_leaderboard(db)
     db.commit()
     return result
 
@@ -75,7 +86,7 @@ def trader_rank_profile(
         if row is None or row.trader_rank is None:
             raise HTTPException(status_code=404, detail="trader_not_found")
         return row.trader_rank
-    if telegram_id not in settings.admin_id_set:
+    if telegram_id not in settings.admin_id_set and telegram_id not in fired_trader_ids(db):
         raise HTTPException(status_code=404, detail="trader_not_found")
     trader = db.get(Trader, telegram_id)
     if trader is None:

@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState, lazy, Suspense } from "react"
 import WebApp from "@twa-dev/sdk";
 import {
   fetchChallengeTrackers,
+  fetchCultCandidates,
   fetchCultChannels,
+  fetchFiredLeaderboard,
   fetchLeaderboard,
   fetchMe,
   fetchRankPending,
@@ -13,6 +15,7 @@ import {
   type ChallengeDashboard,
   type NewsPost,
   type Signal,
+  type CultCandidate,
   type CultChannel,
   type Trader,
 } from "./api";
@@ -113,6 +116,8 @@ export default function App() {
   const [tab, setTab] = useState<Tab>("feed");
   const [signals, setSignals] = useState<Signal[]>([]);
   const [traders, setTraders] = useState<Trader[]>([]);
+  const [firedTraders, setFiredTraders] = useState<Trader[]>([]);
+  const [cultCandidates, setCultCandidates] = useState<CultCandidate[]>([]);
   const [cultChannels, setCultChannels] = useState<CultChannel[]>([]);
   const [trackers, setTrackers] = useState<ChallengeDashboard[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -213,8 +218,10 @@ export default function App() {
 
   const loadTop = useCallback(async () => {
     try {
-      const [boardResult, channelsResult] = await Promise.allSettled([
+      const [boardResult, firedResult, candidatesResult, channelsResult] = await Promise.allSettled([
         fetchLeaderboard(),
+        fetchFiredLeaderboard(),
+        fetchCultCandidates(),
         fetchCultChannels(),
       ]);
       if (boardResult.status === "fulfilled") {
@@ -226,6 +233,16 @@ export default function App() {
             ? boardResult.reason.message
             : "Ошибка рейтинга",
         );
+      }
+      if (firedResult.status === "fulfilled") {
+        setFiredTraders(firedResult.value);
+      } else {
+        setFiredTraders([]);
+      }
+      if (candidatesResult.status === "fulfilled") {
+        setCultCandidates(candidatesResult.value);
+      } else {
+        setCultCandidates([]);
       }
       if (channelsResult.status === "fulfilled") {
         setCultChannels(channelsResult.value);
@@ -423,11 +440,21 @@ export default function App() {
           {tab === "top" && (
             <LeaderboardTab
               traders={traders}
+              firedTraders={firedTraders}
+              cultCandidates={cultCandidates}
               cultChannels={cultChannels}
-              loading={loading && !traders.length && !cultChannels.length}
+              loading={
+                loading &&
+                !traders.length &&
+                !firedTraders.length &&
+                !cultCandidates.length &&
+                !cultChannels.length
+              }
               myId={myId}
               isAdmin={isAdmin}
               onCultChannelsChange={() => void loadTop()}
+              onCultCandidatesChange={() => void loadTop()}
+              onOpenPay={() => setTab("pay")}
             />
           )}
           {tab === "reviews" && (
