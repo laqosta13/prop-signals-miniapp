@@ -84,10 +84,11 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
     open,
     symbol,
     leverage,
+    riskPct,
     trackerSnap: tracker.trackerSnap,
     trackerLoading: tracker.trackerLoading,
     directionRef,
-    levels: { riskPct, applyMarketPrice },
+    applyMarketPrice,
     setRisk,
     setAccountStopSel,
     setPriceLoading,
@@ -98,8 +99,11 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
     if (!open) {
       resetInitKey();
       setAccountStopSel(null);
-      return;
     }
+  }, [open, resetInitKey]);
+
+  useEffect(() => {
+    if (!open) return;
     setError(null);
     setSymbol(DEFAULT_SYMBOL);
     setLeverage("1");
@@ -112,7 +116,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
       if (prev) URL.revokeObjectURL(prev);
       return null;
     });
-  }, [open, resetForm, resetInitKey]);
+  }, [open, resetForm]);
 
   if (!open) return null;
 
