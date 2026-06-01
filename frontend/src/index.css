@@ -3454,8 +3454,8 @@ input.readonly {
   border-radius: 20px 20px 0 0;
 }
 
-.modal-backdrop--signal .levels-grid-form,
-.modal-backdrop--signal .levels-grid-form > div,
+.modal-backdrop--signal .signal-form__levels,
+.modal-backdrop--signal .signal-form__levels > *,
 .modal-backdrop--signal .risk-slider,
 .modal-backdrop--signal .leverage-picker,
 .modal-backdrop--signal .dir-toggle,
@@ -3700,8 +3700,28 @@ input.readonly {
   margin-bottom: 8px;
 }
 
+.risk-slider__label-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .risk-slider__label {
   margin: 0;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--field-label);
+  font-weight: 600;
+}
+
+.risk-slider__hint {
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
 }
 
 .risk-slider__value {
@@ -3925,6 +3945,321 @@ input.readonly {
   color: var(--muted);
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ——— Signal create / edit form ——— */
+.signal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.signal-form__head {
+  margin-bottom: 12px;
+}
+
+.signal-form__section {
+  margin-bottom: 14px;
+  padding: 12px 12px 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.signal-form__section-head {
+  margin-bottom: 10px;
+}
+
+.signal-form__section-title {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-strong, var(--text));
+}
+
+.signal-form__section-hint {
+  margin: 3px 0 0;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.signal-form__section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.signal-form__limits {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(224, 175, 255, 0.08), rgba(61, 255, 138, 0.04));
+  border: 1px solid rgba(224, 175, 255, 0.15);
+}
+
+.signal-form__limits--loading {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.signal-form__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.signal-form__chip {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 10px;
+  min-width: 4.5rem;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.signal-form__chip--wide {
+  flex: 1 1 auto;
+  min-width: 6rem;
+}
+
+.signal-form__chip-k {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.signal-form__chip-v {
+  font-size: 0.88rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.signal-form__chip-dim {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.signal-form__reset {
+  margin: 8px 0 0;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.signal-form__reset-clock {
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.signal-form__alert {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.signal-form__alert--err {
+  color: var(--danger);
+  background: rgba(255, 92, 92, 0.1);
+  border: 1px solid rgba(255, 92, 92, 0.25);
+}
+
+.signal-form__deal {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.signal-form__deal-symbol {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.signal-form__deal-k {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.signal-form__symbol-input {
+  width: 100%;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.dir-toggle--compact {
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  min-width: 9.5rem;
+}
+
+.dir-toggle--compact button {
+  padding: 10px 8px;
+  font-size: 0.78rem;
+}
+
+.signal-form__levels {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  align-items: end;
+}
+
+.signal-form__level {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.signal-form__level-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.signal-form__level-badge {
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.58rem;
+  text-transform: lowercase;
+  letter-spacing: 0;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.signal-form__level-input {
+  width: 100%;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.signal-form__level--stop .signal-form__level-input {
+  color: var(--red);
+  border-color: rgba(255, 92, 92, 0.25);
+  background: rgba(255, 92, 92, 0.06);
+}
+
+.signal-form__level--target .signal-form__level-input {
+  color: var(--green);
+  border-color: rgba(61, 255, 138, 0.25);
+  background: rgba(61, 255, 138, 0.06);
+}
+
+.signal-form__levels-slider {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.signal-form__levels-slider .risk-slider {
+  margin-bottom: 0;
+}
+
+.signal-form__position {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.signal-form__position-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.signal-form__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  min-width: 0;
+}
+
+.signal-form__stat--accent .signal-form__stat-v {
+  color: var(--green);
+}
+
+.signal-form__stat-k {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.signal-form__stat-v {
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signal-form__stat-v--dim {
+  font-weight: 600;
+  color: #ead6ff;
+}
+
+.signal-form__position-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.signal-form__inline-label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.signal-form__position .leverage-picker {
+  margin-bottom: 0;
+}
+
+.signal-form__position .risk-slider {
+  margin-bottom: 0;
+}
+
+.signal-form__comment {
+  min-height: 88px;
+  resize: vertical;
+}
+
+.signal-form__paste-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
+.signal-form__submit {
+  margin-top: 4px;
 }
 
 .double {

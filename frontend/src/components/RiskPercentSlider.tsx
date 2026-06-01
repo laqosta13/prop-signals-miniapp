@@ -5,6 +5,7 @@ type Props = {
   value: string;
   onChange: (value: string) => void;
   label?: string;
+  hint?: string;
   max?: number;
   disabled?: boolean;
 };
@@ -12,7 +13,8 @@ type Props = {
 export function RiskPercentSlider({
   value,
   onChange,
-  label = "Сумма входа %",
+  label = "Доля входа",
+  hint,
   max = 100,
   disabled = false,
 }: Props) {
@@ -25,7 +27,10 @@ export function RiskPercentSlider({
   return (
     <div className="risk-slider">
       <div className="risk-slider__head">
-        <span className="field-label risk-slider__label">{label}</span>
+        <div className="risk-slider__label-wrap">
+          <span className="risk-slider__label">{label}</span>
+          {hint ? <span className="risk-slider__hint">{hint}</span> : null}
+        </div>
         <strong className="risk-slider__value">{formatRiskPercent(current)}%</strong>
       </div>
       <input

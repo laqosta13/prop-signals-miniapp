@@ -19,6 +19,8 @@ type Props = {
   dailyRemainingPct?: number;
   dailyLossPct?: number;
   blocked?: boolean;
+  /** Скрыть дублирующий текст лимита (показывается в панели лимитов формы). */
+  showBudget?: boolean;
 };
 
 export function StopOffsetSlider({
@@ -27,6 +29,7 @@ export function StopOffsetSlider({
   dailyRemainingPct,
   dailyLossPct = 0,
   blocked = false,
+  showBudget = true,
 }: Props) {
   const accountMode = dailyRemainingPct !== undefined;
   const maxPct = accountMode ? Math.max(0, dailyRemainingPct) : 5;
@@ -62,16 +65,13 @@ export function StopOffsetSlider({
   return (
     <div className={`risk-slider stop-offset-slider${disabled ? " stop-offset-slider--blocked" : ""}`}>
       <div className="risk-slider__head">
-        <span className="field-label risk-slider__label">
-          {accountMode ? "Риск до стопа, % счёта" : "До стопа, %"}
-        </span>
+        <span className="risk-slider__label">{accountMode ? "Риск до стопа" : "До стопа"}</span>
         <strong className="risk-slider__value">{formatRiskPct(current)}%</strong>
       </div>
-      {accountMode && (
+      {accountMode && showBudget && (
         <p className="stop-offset-slider__budget meta">
-          Лимит {SIGNAL_DAILY_STOP_LIMIT_PCT}% стопа · потери {formatRiskPct(dailyLossPct)}% · остаток{" "}
+          Лимит {SIGNAL_DAILY_STOP_LIMIT_PCT}% · потери {formatRiskPct(dailyLossPct)}% · остаток{" "}
           <strong>{formatRiskPct(maxPct)}%</strong>
-          {maxPct >= ACCOUNT_STOP_MIN_STEP && " · можно весь остаток в одну сделку"}
         </p>
       )}
       {disabled ? (

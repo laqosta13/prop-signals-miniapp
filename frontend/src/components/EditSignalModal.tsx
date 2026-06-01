@@ -7,20 +7,25 @@ import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
 import { formatTakeProfits, normalizeTakeProfits } from "../utils";
 import { ruTextFieldProps } from "../utils/textFieldProps";
 import { entryNominalUsd, formatRiskPercent, parseLeverage, parseRiskPercent } from "../utils/signalForm";
-import { formatRiskPct } from "../utils/signalLevels";
-import { stakePoolBlockedMessage } from "../utils/stakePool";
+import {
+  dailyTradingBlocked,
+  dailyTradesRemaining,
+  SIGNAL_DAILY_TRADE_LIMIT,
+} from "../utils/dailyStopLimit";
 import {
   initialUploadProgress,
   mediaBytesInForm,
   uploadProgressLabel,
 } from "../utils/upload";
 import { UploadProgressBar } from "./UploadProgressBar";
-import { LeveragePicker } from "./LeveragePicker";
-import { RiskPercentSlider } from "./RiskPercentSlider";
 import { SignalLevelsFields } from "./SignalLevelsFields";
 import { SignalMediaPicker } from "./SignalMediaPicker";
-import { FieldLabelWithPaste, appendPastedText } from "./FieldLabelWithPaste";
-import { SignalDailyResetTimer } from "./SignalDailyResetTimer";
+import { appendPastedText } from "./FieldLabelWithPaste";
+import { isTelegramDesktop } from "../utils/platform";
+import { PasteButton } from "./PasteButton";
+import { SignalFormSection } from "./signal-form/SignalFormSection";
+import { SignalFormLimitsBar } from "./signal-form/SignalFormLimitsBar";
+import { SignalFormPositionCard } from "./signal-form/SignalFormPositionCard";
 
 type Props = {
   signal: Signal | null;
@@ -112,6 +117,14 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
       ? trackerBalance
       : trackerSnap?.accountSize ?? signal.account_size ?? 0;
   const stakeUsd = entryNominalUsd(balanceForNominal, stakePct, lev);
+  const dailyTradesCount = trackerSnap?.dailyTradesCount ?? 0;
+  const dailyTradesLimit = trackerSnap?.dailyTradesLimit ?? SIGNAL_DAILY_TRADE_LIMIT;
+  const dailyLimit = dailyTradingBlocked({
+    dailyLossPct,
+    dailyTradesCount,
+    dailyTradesLimit,
+  });
+  const dailyTradesRemainingCount = dailyTradesRemaining(dailyTradesCount, dailyTradesLimit);
 
   const onScreenshot = (file: File | null) => {
     setScreenshot(file);
@@ -170,147 +183,170 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
 
   return (
     <div className="modal-backdrop modal-backdrop--sheet modal-backdrop--signal" onClick={onClose}>
-      <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
-        <header className="modal__head">
+      <form className="modal signal-form" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+        <header className="modal__head signal-form__head">
           <div>
-            <h2>Редактировать</h2>
-            <p>#{signal.number} · {signal.symbol} · активный сигнал</p>
+            <h2>Редактирование</h2>
+            <p>
+              #{signal.number} · {signal.symbol}
+            </p>
           </div>
-          <button type="button" className="icon-btn" onClick={onClose}>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label="Закрыть">
             ×
           </button>
         </header>
 
-        <label className="field-label">Инструмент</label>
-        <input value={symbol} onChange={(e) => setSymbol(e.target.value)} required />
-
-        <label className="field-label">Направление</label>
-        <div className="dir-toggle">
-          <button type="button" className={direction === "long" ? "active long" : ""} onClick={() => setDirection("long")}>
-            LONG
-          </button>
-          <button type="button" className={direction === "short" ? "active short" : ""} onClick={() => setDirection("short")}>
-            SHORT
-          </button>
-        </div>
-
-        <SignalLevelsFields
-          entry={entry}
-          stop={stop}
-          target={target}
-          riskPct={riskPct}
-          onEntryChange={onEntryChange}
-          onStopChange={onStopChange}
-          onTargetChange={onTargetChange}
-          onRiskPctChange={onRiskPctChange}
-          showPriceHint={false}
-          stakePct={stakePct}
-          leverage={lev}
-          dailyRemainingPct={dailyRemaining}
-          dailyLossPct={dailyLossPct}
-          dailyStopBlocked={dailyStopBlocked}
+        <SignalFormLimitsBar
+          active={signal != null}
+          loading={trackerLoading}
+          dailyRemaining={dailyRemaining}
+          dailyTradesRemaining={dailyTradesRemainingCount}
+          dailyTradesLimit={dailyTradesLimit}
+          stakePoolRemainingPct={trackerSnap?.stakePoolRemainingPct}
+          rankName={trackerSnap?.currentRankName}
+          rankMaxStakePct={trackerSnap?.rankMaxStakePct}
+          dailyBlocked={dailyLimit.blocked}
+          dailyBlockReason={dailyLimit.reason}
+          stakePoolBlocked={stakePoolBlocked}
+          maxStakePct={maxStakePct}
         />
 
-        <label className="field-label">Плечо</label>
-        <LeveragePicker
-          leverage={leverage}
-          onLeverageChange={(nextLev, nextRisk) => {
-            const prevStake = parseRiskPercent(risk);
-            const prevLev = parseLeverage(leverage);
-            setLeverage(nextLev);
-            setRisk(nextRisk);
-            const nextPrice = preserveAccountStopOnLeverageChange({
-              riskPct,
-              prevStakePct: prevStake,
-              prevLeverage: prevLev,
-              nextStakePct: parseRiskPercent(nextRisk),
-              nextLeverage: parseLeverage(nextLev),
-              dailyRemaining: dailyRemaining ?? 2,
-            });
-            if (nextPrice) onRiskPctChange(nextPrice);
-          }}
-        />
+        <SignalFormSection title="Сделка">
+          <div className="signal-form__deal">
+            <label className="signal-form__deal-symbol">
+              <span className="signal-form__deal-k">Тикер</span>
+              <input
+                className="signal-form__symbol-input"
+                value={symbol}
+                onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                required
+              />
+            </label>
+            <div className="dir-toggle dir-toggle--compact" role="group" aria-label="Направление">
+              <button
+                type="button"
+                className={direction === "long" ? "active long" : ""}
+                onClick={() => setDirection("long")}
+              >
+                Long
+              </button>
+              <button
+                type="button"
+                className={direction === "short" ? "active short" : ""}
+                onClick={() => setDirection("short")}
+              >
+                Short
+              </button>
+            </div>
+          </div>
+        </SignalFormSection>
 
-        <RiskPercentSlider value={risk} onChange={setRisk} max={maxStakePct} disabled={stakePoolBlocked} />
+        <SignalFormSection title="Уровни" hint="Стоп — бегунок · цель 1:3">
+          <SignalLevelsFields
+            entry={entry}
+            stop={stop}
+            target={target}
+            riskPct={riskPct}
+            onEntryChange={onEntryChange}
+            onStopChange={onStopChange}
+            onTargetChange={onTargetChange}
+            onRiskPctChange={onRiskPctChange}
+            stakePct={stakePct}
+            leverage={lev}
+            dailyRemainingPct={dailyRemaining}
+            dailyLossPct={dailyLossPct}
+            dailyStopBlocked={dailyStopBlocked}
+          />
+        </SignalFormSection>
 
-        <label className="field-label">Трекер $</label>
-        <input
-          value={
-            trackerLoading
-              ? "Загрузка…"
-              : trackerBalance > 0
-                ? String(Math.round(trackerBalance))
-                : "—"
-          }
-          readOnly
-          className="readonly"
-        />
-        {balanceForNominal > 0 && (
-          <p className="meta signal-nominal">
-            Номинал позиции:{" "}
-            <span className="signal-nominal__usd">
-              ${stakeUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-            </span>{" "}
-            (<span className="signal-nominal__pct">{risk}%</span> × <span className="signal-nominal__lev">{lev}x</span>)
+        <SignalFormSection title="Размер позиции">
+          <SignalFormPositionCard
+            leverage={leverage}
+            onLeverageChange={(nextLev, nextRisk) => {
+              const prevStake = parseRiskPercent(risk);
+              const prevLev = parseLeverage(leverage);
+              setLeverage(nextLev);
+              setRisk(nextRisk);
+              const nextPrice = preserveAccountStopOnLeverageChange({
+                riskPct,
+                prevStakePct: prevStake,
+                prevLeverage: prevLev,
+                nextStakePct: parseRiskPercent(nextRisk),
+                nextLeverage: parseLeverage(nextLev),
+                dailyRemaining: dailyRemaining ?? 2,
+              });
+              if (nextPrice) onRiskPctChange(nextPrice);
+            }}
+            risk={risk}
+            onRiskChange={setRisk}
+            maxStakePct={maxStakePct}
+            disabled={stakePoolBlocked}
+            balanceUsd={balanceForNominal}
+            stakeUsd={stakeUsd}
+            stakePct={stakePct}
+            lev={lev}
+          />
+        </SignalFormSection>
+
+        <SignalFormSection title="Медиа">
+          <SignalMediaPicker
+            screenshot={screenshot}
+            video={video}
+            shotPreview={shotPreview}
+            onScreenshot={onScreenshot}
+            onVideo={onVideo}
+            existingImageUrl={signal.media_image_url}
+            existingVideoUrl={signal.media_video_url}
+            removeScreenshot={removeScreenshot}
+            removeVideo={removeVideo}
+            onRemoveScreenshot={setRemoveScreenshot}
+            onRemoveVideo={setRemoveVideo}
+          />
+        </SignalFormSection>
+
+        <SignalFormSection title="Комментарий">
+          {isTelegramDesktop() ? (
+            <div className="signal-form__paste-row">
+              <PasteButton
+                onPaste={(text) => setComment((prev) => appendPastedText(prev, text))}
+                disabled={submitting}
+              />
+            </div>
+          ) : null}
+          <textarea
+            {...ruTextFieldProps}
+            className="signal-form__comment"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Краткий разбор…"
+          />
+        </SignalFormSection>
+
+        {error ? (
+          <p className="signal-form__alert signal-form__alert--err" role="alert">
+            {error}
           </p>
-        )}
-        {balanceForNominal > 0 && (
-          <p className="meta signal-nominal-hint">Номинал от текущего баланса трекера</p>
-        )}
-        {!trackerLoading && trackerSnap && (
-          <p className="meta signal-stake-pool">
-            Пул копирующих: занято <strong>{formatRiskPct(trackerSnap.stakePoolUsedPct)}%</strong> · доступно{" "}
-            <strong>{formatRiskPct(trackerSnap.stakePoolRemainingPct)}%</strong>
-            {" · "}
-            ваш ранг <strong>{trackerSnap.currentRankName}</strong> — до{" "}
-            <strong>{formatRiskPct(trackerSnap.rankMaxStakePct)}%</strong> входа
-          </p>
-        )}
-        {stakePoolBlocked && (
-          <p className="err signal-stake-pool-blocked">
-            {stakePoolBlockedMessage(maxStakePct, trackerSnap?.stakePoolRemainingPct ?? 0)}
-          </p>
-        )}
-        {signal != null && !trackerLoading && <SignalDailyResetTimer active />}
+        ) : null}
 
-        <SignalMediaPicker
-          screenshot={screenshot}
-          video={video}
-          shotPreview={shotPreview}
-          onScreenshot={onScreenshot}
-          onVideo={onVideo}
-          existingImageUrl={signal.media_image_url}
-          existingVideoUrl={signal.media_video_url}
-          removeScreenshot={removeScreenshot}
-          removeVideo={removeVideo}
-          onRemoveScreenshot={setRemoveScreenshot}
-          onRemoveVideo={setRemoveVideo}
-        />
-
-        <FieldLabelWithPaste
-          label="Комментарий (на русском)"
-          onPaste={(text) => setComment((prev) => appendPastedText(prev, text))}
-          disabled={submitting}
-        />
-        <textarea {...ruTextFieldProps} value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Краткий анализ по-русски…" />
-
-        {error && <p className="err">{error}</p>}
-
-        {submitting && uploadProgress && (
+        {submitting && uploadProgress ? (
           <UploadProgressBar
             progress={uploadProgress}
             label={uploadProgressLabel(!!video, uploadProgress.phase)}
           />
-        )}
+        ) : null}
 
-        <button type="submit" className="submit-btn" disabled={submitting || dailyStopBlocked || stakePoolBlocked}>
+        <button
+          type="submit"
+          className="submit-btn signal-form__submit"
+          disabled={submitting || dailyStopBlocked || stakePoolBlocked}
+        >
           {submitting && uploadProgress
             ? uploadProgress.phase === "processing"
               ? "Сохранение…"
               : `Загрузка… ${uploadProgress.percent}%`
             : submitting
               ? "Сохранение…"
-              : "Сохранить изменения"}
+              : "Сохранить"}
         </button>
       </form>
     </div>

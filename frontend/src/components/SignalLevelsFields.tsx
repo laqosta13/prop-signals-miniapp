@@ -1,13 +1,7 @@
 import { StopOffsetSlider } from "./StopOffsetSlider";
-import { accountRiskToPriceStopPct, priceStopToAccountRiskPct, ACCOUNT_STOP_MIN_STEP } from "../utils/dailyStopLimit";
-import { clampStopOffsetPct, formatRiskPct, parseRiskPctValue } from "../utils/signalLevels";
-
-const LEVEL_HINTS = ["Цена с Bybit perp", "R:R 1:3"] as const;
-const LEVEL_HINTS_DAILY = [
-  "Цена с Bybit perp",
-  "Стоп и цель по остатку лимита · R:R 1:3",
-  "Лимит: 3 сделки или 2% стопа",
-] as const;
+import { priceStopToAccountRiskPct, ACCOUNT_STOP_MIN_STEP } from "../utils/dailyStopLimit";
+import { formatRiskPct, parseRiskPctValue } from "../utils/signalLevels";
+import { formatPriceRiskFromAccountStop } from "../utils/signalFormLimits";
 
 type Props = {
   entry: string;
@@ -20,7 +14,6 @@ type Props = {
   onTargetChange: (value: string) => void;
   onRiskPctChange: (value: string) => void;
   entryPlaceholder?: string;
-  showPriceHint?: boolean;
   stakePct?: number;
   leverage?: number;
   dailyRemainingPct?: number;
@@ -39,7 +32,6 @@ export function SignalLevelsFields({
   onTargetChange,
   onRiskPctChange,
   entryPlaceholder = "0.00",
-  showPriceHint = true,
   stakePct,
   leverage,
   dailyRemainingPct,
@@ -57,50 +49,57 @@ export function SignalLevelsFields({
     if (accountMode) {
       const accountPct = parseFloat(value.trim().replace(",", "."));
       if (!Number.isFinite(accountPct) || accountPct < ACCOUNT_STOP_MIN_STEP) return;
-      const pricePct = accountRiskToPriceStopPct(accountPct, stakePct, leverage);
-      onRiskPctChange(formatRiskPct(clampStopOffsetPct(pricePct)));
+      onRiskPctChange(formatPriceRiskFromAccountStop(accountPct, stakePct, leverage));
       return;
     }
     onRiskPctChange(value);
   };
 
-  const hints = accountMode ? LEVEL_HINTS_DAILY : LEVEL_HINTS;
-
   return (
-    <div className="levels-grid-form">
-      <div>
-        <label className="field-label">Вход</label>
+    <div className="signal-form__levels">
+      <div className="signal-form__level signal-form__level--entry">
+        <label className="signal-form__level-label">Вход</label>
         <input
+          className="signal-form__level-input"
           value={entry}
           onChange={(e) => onEntryChange(e.target.value)}
-          placeholder={priceLoading ? "Загрузка…" : entryPlaceholder}
+          placeholder={priceLoading ? "…" : entryPlaceholder}
           disabled={priceLoading}
         />
       </div>
-      <div>
-        <label className="field-label">Стоп</label>
-        <input value={stop} onChange={(e) => onStopChange(e.target.value)} placeholder="Цена" />
+      <div className="signal-form__level signal-form__level--stop">
+        <label className="signal-form__level-label">
+          Стоп
+          {accountMode ? <span className="signal-form__level-badge">бегунок</span> : null}
+        </label>
+        <input
+          className="signal-form__level-input"
+          value={stop}
+          readOnly={accountMode}
+          aria-readonly={accountMode}
+          onChange={accountMode ? undefined : (e) => onStopChange(e.target.value)}
+          placeholder="—"
+        />
       </div>
-      <div>
-        <label className="field-label">Цель</label>
-        <input value={target} onChange={(e) => onTargetChange(e.target.value)} placeholder="Цена" />
+      <div className="signal-form__level signal-form__level--target">
+        <label className="signal-form__level-label">Цель</label>
+        <input
+          className="signal-form__level-input"
+          value={target}
+          onChange={(e) => onTargetChange(e.target.value)}
+          placeholder="—"
+        />
       </div>
-      <div className="levels-grid-form__slider">
+      <div className="signal-form__levels-slider">
         <StopOffsetSlider
           value={sliderValue}
           onChange={handleSliderChange}
           dailyRemainingPct={accountMode ? dailyRemainingPct : undefined}
           dailyLossPct={dailyLossPct}
           blocked={dailyStopBlocked}
+          showBudget={false}
         />
       </div>
-      {showPriceHint && (
-        <ul className="levels-grid-form__hints">
-          {hints.map((hint) => (
-            <li key={hint}>{hint}</li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }
