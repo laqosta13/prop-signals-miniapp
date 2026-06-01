@@ -1,4 +1,4 @@
-/** Дневной лимит риска до стопа (% от счёта трекера) в форме сигнала. */
+/** Дневной лимит стопа: 2% от номинала ранга (счёт × лимит ранга % × плечо). */
 export const SIGNAL_DAILY_STOP_LIMIT_PCT = 2;
 
 /** Максимум публикуемых сигналов (сделок) в день на трейдера. */
@@ -23,6 +23,28 @@ export function formatAccountStopPct(pct: number): string {
   return rounded.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
 }
 
+/** Номинал по рангу: макс. сумма входа % ранга × плечо. */
+export function rankNominalUsd(balanceUsd: number, rankMaxStakePct: number, leverage: number): number {
+  if (balanceUsd <= 0 || rankMaxStakePct <= 0 || leverage < 1) return 0;
+  return roundStopPct((balanceUsd * rankMaxStakePct * leverage) / 100);
+}
+
+export function dailyStopBudgetUsd(rankNominalUsd: number): number {
+  return roundStopPct((rankNominalUsd * SIGNAL_DAILY_STOP_LIMIT_PCT) / 100);
+}
+
+/** Остаток лимита 2% в «процентах от номинала ранга» (0–2). */
+export function dailyStopRemainingRankPct(dailyLossUsd: number, rankNominalUsd: number): number {
+  if (rankNominalUsd <= 0) return 0;
+  const usedPct = (dailyLossUsd / rankNominalUsd) * 100;
+  return roundStopPct(Math.max(0, SIGNAL_DAILY_STOP_LIMIT_PCT - usedPct));
+}
+
+export function dailyStopRemainingUsd(dailyLossUsd: number, rankNominalUsd: number): number {
+  return roundStopPct(Math.max(0, dailyStopBudgetUsd(rankNominalUsd) - dailyLossUsd));
+}
+
+/** @deprecated остаток от % счёта; в форме — dailyStopRemainingRankPct */
 export function dailyStopRemainingPct(dailyLossPct: number): number {
   return roundStopPct(Math.max(0, SIGNAL_DAILY_STOP_LIMIT_PCT - Math.max(0, dailyLossPct)));
 }
@@ -43,14 +65,35 @@ export function accountStopSliderMarks(remaining: number, limit = SIGNAL_DAILY_S
   return parts.filter((m, i, arr) => i === 0 || m > arr[i - 1] + 0.009);
 }
 
-/** Макс. % движения цены до стопа при полном остатке дневного лимита (% счёта). */
-export function maxPriceStopPctFromDailyRemaining(
-  dailyRemainingPct: number,
+/** Макс. % цены от входа при полном остатке дневного лимита (2% от номинала ранга). */
+export function maxPriceStopPctFromRankDailyBudget(
+  dailyLossUsd: number,
+  balanceUsd: number,
+  rankMaxStakePct: number,
   stakePct: number,
   leverage: number,
 ): number {
-  if (dailyRemainingPct < ACCOUNT_STOP_MIN_STEP || stakePct <= 0 || leverage < 1) return 0;
-  return accountRiskToPriceStopPct(dailyRemainingPct, stakePct, leverage);
+  const rankNominal = rankNominalUsd(balanceUsd, rankMaxStakePct, leverage);
+  if (rankNominal <= 0 || balanceUsd <= 0 || stakePct <= 0 || leverage < 1) return 0;
+  const remainingUsd = dailyStopRemainingUsd(dailyLossUsd, rankNominal);
+  const maxAccountRisk = (remainingUsd / balanceUsd) * 100;
+  return accountRiskToPriceStopPct(maxAccountRisk, stakePct, leverage);
+}
+
+/** Макс. % цены при остатке лимита в «% от номинала ранга» (0–2). */
+export function maxPriceStopPctFromDailyRemaining(
+  dailyRemainingRankPct: number,
+  balanceUsd: number,
+  rankMaxStakePct: number,
+  stakePct: number,
+  leverage: number,
+): number {
+  if (dailyRemainingRankPct < ACCOUNT_STOP_MIN_STEP || stakePct <= 0 || leverage < 1) return 0;
+  const rankNominal = rankNominalUsd(balanceUsd, rankMaxStakePct, leverage);
+  if (rankNominal <= 0 || balanceUsd <= 0) return 0;
+  const remainingUsd = (dailyRemainingRankPct / 100) * rankNominal;
+  const maxAccountRisk = (remainingUsd / balanceUsd) * 100;
+  return accountRiskToPriceStopPct(maxAccountRisk, stakePct, leverage);
 }
 
 const PRICE_STOP_MARK_PRESETS = [0.5, 0.7, 1, 1.5, 2, 2.5, 3, 4, 5, 7.5, 10] as const;
@@ -97,6 +140,13 @@ export function priceStopSliderMarks(maxPricePct: number): number[] {
   return marks;
 }
 
+export function isDailyStopBudgetExhaustedRank(
+  dailyLossUsd: number,
+  rankNominalUsd: number,
+): boolean {
+  return dailyStopRemainingRankPct(dailyLossUsd, rankNominalUsd) < ACCOUNT_STOP_MIN_STEP;
+}
+
 export function isDailyStopBudgetExhausted(dailyLossPct: number): boolean {
   return dailyStopRemainingPct(dailyLossPct) < ACCOUNT_STOP_MIN_STEP;
 }
@@ -106,11 +156,12 @@ export function isDailyTradesExhausted(count: number, limit = SIGNAL_DAILY_TRADE
 }
 
 export function dailyTradingBlocked(opts: {
-  dailyLossPct: number;
+  dailyLossUsd: number;
+  rankNominalUsd: number;
   dailyTradesCount: number;
   dailyTradesLimit?: number;
 }): { blocked: boolean; reason: "stop" | "trades" | null } {
-  if (isDailyStopBudgetExhausted(opts.dailyLossPct)) {
+  if (isDailyStopBudgetExhaustedRank(opts.dailyLossUsd, opts.rankNominalUsd)) {
     return { blocked: true, reason: "stop" };
   }
   if (isDailyTradesExhausted(opts.dailyTradesCount, opts.dailyTradesLimit)) {
@@ -121,12 +172,12 @@ export function dailyTradingBlocked(opts: {
 
 export function dailyLimitBlockedMessage(reason: "stop" | "trades" | null): string {
   if (reason === "stop") {
-    return `Дневной лимит ${SIGNAL_DAILY_STOP_LIMIT_PCT}% стопа исчерпан — торговля сегодня недоступна`;
+    return `Дневной лимит ${SIGNAL_DAILY_STOP_LIMIT_PCT}% стопа от номинала ранга исчерпан — торговля сегодня недоступна`;
   }
   if (reason === "trades") {
     return `Лимит ${SIGNAL_DAILY_TRADE_LIMIT} сделок в день исчерпан — торговля сегодня недоступна`;
   }
-  return `Лимит дня: ${SIGNAL_DAILY_TRADE_LIMIT} сделки или ${SIGNAL_DAILY_STOP_LIMIT_PCT}% стопа`;
+  return `Лимит дня: ${SIGNAL_DAILY_TRADE_LIMIT} сделки или ${SIGNAL_DAILY_STOP_LIMIT_PCT}% стопа от номинала ранга`;
 }
 
 /** % движения цены до стопа → % потери счёта при срабатывании стопа. */

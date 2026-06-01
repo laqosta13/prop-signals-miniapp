@@ -192,6 +192,7 @@ export type ChallengeDashboard = {
   drawdown_pct: number;
   max_drawdown_pct: number;
   daily_loss_pct: number;
+  daily_loss_usd: number;
   max_daily_loss_pct: number;
   daily_remaining_usd: number;
   daily_trades_count: number;

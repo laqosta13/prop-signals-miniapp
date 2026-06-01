@@ -17,7 +17,9 @@ type Props = {
   stakePct?: number;
   leverage?: number;
   dailyRemainingPct?: number;
-  dailyLossPct?: number;
+  dailyLossUsd?: number;
+  balanceUsd?: number;
+  rankMaxStakePct?: number;
   dailyStopBlocked?: boolean;
 };
 
@@ -36,11 +38,17 @@ export function SignalLevelsFields({
   stakePct,
   leverage,
   dailyRemainingPct,
-  dailyLossPct = 0,
+  dailyLossUsd = 0,
+  balanceUsd = 0,
+  rankMaxStakePct = 0,
   dailyStopBlocked = false,
 }: Props) {
   const accountMode =
-    dailyRemainingPct !== undefined && stakePct !== undefined && leverage !== undefined;
+    dailyRemainingPct !== undefined &&
+    stakePct !== undefined &&
+    leverage !== undefined &&
+    balanceUsd > 0 &&
+    rankMaxStakePct > 0;
   const hasEntry = parseEntryPrice(entry) !== null;
 
   return (
@@ -89,9 +97,11 @@ export function SignalLevelsFields({
           onChange={onRiskPctChange}
           hasEntry={hasEntry}
           dailyRemainingPct={accountMode ? dailyRemainingPct : undefined}
+          dailyLossUsd={accountMode ? dailyLossUsd : undefined}
+          balanceUsd={accountMode ? balanceUsd : undefined}
+          rankMaxStakePct={accountMode ? rankMaxStakePct : undefined}
           stakePct={accountMode ? stakePct : undefined}
           leverage={accountMode ? leverage : undefined}
-          dailyLossPct={dailyLossPct}
           blocked={dailyStopBlocked || !hasEntry}
           showBudget={false}
         />

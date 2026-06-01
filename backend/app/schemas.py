@@ -230,6 +230,7 @@ class ChallengeDashboard(BaseModel):
     drawdown_pct: float
     max_drawdown_pct: float
     daily_loss_pct: float
+    daily_loss_usd: float = 0.0
     max_daily_loss_pct: float
     daily_remaining_usd: float
     daily_trades_count: int = 0

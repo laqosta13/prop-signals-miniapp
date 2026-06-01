@@ -1,8 +1,7 @@
 import { useEffect } from "react";
 import {
   ACCOUNT_STOP_MIN_STEP,
-  dailyStopRemainingPct,
-  maxPriceStopPctFromDailyRemaining,
+  maxPriceStopPctFromRankDailyBudget,
 } from "../utils/dailyStopLimit";
 import { formatRiskPct, parseRiskPctValue, STOP_OFFSET_MIN_PCT } from "../utils/signalLevels";
 
@@ -10,29 +9,54 @@ export function useDailyStopSync(opts: {
   enabled: boolean;
   riskPct: string;
   onRiskPctChange: (value: string) => void;
-  dailyLossPct: number | undefined;
+  dailyLossUsd: number;
   balanceUsd: number;
+  rankMaxStakePct: number;
   stakePct: number;
   leverage: number;
+  dailyRemainingRankPct: number;
 }) {
-  const { enabled, riskPct, onRiskPctChange, dailyLossPct, stakePct, leverage } = opts;
-  const dailyRemaining =
-    dailyLossPct !== undefined ? dailyStopRemainingPct(dailyLossPct) : undefined;
-  const blocked = dailyRemaining !== undefined && dailyRemaining < ACCOUNT_STOP_MIN_STEP;
+  const {
+    enabled,
+    riskPct,
+    onRiskPctChange,
+    dailyLossUsd,
+    balanceUsd,
+    rankMaxStakePct,
+    stakePct,
+    leverage,
+    dailyRemainingRankPct,
+  } = opts;
+
+  const blocked = dailyRemainingRankPct < ACCOUNT_STOP_MIN_STEP;
 
   useEffect(() => {
-    if (!enabled || dailyRemaining === undefined || dailyRemaining < ACCOUNT_STOP_MIN_STEP) return;
-    if (stakePct <= 0) return;
+    if (!enabled || blocked || balanceUsd <= 0 || rankMaxStakePct <= 0 || stakePct <= 0) return;
     const price = parseRiskPctValue(riskPct);
-    const maxPrice = maxPriceStopPctFromDailyRemaining(dailyRemaining, stakePct, leverage);
+    const maxPrice = maxPriceStopPctFromRankDailyBudget(
+      dailyLossUsd,
+      balanceUsd,
+      rankMaxStakePct,
+      stakePct,
+      leverage,
+    );
     if (maxPrice > STOP_OFFSET_MIN_PCT && price > maxPrice + 0.005) {
       onRiskPctChange(formatRiskPct(maxPrice));
     }
-  }, [enabled, dailyRemaining, stakePct, leverage, riskPct, onRiskPctChange]);
+  }, [
+    enabled,
+    blocked,
+    dailyLossUsd,
+    balanceUsd,
+    rankMaxStakePct,
+    stakePct,
+    leverage,
+    riskPct,
+    onRiskPctChange,
+  ]);
 
   return {
-    dailyRemaining,
-    dailyLossPct: dailyLossPct ?? 0,
+    dailyRemaining: dailyRemainingRankPct,
     blocked,
   };
 }

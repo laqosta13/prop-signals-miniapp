@@ -1,123 +1,66 @@
 import {
   ACCOUNT_STOP_MIN_STEP,
-  accountRiskToPriceStopPct,
-  dailyStopRemainingPct,
-  priceStopToAccountRiskPct,
+  dailyStopRemainingRankPct,
+  dailyStopRemainingUsd,
+  maxPriceStopPctFromRankDailyBudget,
+  rankNominalUsd,
   SIGNAL_DAILY_STOP_LIMIT_PCT,
 } from "./dailyStopLimit";
-import { DEFAULT_RISK_PERCENT, entryNominalUsd, formatRiskPercent } from "./signalForm";
+import { DEFAULT_RISK_PERCENT, formatRiskPercent } from "./signalForm";
 import {
   DEFAULT_PRICE_STOP_FROM_ENTRY_PCT,
-  DEFAULT_STOP_RISK_PCT,
   formatRiskPct,
   STOP_OFFSET_MIN_PCT,
 } from "./signalLevels";
 
-export function accountStopPctFromTracker(dailyLossPct: number | undefined): number | null {
-  if (dailyLossPct === undefined) return null;
-  const rem = dailyStopRemainingPct(dailyLossPct);
-  if (rem < ACCOUNT_STOP_MIN_STEP) return null;
-  return Math.min(rem, SIGNAL_DAILY_STOP_LIMIT_PCT);
+export type RankDailyStopContext = {
+  dailyLossUsd: number;
+  balanceUsd: number;
+  rankMaxStakePct: number;
+  stakePct: number;
+  leverage: number;
+};
+
+function rankNominal(ctx: RankDailyStopContext): number {
+  return rankNominalUsd(ctx.balanceUsd, ctx.rankMaxStakePct, ctx.leverage);
 }
 
-/** Макс. % цены до стопа при полном остатке дневного лимита (% счёта). */
-export function maxPriceStopPctFromAccountRemaining(
-  dailyRemainingPct: number | undefined,
-  balanceUsd: number,
-  stakePct: number,
-  leverage: number,
-): number {
-  if (dailyRemainingPct === undefined || dailyRemainingPct < ACCOUNT_STOP_MIN_STEP) return 0;
-  if (balanceUsd <= 0 || stakePct <= 0) return 0;
-  const accountRisk = Math.min(dailyRemainingPct, SIGNAL_DAILY_STOP_LIMIT_PCT);
-  return priceStopPctFromAccountRisk(accountRisk, balanceUsd, stakePct, leverage);
-}
-
-/**
- * % движения цены до стопа: риск в $ = balance × accountRisk%, номинал = balance × stake% × lev / 100.
- * Пример: счёт 10k, вход 20% → номинал 2000; риск 0.7% счёта = 70$ → 70/2000 = 3.5% цены.
- * Если на бегунке 0.7% от номинала — передавайте priceStopPct = 0.7 напрямую.
- */
-export function priceStopPctFromAccountRisk(
-  accountRiskPct: number,
-  balanceUsd: number,
-  stakePct: number,
-  leverage: number,
-): number {
-  const nominal = entryNominalUsd(balanceUsd, stakePct, leverage);
-  if (accountRiskPct < ACCOUNT_STOP_MIN_STEP || nominal <= 0 || balanceUsd <= 0) {
-    return DEFAULT_STOP_RISK_PCT;
+/** Макс. % цены от входа при текущем остатке дневного лимита (2% от номинала ранга). */
+export function maxPriceStopPctForForm(ctx: RankDailyStopContext): number {
+  if (ctx.balanceUsd <= 0 || ctx.rankMaxStakePct <= 0 || ctx.stakePct <= 0) {
+    return DEFAULT_PRICE_STOP_FROM_ENTRY_PCT;
   }
-  const riskUsd = (balanceUsd * accountRiskPct) / 100;
-  const pricePct = (riskUsd / nominal) * 100;
-  return pricePct > 0 ? pricePct : DEFAULT_STOP_RISK_PCT;
+  return maxPriceStopPctFromRankDailyBudget(
+    ctx.dailyLossUsd,
+    ctx.balanceUsd,
+    ctx.rankMaxStakePct,
+    ctx.stakePct,
+    ctx.leverage,
+  );
 }
 
-/** % счёта при срабатывании стопа на priceStopPct% от номинала. */
-export function accountRiskPctFromPriceStop(
-  priceStopPct: number,
-  balanceUsd: number,
-  stakePct: number,
-  leverage: number,
-): number {
-  if (balanceUsd <= 0 || stakePct <= 0) return 0;
-  return priceStopToAccountRiskPct(priceStopPct, stakePct, leverage);
-}
-
-export function formatPriceRiskFromAccountStop(
-  accountRiskPct: number,
-  balanceUsd: number,
-  stakePct: number,
-  leverage: number,
-): string {
-  return formatRiskPct(priceStopPctFromAccountRisk(accountRiskPct, balanceUsd, stakePct, leverage));
-}
-
-/** Макс. % цены при текущем остатке дневного лимита. */
-export function maxPriceStopPctForForm(
-  dailyLossPct: number | undefined,
-  balanceUsd: number,
-  stakePct: number,
-  leverage: number,
-): number {
-  if (dailyLossPct === undefined || balanceUsd <= 0 || stakePct <= 0) {
-    return DEFAULT_STOP_RISK_PCT;
-  }
-  const rem = dailyStopRemainingPct(dailyLossPct);
-  return maxPriceStopPctFromAccountRemaining(rem, balanceUsd, stakePct, leverage);
-}
-
-/** Стартовый % стопа: 2% от цены входа, но не выше дневного остатка (в % цены). */
-export function defaultPriceStopPctForForm(
-  dailyLossPct: number | undefined,
-  balanceUsd: number,
-  stakePct: number,
-  leverage: number,
-): number {
-  const max = maxPriceStopPctForForm(dailyLossPct, balanceUsd, stakePct, leverage);
+/** Стартовый % стопа: 2% от цены входа, но не выше дневного остатка. */
+export function defaultPriceStopPctForForm(ctx: RankDailyStopContext): number {
+  const max = maxPriceStopPctForForm(ctx);
   if (max < ACCOUNT_STOP_MIN_STEP) return STOP_OFFSET_MIN_PCT;
   return Math.min(DEFAULT_PRICE_STOP_FROM_ENTRY_PCT, Math.max(STOP_OFFSET_MIN_PCT, max));
 }
 
-export function formatDefaultPriceRiskForForm(
-  dailyLossPct: number | undefined,
-  balanceUsd: number,
-  stakePct: number,
-  leverage: number,
-): string {
-  return formatRiskPct(defaultPriceStopPctForForm(dailyLossPct, balanceUsd, stakePct, leverage));
+export function formatDefaultPriceRiskForForm(ctx: RankDailyStopContext): string {
+  return formatRiskPct(defaultPriceStopPctForForm(ctx));
 }
 
-/** % цены для полного остатка дневного лимита (верхняя граница бегунка). */
-export function formatPriceRiskForForm(
-  dailyLossPct: number | undefined,
-  balanceUsd: number,
-  stakePct: number,
-  leverage: number,
-): string {
-  if (dailyLossPct === undefined || balanceUsd <= 0) return formatRiskPct(DEFAULT_STOP_RISK_PCT);
-  const rem = dailyStopRemainingPct(dailyLossPct);
-  return formatRiskPct(maxPriceStopPctFromAccountRemaining(rem, balanceUsd, stakePct, leverage));
+export function formatPriceRiskForForm(ctx: RankDailyStopContext): string {
+  if (ctx.balanceUsd <= 0) return formatRiskPct(DEFAULT_PRICE_STOP_FROM_ENTRY_PCT);
+  return formatRiskPct(maxPriceStopPctForForm(ctx));
+}
+
+export function dailyStopRemainingForForm(ctx: RankDailyStopContext): number {
+  return dailyStopRemainingRankPct(ctx.dailyLossUsd, rankNominal(ctx));
+}
+
+export function dailyStopBudgetRemainingUsd(ctx: RankDailyStopContext): number {
+  return dailyStopRemainingUsd(ctx.dailyLossUsd, rankNominal(ctx));
 }
 
 /** Сумма входа %: по умолчанию максимум (при полном пуле — 100% в пределах ранга). */
@@ -138,3 +81,5 @@ export function formatStakeForForm(
 ): string {
   return formatRiskPercent(defaultStakePct(maxStakePct, poolRemainingPct));
 }
+
+export { SIGNAL_DAILY_STOP_LIMIT_PCT, rankNominalUsd };

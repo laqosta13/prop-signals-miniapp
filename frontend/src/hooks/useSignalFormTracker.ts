@@ -1,12 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useAdminTrackerSnapshot } from "./useAdminTrackerSnapshot";
 import { useDailyStopSync } from "./useDailyStopSync";
+import { dailyStopRemainingRankPct, dailyTradingBlocked, dailyTradesRemaining, rankNominalUsd, SIGNAL_DAILY_TRADE_LIMIT } from "../utils/dailyStopLimit";
 import { entryNominalUsd, formatRiskPercent, parseLeverage, parseRiskPercent } from "../utils/signalForm";
-import {
-  dailyTradingBlocked,
-  dailyTradesRemaining,
-  SIGNAL_DAILY_TRADE_LIMIT,
-} from "../utils/dailyStopLimit";
+import { dailyStopRemainingForForm, type RankDailyStopContext } from "../utils/signalFormLimits";
 
 type LevelsSync = {
   riskPct: string;
@@ -45,20 +42,47 @@ export function useSignalFormTracker(
   const balanceUsd =
     trackerSnap && trackerSnap.balance > 0 ? trackerSnap.balance : (trackerSnap?.accountSize ?? 0);
 
-  const { dailyRemaining, dailyLossPct, blocked: dailyStopBlocked } = useDailyStopSync({
+  const rankMaxStakePct = trackerSnap?.rankMaxStakePct ?? 0;
+  const dailyLossUsd = trackerSnap?.dailyLossUsd ?? 0;
+
+  const rankNominal = useMemo(
+    () => rankNominalUsd(balanceUsd, rankMaxStakePct, lev),
+    [balanceUsd, rankMaxStakePct, lev],
+  );
+
+  const dailyRemainingRank = useMemo(
+    () => dailyStopRemainingRankPct(dailyLossUsd, rankNominal),
+    [dailyLossUsd, rankNominal],
+  );
+
+  const rankStopCtx: RankDailyStopContext = useMemo(
+    () => ({
+      dailyLossUsd,
+      balanceUsd,
+      rankMaxStakePct,
+      stakePct,
+      leverage: lev,
+    }),
+    [dailyLossUsd, balanceUsd, rankMaxStakePct, stakePct, lev],
+  );
+
+  const { dailyRemaining, blocked: dailyStopBlocked } = useDailyStopSync({
     enabled: enabled && !trackerLoading,
     riskPct: levels.riskPct,
     onRiskPctChange: levels.onRiskPctChange,
-    dailyLossPct: trackerSnap?.dailyLossPct,
+    dailyLossUsd,
     balanceUsd,
+    rankMaxStakePct,
     stakePct,
     leverage: lev,
+    dailyRemainingRankPct: dailyRemainingRank,
   });
 
   const dailyTradesCount = trackerSnap?.dailyTradesCount ?? 0;
   const dailyTradesLimit = trackerSnap?.dailyTradesLimit ?? SIGNAL_DAILY_TRADE_LIMIT;
   const dailyLimit = dailyTradingBlocked({
-    dailyLossPct,
+    dailyLossUsd,
+    rankNominalUsd: rankNominal,
     dailyTradesCount,
     dailyTradesLimit,
   });
@@ -70,12 +94,17 @@ export function useSignalFormTracker(
     stakePoolBlocked,
     stakePct,
     lev,
+    rankNominal,
+    rankMaxStakePct,
+    dailyLossUsd,
     dailyRemaining,
-    dailyLossPct,
+    dailyRemainingRank,
     dailyStopBlocked,
     dailyLimit,
     dailyTradesRemainingCount: dailyTradesRemaining(dailyTradesCount, dailyTradesLimit),
     dailyTradesLimit,
+    rankStopCtx,
+    dailyStopRemainingForForm: () => dailyStopRemainingForForm(rankStopCtx),
     balanceForNominal: (fallbackAccountSize = 0) => {
       const balance = trackerSnap?.balance ?? 0;
       return balance > 0 ? balance : trackerSnap?.accountSize ?? fallbackAccountSize;

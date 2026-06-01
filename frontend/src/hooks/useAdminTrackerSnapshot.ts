@@ -5,6 +5,7 @@ export type TrackerSnapshot = {
   balance: number;
   accountSize: number;
   dailyLossPct: number;
+  dailyLossUsd: number;
   maxDailyLossPct: number;
   dailyTradesCount: number;
   dailyTradesLimit: number;
@@ -35,6 +36,7 @@ export function useAdminTrackerSnapshot(enabled: boolean, excludeSignalId?: numb
             balance: d.balance,
             accountSize: d.account_size,
             dailyLossPct: d.daily_loss_pct,
+            dailyLossUsd: d.daily_loss_usd ?? 0,
             maxDailyLossPct: d.max_daily_loss_pct,
             dailyTradesCount: d.daily_trades_count,
             dailyTradesLimit: d.daily_trades_limit,

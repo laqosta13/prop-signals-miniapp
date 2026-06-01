@@ -170,8 +170,6 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
           onRiskPctChange={onRiskPctChange}
           stakePct={stakePct}
           leverage={lev}
-          dailyRemainingPct={undefined}
-          dailyLossPct={0}
           dailyStopBlocked={false}
         />
       </SignalFormSection>

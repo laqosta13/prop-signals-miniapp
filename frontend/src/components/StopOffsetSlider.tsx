@@ -1,9 +1,10 @@
 import { useEffect } from "react";
 import {
   formatAccountStopPct,
-  maxPriceStopPctFromDailyRemaining,
+  maxPriceStopPctFromRankDailyBudget,
   priceStopSliderMarks,
   priceStopToAccountRiskPct,
+  rankNominalUsd,
   roundStopPct,
   SIGNAL_DAILY_STOP_LIMIT_PCT,
 } from "../utils/dailyStopLimit";
@@ -24,9 +25,11 @@ type Props = {
   onChange: (value: string) => void;
   hasEntry?: boolean;
   dailyRemainingPct?: number;
+  dailyLossUsd?: number;
+  balanceUsd?: number;
+  rankMaxStakePct?: number;
   stakePct?: number;
   leverage?: number;
-  dailyLossPct?: number;
   blocked?: boolean;
   showBudget?: boolean;
 };
@@ -36,19 +39,28 @@ export function StopOffsetSlider({
   onChange,
   hasEntry = true,
   dailyRemainingPct,
+  dailyLossUsd = 0,
+  balanceUsd = 0,
+  rankMaxStakePct = 0,
   stakePct,
   leverage,
-  dailyLossPct = 0,
   blocked = false,
   showBudget = true,
 }: Props) {
   const trackerMode =
-    dailyRemainingPct !== undefined && stakePct !== undefined && leverage !== undefined;
+    dailyRemainingPct !== undefined &&
+    stakePct !== undefined &&
+    leverage !== undefined &&
+    balanceUsd > 0 &&
+    rankMaxStakePct > 0;
 
   const priceRaw = parseRiskPctValue(value);
+  const rankNominal = trackerMode ? rankNominalUsd(balanceUsd, rankMaxStakePct, leverage) : 0;
+
   const dailyMaxPrice = trackerMode
-    ? maxPriceStopPctFromDailyRemaining(dailyRemainingPct, stakePct, leverage)
+    ? maxPriceStopPctFromRankDailyBudget(dailyLossUsd, balanceUsd, rankMaxStakePct, stakePct, leverage)
     : 0;
+
   const maxPct = trackerMode
     ? Math.max(
         STOP_OFFSET_MIN_PCT,
@@ -58,6 +70,7 @@ export function StopOffsetSlider({
         ),
       )
     : STOP_OFFSET_MAX_PCT;
+
   const minPct = STOP_OFFSET_MIN_PCT;
   const step = maxPct <= 2 ? 0.01 : STOP_OFFSET_STEP;
   const current = clampStopOffsetPct(priceRaw, maxPct);
@@ -89,7 +102,7 @@ export function StopOffsetSlider({
           <span className="risk-slider__label">До стопа</span>
           {maxPct > 0 ? (
             <span className="risk-slider__hint">
-              % от цены входа · макс. {formatRiskPct(maxPct)}%
+              % от цены входа · лимит {SIGNAL_DAILY_STOP_LIMIT_PCT}% ном. ранга (${formatRankUsd(rankNominal)})
               {accountAtCurrent != null && accountAtCurrent > 0
                 ? ` · ≈ ${formatAccountStopPct(accountAtCurrent)}% счёта`
                 : ""}
@@ -100,15 +113,18 @@ export function StopOffsetSlider({
       </div>
       {trackerMode && showBudget && (
         <p className="stop-offset-slider__budget meta">
-          Лимит {SIGNAL_DAILY_STOP_LIMIT_PCT}% счёта · потери {formatAccountStopPct(dailyLossPct)}% · остаток{" "}
-          <strong>{formatAccountStopPct(dailyRemainingPct)}%</strong>
+          Потери сегодня ${formatRankUsd(dailyLossUsd)} · остаток стопа{" "}
+          <strong>
+            {formatAccountStopPct(dailyRemainingPct!)}% / {SIGNAL_DAILY_STOP_LIMIT_PCT}%
+          </strong>{" "}
+          от номинала ранга
         </p>
       )}
       {disabled ? (
         <p className="stop-offset-slider__blocked err">
           {!hasEntry
             ? "Укажите цену входа"
-            : `Дневной лимит ${SIGNAL_DAILY_STOP_LIMIT_PCT}% стопа исчерпан`}
+            : `Дневной лимит ${SIGNAL_DAILY_STOP_LIMIT_PCT}% стопа от номинала ранга исчерпан`}
         </p>
       ) : (
         <>
@@ -146,4 +162,10 @@ export function StopOffsetSlider({
       )}
     </div>
   );
+}
+
+function formatRankUsd(usd: number): string {
+  if (!Number.isFinite(usd) || usd <= 0) return "0";
+  if (usd >= 1000) return usd.toFixed(0);
+  return usd.toFixed(usd >= 10 ? 1 : 2).replace(/\.?0+$/, "");
 }

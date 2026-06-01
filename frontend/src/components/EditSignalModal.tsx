@@ -196,8 +196,10 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
           onRiskPctChange={onRiskPctChange}
           stakePct={tracker.stakePct}
           leverage={tracker.lev}
-          dailyRemainingPct={tracker.dailyRemaining}
-          dailyLossPct={tracker.dailyLossPct}
+          dailyRemainingPct={tracker.dailyRemainingRank}
+          dailyLossUsd={tracker.dailyLossUsd}
+          balanceUsd={balance}
+          rankMaxStakePct={tracker.rankMaxStakePct}
           dailyStopBlocked={tracker.dailyStopBlocked}
         />
       </SignalFormSection>

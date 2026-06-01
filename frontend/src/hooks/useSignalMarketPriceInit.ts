@@ -7,6 +7,7 @@ import {
   defaultStakePct,
   formatDefaultPriceRiskForForm,
   formatStakeForForm,
+  type RankDailyStopContext,
 } from "../utils/signalFormLimits";
 
 type Args = {
@@ -69,11 +70,15 @@ export function useSignalMarketPriceInit({
           defaultStakePct(trackerSnap.maxStakePct, trackerSnap.stakePoolRemainingPct);
         const balance = trackerSnap.balance > 0 ? trackerSnap.balance : trackerSnap.accountSize;
 
+        const rankStopCtx: RankDailyStopContext = {
+          dailyLossUsd: trackerSnap.dailyLossUsd,
+          balanceUsd: balance,
+          rankMaxStakePct: trackerSnap.rankMaxStakePct,
+          stakePct,
+          leverage: lev,
+        };
         const priceRisk =
-          opts.priceRiskPct ??
-          parseRiskPctValue(
-            formatDefaultPriceRiskForForm(trackerSnap.dailyLossPct, balance, stakePct, lev),
-          );
+          opts.priceRiskPct ?? parseRiskPctValue(formatDefaultPriceRiskForForm(rankStopCtx));
 
         applyMarketPrice(price, dir, priceRisk);
         setError(null);
@@ -89,7 +94,7 @@ export function useSignalMarketPriceInit({
   // Первичная инициализация: доля входа + вход по Bybit + стоп 0.7% (в пределах лимита).
   useEffect(() => {
     if (skipTrackerInit || !open || trackerLoading || !trackerSnap) return;
-    const tKey = `${trackerSnap.dailyLossPct}|${trackerSnap.maxStakePct}|${trackerSnap.stakePoolRemainingPct}`;
+    const tKey = `${trackerSnap.dailyLossUsd}|${trackerSnap.rankMaxStakePct}|${trackerSnap.maxStakePct}|${trackerSnap.stakePoolRemainingPct}|${leverage}`;
     if (trackerInitRef.current === tKey) return;
     trackerInitRef.current = tKey;
 

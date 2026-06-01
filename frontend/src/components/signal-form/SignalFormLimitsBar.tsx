@@ -61,7 +61,7 @@ export function SignalFormLimitsBar({
           <span className="signal-form__chip-k">Стоп</span>
           <span className="signal-form__chip-v">
             {formatPoolChipPct(dailyRemaining ?? 0)}%
-            <span className="signal-form__chip-dim">/{SIGNAL_DAILY_STOP_LIMIT_PCT}%</span>
+            <span className="signal-form__chip-dim">/{SIGNAL_DAILY_STOP_LIMIT_PCT}% ном. ранга</span>
           </span>
         </div>
         <div className="signal-form__chip">

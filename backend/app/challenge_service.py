@@ -174,6 +174,7 @@ def build_dashboard(
         drawdown_pct=stats.drawdown_pct,
         max_drawdown_pct=rules.max_drawdown_pct,
         daily_loss_pct=stats.daily_loss_pct,
+        daily_loss_usd=stats.daily_loss_usd,
         max_daily_loss_pct=rules.max_daily_loss_pct,
         daily_remaining_usd=stats.daily_remaining_usd,
         daily_trades_count=daily_trades_count,

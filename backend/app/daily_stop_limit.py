@@ -18,6 +18,18 @@ SIGNAL_DAILY_TRADE_LIMIT = 3
 ACCOUNT_STOP_MIN_STEP = 0.01
 
 
+def rank_nominal_usd(balance: float, rank_max_stake_pct: float, leverage: int) -> float:
+    """Макс. номинал позиции по рангу: счёт × лимит ранга % × плечо."""
+    if balance <= 0 or rank_max_stake_pct <= 0 or leverage < 1:
+        return 0.0
+    return round(balance * rank_max_stake_pct * leverage / 100.0, 2)
+
+
+def daily_stop_budget_usd(rank_nominal_usd: float) -> float:
+    """Дневной бюджет стопа = 2% от номинала ранга ($)."""
+    return round(rank_nominal_usd * SIGNAL_DAILY_STOP_LIMIT_PCT / 100.0, 2)
+
+
 def price_stop_to_account_risk_pct(
     price_stop_pct: float,
     stake_pct: float,
@@ -41,7 +53,7 @@ def account_risk_at_stop(
     return price_stop_to_account_risk_pct(price_stop_pct, stake_pct, leverage)
 
 
-def admin_daily_loss_pct(db: Session, admin_id: int) -> float:
+def _admin_tracker_stats(db: Session, admin_id: int):
     from app.challenge_service import _closed_signals, get_or_create_challenge
 
     ch = get_or_create_challenge(db, admin_id)
@@ -52,10 +64,33 @@ def admin_daily_loss_pct(db: Session, admin_id: int) -> float:
         closed,
         max_daily_loss_pct=rules.max_daily_loss_pct,
     )
+    return ch, stats
+
+
+def admin_daily_loss_usd(db: Session, admin_id: int) -> float:
+    _, stats = _admin_tracker_stats(db, admin_id)
+    return stats.daily_loss_usd
+
+
+def admin_daily_loss_pct(db: Session, admin_id: int) -> float:
+    _, stats = _admin_tracker_stats(db, admin_id)
     return stats.daily_loss_pct
 
 
+def daily_stop_remaining_rank_pct(daily_loss_usd: float, rank_nominal_usd: float) -> float:
+    """Остаток дневного лимита 2% в единицах «% от номинала ранга»."""
+    if rank_nominal_usd <= 0:
+        return 0.0
+    used_pct = daily_loss_usd / rank_nominal_usd * 100.0
+    return round(max(0.0, SIGNAL_DAILY_STOP_LIMIT_PCT - used_pct), 2)
+
+
+def daily_stop_remaining_usd(daily_loss_usd: float, rank_nominal_usd: float) -> float:
+    return round(max(0.0, daily_stop_budget_usd(rank_nominal_usd) - daily_loss_usd), 2)
+
+
 def daily_stop_remaining_pct(daily_loss_pct: float) -> float:
+    """Устаревшая база (% счёта); для формы используйте daily_stop_remaining_rank_pct."""
     return round(max(0.0, SIGNAL_DAILY_STOP_LIMIT_PCT - max(0.0, daily_loss_pct)), 2)
 
 
@@ -78,7 +113,7 @@ def validate_signal_daily_trades(db: Session, admin_id: int) -> None:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
                 f"Лимит дня: {SIGNAL_DAILY_TRADE_LIMIT} сделки или "
-                f"{SIGNAL_DAILY_STOP_LIMIT_PCT}% стопа — сделок сегодня уже {count}"
+                f"{SIGNAL_DAILY_STOP_LIMIT_PCT:g}% стопа от номинала ранга — сделок сегодня уже {count}"
             ),
         )
 
@@ -92,25 +127,41 @@ def validate_signal_daily_stop(
     stake_pct: float,
     leverage: int,
 ) -> None:
-    daily_loss = admin_daily_loss_pct(db, admin_id)
-    remaining = daily_stop_remaining_pct(daily_loss)
-    if remaining < ACCOUNT_STOP_MIN_STEP:
+    from app.signal_service import get_or_create_trader
+    from app.signal_stake_pool import stake_pool_snapshot
+
+    trader = get_or_create_trader(db, admin_id, None)
+    snap = stake_pool_snapshot(db, trader)
+    rank_cap = float(snap["rank_max_stake_pct"])
+
+    ch, _ = _admin_tracker_stats(db, admin_id)
+    balance = ch.balance
+    rank_nominal = rank_nominal_usd(balance, rank_cap, leverage)
+    daily_loss_usd = admin_daily_loss_usd(db, admin_id)
+    remaining_pct = daily_stop_remaining_rank_pct(daily_loss_usd, rank_nominal)
+
+    if remaining_pct < ACCOUNT_STOP_MIN_STEP:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
                 f"Лимит дня: {SIGNAL_DAILY_TRADE_LIMIT} сделки или "
-                f"{SIGNAL_DAILY_STOP_LIMIT_PCT}% стопа — дневной стоп исчерпан "
-                f"(потери {daily_loss}%)"
+                f"{SIGNAL_DAILY_STOP_LIMIT_PCT:g}% стопа от номинала ранга — дневной стоп исчерпан "
+                f"(потери ${daily_loss_usd:g} при лимите ${daily_stop_budget_usd(rank_nominal):g})"
             ),
         )
+
     account_risk = account_risk_at_stop(entry_low, entry_high, stop_loss, stake_pct, leverage)
     if account_risk is None:
         return
-    if account_risk > remaining + 0.005:
+
+    risk_usd = balance * account_risk / 100.0
+    budget_left_usd = daily_stop_remaining_usd(daily_loss_usd, rank_nominal)
+    if risk_usd > budget_left_usd + 0.01:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
-                f"Риск до стопа {account_risk}% превышает остаток {remaining}% "
-                f"(лимит {SIGNAL_DAILY_STOP_LIMIT_PCT}% стопа, потери {daily_loss}%)"
+                f"Риск до стопа ${risk_usd:g} превышает остаток ${budget_left_usd:g} "
+                f"(лимит {SIGNAL_DAILY_STOP_LIMIT_PCT:g}% от номинала ранга ${rank_nominal:g}, "
+                f"потери сегодня ${daily_loss_usd:g})"
             ),
         )
