@@ -95,9 +95,6 @@ export function SignalLevelsFields({
           blocked={dailyStopBlocked || !hasEntry}
           showBudget={false}
         />
-        {!hasEntry && !priceLoading ? (
-          <p className="stop-offset-slider__blocked meta">Укажите цену входа — стоп считается от неё</p>
-        ) : null}
       </div>
     </div>
   );

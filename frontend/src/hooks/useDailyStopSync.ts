@@ -1,11 +1,10 @@
 import { useEffect } from "react";
 import {
   ACCOUNT_STOP_MIN_STEP,
-  accountRiskToPriceStopPct,
   dailyStopRemainingPct,
-  priceStopToAccountRiskPct,
+  maxPriceStopPctFromDailyRemaining,
 } from "../utils/dailyStopLimit";
-import { formatRiskPct, parseRiskPctValue } from "../utils/signalLevels";
+import { formatRiskPct, parseRiskPctValue, STOP_OFFSET_MIN_PCT } from "../utils/signalLevels";
 
 export function useDailyStopSync(opts: {
   enabled: boolean;
@@ -24,9 +23,10 @@ export function useDailyStopSync(opts: {
   useEffect(() => {
     if (!enabled || dailyRemaining === undefined || dailyRemaining < ACCOUNT_STOP_MIN_STEP) return;
     if (stakePct <= 0) return;
-    const account = priceStopToAccountRiskPct(parseRiskPctValue(riskPct), stakePct, leverage);
-    if (account > dailyRemaining + 0.005) {
-      onRiskPctChange(formatRiskPct(accountRiskToPriceStopPct(dailyRemaining, stakePct, leverage)));
+    const price = parseRiskPctValue(riskPct);
+    const maxPrice = maxPriceStopPctFromDailyRemaining(dailyRemaining, stakePct, leverage);
+    if (maxPrice > STOP_OFFSET_MIN_PCT && price > maxPrice + 0.005) {
+      onRiskPctChange(formatRiskPct(maxPrice));
     }
   }, [enabled, dailyRemaining, stakePct, leverage, riskPct, onRiskPctChange]);
 

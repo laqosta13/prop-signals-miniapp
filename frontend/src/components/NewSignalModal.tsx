@@ -64,10 +64,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
     setRisk,
     leverage,
     setLeverage,
-    stakePct: tracker.stakePct,
-    lev: tracker.lev,
     riskPct,
-    balanceUsd: balance,
     onRiskPctChange,
   });
 
@@ -175,7 +172,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
 
       <SignalFormSection
         title="Уровни"
-        hint={priceLoading ? "Курс Bybit…" : "Perp USDT · стоп от входа · цель 1:3"}
+        hint={priceLoading ? "Курс Bybit…" : "Perp USDT · стоп 2% от входа · цель 1:3"}
       >
         <SignalLevelsFields
           entry={entry}

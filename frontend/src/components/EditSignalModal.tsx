@@ -72,10 +72,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
     setRisk,
     leverage,
     setLeverage,
-    stakePct: tracker.stakePct,
-    lev: tracker.lev,
     riskPct,
-    balanceUsd: balance,
     onRiskPctChange,
   });
 

@@ -1,17 +1,22 @@
 /** Уровни вход / стоп / цель для формы сигнала (R:R 1:3). Стоп и цель всегда от цены входа. */
 
-/** Стартовое значение бегунка «До стопа» — % от номинала (≈ % цены от входа). */
-export const DEFAULT_NOMINAL_STOP_PCT = 0.7;
-export const DEFAULT_STOP_RISK_PCT = DEFAULT_NOMINAL_STOP_PCT;
+/** Стартовое значение бегунка — % движения цены от входа до стопа. */
+export const DEFAULT_PRICE_STOP_FROM_ENTRY_PCT = 2;
+export const DEFAULT_NOMINAL_STOP_PCT = DEFAULT_PRICE_STOP_FROM_ENTRY_PCT;
+export const DEFAULT_STOP_RISK_PCT = DEFAULT_PRICE_STOP_FROM_ENTRY_PCT;
 export const REWARD_RISK_RATIO = 3;
 export const STOP_OFFSET_MIN_PCT = 0.1;
+/** Верх шкалы без трекера / запасной потолок при полном дневном остатке. */
 export const STOP_OFFSET_MAX_PCT = 5;
+/** Потолок % цены на бегунке (даже при большом остатке лимита счёта). */
+export const STOP_OFFSET_SLIDER_CAP_PCT = 20;
 export const STOP_OFFSET_STEP = 0.1;
 export const STOP_OFFSET_MARKS = [0.5, 1, 1.5, 2, 3, 5] as const;
 
-export function clampStopOffsetPct(pct: number): number {
+export function clampStopOffsetPct(pct: number, maxPct = STOP_OFFSET_MAX_PCT): number {
   if (!Number.isFinite(pct) || pct <= 0) return DEFAULT_STOP_RISK_PCT;
-  return Math.min(STOP_OFFSET_MAX_PCT, Math.max(STOP_OFFSET_MIN_PCT, pct));
+  const cap = Math.max(STOP_OFFSET_MIN_PCT, maxPct);
+  return Math.min(cap, Math.max(STOP_OFFSET_MIN_PCT, pct));
 }
 
 export function formatPriceLevel(price: number): string {

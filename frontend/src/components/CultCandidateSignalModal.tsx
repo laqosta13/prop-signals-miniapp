@@ -56,10 +56,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
     setRisk,
     leverage,
     setLeverage,
-    stakePct,
-    lev,
     riskPct,
-    balanceUsd,
     onRiskPctChange,
   });
 
@@ -173,7 +170,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
           onRiskPctChange={onRiskPctChange}
           stakePct={stakePct}
           leverage={lev}
-          dailyRemainingPct={100}
+          dailyRemainingPct={undefined}
           dailyLossPct={0}
           dailyStopBlocked={false}
         />

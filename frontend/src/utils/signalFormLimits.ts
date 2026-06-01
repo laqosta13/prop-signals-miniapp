@@ -7,7 +7,7 @@ import {
 } from "./dailyStopLimit";
 import { DEFAULT_RISK_PERCENT, entryNominalUsd, formatRiskPercent } from "./signalForm";
 import {
-  DEFAULT_NOMINAL_STOP_PCT,
+  DEFAULT_PRICE_STOP_FROM_ENTRY_PCT,
   DEFAULT_STOP_RISK_PCT,
   formatRiskPct,
   STOP_OFFSET_MIN_PCT,
@@ -87,7 +87,7 @@ export function maxPriceStopPctForForm(
   return maxPriceStopPctFromAccountRemaining(rem, balanceUsd, stakePct, leverage);
 }
 
-/** Стартовый % стопа: 0.7% от номинала, но не выше дневного остатка. */
+/** Стартовый % стопа: 2% от цены входа, но не выше дневного остатка (в % цены). */
 export function defaultPriceStopPctForForm(
   dailyLossPct: number | undefined,
   balanceUsd: number,
@@ -96,7 +96,7 @@ export function defaultPriceStopPctForForm(
 ): number {
   const max = maxPriceStopPctForForm(dailyLossPct, balanceUsd, stakePct, leverage);
   if (max < ACCOUNT_STOP_MIN_STEP) return STOP_OFFSET_MIN_PCT;
-  return Math.min(DEFAULT_NOMINAL_STOP_PCT, Math.max(STOP_OFFSET_MIN_PCT, max));
+  return Math.min(DEFAULT_PRICE_STOP_FROM_ENTRY_PCT, Math.max(STOP_OFFSET_MIN_PCT, max));
 }
 
 export function formatDefaultPriceRiskForForm(
