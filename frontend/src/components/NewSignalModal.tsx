@@ -12,13 +12,11 @@ import { formatRiskPct, parseRiskPctValue } from "../utils/signalLevels";
 import { stakePoolBlockedMessage } from "../utils/stakePool";
 import {
   dailyLimitBlockedMessage,
-  dailyStopRemainingPct,
   dailyTradingBlocked,
   dailyTradesRemaining,
   SIGNAL_DAILY_TRADE_LIMIT,
-  ACCOUNT_STOP_MIN_STEP,
 } from "../utils/dailyStopLimit";
-import { formatPriceRiskForForm } from "../utils/signalFormLimits";
+import { defaultStakePct, formatPriceRiskForForm, formatStakeForForm } from "../utils/signalFormLimits";
 import {
   initialUploadProgress,
   mediaBytesInForm,
@@ -70,7 +68,6 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
 
   const directionRef = useRef(direction);
   directionRef.current = direction;
-  const limitsSyncedRef = useRef(false);
 
   const { snapshot: trackerSnap, loading: trackerLoading } = useAdminTrackerSnapshot(open);
 
@@ -97,17 +94,18 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
   });
 
   const loadMarketPrice = useCallback(
-    async (sym: string) => {
+    async (sym: string, stakeOverride?: number) => {
       const normalized = sym.trim().toUpperCase();
       if (!normalized) return;
       setPriceLoading(true);
       try {
         const { price } = await fetchMarketPrice(normalized);
-        const stake = parseRiskPercent(risk);
+        const stake =
+          stakeOverride ??
+          (trackerSnap != null ? defaultStakePct(trackerSnap.maxStakePct) : parseRiskPercent(risk));
         const lev = parseLeverage(leverage);
         const priceRiskStr = formatPriceRiskForForm(trackerSnap?.dailyLossPct, stake, lev);
         applyMarketPrice(price, directionRef.current, parseRiskPctValue(priceRiskStr));
-        limitsSyncedRef.current = true;
         setError(null);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Не удалось загрузить курс");
@@ -115,14 +113,11 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
         setPriceLoading(false);
       }
     },
-    [applyMarketPrice, trackerSnap?.dailyLossPct, risk, leverage],
+    [applyMarketPrice, trackerSnap, risk, leverage],
   );
 
   useEffect(() => {
-    if (!open) {
-      limitsSyncedRef.current = false;
-      return;
-    }
+    if (!open) return;
     setError(null);
     setSymbol(DEFAULT_SYMBOL);
     setLeverage("1");
@@ -138,20 +133,14 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
   }, [open, resetForm]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || trackerLoading || trackerSnap == null) return;
+    const stakeDefault = defaultStakePct(trackerSnap.maxStakePct);
+    setRisk(formatStakeForForm(trackerSnap.maxStakePct));
     const t = window.setTimeout(() => {
-      void loadMarketPrice(symbol);
+      void loadMarketPrice(symbol, stakeDefault);
     }, 150);
     return () => clearTimeout(t);
-  }, [symbol, open, loadMarketPrice]);
-
-  useEffect(() => {
-    if (!open || trackerLoading || trackerSnap == null || !entry || limitsSyncedRef.current) return;
-    const rem = dailyStopRemainingPct(trackerSnap.dailyLossPct);
-    if (rem < ACCOUNT_STOP_MIN_STEP) return;
-    onRiskPctChange(formatPriceRiskForForm(trackerSnap.dailyLossPct, stakePct, lev));
-    limitsSyncedRef.current = true;
-  }, [open, trackerLoading, trackerSnap, entry, stakePct, lev, onRiskPctChange]);
+  }, [symbol, open, trackerLoading, trackerSnap, loadMarketPrice]);
 
   if (!open) return null;
 
@@ -266,16 +255,17 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
         <label className="field-label">Плечо</label>
         <LeveragePicker
           leverage={leverage}
-          onLeverageChange={(nextLev, nextRisk) => {
+          onLeverageChange={(nextLev) => {
             const prevStake = parseRiskPercent(risk);
             const prevLev = parseLeverage(leverage);
+            const nextStake = defaultStakePct(maxStakePct);
             setLeverage(nextLev);
-            setRisk(nextRisk);
+            setRisk(formatStakeForForm(maxStakePct));
             const nextPrice = preserveAccountStopOnLeverageChange({
               riskPct,
               prevStakePct: prevStake,
               prevLeverage: prevLev,
-              nextStakePct: parseRiskPercent(nextRisk),
+              nextStakePct: nextStake,
               nextLeverage: parseLeverage(nextLev),
               dailyRemaining: dailyRemaining ?? 2,
             });

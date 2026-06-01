@@ -4,6 +4,7 @@ import {
   dailyStopRemainingPct,
   SIGNAL_DAILY_STOP_LIMIT_PCT,
 } from "./dailyStopLimit";
+import { DEFAULT_RISK_PERCENT, formatRiskPercent } from "./signalForm";
 import { clampStopOffsetPct, DEFAULT_STOP_RISK_PCT, formatRiskPct } from "./signalLevels";
 
 /** % движения цены до стопа: остаток дневного лимита → R:R 1:3 в стоп/цель. */
@@ -35,4 +36,14 @@ export function formatPriceRiskForForm(
   leverage: number,
 ): string {
   return formatRiskPct(priceStopPctFromTracker(dailyLossPct, stakePct, leverage));
+}
+
+/** Сумма входа %: по умолчанию весь доступный остаток пула (с учётом ранга). */
+export function defaultStakePct(maxStakePct: number | undefined): number {
+  if (maxStakePct === undefined || maxStakePct <= 0) return DEFAULT_RISK_PERCENT;
+  return maxStakePct;
+}
+
+export function formatStakeForForm(maxStakePct: number | undefined): string {
+  return formatRiskPercent(defaultStakePct(maxStakePct));
 }
