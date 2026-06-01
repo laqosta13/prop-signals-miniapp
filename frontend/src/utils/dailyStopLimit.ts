@@ -15,6 +15,14 @@ export function roundStopPct(pct: number): number {
   return Math.round(pct * 100) / 100;
 }
 
+/** Формат % счёта на бегунке стопа (0 остаётся 0). */
+export function formatAccountStopPct(pct: number): string {
+  if (!Number.isFinite(pct) || pct < 0) return "0";
+  const rounded = roundStopPct(pct);
+  if (Number.isInteger(rounded)) return String(rounded);
+  return rounded.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+}
+
 export function dailyStopRemainingPct(dailyLossPct: number): number {
   return roundStopPct(Math.max(0, SIGNAL_DAILY_STOP_LIMIT_PCT - Math.max(0, dailyLossPct)));
 }

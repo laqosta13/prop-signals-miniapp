@@ -25,7 +25,8 @@ export function formatPriceLevel(price: number): string {
 export function formatRiskPct(pct: number): string {
   if (!Number.isFinite(pct) || pct <= 0) return String(DEFAULT_STOP_RISK_PCT);
   const rounded = Math.round(pct * 100) / 100;
-  return String(rounded).replace(/\.?0+$/, "");
+  if (Number.isInteger(rounded)) return String(rounded);
+  return rounded.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
 }
 
 export function parseEntryPrice(raw: string): number | null {

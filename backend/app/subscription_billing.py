@@ -16,10 +16,9 @@ from app.ton_payments import TonPaymentError, verify_usdt_ton_payment
 TRIAL_DAYS = 3
 REFERRAL_BONUS_DAYS = 3
 REVIEW_WAIT_DAYS = 3
-WEEK_USD = 20.0
-MONTH_USD = 70.0
-WEEK_DAYS = 7
-MONTH_DAYS = 30
+SUBSCRIPTION_USD = 20.0
+SUBSCRIPTION_DAYS = 30
+SUBSCRIPTION_PLAN = "month"
 
 
 def _now() -> datetime:
@@ -95,7 +94,7 @@ def grant_referrer_bonus(db: Session, referrer_id: int) -> None:
 
 
 def grant_referrer_bonus_on_first_payment(db: Session, sub: Subscriber) -> None:
-    """+3 дня рефереру, когда приглашённый впервые оплатил неделю или месяц."""
+    """+3 дня рефереру, когда приглашённый впервые оплатил подписку."""
     referrer_id = sub.referred_by_telegram_id
     if not referrer_id or referrer_id == sub.telegram_user_id:
         return
@@ -153,16 +152,16 @@ def extend_subscription(db: Session, sub: Subscriber, days: int) -> None:
 
 
 def record_payment(db: Session, telegram_user_id: int, plan: str, tx_id: str) -> None:
-    if plan not in ("week", "month"):
-        raise ValueError("plan: week или month")
-    expected_usd = WEEK_USD if plan == "week" else MONTH_USD
+    if plan != SUBSCRIPTION_PLAN:
+        raise ValueError("Доступен только тариф на 30 дней")
+    expected_usd = SUBSCRIPTION_USD
     try:
         check = verify_usdt_ton_payment(tx_id, expected_usd)
     except TonPaymentError as e:
         raise ValueError(str(e)) from e
     if db.scalar(select(PaymentTx.id).where(PaymentTx.tx_id == check.tx_hash_hex)):
         raise ValueError("Этот TXID уже зарегистрирован")
-    days = WEEK_DAYS if plan == "week" else MONTH_DAYS
+    days = SUBSCRIPTION_DAYS
     sub = db.get(Subscriber, telegram_user_id)
     if sub is None:
         raise ValueError("Подписчик не найден")
@@ -171,7 +170,7 @@ def record_payment(db: Session, telegram_user_id: int, plan: str, tx_id: str) ->
         PaymentTx(
             telegram_user_id=telegram_user_id,
             tx_id=check.tx_hash_hex,
-            plan=plan,
+            plan=SUBSCRIPTION_PLAN,
             amount_usd=expected_usd,
         )
     )

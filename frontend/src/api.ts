@@ -70,8 +70,8 @@ export type Me = {
 
 export type SubscriptionInfo = {
   usdt_ton_address: string;
-  week_usd: number;
-  month_usd: number;
+  subscription_usd: number;
+  subscription_days: number;
   trial_days: number;
   referral_bonus_days: number;
   subscription_until: string | null;
@@ -304,11 +304,11 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const fetchSubscriptionInfo = () => api<SubscriptionInfo>("/subscriptions/info");
 
-export const submitPayment = (plan: "week" | "month", tx_id: string) =>
+export const submitPayment = (tx_id: string) =>
   api<SubscriptionInfo>("/subscriptions/pay", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ plan, tx_id }),
+    body: JSON.stringify({ plan: "month", tx_id }),
   });
 
 export const fetchMe = () => api<Me>("/auth/me");

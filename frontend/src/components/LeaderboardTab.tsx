@@ -161,7 +161,7 @@ export function LeaderboardTab({
       {showCandidatesBlock && (
         <section className="top-cult-block top-cult-block--candidates">
           <p className="top-cult-label top-cult-label--candidates">КОНДИДАТЫ В CULT</p>
-          {!isAdmin && myId != null && (
+          {myId != null && (
             <CultCandidateJoinPanel onJoined={onCultCandidatesChange} onOpenPay={onOpenPay} />
           )}
           {userCandidates.length > 0 && (

@@ -185,7 +185,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
         />
       </SignalFormSection>
 
-      <SignalFormSection title="Уровни" hint="Стоп — бегунок · цель 1:3">
+      <SignalFormSection title="Уровни" hint="Бегунок % счёта · цель 1:3">
         <SignalLevelsFields
           entry={entry}
           stop={stop}

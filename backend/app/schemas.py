@@ -88,14 +88,14 @@ class SubscriptionUpdate(BaseModel):
 
 
 class PaymentSubmit(BaseModel):
-    plan: str = Field(..., pattern="^(week|month)$")
+    plan: str = Field(default="month", pattern="^month$")
     tx_id: str = Field(..., min_length=8, max_length=128)
 
 
 class SubscriptionInfo(BaseModel):
     usdt_ton_address: str
-    week_usd: float
-    month_usd: float
+    subscription_usd: float
+    subscription_days: int
     trial_days: int
     referral_bonus_days: int
     subscription_until: datetime | None

@@ -1489,6 +1489,41 @@
   margin: 12px 0;
 }
 
+.sub-price-single {
+  margin: 12px 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--sub-plan-on-border, rgba(109, 40, 217, 0.35));
+  background: var(--sub-plan-on-bg, var(--subtle-surface));
+  text-align: center;
+}
+
+.sub-price-single__label {
+  margin: 0 0 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.sub-price-single__value {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.sub-price-single__value strong {
+  color: var(--sub-plan-strong, var(--purple));
+}
+
+.sub-price-single__days {
+  margin-left: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
 .sub-plan {
   border: 1px solid var(--subtle-border);
   background: var(--subtle-surface);

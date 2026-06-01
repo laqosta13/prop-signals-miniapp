@@ -42,8 +42,6 @@ def is_cult_candidate(db: Session, telegram_id: int) -> bool:
 
 
 def join_blockers(db: Session, sub: Subscriber, *, is_admin: bool) -> list[str]:
-    if is_admin:
-        return ["Админы публикуют в общую ленту, кандидат не нужен"]
     if is_cult_candidate(db, sub.telegram_user_id):
         return []
     if not has_active_paid_subscription(db, sub, is_admin):
@@ -273,12 +271,10 @@ def cult_candidate_account_size(db: Session, telegram_id: int) -> float:
 
 
 def ensure_can_trade(db: Session, sub: Subscriber, *, is_admin: bool) -> CultCandidate:
-    if is_admin:
-        raise ValueError("Админы используют ленту сигналов")
     row = db.get(CultCandidate, sub.telegram_user_id)
     if row is None or not row.enabled:
         raise ValueError("Сначала станьте кандидатом в CULT")
-    blockers = join_blockers(db, sub, is_admin=False)
+    blockers = join_blockers(db, sub, is_admin=is_admin)
     if blockers:
         raise ValueError(blockers[0])
     return row

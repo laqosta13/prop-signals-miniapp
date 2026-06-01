@@ -68,8 +68,8 @@ export function CultCandidateJoinPanel({ onJoined, onOpenPay }: Props) {
               </button>
             </div>
             <p className="meta cult-candidate-join__intro">
-              Свои сделки через форму сигнала — исполнение на вашем Bybit. Нужны оплаченная подписка USDT TON и API
-              ключи.
+              Свои сделки через форму сигнала — исполнение на вашем Bybit. Подписка 30 дней — $20 USDT TON (TXID) и
+              API ключи Bybit.
             </p>
             <ul className="cult-candidate-join__checklist">
               <li className={me.subscription_paid ? "ok" : "pending"}>
