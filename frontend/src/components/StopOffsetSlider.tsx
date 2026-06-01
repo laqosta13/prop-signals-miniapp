@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import {
   maxPriceStopPctFromDailyRemaining,
-  priceStopSliderMarks,
+  priceStopSliderMarksFromDailyRemaining,
   roundStopPct,
   SIGNAL_DAILY_STOP_LIMIT_PCT,
 } from "../utils/dailyStopLimit";
@@ -55,7 +55,9 @@ export function StopOffsetSlider({
       ? ((current - minPct) / (maxPct - minPct)) * 100
       : 0;
 
-  const marks = accountMode ? priceStopSliderMarks(maxPct) : ([0.5, 1, 1.5, 2, 3, 5] as const).filter((m) => m <= maxPct);
+  const marks = accountMode
+    ? priceStopSliderMarksFromDailyRemaining(dailyRemainingPct!, stakePct!, leverage!)
+    : ([0.5, 1, 1.5, 2, 3, 5] as const).filter((m) => m <= maxPct);
 
   useEffect(() => {
     if (!accountMode || maxPct < minPct) return;

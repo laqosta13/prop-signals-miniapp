@@ -66,11 +66,16 @@ export function SignalLevelsFields({
         />
       </div>
       <div className="signal-form__level signal-form__level--target">
-        <label className="signal-form__level-label">Цель</label>
+        <label className="signal-form__level-label">
+          Цель
+          {accountMode ? <span className="signal-form__level-badge">1:3</span> : null}
+        </label>
         <input
           className="signal-form__level-input"
           value={target}
-          onChange={(e) => onTargetChange(e.target.value)}
+          readOnly={accountMode}
+          aria-readonly={accountMode}
+          onChange={accountMode ? undefined : (e) => onTargetChange(e.target.value)}
           placeholder="—"
         />
       </div>

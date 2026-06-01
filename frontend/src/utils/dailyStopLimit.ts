@@ -47,6 +47,30 @@ export function maxPriceStopPctFromDailyRemaining(
 
 const PRICE_STOP_MARK_PRESETS = [0.5, 0.7, 1, 1.5, 2, 2.5, 3, 4, 5, 7.5, 10] as const;
 
+/**
+ * Метки бегунка «До стопа»: доли остатка дневного лимита (% счёта), переведённые в % цены.
+ */
+export function priceStopSliderMarksFromDailyRemaining(
+  dailyRemainingPct: number,
+  stakePct: number,
+  leverage: number,
+): number[] {
+  const maxPrice = maxPriceStopPctFromDailyRemaining(dailyRemainingPct, stakePct, leverage);
+  if (maxPrice < ACCOUNT_STOP_MIN_STEP) return [];
+
+  const accountMarks = accountStopSliderMarks(dailyRemainingPct);
+  const priceMarks = accountMarks
+    .map((m) => accountRiskToPriceStopPct(m, stakePct, leverage))
+    .filter((m) => m >= ACCOUNT_STOP_MIN_STEP - 0.001 && m <= maxPrice + 0.001);
+
+  const uniq = priceMarks.filter((m, i, arr) => i === 0 || m > arr[i - 1] + 0.009);
+  const last = uniq[uniq.length - 1];
+  if (last == null || last < maxPrice - 0.009) {
+    uniq.push(roundStopPct(maxPrice));
+  }
+  return uniq;
+}
+
 /** Метки бегунка «% от номинала» — привычные шаги, если влезают в max. */
 export function priceStopSliderMarks(maxPricePct: number): number[] {
   const max = roundStopPct(Math.max(0, maxPricePct));
