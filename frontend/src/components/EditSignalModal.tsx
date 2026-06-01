@@ -145,9 +145,8 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
         dailyRemaining={tracker.dailyRemaining}
         dailyTradesRemaining={tracker.dailyTradesRemainingCount}
         dailyTradesLimit={tracker.dailyTradesLimit}
+        stakePoolUsedPct={tracker.trackerSnap?.stakePoolUsedPct}
         stakePoolRemainingPct={tracker.trackerSnap?.stakePoolRemainingPct}
-        rankName={tracker.trackerSnap?.currentRankName}
-        rankMaxStakePct={tracker.trackerSnap?.rankMaxStakePct}
         dailyBlocked={tracker.dailyLimit.blocked}
         dailyBlockReason={tracker.dailyLimit.reason}
         stakePoolBlocked={tracker.stakePoolBlocked}

@@ -5,7 +5,7 @@ import {
   SIGNAL_DAILY_TRADE_LIMIT,
 } from "../../utils/dailyStopLimit";
 import { formatRiskPct } from "../../utils/signalLevels";
-import { stakePoolBlockedMessage } from "../../utils/stakePool";
+import { STAKE_POOL_TOTAL_PCT, stakePoolBlockedMessage } from "../../utils/stakePool";
 
 type Props = {
   active: boolean;
@@ -13,9 +13,8 @@ type Props = {
   dailyRemaining?: number;
   dailyTradesRemaining: number;
   dailyTradesLimit?: number;
+  stakePoolUsedPct?: number;
   stakePoolRemainingPct?: number;
-  rankMaxStakePct?: number;
-  rankName?: string;
   dailyBlocked?: boolean;
   dailyBlockReason?: "stop" | "trades" | null;
   stakePoolBlocked?: boolean;
@@ -28,9 +27,8 @@ export function SignalFormLimitsBar({
   dailyRemaining,
   dailyTradesRemaining,
   dailyTradesLimit = SIGNAL_DAILY_TRADE_LIMIT,
+  stakePoolUsedPct,
   stakePoolRemainingPct,
-  rankMaxStakePct,
-  rankName,
   dailyBlocked = false,
   dailyBlockReason = null,
   stakePoolBlocked = false,
@@ -47,6 +45,8 @@ export function SignalFormLimitsBar({
   }
 
   const tradeLimit = dailyTradesLimit;
+  const poolFree = stakePoolRemainingPct ?? STAKE_POOL_TOTAL_PCT;
+  const inMarket = stakePoolUsedPct ?? 0;
 
   return (
     <aside className="signal-form__limits" aria-label="Дневные лимиты">
@@ -65,18 +65,17 @@ export function SignalFormLimitsBar({
             <span className="signal-form__chip-dim">/{SIGNAL_DAILY_STOP_LIMIT_PCT}%</span>
           </span>
         </div>
-        {stakePoolRemainingPct != null && (
-          <div className="signal-form__chip">
-            <span className="signal-form__chip-k">Пул</span>
-            <span className="signal-form__chip-v">{formatRiskPct(stakePoolRemainingPct)}%</span>
-          </div>
-        )}
-        {rankName != null && rankMaxStakePct != null && (
-          <div className="signal-form__chip signal-form__chip--wide">
-            <span className="signal-form__chip-k">{rankName}</span>
-            <span className="signal-form__chip-v">до {formatRiskPct(rankMaxStakePct)}%</span>
-          </div>
-        )}
+        <div className="signal-form__chip">
+          <span className="signal-form__chip-k">Пул</span>
+          <span className="signal-form__chip-v">
+            {formatRiskPct(poolFree)}%
+            <span className="signal-form__chip-dim">/{STAKE_POOL_TOTAL_PCT}%</span>
+          </span>
+        </div>
+        <div className="signal-form__chip signal-form__chip--wide">
+          <span className="signal-form__chip-k">В рынке</span>
+          <span className="signal-form__chip-v">{formatRiskPct(inMarket)}%</span>
+        </div>
       </div>
       {active && resetIn ? (
         <p className="signal-form__reset">
@@ -90,7 +89,7 @@ export function SignalFormLimitsBar({
       ) : null}
       {stakePoolBlocked ? (
         <p className="signal-form__alert signal-form__alert--err" role="alert">
-          {stakePoolBlockedMessage(maxStakePct, stakePoolRemainingPct ?? 0)}
+          {stakePoolBlockedMessage(maxStakePct, poolFree)}
         </p>
       ) : null}
     </aside>

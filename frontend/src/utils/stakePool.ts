@@ -1,5 +1,7 @@
 /** Пул суммы входа % для копирующих volnovoi. */
 
+export const STAKE_POOL_TOTAL_PCT = 100;
+
 export const STAKE_POOL_MARKS = [0, 25, 50, 75, 100] as const;
 
 export function stakeSliderMarks(maxPct: number): number[] {
