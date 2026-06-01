@@ -45,9 +45,16 @@ export function maxPriceStopPctFromDailyRemaining(
   return accountRiskToPriceStopPct(dailyRemainingPct, stakePct, leverage);
 }
 
-/** Метки бегунка «% от входа до стопа» (0…maxPrice). */
+/** Метки бегунка «% от входа до стопа» — доли от maxPrice, не шкала лимита счёта (2%). */
 export function priceStopSliderMarks(maxPricePct: number): number[] {
-  return accountStopSliderMarks(maxPricePct, maxPricePct);
+  const max = roundStopPct(Math.max(0, maxPricePct));
+  if (max < ACCOUNT_STOP_MIN_STEP) return [];
+  if (max <= 0.15) return [max];
+  const parts = [0.25, 0.5, 0.75, 1].map((f) => roundStopPct(max * f));
+  const marks = parts.filter((m, i, arr) => i === 0 || m > arr[i - 1] + 0.009);
+  const last = marks[marks.length - 1];
+  if (last < max - 0.009) marks.push(max);
+  return marks;
 }
 
 export function isDailyStopBudgetExhausted(dailyLossPct: number): boolean {

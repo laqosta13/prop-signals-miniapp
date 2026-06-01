@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   STOP_OFFSET_MIN_PCT,
   STOP_OFFSET_STEP,
@@ -42,7 +43,6 @@ export function StopOffsetSlider({
     ? maxPriceStopPctFromDailyRemaining(dailyRemainingPct, stakePct, leverage)
     : 5;
   const minPct = STOP_OFFSET_MIN_PCT;
-  const step = STOP_OFFSET_STEP;
   const currentRaw = parseRiskPctValue(value);
   const current = accountMode
     ? Math.min(maxPct, Math.max(minPct, currentRaw))
@@ -59,6 +59,15 @@ export function StopOffsetSlider({
     ? priceStopSliderMarks(maxPct)
     : ([0.5, 1, 1.5, 2, 3, 5] as const).filter((m) => m <= maxPct);
 
+  const step = accountMode && maxPct <= 2 ? 0.01 : STOP_OFFSET_STEP;
+
+  useEffect(() => {
+    if (!accountMode || maxPct < minPct) return;
+    if (currentRaw > maxPct + 0.005) {
+      onChange(formatRiskPct(maxPct));
+    }
+  }, [accountMode, maxPct, minPct, currentRaw, onChange]);
+
   const setPercent = (n: number) => {
     if (blocked || maxPct < minPct) return;
     const clamped = accountMode
@@ -73,7 +82,12 @@ export function StopOffsetSlider({
   return (
     <div className={`risk-slider stop-offset-slider${disabled ? " stop-offset-slider--blocked" : ""}`}>
       <div className="risk-slider__head">
-        <span className="risk-slider__label">До стопа</span>
+        <div className="risk-slider__label-wrap">
+          <span className="risk-slider__label">До стопа</span>
+          {accountMode && maxPct > 0 ? (
+            <span className="risk-slider__hint">макс. {formatRiskPct(maxPct)}%</span>
+          ) : null}
+        </div>
         <strong className="risk-slider__value">{formatRiskPct(current)}%</strong>
       </div>
       {accountMode && showBudget && (
