@@ -57,18 +57,24 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
 
   const tracker = useSignalFormTracker(open, { riskPct, onRiskPctChange }, { risk, setRisk }, leverage);
 
+  const balance = tracker.balanceForNominal();
+
   const { onStakeChange, onLeverageChange } = useSignalPositionControls({
     risk,
     setRisk,
     leverage,
     setLeverage,
+    stakePct: tracker.stakePct,
+    lev: tracker.lev,
     riskPct,
+    balanceUsd: balance,
     onRiskPctChange,
   });
 
   const { resetInitKey } = useSignalMarketPriceInit({
     open,
     symbol,
+    risk,
     leverage,
     riskPct,
     trackerSnap: tracker.trackerSnap,
@@ -102,7 +108,6 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
 
   if (!open) return null;
 
-  const balance = tracker.balanceForNominal();
   const formBlocked = tracker.dailyLimit.blocked || tracker.stakePoolBlocked;
 
   const submit = async (e: React.FormEvent) => {

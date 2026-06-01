@@ -9,6 +9,7 @@ type Props = {
   onEntryChange: (value: string) => void;
   onStopChange: (value: string) => void;
   onTargetChange: (value: string) => void;
+  /** % движения цены (риск от номинала); стоп/цель = R:R 1:3. */
   onRiskPctChange: (value: string) => void;
   entryPlaceholder?: string;
   stakePct?: number;

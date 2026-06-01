@@ -3,6 +3,7 @@ import WebApp from "@twa-dev/sdk";
 import { updateSignalWithMedia, type Signal, type UploadProgress } from "../api";
 import { useSignalFormTracker } from "../hooks/useSignalFormTracker";
 import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
+import { useSignalMarketPriceInit } from "../hooks/useSignalMarketPriceInit";
 import { useSignalPositionControls } from "../hooks/useSignalPositionControls";
 import { formatTakeProfits } from "../utils";
 import { parseLeverage } from "../utils/signalForm";
@@ -27,6 +28,7 @@ type Props = {
 export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [priceLoading, setPriceLoading] = useState(false);
   const [symbol, setSymbol] = useState("");
   const [leverage, setLeverage] = useState("1");
   const [risk, setRisk] = useState("10");
@@ -38,7 +40,6 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
   const [removeVideo, setRemoveVideo] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const levelsInitRef = useRef<number | null>(null);
-
   const {
     direction,
     entry,
@@ -50,8 +51,11 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
     onStopChange,
     onTargetChange,
     onRiskPctChange,
+    applyMarketPrice,
     loadLevels,
   } = useSignalLevelFields("long");
+  const directionRef = useRef(direction);
+  directionRef.current = direction;
 
   const tracker = useSignalFormTracker(
     signal != null,
@@ -61,13 +65,34 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
     signal?.id,
   );
 
+  const balance = tracker.balanceForNominal(signal?.account_size ?? 0);
+
   const { onStakeChange, onLeverageChange } = useSignalPositionControls({
     risk,
     setRisk,
     leverage,
     setLeverage,
+    stakePct: tracker.stakePct,
+    lev: tracker.lev,
     riskPct,
+    balanceUsd: balance,
     onRiskPctChange,
+  });
+
+  useSignalMarketPriceInit({
+    open: signal != null,
+    symbol,
+    risk,
+    leverage,
+    riskPct,
+    trackerSnap: tracker.trackerSnap,
+    trackerLoading: tracker.trackerLoading,
+    directionRef,
+    applyMarketPrice,
+    setRisk,
+    setPriceLoading,
+    setError,
+    skipTrackerInit: true,
   });
 
   useEffect(() => {
@@ -93,8 +118,6 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
   }, [signal, loadLevels]);
 
   if (!signal) return null;
-
-  const balance = tracker.balanceForNominal(signal.account_size ?? 0);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,6 +191,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
           stop={stop}
           target={target}
           riskPct={riskPct}
+          priceLoading={priceLoading}
           onEntryChange={onEntryChange}
           onStopChange={onStopChange}
           onTargetChange={onTargetChange}

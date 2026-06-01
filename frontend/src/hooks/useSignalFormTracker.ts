@@ -42,11 +42,15 @@ export function useSignalFormTracker(
     }
   }, [enabled, trackerLoading, trackerSnap, stake.risk, stake.setRisk]);
 
+  const balanceUsd =
+    trackerSnap && trackerSnap.balance > 0 ? trackerSnap.balance : (trackerSnap?.accountSize ?? 0);
+
   const { dailyRemaining, dailyLossPct, blocked: dailyStopBlocked } = useDailyStopSync({
     enabled: enabled && !trackerLoading,
     riskPct: levels.riskPct,
     onRiskPctChange: levels.onRiskPctChange,
     dailyLossPct: trackerSnap?.dailyLossPct,
+    balanceUsd,
     stakePct,
     leverage: lev,
   });
