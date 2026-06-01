@@ -1,0 +1,269 @@
+import { useEffect, useState } from "react";
+import WebApp from "@twa-dev/sdk";
+import type { CopyTradingStatus } from "../api";
+import {
+  deleteCopyTradingSettings,
+  fetchCopyTradingStatus,
+  patchCopyTradingSettings,
+  saveCopyTradingSettings,
+  testCopyTradingConnection,
+} from "../api";
+import { formatUsd } from "../utils";
+import { BybitLogo } from "./BrandLogos";
+import { PartnerLinks } from "./PartnerLinks";
+import { RiskPercentSlider } from "./RiskPercentSlider";
+
+const EMPTY_STATUS: CopyTradingStatus = {
+  configured: false,
+  enabled: false,
+  testnet: true,
+  account_balance_usd: 10000,
+  stake_percent: 10,
+  usdt_ton_address: "",
+  fee_percent: 20,
+  profit_usd: 0,
+  unbilled_profit_usd: 0,
+  copy_allowed: true,
+};
+
+type Props = {
+  /** После сохранения / проверки API — обновить чеклист в модалке. */
+  onConfigured?: () => void;
+};
+
+export function CultCandidateBybitPanel({ onConfigured }: Props) {
+  const [status, setStatus] = useState<CopyTradingStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+
+  const [apiKey, setApiKey] = useState("");
+  const [apiSecret, setApiSecret] = useState("");
+  const [testnet, setTestnet] = useState(true);
+  const [enabled, setEnabled] = useState(true);
+  const [stakePercent, setStakePercent] = useState("10");
+
+  const refresh = async () => {
+    const s = await fetchCopyTradingStatus();
+    setStatus(s);
+    if (s.configured) {
+      setTestnet(s.testnet);
+      setEnabled(s.enabled);
+      setStakePercent(String(s.stake_percent));
+    }
+    return s;
+  };
+
+  useEffect(() => {
+    void refresh()
+      .catch(() => setStatus(EMPTY_STATUS))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const stakePayload = {
+    testnet,
+    enabled,
+    stake_percent: Number(stakePercent) || 10,
+  };
+
+  const afterSuccess = async () => {
+    await refresh();
+    onConfigured?.();
+  };
+
+  const onSave = async () => {
+    const hasNewKeys = apiKey.trim() && apiSecret.trim();
+    if (!hasNewKeys && !status?.configured) {
+      setErr("Введите API Key и Secret");
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    try {
+      const s = hasNewKeys
+        ? await saveCopyTradingSettings({
+            api_key: apiKey.trim(),
+            api_secret: apiSecret.trim(),
+            ...stakePayload,
+          })
+        : await patchCopyTradingSettings(stakePayload);
+      setStatus(s);
+      setApiKey("");
+      setApiSecret("");
+      WebApp.HapticFeedback.notificationOccurred("success");
+      await afterSuccess();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Ошибка сохранения");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onTest = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      if (apiKey.trim() && apiSecret.trim()) {
+        await saveCopyTradingSettings({
+          api_key: apiKey.trim(),
+          api_secret: apiSecret.trim(),
+          ...stakePayload,
+        });
+        setApiKey("");
+        setApiSecret("");
+      } else if (status?.configured) {
+        await patchCopyTradingSettings(stakePayload);
+      }
+      setStatus(await testCopyTradingConnection());
+      WebApp.HapticFeedback.notificationOccurred("success");
+      await afterSuccess();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Ошибка подключения");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onDisconnect = async () => {
+    if (!confirm("Отключить API Bybit? Новые сделки кандидата не откроются.")) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await deleteCopyTradingSettings();
+      setStatus(EMPTY_STATUS);
+      onConfigured?.();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Ошибка");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="volnovoi-copy cult-candidate-bybit" onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        className={`volnovoi-copy__toggle${open ? " volnovoi-copy__toggle--open" : ""}`}
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        <span className="cta-btn__label">
+          <BybitLogo size={22} />
+          <span>Свои сделки на Bybit</span>
+        </span>
+        <span className="volnovoi-copy__chevron" aria-hidden>
+          {open ? "▾" : "▸"}
+        </span>
+      </button>
+
+      {open && (
+        <div className="volnovoi-copy__panel">
+          <p className="volnovoi-copy__desc">
+            Вы публикуете сигналы сами — ордера уходят на <strong>ваш</strong> Bybit USDT perpetual со стопом и
+            целью. Это не копирование <strong>volnovoi</strong> и без комиссии 20% с прибыли.
+          </p>
+
+          <ul className="volnovoi-copy__hints">
+            <li>Сделки только из формы «+ Сделка» в вашей карточке в ТОП</li>
+            <li>Нужна подписка 30 дней ($20 USDT TON) — оплачивается отдельно на вкладке «Подписка»</li>
+            <li>Ключи шифруются; права API — только <strong>Trade</strong></li>
+            <li>Размер позиции = баланс Bybit × % депозита × плечо сигнала</li>
+          </ul>
+
+          {loading ? (
+            <p className="meta">Загрузка…</p>
+          ) : (
+            <>
+              {status?.configured && (
+                <div className="volnovoi-copy__stats">
+                  {status.api_key_hint && <span>Ключ {status.api_key_hint}</span>}
+                  {status.current_equity_usd != null && (
+                    <span>Баланс {formatUsd(status.current_equity_usd)}</span>
+                  )}
+                </div>
+              )}
+
+              <div className="volnovoi-copy__form">
+                <label className="volnovoi-copy__field">
+                  <span className="field-label">API Key</span>
+                  <input
+                    type="password"
+                    autoComplete="off"
+                    placeholder={status?.configured ? "Новый ключ" : "Bybit API Key"}
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                  />
+                </label>
+                <label className="volnovoi-copy__field">
+                  <span className="field-label">API Secret</span>
+                  <input
+                    type="password"
+                    autoComplete="off"
+                    placeholder={status?.configured ? "Новый secret" : "Bybit API Secret"}
+                    value={apiSecret}
+                    onChange={(e) => setApiSecret(e.target.value)}
+                  />
+                </label>
+
+                <div className="volnovoi-copy__deposit">
+                  <RiskPercentSlider
+                    value={stakePercent}
+                    onChange={setStakePercent}
+                    label="Сумма входа для расчёта, %"
+                  />
+                  <p className="meta volnovoi-copy__deposit-hint">
+                    {status?.current_equity_usd != null ? (
+                      <>
+                        Баланс Bybit: <strong>{formatUsd(status.current_equity_usd)}</strong>
+                      </>
+                    ) : status?.configured ? (
+                      "Нажмите «Проверить» — баланс подтянется с Bybit"
+                    ) : (
+                      "После подключения API баланс подтянется автоматически"
+                    )}
+                  </p>
+                </div>
+
+                <div className="volnovoi-copy__checks">
+                  <label className="volnovoi-copy__check">
+                    <input type="checkbox" checked={testnet} onChange={(e) => setTestnet(e.target.checked)} />
+                    Testnet
+                  </label>
+                  <label className="volnovoi-copy__check">
+                    <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+                    Исполнение на Bybit включено
+                  </label>
+                </div>
+              </div>
+
+              {err && <p className="err volnovoi-copy__err">{err}</p>}
+              {status?.balance_error && <p className="meta volnovoi-copy__err">{status.balance_error}</p>}
+
+              <div className="volnovoi-copy__actions">
+                <button type="button" className="btn-primary" disabled={busy} onClick={() => void onSave()}>
+                  Сохранить
+                </button>
+                <button type="button" className="btn-ghost" disabled={busy} onClick={() => void onTest()}>
+                  Проверить
+                </button>
+                {status?.configured && (
+                  <button
+                    type="button"
+                    className="btn-ghost volnovoi-copy__disconnect"
+                    disabled={busy}
+                    onClick={() => void onDisconnect()}
+                  >
+                    Отключить
+                  </button>
+                )}
+              </div>
+
+              <PartnerLinks title="Нет аккаунта?" ids={["bybit"]} />
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

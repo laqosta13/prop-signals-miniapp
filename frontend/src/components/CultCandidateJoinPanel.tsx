@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { fetchCultCandidateMe, joinCultCandidate, type CultCandidateMe } from "../api";
-import { VolnovoiCopyPanel } from "./VolnovoiCopyPanel";
+import { CultCandidateBybitPanel } from "./CultCandidateBybitPanel";
 
 type Props = {
   onJoined: () => void;
@@ -94,7 +94,7 @@ export function CultCandidateJoinPanel({ onJoined, onOpenPay }: Props) {
                 disabled={busy}
               />
             </label>
-            <VolnovoiCopyPanel />
+            <CultCandidateBybitPanel onConfigured={reload} />
             {me.blockers.length > 0 && !me.can_join && (
               <p className="meta cult-candidate-join__blockers">{me.blockers.join(" · ")}</p>
             )}

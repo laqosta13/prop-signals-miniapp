@@ -2813,6 +2813,14 @@
   margin: 0 0 12px;
 }
 
+.cult-candidate-bybit .volnovoi-copy__toggle {
+  border-color: rgba(109, 40, 217, 0.35);
+}
+
+.cult-candidate-bybit .volnovoi-copy__panel {
+  border-color: rgba(109, 40, 217, 0.22);
+}
+
 .top-list--user-candidates {
   margin-bottom: 12px;
 }
