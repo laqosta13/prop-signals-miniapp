@@ -82,7 +82,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
   useSignalMarketPriceInit({
     open: signal != null,
     symbol,
-    risk,
+    stakePctLabel: risk,
     leverage,
     riskPct,
     trackerSnap: tracker.trackerSnap,

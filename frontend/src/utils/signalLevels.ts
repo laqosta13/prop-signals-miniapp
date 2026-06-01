@@ -1,6 +1,8 @@
 /** Уровни вход / стоп / цель для формы сигнала (R:R 1:3). */
 
-export const DEFAULT_STOP_RISK_PCT = 1;
+/** Стартовое значение бегунка «До стопа» — % от номинала (≈ % цены от входа). */
+export const DEFAULT_NOMINAL_STOP_PCT = 0.7;
+export const DEFAULT_STOP_RISK_PCT = DEFAULT_NOMINAL_STOP_PCT;
 export const REWARD_RISK_RATIO = 3;
 export const STOP_OFFSET_MIN_PCT = 0.1;
 export const STOP_OFFSET_MAX_PCT = 5;

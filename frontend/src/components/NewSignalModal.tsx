@@ -74,7 +74,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
   const { resetInitKey } = useSignalMarketPriceInit({
     open,
     symbol,
-    risk,
+    stakePctLabel: risk,
     leverage,
     riskPct,
     trackerSnap: tracker.trackerSnap,

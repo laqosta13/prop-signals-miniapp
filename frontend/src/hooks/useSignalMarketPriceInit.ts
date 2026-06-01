@@ -4,16 +4,16 @@ import type { TrackerSnapshot } from "./useAdminTrackerSnapshot";
 import { parseLeverage, parseRiskPercent } from "../utils/signalForm";
 import { parseRiskPctValue } from "../utils/signalLevels";
 import {
-  accountStopPctFromTracker,
   defaultStakePct,
-  formatPriceRiskForForm,
+  formatDefaultPriceRiskForForm,
   formatStakeForForm,
 } from "../utils/signalFormLimits";
 
 type Args = {
   open: boolean;
   symbol: string;
-  risk: string;
+  /** Доля входа % — только для пересчёта при смене тикера. */
+  stakePctLabel: string;
   leverage: string;
   riskPct: string;
   trackerSnap: TrackerSnapshot | null;
@@ -29,7 +29,7 @@ type Args = {
 export function useSignalMarketPriceInit({
   open,
   symbol,
-  risk,
+  stakePctLabel,
   leverage,
   riskPct,
   trackerSnap,
@@ -42,36 +42,39 @@ export function useSignalMarketPriceInit({
   skipTrackerInit = false,
 }: Args) {
   const trackerInitRef = useRef<string | null>(null);
+  const lastSymbolRef = useRef("");
   const riskPctRef = useRef(riskPct);
   riskPctRef.current = riskPct;
 
   const loadMarketPrice = useCallback(
-    async (sym: string, stakeOverride?: number, withTracker = true) => {
+    async (sym: string, opts: { stakePct?: number; priceRiskPct?: number; withTracker?: boolean }) => {
       const normalized = sym.trim().toUpperCase();
       if (!normalized) return;
       setPriceLoading(true);
       try {
         const { price } = await fetchMarketPrice(normalized);
         const dir = directionRef.current ?? "long";
-        const lev = parseLeverage(leverage);
+        const withTracker = opts.withTracker ?? false;
 
         if (!withTracker || !trackerSnap) {
-          applyMarketPrice(price, dir);
+          const risk = opts.priceRiskPct ?? parseRiskPctValue(riskPctRef.current);
+          applyMarketPrice(price, dir, risk);
           setError(null);
           return;
         }
 
+        const lev = parseLeverage(leverage);
         const stakePct =
-          stakeOverride ??
+          opts.stakePct ??
           defaultStakePct(trackerSnap.maxStakePct, trackerSnap.stakePoolRemainingPct);
         const balance = trackerSnap.balance > 0 ? trackerSnap.balance : trackerSnap.accountSize;
-        const accountStop = accountStopPctFromTracker(trackerSnap.dailyLossPct);
+
         const priceRisk =
-          accountStop != null
-            ? parseRiskPctValue(
-                formatPriceRiskForForm(trackerSnap.dailyLossPct, balance, stakePct, lev),
-              )
-            : parseRiskPctValue(riskPctRef.current);
+          opts.priceRiskPct ??
+          parseRiskPctValue(
+            formatDefaultPriceRiskForForm(trackerSnap.dailyLossPct, balance, stakePct, lev),
+          );
+
         applyMarketPrice(price, dir, priceRisk);
         setError(null);
       } catch (e) {
@@ -83,6 +86,7 @@ export function useSignalMarketPriceInit({
     [trackerSnap, leverage, applyMarketPrice, directionRef, setPriceLoading, setError],
   );
 
+  // Первичная инициализация: доля входа + вход по Bybit + стоп 0.7% (в пределах лимита).
   useEffect(() => {
     if (skipTrackerInit || !open || trackerLoading || !trackerSnap) return;
     const tKey = `${trackerSnap.dailyLossPct}|${trackerSnap.maxStakePct}|${trackerSnap.stakePoolRemainingPct}`;
@@ -91,26 +95,41 @@ export function useSignalMarketPriceInit({
 
     const stakeDefault = defaultStakePct(trackerSnap.maxStakePct, trackerSnap.stakePoolRemainingPct);
     setRisk(formatStakeForForm(trackerSnap.maxStakePct, trackerSnap.stakePoolRemainingPct));
-    const t = window.setTimeout(() => void loadMarketPrice(symbol, stakeDefault, true), 150);
+    lastSymbolRef.current = symbol.trim().toUpperCase();
+    const t = window.setTimeout(
+      () => void loadMarketPrice(symbol, { stakePct: stakeDefault, withTracker: true }),
+      150,
+    );
     return () => clearTimeout(t);
   }, [open, symbol, skipTrackerInit, trackerLoading, trackerSnap, setRisk, loadMarketPrice]);
 
+  // Смена тикера: только цена входа, % стопа не сбрасываем.
   useEffect(() => {
     if (!open || !symbol.trim()) return;
+    const sym = symbol.trim().toUpperCase();
+    if (sym === lastSymbolRef.current) return;
+    lastSymbolRef.current = sym;
+
     const t = window.setTimeout(() => {
+      const keepRisk = parseRiskPctValue(riskPctRef.current);
       if (trackerSnap && !trackerLoading) {
-        void loadMarketPrice(symbol, parseRiskPercent(risk), true);
+        void loadMarketPrice(symbol, {
+          stakePct: parseRiskPercent(stakePctLabel),
+          priceRiskPct: keepRisk,
+          withTracker: true,
+        });
         return;
       }
       if (!trackerSnap && !trackerLoading) {
-        void loadMarketPrice(symbol, undefined, false);
+        void loadMarketPrice(symbol, { priceRiskPct: keepRisk, withTracker: false });
       }
     }, 200);
     return () => clearTimeout(t);
-  }, [open, symbol, trackerSnap, trackerLoading, risk, loadMarketPrice]);
+  }, [open, symbol, stakePctLabel, trackerSnap, trackerLoading, loadMarketPrice]);
 
   const resetInitKey = useCallback(() => {
     trackerInitRef.current = null;
+    lastSymbolRef.current = "";
   }, []);
 
   return { resetInitKey };

@@ -6,7 +6,12 @@ import {
   SIGNAL_DAILY_STOP_LIMIT_PCT,
 } from "./dailyStopLimit";
 import { DEFAULT_RISK_PERCENT, entryNominalUsd, formatRiskPercent } from "./signalForm";
-import { DEFAULT_STOP_RISK_PCT, formatRiskPct } from "./signalLevels";
+import {
+  DEFAULT_NOMINAL_STOP_PCT,
+  DEFAULT_STOP_RISK_PCT,
+  formatRiskPct,
+  STOP_OFFSET_MIN_PCT,
+} from "./signalLevels";
 
 export function accountStopPctFromTracker(dailyLossPct: number | undefined): number | null {
   if (dailyLossPct === undefined) return null;
@@ -68,7 +73,42 @@ export function formatPriceRiskFromAccountStop(
   return formatRiskPct(priceStopPctFromAccountRisk(accountRiskPct, balanceUsd, stakePct, leverage));
 }
 
-/** % цены для полного остатка дневного лимита. */
+/** Макс. % цены при текущем остатке дневного лимита. */
+export function maxPriceStopPctForForm(
+  dailyLossPct: number | undefined,
+  balanceUsd: number,
+  stakePct: number,
+  leverage: number,
+): number {
+  if (dailyLossPct === undefined || balanceUsd <= 0 || stakePct <= 0) {
+    return DEFAULT_STOP_RISK_PCT;
+  }
+  const rem = dailyStopRemainingPct(dailyLossPct);
+  return maxPriceStopPctFromAccountRemaining(rem, balanceUsd, stakePct, leverage);
+}
+
+/** Стартовый % стопа: 0.7% от номинала, но не выше дневного остатка. */
+export function defaultPriceStopPctForForm(
+  dailyLossPct: number | undefined,
+  balanceUsd: number,
+  stakePct: number,
+  leverage: number,
+): number {
+  const max = maxPriceStopPctForForm(dailyLossPct, balanceUsd, stakePct, leverage);
+  if (max < ACCOUNT_STOP_MIN_STEP) return STOP_OFFSET_MIN_PCT;
+  return Math.min(DEFAULT_NOMINAL_STOP_PCT, Math.max(STOP_OFFSET_MIN_PCT, max));
+}
+
+export function formatDefaultPriceRiskForForm(
+  dailyLossPct: number | undefined,
+  balanceUsd: number,
+  stakePct: number,
+  leverage: number,
+): string {
+  return formatRiskPct(defaultPriceStopPctForForm(dailyLossPct, balanceUsd, stakePct, leverage));
+}
+
+/** % цены для полного остатка дневного лимита (верхняя граница бегунка). */
 export function formatPriceRiskForForm(
   dailyLossPct: number | undefined,
   balanceUsd: number,

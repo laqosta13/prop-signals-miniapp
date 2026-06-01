@@ -3722,6 +3722,7 @@ input.readonly {
   text-transform: none;
   letter-spacing: 0;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .risk-slider__value {
