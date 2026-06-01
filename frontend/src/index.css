@@ -3787,13 +3787,14 @@ input.readonly {
 }
 
 .risk-slider__marks {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 4px;
+  position: relative;
+  height: 22px;
   margin-top: 6px;
 }
 
 .risk-slider__mark {
+  position: absolute;
+  top: 0;
   padding: 4px 0;
   border: none;
   background: transparent;
@@ -3802,9 +3803,7 @@ input.readonly {
   font-weight: 600;
   cursor: pointer;
   text-align: center;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .risk-slider__mark.on {
@@ -3871,10 +3870,6 @@ input.readonly {
 
 .stop-offset-slider {
   margin-bottom: 0;
-}
-
-.stop-offset-slider__marks {
-  grid-template-columns: repeat(var(--stop-marks-count, 4), minmax(0, 1fr));
 }
 
 .stop-offset-slider__budget {
@@ -4245,6 +4240,10 @@ input.readonly {
 
 .signal-form__position .risk-slider {
   margin-bottom: 0;
+}
+
+.signal-form__section-body .signal-media-picker {
+  margin-bottom: 4px;
 }
 
 .signal-form__comment {

@@ -5,6 +5,7 @@ import {
   formatRiskPct,
   parseRiskPctValue,
 } from "../utils/signalLevels";
+import { riskSliderMarkStyle } from "../utils/riskSliderMarks";
 import {
   maxPriceStopPctFromDailyRemaining,
   priceStopSliderMarks,
@@ -94,12 +95,7 @@ export function StopOffsetSlider({
             max={maxPct}
             step={step}
             value={current}
-            style={
-              {
-                "--risk-pct": `${Math.min(100, Math.max(0, barPct))}%`,
-                "--stop-marks-count": String(Math.max(marks.length, 1)),
-              } as React.CSSProperties
-            }
+            style={{ "--risk-pct": `${Math.min(100, Math.max(0, barPct))}%` } as React.CSSProperties}
             onChange={(e) => setPercent(parseFloat(e.target.value))}
             onInput={(e) => setPercent(parseFloat((e.target as HTMLInputElement).value))}
             aria-valuemin={minPct}
@@ -108,12 +104,13 @@ export function StopOffsetSlider({
             aria-label="Процент движения цены от входа до стопа"
           />
           {marks.length > 0 && (
-            <div className="risk-slider__marks stop-offset-slider__marks" aria-hidden>
+            <div className="risk-slider__marks" aria-hidden>
               {marks.map((m) => (
                 <button
                   key={m}
                   type="button"
                   className={`risk-slider__mark${Math.abs(current - m) < step / 2 ? " on" : ""}`}
+                  style={riskSliderMarkStyle(m, maxPct)}
                   onClick={() => setPercent(m)}
                 >
                   {formatRiskPct(m)}

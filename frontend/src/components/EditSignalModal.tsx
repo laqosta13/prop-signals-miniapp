@@ -196,7 +196,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
         />
       </SignalFormSection>
 
-      <SignalFormSection title="Медиа">
+      <SignalFormSection title="Комментарий">
         <SignalMediaPicker
           screenshot={screenshot}
           video={video}
@@ -218,9 +218,6 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
           onRemoveScreenshot={setRemoveScreenshot}
           onRemoveVideo={setRemoveVideo}
         />
-      </SignalFormSection>
-
-      <SignalFormSection title="Комментарий">
         <SignalFormCommentSection value={comment} onChange={setComment} disabled={submitting} />
       </SignalFormSection>
 

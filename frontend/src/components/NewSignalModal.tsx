@@ -206,7 +206,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
         />
       </SignalFormSection>
 
-      <SignalFormSection title="Медиа" hint="необязательно">
+      <SignalFormSection title="Комментарий">
         <SignalMediaPicker
           screenshot={screenshot}
           video={video}
@@ -219,9 +219,6 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
           onVideo={setVideo}
           label="Скрин или видео"
         />
-      </SignalFormSection>
-
-      <SignalFormSection title="Комментарий" hint="на русском">
         <SignalFormCommentSection
           value={comment}
           onChange={setComment}

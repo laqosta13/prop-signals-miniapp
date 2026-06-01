@@ -1,4 +1,5 @@
 import { roundStopPct } from "../utils/dailyStopLimit";
+import { riskSliderMarkStyle } from "../utils/riskSliderMarks";
 import { formatRiskPercent, parseRiskPercent } from "../utils/signalForm";
 import { stakeSliderMarks } from "../utils/stakePool";
 
@@ -60,6 +61,7 @@ export function RiskPercentSlider({
             key={m}
             type="button"
             className={`risk-slider__mark${Math.abs(current - m) < STAKE_SLIDER_STEP / 2 ? " on" : ""}`}
+            style={riskSliderMarkStyle(m, cap)}
             disabled={disabled || cap <= 0}
             onClick={() => setPercent(m)}
           >
