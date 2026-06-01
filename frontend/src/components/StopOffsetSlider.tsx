@@ -6,9 +6,8 @@ import {
   parseRiskPctValue,
 } from "../utils/signalLevels";
 import {
-  ACCOUNT_STOP_MIN_STEP,
-  accountStopSliderMarks,
-  accountStopSliderStep,
+  maxPriceStopPctFromDailyRemaining,
+  priceStopSliderMarks,
   roundStopPct,
   SIGNAL_DAILY_STOP_LIMIT_PCT,
 } from "../utils/dailyStopLimit";
@@ -16,8 +15,10 @@ import {
 type Props = {
   value: string;
   onChange: (value: string) => void;
-  /** Остаток дневного лимита стопа (% счёта). Бегунок 0…remaining на весь трек. */
+  /** Остаток дневного лимита (% счёта) + позиция → бегунок в % от входа до стопа. */
   dailyRemainingPct?: number;
+  stakePct?: number;
+  leverage?: number;
   dailyLossPct?: number;
   blocked?: boolean;
   /** Скрыть дублирующий текст лимита (показывается в панели лимитов формы). */
@@ -28,14 +29,19 @@ export function StopOffsetSlider({
   value,
   onChange,
   dailyRemainingPct,
+  stakePct,
+  leverage,
   dailyLossPct = 0,
   blocked = false,
   showBudget = true,
 }: Props) {
-  const accountMode = dailyRemainingPct !== undefined;
-  const maxPct = accountMode ? Math.max(0, dailyRemainingPct) : 5;
-  const minPct = accountMode ? ACCOUNT_STOP_MIN_STEP : STOP_OFFSET_MIN_PCT;
-  const step = accountMode ? accountStopSliderStep(maxPct) : STOP_OFFSET_STEP;
+  const accountMode =
+    dailyRemainingPct !== undefined && stakePct !== undefined && leverage !== undefined;
+  const maxPct = accountMode
+    ? maxPriceStopPctFromDailyRemaining(dailyRemainingPct, stakePct, leverage)
+    : 5;
+  const minPct = STOP_OFFSET_MIN_PCT;
+  const step = STOP_OFFSET_STEP;
   const currentRaw = parseRiskPctValue(value);
   const current = accountMode
     ? Math.min(maxPct, Math.max(minPct, currentRaw))
@@ -49,30 +55,30 @@ export function StopOffsetSlider({
       : 0;
 
   const marks = accountMode
-    ? accountStopSliderMarks(maxPct)
+    ? priceStopSliderMarks(maxPct)
     : ([0.5, 1, 1.5, 2, 3, 5] as const).filter((m) => m <= maxPct);
 
   const setPercent = (n: number) => {
-    if (blocked || maxPct < ACCOUNT_STOP_MIN_STEP) return;
+    if (blocked || maxPct < minPct) return;
     const clamped = accountMode
       ? Math.min(maxPct, Math.max(minPct, roundStopPct(n)))
       : clampStopOffsetPct(n);
-    if (accountMode && clamped < ACCOUNT_STOP_MIN_STEP) return;
+    if (accountMode && (clamped < STOP_OFFSET_MIN_PCT || maxPct < STOP_OFFSET_MIN_PCT)) return;
     onChange(formatRiskPct(clamped));
   };
 
-  const disabled = blocked || (accountMode ? maxPct < ACCOUNT_STOP_MIN_STEP : maxPct < minPct);
+  const disabled = blocked || maxPct < minPct;
 
   return (
     <div className={`risk-slider stop-offset-slider${disabled ? " stop-offset-slider--blocked" : ""}`}>
       <div className="risk-slider__head">
-        <span className="risk-slider__label">{accountMode ? "Риск до стопа" : "До стопа"}</span>
+        <span className="risk-slider__label">До стопа</span>
         <strong className="risk-slider__value">{formatRiskPct(current)}%</strong>
       </div>
       {accountMode && showBudget && (
         <p className="stop-offset-slider__budget meta">
-          Лимит {SIGNAL_DAILY_STOP_LIMIT_PCT}% · потери {formatRiskPct(dailyLossPct)}% · остаток{" "}
-          <strong>{formatRiskPct(maxPct)}%</strong>
+          Лимит {SIGNAL_DAILY_STOP_LIMIT_PCT}% счёта · потери {formatRiskPct(dailyLossPct)}% · остаток{" "}
+          <strong>{formatRiskPct(dailyRemainingPct!)}%</strong>
         </p>
       )}
       {disabled ? (
@@ -99,7 +105,7 @@ export function StopOffsetSlider({
             aria-valuemin={minPct}
             aria-valuemax={maxPct}
             aria-valuenow={current}
-            aria-label={accountMode ? "Риск до стопа в процентах счёта" : "Процент до стопа"}
+            aria-label="Процент движения цены от входа до стопа"
           />
           {marks.length > 0 && (
             <div className="risk-slider__marks stop-offset-slider__marks" aria-hidden>

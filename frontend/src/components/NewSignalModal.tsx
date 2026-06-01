@@ -38,8 +38,6 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
   const [video, setVideo] = useState<File | null>(null);
   const [shotPreview, setShotPreview] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
-  const [accountStopSel, setAccountStopSel] = useState<number | null>(null);
-
   const {
     direction,
     entry,
@@ -57,26 +55,14 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
   const directionRef = useRef(direction);
   directionRef.current = direction;
 
-  const tracker = useSignalFormTracker(
-    open,
-    { riskPct, onRiskPctChange },
-    { risk, setRisk },
-    leverage,
-    setAccountStopSel,
-  );
+  const tracker = useSignalFormTracker(open, { riskPct, onRiskPctChange }, { risk, setRisk }, leverage);
 
   const { onStakeChange, onLeverageChange } = useSignalPositionControls({
     risk,
     setRisk,
     leverage,
     setLeverage,
-    stakePct: tracker.stakePct,
-    lev: tracker.lev,
     riskPct,
-    entry,
-    dailyRemaining: tracker.dailyRemaining,
-    accountStopSel,
-    setAccountStopSel,
     onRiskPctChange,
   });
 
@@ -90,16 +76,12 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
     directionRef,
     applyMarketPrice,
     setRisk,
-    setAccountStopSel,
     setPriceLoading,
     setError,
   });
 
   useEffect(() => {
-    if (!open) {
-      resetInitKey();
-      setAccountStopSel(null);
-    }
+    if (!open) resetInitKey();
   }, [open, resetInitKey]);
 
   useEffect(() => {
@@ -206,8 +188,6 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
           dailyRemainingPct={tracker.dailyRemaining}
           dailyLossPct={tracker.dailyLossPct}
           dailyStopBlocked={tracker.dailyStopBlocked}
-          accountStopPct={accountStopSel}
-          onAccountStopChange={setAccountStopSel}
         />
       </SignalFormSection>
 

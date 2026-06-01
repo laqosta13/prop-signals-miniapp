@@ -23,7 +23,6 @@ export function useSignalFormTracker(
   levels: LevelsSync,
   stake: StakeSync,
   leverage: string,
-  onAccountStopClamped: (pct: number) => void,
   excludeSignalId?: number,
 ) {
   const { snapshot: trackerSnap, loading: trackerLoading } = useAdminTrackerSnapshot(
@@ -50,7 +49,6 @@ export function useSignalFormTracker(
     dailyLossPct: trackerSnap?.dailyLossPct,
     stakePct,
     leverage: lev,
-    onAccountStopClamped,
   });
 
   const dailyTradesCount = trackerSnap?.dailyTradesCount ?? 0;

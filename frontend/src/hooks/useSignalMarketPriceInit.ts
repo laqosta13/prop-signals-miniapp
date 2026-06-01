@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, type MutableRefObject, type RefObject } from "react";
+import { useCallback, useEffect, useRef, type RefObject } from "react";
 import { fetchMarketPrice } from "../api";
 import type { TrackerSnapshot } from "./useAdminTrackerSnapshot";
 import { parseLeverage } from "../utils/signalForm";
@@ -20,7 +20,6 @@ type Args = {
   directionRef: RefObject<"long" | "short">;
   applyMarketPrice: (price: number, dir: "long" | "short", priceRiskPct?: number) => void;
   setRisk: (v: string) => void;
-  setAccountStopSel: (v: number | null) => void;
   setPriceLoading: (v: boolean) => void;
   setError: (msg: string | null) => void;
 };
@@ -35,7 +34,6 @@ export function useSignalMarketPriceInit({
   directionRef,
   applyMarketPrice,
   setRisk,
-  setAccountStopSel,
   setPriceLoading,
   setError,
 }: Args) {
@@ -62,7 +60,6 @@ export function useSignalMarketPriceInit({
         const stakePct =
           stake ?? defaultStakePct(trackerSnap.maxStakePct, trackerSnap.stakePoolRemainingPct);
         const accountStop = accountStopPctFromTracker(trackerSnap.dailyLossPct);
-        if (accountStop != null) setAccountStopSel(accountStop);
         const priceRisk =
           accountStop != null
             ? parseRiskPctValue(formatPriceRiskFromAccountStop(accountStop, stakePct, lev))
@@ -75,7 +72,7 @@ export function useSignalMarketPriceInit({
         setPriceLoading(false);
       }
     },
-    [trackerSnap, leverage, applyMarketPrice, directionRef, setAccountStopSel, setPriceLoading, setError],
+    [trackerSnap, leverage, applyMarketPrice, directionRef, setPriceLoading, setError],
   );
 
   // Курс Bybit сразу; после трекера — пересчёт уровней по лимитам

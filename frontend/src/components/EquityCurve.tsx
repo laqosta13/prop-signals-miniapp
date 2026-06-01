@@ -121,8 +121,20 @@ function splitAtZero(
     current = [];
   };
 
-  for (const p of expanded) {
-    const nextTone: "up" | "down" = p.value >= 0 ? "up" : "down";
+  const toneAt = (idx: number): "up" | "down" => {
+    const v = expanded[idx].value;
+    if (v > 0) return "up";
+    if (v < 0) return "down";
+    const next = expanded.slice(idx + 1).find((q) => q.value !== 0);
+    if (next) return next.value > 0 ? "up" : "down";
+    const prev = expanded.slice(0, idx).reverse().find((q) => q.value !== 0);
+    if (prev) return prev.value > 0 ? "up" : "down";
+    return "up";
+  };
+
+  for (let i = 0; i < expanded.length; i += 1) {
+    const p = expanded[i];
+    const nextTone = toneAt(i);
     if (tone != null && nextTone !== tone) {
       current.push(p);
       flush();

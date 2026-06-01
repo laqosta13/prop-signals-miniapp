@@ -7,8 +7,6 @@ import { useSignalPositionControls } from "../hooks/useSignalPositionControls";
 import { formatTakeProfits } from "../utils";
 import { parseLeverage } from "../utils/signalForm";
 import { buildSignalFormData } from "../utils/buildSignalFormData";
-import { ACCOUNT_STOP_MIN_STEP, priceStopToAccountRiskPct } from "../utils/dailyStopLimit";
-import { parseRiskPctValue } from "../utils/signalLevels";
 import { initialUploadProgress, mediaBytesInForm } from "../utils/upload";
 import { SignalLevelsFields } from "./SignalLevelsFields";
 import { SignalMediaPicker } from "./SignalMediaPicker";
@@ -39,7 +37,6 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
   const [removeScreenshot, setRemoveScreenshot] = useState(false);
   const [removeVideo, setRemoveVideo] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
-  const [accountStopSel, setAccountStopSel] = useState<number | null>(null);
   const levelsInitRef = useRef<number | null>(null);
 
   const {
@@ -61,7 +58,6 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
     { riskPct, onRiskPctChange },
     { risk, setRisk },
     leverage,
-    setAccountStopSel,
     signal?.id,
   );
 
@@ -70,13 +66,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
     setRisk,
     leverage,
     setLeverage,
-    stakePct: tracker.stakePct,
-    lev: tracker.lev,
     riskPct,
-    entry,
-    dailyRemaining: tracker.dailyRemaining,
-    accountStopSel,
-    setAccountStopSel,
     onRiskPctChange,
   });
 
@@ -100,16 +90,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
     setRemoveVideo(false);
     setError(null);
     levelsInitRef.current = null;
-    setAccountStopSel(null);
   }, [signal, loadLevels]);
-
-  useEffect(() => {
-    if (!signal || !entry || tracker.stakePct <= 0) return;
-    if (levelsInitRef.current === signal.id) return;
-    levelsInitRef.current = signal.id;
-    const inferred = priceStopToAccountRiskPct(parseRiskPctValue(riskPct), tracker.stakePct, tracker.lev);
-    if (inferred >= ACCOUNT_STOP_MIN_STEP) setAccountStopSel(inferred);
-  }, [signal, entry, riskPct, tracker.stakePct, tracker.lev]);
 
   if (!signal) return null;
 
@@ -197,8 +178,6 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
           dailyRemainingPct={tracker.dailyRemaining}
           dailyLossPct={tracker.dailyLossPct}
           dailyStopBlocked={tracker.dailyStopBlocked}
-          accountStopPct={accountStopSel}
-          onAccountStopChange={setAccountStopSel}
         />
       </SignalFormSection>
 

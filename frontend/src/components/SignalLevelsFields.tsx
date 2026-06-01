@@ -1,7 +1,4 @@
 import { StopOffsetSlider } from "./StopOffsetSlider";
-import { priceStopToAccountRiskPct, ACCOUNT_STOP_MIN_STEP } from "../utils/dailyStopLimit";
-import { formatRiskPct, parseRiskPctValue } from "../utils/signalLevels";
-import { priceRiskLabelFromAccountStop } from "../utils/signalFormAccountStop";
 
 type Props = {
   entry: string;
@@ -19,9 +16,6 @@ type Props = {
   dailyRemainingPct?: number;
   dailyLossPct?: number;
   dailyStopBlocked?: boolean;
-  /** Явный % риска счёта (бегунок), без пересчёта из цены — не «прыгает». */
-  accountStopPct?: number | null;
-  onAccountStopChange?: (pct: number) => void;
 };
 
 export function SignalLevelsFields({
@@ -40,29 +34,9 @@ export function SignalLevelsFields({
   dailyRemainingPct,
   dailyLossPct = 0,
   dailyStopBlocked = false,
-  accountStopPct = null,
-  onAccountStopChange,
 }: Props) {
   const accountMode =
     dailyRemainingPct !== undefined && stakePct !== undefined && leverage !== undefined;
-
-  const sliderValue =
-    accountMode && accountStopPct != null
-      ? formatRiskPct(accountStopPct)
-      : accountMode
-        ? formatRiskPct(priceStopToAccountRiskPct(parseRiskPctValue(riskPct), stakePct, leverage))
-        : riskPct;
-
-  const handleSliderChange = (value: string) => {
-    if (accountMode) {
-      const accountPct = parseFloat(value.trim().replace(",", "."));
-      if (!Number.isFinite(accountPct) || accountPct < ACCOUNT_STOP_MIN_STEP) return;
-      onAccountStopChange?.(accountPct);
-      onRiskPctChange(priceRiskLabelFromAccountStop(accountPct, stakePct, leverage));
-      return;
-    }
-    onRiskPctChange(value);
-  };
 
   return (
     <div className="signal-form__levels">
@@ -101,9 +75,11 @@ export function SignalLevelsFields({
       </div>
       <div className="signal-form__levels-slider">
         <StopOffsetSlider
-          value={sliderValue}
-          onChange={handleSliderChange}
+          value={riskPct}
+          onChange={onRiskPctChange}
           dailyRemainingPct={accountMode ? dailyRemainingPct : undefined}
+          stakePct={accountMode ? stakePct : undefined}
+          leverage={accountMode ? leverage : undefined}
           dailyLossPct={dailyLossPct}
           blocked={dailyStopBlocked}
           showBudget={false}

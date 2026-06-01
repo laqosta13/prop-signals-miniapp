@@ -5,9 +5,7 @@ import {
   dailyStopRemainingPct,
   priceStopToAccountRiskPct,
 } from "../utils/dailyStopLimit";
-import { formatRiskPct, parseRiskPctValue } from "../utils/signalLevels";
-
-export { preserveAccountStopOnLeverageChange } from "../utils/signalFormAccountStop";
+import { formatRiskPct, parseRiskPctValue, STOP_OFFSET_MIN_PCT } from "../utils/signalLevels";
 
 export function useDailyStopSync(opts: {
   enabled: boolean;
@@ -16,10 +14,8 @@ export function useDailyStopSync(opts: {
   dailyLossPct: number | undefined;
   stakePct: number;
   leverage: number;
-  onAccountStopClamped?: (accountPct: number) => void;
 }) {
-  const { enabled, riskPct, onRiskPctChange, dailyLossPct, stakePct, leverage, onAccountStopClamped } =
-    opts;
+  const { enabled, riskPct, onRiskPctChange, dailyLossPct, stakePct, leverage } = opts;
   const dailyRemaining =
     dailyLossPct !== undefined ? dailyStopRemainingPct(dailyLossPct) : undefined;
   const blocked = dailyRemaining !== undefined && dailyRemaining < ACCOUNT_STOP_MIN_STEP;
@@ -30,11 +26,10 @@ export function useDailyStopSync(opts: {
     if (account > dailyRemaining + 0.005) {
       const pricePct = accountRiskToPriceStopPct(dailyRemaining, stakePct, leverage);
       if (pricePct > 0) {
-        onAccountStopClamped?.(dailyRemaining);
-        onRiskPctChange(formatRiskPct(Math.max(ACCOUNT_STOP_MIN_STEP, pricePct)));
+        onRiskPctChange(formatRiskPct(Math.max(STOP_OFFSET_MIN_PCT, pricePct)));
       }
     }
-  }, [enabled, dailyRemaining, stakePct, leverage, riskPct, onRiskPctChange, onAccountStopClamped]);
+  }, [enabled, dailyRemaining, stakePct, leverage, riskPct, onRiskPctChange]);
 
   return {
     dailyRemaining,

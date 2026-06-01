@@ -23,7 +23,7 @@ export function accountStopSliderStep(_remaining?: number): number {
   return ACCOUNT_STOP_MIN_STEP;
 }
 
-/** Метки бегунка: равномерно от 0 до остатка (на весь трек). */
+/** Метки бегунка: равномерно от 0 до максимума (на весь трек). */
 export function accountStopSliderMarks(remaining: number, limit = SIGNAL_DAILY_STOP_LIMIT_PCT): number[] {
   const max = roundStopPct(Math.max(0, remaining));
   if (max < ACCOUNT_STOP_MIN_STEP) return [];
@@ -33,6 +33,21 @@ export function accountStopSliderMarks(remaining: number, limit = SIGNAL_DAILY_S
   if (max <= 0.15) return [max];
   const parts = [0.25, 0.5, 0.75, 1].map((f) => roundStopPct(max * f));
   return parts.filter((m, i, arr) => i === 0 || m > arr[i - 1] + 0.009);
+}
+
+/** Макс. % движения цены до стопа при полном остатке дневного лимита (% счёта). */
+export function maxPriceStopPctFromDailyRemaining(
+  dailyRemainingPct: number,
+  stakePct: number,
+  leverage: number,
+): number {
+  if (dailyRemainingPct < ACCOUNT_STOP_MIN_STEP || stakePct <= 0 || leverage < 1) return 0;
+  return accountRiskToPriceStopPct(dailyRemainingPct, stakePct, leverage);
+}
+
+/** Метки бегунка «% от входа до стопа» (0…maxPrice). */
+export function priceStopSliderMarks(maxPricePct: number): number[] {
+  return accountStopSliderMarks(maxPricePct, maxPricePct);
 }
 
 export function isDailyStopBudgetExhausted(dailyLossPct: number): boolean {
