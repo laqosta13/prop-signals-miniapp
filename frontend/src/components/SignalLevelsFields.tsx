@@ -1,15 +1,17 @@
 import { StopOffsetSlider } from "./StopOffsetSlider";
+import { parseEntryPrice } from "../utils/signalLevels";
 
 type Props = {
   entry: string;
   stop: string;
   target: string;
   riskPct: string;
+  direction: "long" | "short";
   priceLoading?: boolean;
   onEntryChange: (value: string) => void;
   onStopChange: (value: string) => void;
   onTargetChange: (value: string) => void;
-  /** % движения цены (риск от номинала); стоп/цель = R:R 1:3. */
+  /** % движения цены от входа до стопа; цель = R:R 1:3. */
   onRiskPctChange: (value: string) => void;
   entryPlaceholder?: string;
   stakePct?: number;
@@ -21,6 +23,7 @@ type Props = {
 
 export function SignalLevelsFields({
   entry,
+  direction,
   stop,
   target,
   riskPct,
@@ -38,6 +41,7 @@ export function SignalLevelsFields({
 }: Props) {
   const accountMode =
     dailyRemainingPct !== undefined && stakePct !== undefined && leverage !== undefined;
+  const hasEntry = parseEntryPrice(entry) !== null;
 
   return (
     <div className="signal-form__levels">
@@ -83,13 +87,17 @@ export function SignalLevelsFields({
         <StopOffsetSlider
           value={riskPct}
           onChange={onRiskPctChange}
+          hasEntry={hasEntry}
           dailyRemainingPct={accountMode ? dailyRemainingPct : undefined}
           stakePct={accountMode ? stakePct : undefined}
           leverage={accountMode ? leverage : undefined}
           dailyLossPct={dailyLossPct}
-          blocked={dailyStopBlocked}
+          blocked={dailyStopBlocked || !hasEntry}
           showBudget={false}
         />
+        {!hasEntry && !priceLoading ? (
+          <p className="stop-offset-slider__blocked meta">Укажите цену входа — стоп считается от неё</p>
+        ) : null}
       </div>
     </div>
   );

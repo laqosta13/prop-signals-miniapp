@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   DEFAULT_STOP_RISK_PCT,
   clampStopOffsetPct,
@@ -61,10 +61,7 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
   const onRiskPctChange = useCallback(
     (value: string) => {
       setRiskPct(value);
-      const trimmed = value.trim().replace(",", ".");
-      if (!trimmed) return;
-      const pct = parseFloat(trimmed);
-      if (!Number.isFinite(pct) || pct <= 0) return;
+      const pct = parseRiskPctValue(value);
       const next = stopTargetFromEntryAndRisk(entry, direction, pct);
       if (!next) return;
       setStop(next.stop);
@@ -72,6 +69,17 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
     },
     [direction, entry],
   );
+
+  const riskPctRef = useRef(riskPct);
+  riskPctRef.current = riskPct;
+
+  /** При смене входа или направления — стоп/цель заново от цены входа. */
+  useEffect(() => {
+    const next = stopTargetFromEntryAndRisk(entry, direction, parseRiskPctValue(riskPctRef.current));
+    if (!next) return;
+    setStop(next.stop);
+    setTarget(next.target);
+  }, [entry, direction]);
 
   const onStopChange = useCallback(
     (value: string) => {

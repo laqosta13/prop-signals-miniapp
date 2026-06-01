@@ -162,6 +162,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
       >
         <SignalLevelsFields
           entry={entry}
+          direction={direction}
           stop={stop}
           target={target}
           riskPct={riskPct}

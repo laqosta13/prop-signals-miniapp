@@ -1,4 +1,4 @@
-/** Уровни вход / стоп / цель для формы сигнала (R:R 1:3). */
+/** Уровни вход / стоп / цель для формы сигнала (R:R 1:3). Стоп и цель всегда от цены входа. */
 
 /** Стартовое значение бегунка «До стопа» — % от номинала (≈ % цены от входа). */
 export const DEFAULT_NOMINAL_STOP_PCT = 0.7;
@@ -66,6 +66,7 @@ export function levelsFromEntryAndRisk(
 export function stopTargetFromEntryAndRisk(
   entryRaw: string,
   direction: "long" | "short",
+  /** % движения цены от входа до стопа. */
   riskPct: number,
 ): { stop: string; target: string } | null {
   const entry = parseEntryPrice(entryRaw);

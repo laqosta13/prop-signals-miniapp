@@ -20,9 +20,10 @@ import {
 } from "../utils/signalLevels";
 
 type Props = {
-  /** % движения цены до стопа (для пересчёта уровней). */
+  /** % движения цены от входа до стопа (для пересчёта стопа/цели). */
   value: string;
   onChange: (value: string) => void;
+  hasEntry?: boolean;
   dailyRemainingPct?: number;
   stakePct?: number;
   leverage?: number;
@@ -34,6 +35,7 @@ type Props = {
 export function StopOffsetSlider({
   value,
   onChange,
+  hasEntry = true,
   dailyRemainingPct,
   stakePct,
   leverage,
@@ -84,7 +86,7 @@ export function StopOffsetSlider({
     const step = accountStopSliderStep(maxAccount);
     const barPct = maxAccount > 0 ? (currentAccount / maxAccount) * 100 : 0;
     const marks = accountStopSliderMarks(dailyRemainingPct);
-    const disabled = blocked || maxAccount < minAccount;
+    const disabled = blocked || !hasEntry || maxAccount < minAccount;
 
     const setAccountPct = (account: number) => {
       if (disabled) return;
@@ -100,7 +102,7 @@ export function StopOffsetSlider({
             <span className="risk-slider__label">Риск до стопа</span>
             {maxAccount > 0 ? (
               <span className="risk-slider__hint">
-                макс. {formatAccountStopPct(maxAccount)}% счёта · остаток лимита
+                макс. {formatAccountStopPct(maxAccount)}% счёта · стоп от цены входа
               </span>
             ) : null}
           </div>
