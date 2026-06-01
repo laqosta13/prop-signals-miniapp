@@ -2658,20 +2658,25 @@
   text-align: center;
 }
 
-.disclaimer-sheet__body {
+.disclaimer-sheet__lead {
   margin: 0 0 12px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--muted);
+  text-align: center;
+}
+
+.disclaimer-sheet__list {
+  margin: 0 0 12px;
+  padding: 0 0 0 1.1rem;
   font-size: 0.88rem;
   line-height: 1.45;
   color: var(--text);
   text-align: left;
 }
 
-.disclaimer-sheet__body p {
-  margin: 0;
-}
-
-.disclaimer-sheet__body p + p {
-  margin-top: 10px;
+.disclaimer-sheet__list li + li {
+  margin-top: 8px;
 }
 
 .disclaimer-sheet__footer {

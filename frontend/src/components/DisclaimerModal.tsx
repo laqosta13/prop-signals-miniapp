@@ -1,7 +1,9 @@
 import { createPortal } from "react-dom";
 import {
+  DISCLAIMER_ACCEPT_LABEL,
   DISCLAIMER_FOOTER,
-  DISCLAIMER_PARAGRAPHS,
+  DISCLAIMER_LEAD,
+  DISCLAIMER_POINTS,
   DISCLAIMER_TITLE,
 } from "../data/disclaimer";
 
@@ -25,11 +27,12 @@ export function DisclaimerModal({ variant = "accept", onAccept, onClose }: Props
         onClick={isInfo ? (e) => e.stopPropagation() : undefined}
       >
         <h2 id="disclaimer-title">{DISCLAIMER_TITLE}</h2>
-        <div className="disclaimer-sheet__body">
-          {DISCLAIMER_PARAGRAPHS.map((line) => (
-            <p key={line}>{line}</p>
+        <p className="disclaimer-sheet__lead">{DISCLAIMER_LEAD}</p>
+        <ul className="disclaimer-sheet__list">
+          {DISCLAIMER_POINTS.map((line) => (
+            <li key={line}>{line}</li>
           ))}
-        </div>
+        </ul>
         <p className="disclaimer-sheet__footer">{DISCLAIMER_FOOTER}</p>
         {isInfo ? (
           <button type="button" className="submit-btn" onClick={onClose}>
@@ -37,7 +40,7 @@ export function DisclaimerModal({ variant = "accept", onAccept, onClose }: Props
           </button>
         ) : (
           <button type="button" className="submit-btn" onClick={onAccept}>
-            Принимаю правила
+            {DISCLAIMER_ACCEPT_LABEL}
           </button>
         )}
       </div>
