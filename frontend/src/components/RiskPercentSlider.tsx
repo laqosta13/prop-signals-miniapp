@@ -1,7 +1,6 @@
 import { roundStopPct } from "../utils/dailyStopLimit";
-import { riskSliderMarkStyle } from "../utils/riskSliderMarks";
 import { formatRiskPercent, parseRiskPercent } from "../utils/signalForm";
-import { stakeSliderMarks } from "../utils/stakePool";
+import { FormRangeSlider } from "./FormRangeSlider";
 
 const STAKE_SLIDER_STEP = 0.01;
 
@@ -23,7 +22,6 @@ export function RiskPercentSlider({
   disabled = false,
 }: Props) {
   const cap = Math.max(0, Math.min(100, max));
-  const marks = stakeSliderMarks(cap);
   const current = Math.min(parseRiskPercent(value), cap);
 
   const setPercent = (n: number) => {
@@ -32,43 +30,18 @@ export function RiskPercentSlider({
   };
 
   return (
-    <div className="risk-slider">
-      <div className="risk-slider__head">
-        <div className="risk-slider__label-wrap">
-          <span className="risk-slider__label">{label}</span>
-          {hint ? <span className="risk-slider__hint">{hint}</span> : null}
-        </div>
-        <strong className="risk-slider__value">{formatRiskPercent(current)}%</strong>
-      </div>
-      <input
-        type="range"
-        className="risk-slider__input"
-        min={0}
-        max={cap}
-        step={STAKE_SLIDER_STEP}
-        value={current}
-        disabled={disabled || cap <= 0}
-        style={{ "--risk-pct": cap > 0 ? `${(current / cap) * 100}%` : "0%" } as React.CSSProperties}
-        onChange={(e) => setPercent(parseFloat(e.target.value))}
-        onInput={(e) => setPercent(parseFloat((e.target as HTMLInputElement).value))}
-        aria-valuemin={0}
-        aria-valuemax={cap}
-        aria-valuenow={current}
-      />
-      <div className="risk-slider__marks" aria-hidden>
-        {marks.map((m) => (
-          <button
-            key={m}
-            type="button"
-            className={`risk-slider__mark${Math.abs(current - m) < STAKE_SLIDER_STEP / 2 ? " on" : ""}`}
-            style={riskSliderMarkStyle(m, cap)}
-            disabled={disabled || cap <= 0}
-            onClick={() => setPercent(m)}
-          >
-            {m}
-          </button>
-        ))}
-      </div>
-    </div>
+    <FormRangeSlider
+      label={label}
+      hint={hint ?? (cap < 100 ? `макс. ${formatRiskPercent(cap)}%` : undefined)}
+      value={current}
+      onChange={setPercent}
+      min={0}
+      max={cap}
+      step={STAKE_SLIDER_STEP}
+      disabled={disabled || cap <= 0}
+      formatValue={(n) => formatRiskPercent(n)}
+      formatMark={(n) => formatRiskPercent(n)}
+      ariaLabel={label}
+    />
   );
 }

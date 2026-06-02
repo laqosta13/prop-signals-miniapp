@@ -70,8 +70,8 @@ export type Me = {
 
 export type SubscriptionInfo = {
   usdt_ton_address: string;
-  subscription_usd: number;
-  subscription_days: number;
+  week_usd: number;
+  month_usd: number;
   trial_days: number;
   referral_bonus_days: number;
   subscription_until: string | null;
@@ -169,13 +169,22 @@ export type CultCandidate = {
   is_me: boolean;
 };
 
+export type CultCandidateSubscriptionInfo = {
+  usdt_ton_address: string;
+  subscription_usd: number;
+  subscription_days: number;
+  cult_subscription_until: string | null;
+  cult_subscription_active: boolean;
+};
+
 export type CultCandidateMe = {
   is_candidate: boolean;
   display_name: string | null;
   can_join: boolean;
   blockers: string[];
   bybit_configured: boolean;
-  subscription_paid: boolean;
+  cult_subscription_active: boolean;
+  cult_subscription_until: string | null;
 };
 
 export type ChallengeDashboard = {
@@ -305,11 +314,21 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const fetchSubscriptionInfo = () => api<SubscriptionInfo>("/subscriptions/info");
 
-export const submitPayment = (tx_id: string) =>
+export const submitPayment = (plan: "week" | "month", tx_id: string) =>
   api<SubscriptionInfo>("/subscriptions/pay", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ plan: "month", tx_id }),
+    body: JSON.stringify({ plan, tx_id }),
+  });
+
+export const fetchCultSubscriptionInfo = () =>
+  api<CultCandidateSubscriptionInfo>("/cult-candidates/subscription/info");
+
+export const payCultSubscription = (tx_id: string) =>
+  api<CultCandidateSubscriptionInfo>("/cult-candidates/subscription/pay", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tx_id }),
   });
 
 export const fetchMe = () => api<Me>("/auth/me");

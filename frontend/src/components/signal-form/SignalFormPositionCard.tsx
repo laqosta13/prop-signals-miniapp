@@ -33,22 +33,22 @@ export function SignalFormPositionCard({
       <div className="signal-form__position-stats">
         <div className="signal-form__stat">
           <span className="signal-form__stat-k">Баланс</span>
-          <span className="signal-form__stat-v">
+          <span className="signal-form__stat-v" title={hasBalance ? `$${balanceUsd}` : undefined}>
             {hasBalance ? `$${Math.round(balanceUsd).toLocaleString("en-US")}` : "—"}
           </span>
         </div>
         <div className="signal-form__stat signal-form__stat--accent">
           <span className="signal-form__stat-k">Номинал</span>
-          <span className="signal-form__stat-v">
+          <span className="signal-form__stat-v" title={hasBalance ? `$${stakeUsd}` : undefined}>
             {hasBalance
               ? `$${stakeUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}`
               : "—"}
           </span>
         </div>
         <div className="signal-form__stat">
-          <span className="signal-form__stat-k">Формула</span>
+          <span className="signal-form__stat-k">Вход</span>
           <span className="signal-form__stat-v signal-form__stat-v--dim">
-            {stakePct}% × {lev}x
+            {stakePct}%×{lev}x
           </span>
         </div>
       </div>
@@ -64,7 +64,6 @@ export function SignalFormPositionCard({
         max={maxStakePct}
         disabled={disabled}
         label="Доля входа"
-        hint={maxStakePct < 100 ? `макс. ${maxStakePct}%` : undefined}
       />
     </div>
   );

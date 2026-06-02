@@ -5,7 +5,6 @@ import type { UploadProgress } from "../api";
 import { useSignalFormTracker } from "../hooks/useSignalFormTracker";
 import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
 import { useSignalMarketPriceInit } from "../hooks/useSignalMarketPriceInit";
-import { useSignalPositionControls } from "../hooks/useSignalPositionControls";
 import { buildSignalFormData } from "../utils/buildSignalFormData";
 import { initialUploadProgress, mediaBytesInForm } from "../utils/upload";
 import { SignalLevelsFields } from "./SignalLevelsFields";
@@ -55,18 +54,9 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
   const directionRef = useRef(direction);
   directionRef.current = direction;
 
-  const tracker = useSignalFormTracker(open, { riskPct, onRiskPctChange }, { risk, setRisk }, leverage);
+  const tracker = useSignalFormTracker(open, { risk, setRisk }, leverage);
 
   const balance = tracker.balanceForNominal();
-
-  const { onStakeChange, onLeverageChange } = useSignalPositionControls({
-    risk,
-    setRisk,
-    leverage,
-    setLeverage,
-    riskPct,
-    onRiskPctChange,
-  });
 
   const { resetInitKey } = useSignalMarketPriceInit({
     open,
@@ -172,7 +162,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
 
       <SignalFormSection
         title="Уровни"
-        hint={priceLoading ? "Курс Bybit…" : "Perp USDT · стоп 2% от входа · цель 1:3"}
+        hint={priceLoading ? "Курс Bybit…" : "Perp · стоп от входа · цель 1:3"}
       >
         <SignalLevelsFields
           entry={entry}
@@ -188,7 +178,6 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
           stakePct={tracker.stakePct}
           leverage={tracker.lev}
           dailyRemainingPct={tracker.dailyRemainingRank}
-          dailyLossUsd={tracker.dailyLossUsd}
           balanceUsd={balance}
           rankMaxStakePct={tracker.rankMaxStakePct}
           dailyStopBlocked={tracker.dailyStopBlocked}
@@ -198,9 +187,12 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
       <SignalFormSection title="Размер позиции">
         <SignalFormPositionCard
           leverage={leverage}
-          onLeverageChange={onLeverageChange}
+          onLeverageChange={(lev, nextRisk) => {
+            setLeverage(lev);
+            if (nextRisk != null) setRisk(nextRisk);
+          }}
           risk={risk}
-          onRiskChange={onStakeChange}
+          onRiskChange={setRisk}
           maxStakePct={tracker.maxStakePct}
           disabled={tracker.stakePoolBlocked}
           balanceUsd={balance}

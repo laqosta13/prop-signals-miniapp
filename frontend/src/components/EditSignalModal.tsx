@@ -4,7 +4,6 @@ import { updateSignalWithMedia, type Signal, type UploadProgress } from "../api"
 import { useSignalFormTracker } from "../hooks/useSignalFormTracker";
 import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
 import { useSignalMarketPriceInit } from "../hooks/useSignalMarketPriceInit";
-import { useSignalPositionControls } from "../hooks/useSignalPositionControls";
 import { formatTakeProfits } from "../utils";
 import { parseLeverage } from "../utils/signalForm";
 import { buildSignalFormData } from "../utils/buildSignalFormData";
@@ -57,24 +56,9 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
   const directionRef = useRef(direction);
   directionRef.current = direction;
 
-  const tracker = useSignalFormTracker(
-    signal != null,
-    { riskPct, onRiskPctChange },
-    { risk, setRisk },
-    leverage,
-    signal?.id,
-  );
+  const tracker = useSignalFormTracker(signal != null, { risk, setRisk }, leverage, signal?.id);
 
   const balance = tracker.balanceForNominal(signal?.account_size ?? 0);
-
-  const { onStakeChange, onLeverageChange } = useSignalPositionControls({
-    risk,
-    setRisk,
-    leverage,
-    setLeverage,
-    riskPct,
-    onRiskPctChange,
-  });
 
   useSignalMarketPriceInit({
     open: signal != null,
@@ -197,7 +181,6 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
           stakePct={tracker.stakePct}
           leverage={tracker.lev}
           dailyRemainingPct={tracker.dailyRemainingRank}
-          dailyLossUsd={tracker.dailyLossUsd}
           balanceUsd={balance}
           rankMaxStakePct={tracker.rankMaxStakePct}
           dailyStopBlocked={tracker.dailyStopBlocked}
@@ -207,9 +190,12 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
       <SignalFormSection title="Размер позиции">
         <SignalFormPositionCard
           leverage={leverage}
-          onLeverageChange={onLeverageChange}
+          onLeverageChange={(lev, nextRisk) => {
+            setLeverage(lev);
+            if (nextRisk != null) setRisk(nextRisk);
+          }}
           risk={risk}
-          onRiskChange={onStakeChange}
+          onRiskChange={setRisk}
           maxStakePct={tracker.maxStakePct}
           disabled={tracker.stakePoolBlocked}
           balanceUsd={balance}

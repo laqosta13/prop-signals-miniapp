@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { HashHedgeRules } from "../api";
-import { HASHHEDGE_REGISTER_URL } from "../data/hashhedgeRules";
+import { HASHHEDGE_REGISTER_LABEL, HASHHEDGE_REGISTER_URL } from "../data/hashhedgeRules";
 import { openExternalLink } from "../utils/openExternalLink";
 import { HashHedgeLogo } from "./BrandLogos";
 
@@ -9,7 +9,7 @@ type Props = {
   loading?: boolean;
 };
 
-function openPropRegistration() {
+function openHashHedgeRegistration() {
   openExternalLink(HASHHEDGE_REGISTER_URL);
 }
 
@@ -67,10 +67,15 @@ export function HashHedgeRulesTable({ rules, loading }: Props) {
           </div>
         ))}
         <div className="hashhedge-rules__footer">
-          <button type="button" className="hashhedge-rules__register" onClick={openPropRegistration}>
+          <button
+            type="button"
+            className="hashhedge-rules__register"
+            onClick={openHashHedgeRegistration}
+            aria-label={HASHHEDGE_REGISTER_LABEL}
+          >
             <span className="cta-btn__label">
               <HashHedgeLogo size={22} />
-              Регистрация на проп
+              {HASHHEDGE_REGISTER_LABEL}
             </span>
           </button>
         </div>

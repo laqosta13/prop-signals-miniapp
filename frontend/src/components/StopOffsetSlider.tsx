@@ -1,14 +1,8 @@
-import { useEffect } from "react";
 import {
-  formatAccountStopPct,
-  maxPriceStopPctFromRankDailyBudget,
-  priceStopSliderMarks,
+  maxPriceStopPctFromDailyRemaining,
   priceStopToAccountRiskPct,
-  rankNominalUsd,
-  roundStopPct,
   SIGNAL_DAILY_STOP_LIMIT_PCT,
 } from "../utils/dailyStopLimit";
-import { riskSliderMarkStyle } from "../utils/riskSliderMarks";
 import {
   STOP_OFFSET_MAX_PCT,
   STOP_OFFSET_MIN_PCT,
@@ -18,154 +12,104 @@ import {
   formatRiskPct,
   parseRiskPctValue,
 } from "../utils/signalLevels";
+import { FormRangeSlider } from "./FormRangeSlider";
 
 type Props = {
-  /** % движения цены от входа до стопа. */
   value: string;
   onChange: (value: string) => void;
   hasEntry?: boolean;
-  dailyRemainingPct?: number;
-  dailyLossUsd?: number;
+  dailyRemainingRankPct?: number;
   balanceUsd?: number;
   rankMaxStakePct?: number;
   stakePct?: number;
   leverage?: number;
   blocked?: boolean;
-  showBudget?: boolean;
 };
 
 export function StopOffsetSlider({
   value,
   onChange,
   hasEntry = true,
-  dailyRemainingPct,
-  dailyLossUsd = 0,
+  dailyRemainingRankPct,
   balanceUsd = 0,
   rankMaxStakePct = 0,
-  stakePct,
-  leverage,
+  stakePct = 0,
+  leverage = 1,
   blocked = false,
-  showBudget = true,
 }: Props) {
   const trackerMode =
-    dailyRemainingPct !== undefined &&
-    stakePct !== undefined &&
-    leverage !== undefined &&
+    dailyRemainingRankPct !== undefined &&
+    stakePct > 0 &&
+    leverage >= 1 &&
     balanceUsd > 0 &&
     rankMaxStakePct > 0;
 
   const priceRaw = parseRiskPctValue(value);
-  const rankNominal = trackerMode ? rankNominalUsd(balanceUsd, rankMaxStakePct, leverage) : 0;
 
   const dailyMaxPrice = trackerMode
-    ? maxPriceStopPctFromRankDailyBudget(dailyLossUsd, balanceUsd, rankMaxStakePct, stakePct, leverage)
+    ? maxPriceStopPctFromDailyRemaining(
+        dailyRemainingRankPct!,
+        balanceUsd,
+        rankMaxStakePct,
+        stakePct,
+        leverage,
+      )
     : 0;
 
   const maxPct = trackerMode
     ? Math.max(
         STOP_OFFSET_MIN_PCT,
-        Math.min(
-          STOP_OFFSET_SLIDER_CAP_PCT,
-          dailyMaxPrice > STOP_OFFSET_MIN_PCT ? dailyMaxPrice : STOP_OFFSET_MAX_PCT,
-        ),
+        Math.min(STOP_OFFSET_SLIDER_CAP_PCT, dailyMaxPrice > STOP_OFFSET_MIN_PCT ? dailyMaxPrice : 0),
       )
     : STOP_OFFSET_MAX_PCT;
 
-  const minPct = STOP_OFFSET_MIN_PCT;
+  const minPct = 0;
   const step = maxPct <= 2 ? 0.01 : STOP_OFFSET_STEP;
   const current = clampStopOffsetPct(priceRaw, maxPct);
-  const barPct = maxPct > minPct ? ((current - minPct) / (maxPct - minPct)) * 100 : 0;
-  const marks = priceStopSliderMarks(maxPct);
-  const disabled = blocked || !hasEntry || maxPct < minPct;
+  const disabled = blocked || !hasEntry || (trackerMode && maxPct < STOP_OFFSET_MIN_PCT);
 
-  const accountAtCurrent =
-    trackerMode && stakePct > 0
-      ? priceStopToAccountRiskPct(current, stakePct, leverage)
-      : null;
+  const accountAtStop =
+    trackerMode && stakePct > 0 ? priceStopToAccountRiskPct(current, stakePct, leverage) : null;
 
-  useEffect(() => {
-    if (!trackerMode || disabled) return;
-    if (priceRaw > maxPct + 0.005) {
-      onChange(formatRiskPct(maxPct));
-    }
-  }, [trackerMode, disabled, maxPct, priceRaw, onChange]);
+  const hint = trackerMode
+    ? `от входа · день ${formatRiskPct(dailyRemainingRankPct!)}/${SIGNAL_DAILY_STOP_LIMIT_PCT}% ном.${
+        accountAtStop != null && accountAtStop > 0 ? ` · ≈${formatRiskPct(accountAtStop)}% счёта` : ""
+      }`
+    : "от цены входа";
+
+  const fmtPct = (n: number) => (n <= 0 ? "0" : formatRiskPct(n));
 
   const setPricePct = (n: number) => {
     if (disabled) return;
-    onChange(formatRiskPct(clampStopOffsetPct(roundStopPct(n), maxPct)));
+    const clamped = n <= 0 ? STOP_OFFSET_MIN_PCT : clampStopOffsetPct(n, maxPct);
+    onChange(formatRiskPct(clamped));
   };
 
-  return (
-    <div className={`risk-slider stop-offset-slider${disabled ? " stop-offset-slider--blocked" : ""}`}>
-      <div className="risk-slider__head">
-        <div className="risk-slider__label-wrap">
-          <span className="risk-slider__label">До стопа</span>
-          {maxPct > 0 ? (
-            <span className="risk-slider__hint">
-              % от цены входа · лимит {SIGNAL_DAILY_STOP_LIMIT_PCT}% ном. ранга (${formatRankUsd(rankNominal)})
-              {accountAtCurrent != null && accountAtCurrent > 0
-                ? ` · ≈ ${formatAccountStopPct(accountAtCurrent)}% счёта`
-                : ""}
-            </span>
-          ) : null}
-        </div>
-        <strong className="risk-slider__value">{formatRiskPct(current)}%</strong>
-      </div>
-      {trackerMode && showBudget && (
-        <p className="stop-offset-slider__budget meta">
-          Потери сегодня ${formatRankUsd(dailyLossUsd)} · остаток стопа{" "}
-          <strong>
-            {formatAccountStopPct(dailyRemainingPct!)}% / {SIGNAL_DAILY_STOP_LIMIT_PCT}%
-          </strong>{" "}
-          от номинала ранга
-        </p>
-      )}
-      {disabled ? (
+  if (disabled) {
+    return (
+      <div className="risk-slider stop-offset-slider stop-offset-slider--blocked">
         <p className="stop-offset-slider__blocked err">
           {!hasEntry
             ? "Укажите цену входа"
-            : `Дневной лимит ${SIGNAL_DAILY_STOP_LIMIT_PCT}% стопа от номинала ранга исчерпан`}
+            : `Дневной лимит ${SIGNAL_DAILY_STOP_LIMIT_PCT}% от номинала ранга исчерпан`}
         </p>
-      ) : (
-        <>
-          <input
-            type="range"
-            className="risk-slider__input"
-            min={minPct}
-            max={maxPct}
-            step={step}
-            value={current}
-            style={{ "--risk-pct": `${Math.min(100, Math.max(0, barPct))}%` } as React.CSSProperties}
-            onChange={(e) => setPricePct(parseFloat(e.target.value))}
-            onInput={(e) => setPricePct(parseFloat((e.target as HTMLInputElement).value))}
-            aria-valuemin={minPct}
-            aria-valuemax={maxPct}
-            aria-valuenow={current}
-            aria-label="Процент движения цены от входа до стопа"
-          />
-          {marks.length > 0 && (
-            <div className="risk-slider__marks" aria-hidden>
-              {marks.map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  className={`risk-slider__mark${Math.abs(current - m) < step / 2 ? " on" : ""}`}
-                  style={riskSliderMarkStyle(m, maxPct)}
-                  onClick={() => setPricePct(m)}
-                >
-                  {formatRiskPct(m)}
-                </button>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
+      </div>
+    );
+  }
 
-function formatRankUsd(usd: number): string {
-  if (!Number.isFinite(usd) || usd <= 0) return "0";
-  if (usd >= 1000) return usd.toFixed(0);
-  return usd.toFixed(usd >= 10 ? 1 : 2).replace(/\.?0+$/, "");
+  return (
+    <FormRangeSlider
+      className="stop-offset-slider"
+      label="До стопа"
+      hint={hint}
+      value={current}
+      onChange={setPricePct}
+      min={minPct}
+      max={maxPct}
+      step={step}
+      formatValue={fmtPct}
+      formatMark={fmtPct}
+      ariaLabel="Процент движения цены от входа до стопа"
+    />
+  );
 }

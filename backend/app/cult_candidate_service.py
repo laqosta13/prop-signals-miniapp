@@ -19,7 +19,7 @@ from app.signal_utils import (
     price_move_pct,
     trade_move_pct,
 )
-from app.subscription_billing import has_active_paid_subscription
+from app.cult_subscription_billing import cult_subscription_active
 from app.models import Subscriber
 
 
@@ -44,8 +44,8 @@ def is_cult_candidate(db: Session, telegram_id: int) -> bool:
 def join_blockers(db: Session, sub: Subscriber, *, is_admin: bool) -> list[str]:
     if is_cult_candidate(db, sub.telegram_user_id):
         return []
-    if not has_active_paid_subscription(db, sub, is_admin):
-        return ["Нужна оплаченная подписка (USDT TON)"]
+    if not cult_subscription_active(sub, is_admin=is_admin):
+        return ["Нужна подписка кандидата CULT ($20 / 30 дней)"]
     bybit = db.get(UserBybitSettings, sub.telegram_user_id)
     if bybit is None:
         return ["Подключите API Bybit"]
@@ -259,7 +259,8 @@ def build_cult_candidate_me_read(db: Session, sub: Subscriber, *, is_admin: bool
         can_join=len(blockers) == 0,
         blockers=blockers,
         bybit_configured=bybit is not None,
-        subscription_paid=has_active_paid_subscription(db, sub, is_admin),
+        cult_subscription_active=cult_subscription_active(sub, is_admin=is_admin),
+        cult_subscription_until=sub.cult_subscription_until,
     )
 
 

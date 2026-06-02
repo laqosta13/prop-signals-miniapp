@@ -2772,23 +2772,39 @@
   margin: 0 0 12px;
 }
 
-.cult-candidate-join__checklist {
-  list-style: none;
-  margin: 0 0 12px;
-  padding: 0;
+.cult-candidate-join__steps {
+  margin: 0 0 14px;
+  padding-left: 1.15rem;
   font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--text);
 }
 
-.cult-candidate-join__checklist li {
-  padding: 4px 0;
+.cult-candidate-join__steps li {
+  margin-bottom: 4px;
 }
 
-.cult-candidate-join__checklist li.ok {
+.cult-candidate-join__steps li.ok {
   color: var(--green);
 }
 
-.cult-candidate-join__checklist li.pending {
+.cult-candidate-join__steps li.pending {
   color: var(--muted);
+}
+
+.cult-candidate-bybit__step {
+  margin: 0 0 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.cult-candidate-bybit__desc {
+  margin-bottom: 10px;
+  line-height: 1.45;
+}
+
+.cult-candidate-bybit__hints {
+  margin-bottom: 12px;
 }
 
 .cult-candidate-join__label {
@@ -2819,6 +2835,32 @@
 
 .cult-candidate-bybit .volnovoi-copy__panel {
   border-color: rgba(109, 40, 217, 0.22);
+}
+
+.cult-candidate-pay {
+  margin: 12px 0 16px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--subtle-border);
+  background: var(--subtle-surface);
+}
+
+.cult-candidate-pay__title {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+}
+
+.cult-candidate-pay__hint {
+  margin: 0 0 10px;
+}
+
+.cult-candidate-pay__price {
+  margin: 8px 0 12px;
+}
+
+.cult-candidate-pay__active {
+  margin: 12px 0;
+  color: var(--green);
 }
 
 .top-list--user-candidates {
@@ -4008,7 +4050,9 @@ input.readonly {
   text-transform: none;
   letter-spacing: 0;
   font-weight: 500;
-  white-space: nowrap;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
 
 .risk-slider__value {
@@ -4095,6 +4139,40 @@ input.readonly {
 
 .risk-slider__mark.on {
   color: #ead6ff;
+}
+
+.risk-slider__marks--grid {
+  position: static;
+  display: grid;
+  height: auto;
+  margin-top: 6px;
+  gap: 0;
+  padding: 0 2px;
+}
+
+.risk-slider__marks--grid .risk-slider__mark {
+  position: static;
+  transform: none;
+  padding: 4px 0;
+  min-width: 0;
+  font-size: 0.64rem;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.risk-slider__marks--grid .risk-slider__mark:first-child {
+  justify-self: start;
+  text-align: left;
+}
+
+.risk-slider__marks--grid .risk-slider__mark:last-child {
+  justify-self: end;
+  text-align: right;
+}
+
+.form-range-slider--off .risk-slider__input {
+  opacity: 0.45;
 }
 
 .signal-nominal {
@@ -4316,14 +4394,18 @@ input.readonly {
 }
 
 .signal-form__chip-v {
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--text);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .signal-form__chip-dim {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 600;
   color: var(--muted);
 }
@@ -4417,16 +4499,6 @@ input.readonly {
   letter-spacing: 0.05em;
   color: var(--muted);
   font-weight: 600;
-}
-
-.signal-form__level-badge {
-  padding: 1px 5px;
-  border-radius: 4px;
-  font-size: 0.58rem;
-  text-transform: lowercase;
-  letter-spacing: 0;
-  color: var(--muted);
-  background: rgba(255, 255, 255, 0.08);
 }
 
 .signal-form__level-input {

@@ -94,7 +94,7 @@ export function useSignalMarketPriceInit({
   // Первичная инициализация: доля входа + вход по Bybit + стоп 0.7% (в пределах лимита).
   useEffect(() => {
     if (skipTrackerInit || !open || trackerLoading || !trackerSnap) return;
-    const tKey = `${trackerSnap.dailyLossUsd}|${trackerSnap.rankMaxStakePct}|${trackerSnap.maxStakePct}|${trackerSnap.stakePoolRemainingPct}|${leverage}`;
+    const tKey = `${trackerSnap.dailyLossUsd}|${trackerSnap.rankMaxStakePct}|${trackerSnap.maxStakePct}|${trackerSnap.stakePoolRemainingPct}`;
     if (trackerInitRef.current === tKey) return;
     trackerInitRef.current = tKey;
 

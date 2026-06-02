@@ -3,7 +3,6 @@ import WebApp from "@twa-dev/sdk";
 import { createCultCandidateSignal, fetchCopyTradingStatus } from "../api";
 import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
 import { useSignalMarketPriceInit } from "../hooks/useSignalMarketPriceInit";
-import { useSignalPositionControls } from "../hooks/useSignalPositionControls";
 import { buildSignalFormData } from "../utils/buildSignalFormData";
 import { parseLeverage, parseRiskPercent } from "../utils/signalForm";
 import { SignalLevelsFields } from "./SignalLevelsFields";
@@ -50,15 +49,6 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
 
   const stakePct = parseRiskPercent(risk);
   const lev = parseLeverage(leverage);
-
-  const { onStakeChange, onLeverageChange } = useSignalPositionControls({
-    risk,
-    setRisk,
-    leverage,
-    setLeverage,
-    riskPct,
-    onRiskPctChange,
-  });
 
   const { resetInitKey } = useSignalMarketPriceInit({
     open,
@@ -177,9 +167,12 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
       <SignalFormSection title="Размер позиции">
         <SignalFormPositionCard
           leverage={leverage}
-          onLeverageChange={onLeverageChange}
+          onLeverageChange={(lev, nextRisk) => {
+            setLeverage(lev);
+            if (nextRisk != null) setRisk(nextRisk);
+          }}
           risk={risk}
-          onRiskChange={onStakeChange}
+          onRiskChange={setRisk}
           maxStakePct={100}
           balanceUsd={balanceUsd}
           stakeUsd={stakeUsd}

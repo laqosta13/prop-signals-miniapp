@@ -454,7 +454,6 @@ export default function App() {
               isAdmin={isAdmin}
               onCultChannelsChange={() => void loadTop()}
               onCultCandidatesChange={() => void loadTop()}
-              onOpenPay={() => setTab("pay")}
             />
           )}
           {tab === "reviews" && (

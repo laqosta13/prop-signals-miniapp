@@ -7,10 +7,10 @@ from app.schemas import PaymentSubmit, SubscriptionInfo, SubscriptionUpdate, Tel
 from app.signal_service import register_subscriber
 from app.referral_links import build_referral_link, referral_share_text, telegram_bot_username
 from app.subscription_billing import (
+    MONTH_USD,
     REFERRAL_BONUS_DAYS,
-    SUBSCRIPTION_DAYS,
-    SUBSCRIPTION_USD,
     TRIAL_DAYS,
+    WEEK_USD,
     record_payment,
     usdt_pay_address,
 )
@@ -35,8 +35,8 @@ def _info(db, user: TelegramUser) -> SubscriptionInfo:
         hint = ""
     return SubscriptionInfo(
         usdt_ton_address=usdt_pay_address(),
-        subscription_usd=SUBSCRIPTION_USD,
-        subscription_days=SUBSCRIPTION_DAYS,
+        week_usd=WEEK_USD,
+        month_usd=MONTH_USD,
         trial_days=TRIAL_DAYS,
         referral_bonus_days=REFERRAL_BONUS_DAYS,
         subscription_until=sub.subscription_until if sub else None,

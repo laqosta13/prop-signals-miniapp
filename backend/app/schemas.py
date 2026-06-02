@@ -88,14 +88,14 @@ class SubscriptionUpdate(BaseModel):
 
 
 class PaymentSubmit(BaseModel):
-    plan: str = Field(default="month", pattern="^month$")
+    plan: str = Field(..., pattern="^(week|month)$")
     tx_id: str = Field(..., min_length=8, max_length=128)
 
 
 class SubscriptionInfo(BaseModel):
     usdt_ton_address: str
-    subscription_usd: float
-    subscription_days: int
+    week_usd: float
+    month_usd: float
     trial_days: int
     referral_bonus_days: int
     subscription_until: datetime | None
@@ -199,13 +199,26 @@ class CultCandidateRead(BaseModel):
     is_me: bool = False
 
 
+class CultCandidateSubscriptionInfo(BaseModel):
+    usdt_ton_address: str
+    subscription_usd: float
+    subscription_days: int
+    cult_subscription_until: datetime | None = None
+    cult_subscription_active: bool = False
+
+
+class CultCandidatePayBody(BaseModel):
+    tx_id: str = Field(..., min_length=8, max_length=128)
+
+
 class CultCandidateMeRead(BaseModel):
     is_candidate: bool
     display_name: str | None = None
     can_join: bool
     blockers: list[str] = []
     bybit_configured: bool = False
-    subscription_paid: bool = False
+    cult_subscription_active: bool = False
+    cult_subscription_until: datetime | None = None
 
 
 class CultCandidateJoinBody(BaseModel):

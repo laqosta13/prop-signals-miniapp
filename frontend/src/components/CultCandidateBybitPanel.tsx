@@ -150,7 +150,7 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
       >
         <span className="cta-btn__label">
           <BybitLogo size={22} />
-          <span>Свои сделки на Bybit</span>
+          <span>Подключение Bybit</span>
         </span>
         <span className="volnovoi-copy__chevron" aria-hidden>
           {open ? "▾" : "▸"}
@@ -159,16 +159,17 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
 
       {open && (
         <div className="volnovoi-copy__panel">
-          <p className="volnovoi-copy__desc">
-            Вы публикуете сигналы сами — ордера уходят на <strong>ваш</strong> Bybit USDT perpetual со стопом и
-            целью. Это не копирование <strong>volnovoi</strong> и без комиссии 20% с прибыли.
+          <p className="cult-candidate-bybit__step meta">2. API Bybit</p>
+          <p className="volnovoi-copy__desc cult-candidate-bybit__desc">
+            Сигналы из формы «+ Сделка» в вашей карточке отправляются на ваш Bybit USDT perpetual. На бирже
+            выставляются вход, стоп и цель по параметрам сигнала.
           </p>
 
-          <ul className="volnovoi-copy__hints">
-            <li>Сделки только из формы «+ Сделка» в вашей карточке в ТОП</li>
-            <li>Нужна подписка 30 дней ($20 USDT TON) — оплачивается отдельно на вкладке «Подписка»</li>
-            <li>Ключи шифруются; права API — только <strong>Trade</strong></li>
-            <li>Размер позиции = баланс Bybit × % депозита × плечо сигнала</li>
+          <ul className="volnovoi-copy__hints cult-candidate-bybit__hints">
+            <li>Права API — только <strong>Trade</strong></li>
+            <li>Ключи хранятся в зашифрованном виде</li>
+            <li>Номинал: баланс Bybit × % входа × плечо</li>
+            <li>«Проверить» — подтянуть баланс и связь с биржей</li>
           </ul>
 
           {loading ? (

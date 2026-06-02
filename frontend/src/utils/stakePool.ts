@@ -4,6 +4,8 @@
  * без веса по балансу трекера (20% + 20% у двух трейдеров → занято 40%).
  */
 
+import { evenSliderMarks } from "./sliderMarks";
+
 export const STAKE_POOL_TOTAL_PCT = 100;
 
 /** Формат % для чипов лимитов (0 остаётся 0, без подстановки дефолта стопа 0.7). */
@@ -13,15 +15,8 @@ export function formatPoolChipPct(pct: number): string {
   return String(rounded).replace(/\.?0+$/, "");
 }
 
-export const STAKE_POOL_MARKS = [0, 25, 50, 75, 100] as const;
-
 export function stakeSliderMarks(maxPct: number): number[] {
-  const cap = Math.max(0, Math.min(100, maxPct));
-  const marks = STAKE_POOL_MARKS.filter((m) => m <= cap);
-  if (cap > 0 && (marks.length === 0 || marks[marks.length - 1] !== cap)) {
-    marks.push(Math.round(cap));
-  }
-  return marks;
+  return evenSliderMarks(Math.max(0, Math.min(100, maxPct)), 0, 4);
 }
 
 export function stakePoolBlockedMessage(maxStakePct: number, poolRemainingPct: number): string {

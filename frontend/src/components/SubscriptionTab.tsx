@@ -9,6 +9,7 @@ import { PartnerLinks } from "./PartnerLinks";
 export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void; refreshKey?: number }) {
   const [info, setInfo] = useState<SubscriptionInfo | null>(null);
   const [tx, setTx] = useState("");
+  const [plan, setPlan] = useState<"week" | "month">("month");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -34,7 +35,7 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void
     setBusy(true);
     setErr(null);
     try {
-      const r = await submitPayment(tx.trim());
+      const r = await submitPayment(plan, tx.trim());
       setInfo(r);
       setTx("");
       WebApp.HapticFeedback.notificationOccurred("success");
@@ -124,14 +125,17 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void
           </button>
         </div>
 
-        <div className="sub-price-single">
-          <p className="sub-price-single__label">Подписка</p>
-          <p className="sub-price-single__value">
-            <strong>${info.subscription_usd}</strong>
-            <span className="sub-price-single__days">/ {info.subscription_days} дней</span>
-          </p>
-          <p className="meta small">USDT в сети TON · проверка TXID</p>
+        <div className="sub-price-grid">
+          <button type="button" className={`sub-plan${plan === "week" ? " on" : ""}`} onClick={() => setPlan("week")}>
+            <span>7 дней</span>
+            <strong>${info.week_usd}</strong>
+          </button>
+          <button type="button" className={`sub-plan${plan === "month" ? " on" : ""}`} onClick={() => setPlan("month")}>
+            <span>30 дней</span>
+            <strong>${info.month_usd}</strong>
+          </button>
         </div>
+        <p className="meta small">Лента активных сигналов · USDT TON · TXID</p>
 
         <form onSubmit={pay} className="pay-form">
           <div className="field-row">

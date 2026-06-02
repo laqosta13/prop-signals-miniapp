@@ -1,14 +1,14 @@
 import { useEffect, useMemo } from "react";
 import { useAdminTrackerSnapshot } from "./useAdminTrackerSnapshot";
-import { useDailyStopSync } from "./useDailyStopSync";
-import { dailyStopRemainingRankPct, dailyTradingBlocked, dailyTradesRemaining, rankNominalUsd, SIGNAL_DAILY_TRADE_LIMIT } from "../utils/dailyStopLimit";
+import {
+  ACCOUNT_STOP_MIN_STEP,
+  dailyStopRemainingRankPct,
+  dailyTradingBlocked,
+  dailyTradesRemaining,
+  rankNominalUsd,
+  SIGNAL_DAILY_TRADE_LIMIT,
+} from "../utils/dailyStopLimit";
 import { entryNominalUsd, formatRiskPercent, parseLeverage, parseRiskPercent } from "../utils/signalForm";
-import { dailyStopRemainingForForm, type RankDailyStopContext } from "../utils/signalFormLimits";
-
-type LevelsSync = {
-  riskPct: string;
-  onRiskPctChange: (value: string) => void;
-};
 
 type StakeSync = {
   risk: string;
@@ -17,7 +17,6 @@ type StakeSync = {
 
 export function useSignalFormTracker(
   enabled: boolean,
-  levels: LevelsSync,
   stake: StakeSync,
   leverage: string,
   excludeSignalId?: number,
@@ -55,28 +54,7 @@ export function useSignalFormTracker(
     [dailyLossUsd, rankNominal],
   );
 
-  const rankStopCtx: RankDailyStopContext = useMemo(
-    () => ({
-      dailyLossUsd,
-      balanceUsd,
-      rankMaxStakePct,
-      stakePct,
-      leverage: lev,
-    }),
-    [dailyLossUsd, balanceUsd, rankMaxStakePct, stakePct, lev],
-  );
-
-  const { dailyRemaining, blocked: dailyStopBlocked } = useDailyStopSync({
-    enabled: enabled && !trackerLoading,
-    riskPct: levels.riskPct,
-    onRiskPctChange: levels.onRiskPctChange,
-    dailyLossUsd,
-    balanceUsd,
-    rankMaxStakePct,
-    stakePct,
-    leverage: lev,
-    dailyRemainingRankPct: dailyRemainingRank,
-  });
+  const dailyStopBlocked = dailyRemainingRank < ACCOUNT_STOP_MIN_STEP;
 
   const dailyTradesCount = trackerSnap?.dailyTradesCount ?? 0;
   const dailyTradesLimit = trackerSnap?.dailyTradesLimit ?? SIGNAL_DAILY_TRADE_LIMIT;
@@ -97,14 +75,12 @@ export function useSignalFormTracker(
     rankNominal,
     rankMaxStakePct,
     dailyLossUsd,
-    dailyRemaining,
+    dailyRemaining: dailyRemainingRank,
     dailyRemainingRank,
     dailyStopBlocked,
     dailyLimit,
     dailyTradesRemainingCount: dailyTradesRemaining(dailyTradesCount, dailyTradesLimit),
     dailyTradesLimit,
-    rankStopCtx,
-    dailyStopRemainingForForm: () => dailyStopRemainingForForm(rankStopCtx),
     balanceForNominal: (fallbackAccountSize = 0) => {
       const balance = trackerSnap?.balance ?? 0;
       return balance > 0 ? balance : trackerSnap?.accountSize ?? fallbackAccountSize;

@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { fetchCultCandidateMe, joinCultCandidate, type CultCandidateMe } from "../api";
 import { CultCandidateBybitPanel } from "./CultCandidateBybitPanel";
+import { CultCandidatePaySection } from "./CultCandidatePaySection";
 
 type Props = {
   onJoined: () => void;
-  onOpenPay?: () => void;
 };
 
-export function CultCandidateJoinPanel({ onJoined, onOpenPay }: Props) {
+export function CultCandidateJoinPanel({ onJoined }: Props) {
   const [me, setMe] = useState<CultCandidateMe | null>(null);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -68,24 +68,22 @@ export function CultCandidateJoinPanel({ onJoined, onOpenPay }: Props) {
               </button>
             </div>
             <p className="meta cult-candidate-join__intro">
-              Свои сделки через форму сигнала — исполнение на вашем Bybit. Подписка 30 дней — $20 USDT TON (TXID) и
-              API ключи Bybit.
+              Ваши сделки попадают в рейтинг «Кондидаты в CULT». Подписка кандидата ($20 / 30 дней) — отдельно от
+              подписки на ленту во вкладке «Подписка».
             </p>
-            <ul className="cult-candidate-join__checklist">
-              <li className={me.subscription_paid ? "ok" : "pending"}>
-                Подписка USDT TON {me.subscription_paid ? "✓" : "—"}
+            <ol className="cult-candidate-join__steps">
+              <li className={me.cult_subscription_active ? "ok" : "pending"}>
+                Оплатить подписку кандидата {me.cult_subscription_active ? "✓" : ""}
               </li>
               <li className={me.bybit_configured ? "ok" : "pending"}>
-                API Bybit {me.bybit_configured ? "✓" : "—"}
+                Подключить API Bybit {me.bybit_configured ? "✓" : ""}
               </li>
-            </ul>
-            {!me.subscription_paid && onOpenPay && (
-              <button type="button" className="btn-secondary cult-candidate-join__pay" onClick={onOpenPay}>
-                Оформить подписку
-              </button>
-            )}
+              <li>Указать имя в карточке и нажать «Вступить»</li>
+            </ol>
+            <CultCandidatePaySection onPaid={reload} />
+            <CultCandidateBybitPanel onConfigured={reload} />
             <label className="cult-candidate-join__label">
-              Имя в карточке
+              3. Имя в карточке
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -94,7 +92,6 @@ export function CultCandidateJoinPanel({ onJoined, onOpenPay }: Props) {
                 disabled={busy}
               />
             </label>
-            <CultCandidateBybitPanel onConfigured={reload} />
             {me.blockers.length > 0 && !me.can_join && (
               <p className="meta cult-candidate-join__blockers">{me.blockers.join(" · ")}</p>
             )}

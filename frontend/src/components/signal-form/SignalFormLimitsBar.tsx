@@ -43,45 +43,44 @@ export function SignalFormLimitsBar({
     );
   }
 
-  const tradeLimit = dailyTradesLimit;
   const poolFree = stakePoolRemainingPct ?? STAKE_POOL_TOTAL_PCT;
   const inMarket = stakePoolUsedPct ?? 0;
 
   return (
-    <aside className="signal-form__limits" aria-label="Дневные лимиты">
+    <aside className="signal-form__limits" aria-label="Лимиты дня">
       <div className="signal-form__chips">
         <div className="signal-form__chip">
           <span className="signal-form__chip-k">Сделки</span>
           <span className="signal-form__chip-v">
             {dailyTradesRemaining}
-            <span className="signal-form__chip-dim">/{tradeLimit}</span>
+            <span className="signal-form__chip-dim">/{dailyTradesLimit}</span>
           </span>
         </div>
         <div className="signal-form__chip">
-          <span className="signal-form__chip-k">Стоп</span>
+          <span className="signal-form__chip-k">Стоп дня</span>
           <span className="signal-form__chip-v">
-            {formatPoolChipPct(dailyRemaining ?? 0)}%
-            <span className="signal-form__chip-dim">/{SIGNAL_DAILY_STOP_LIMIT_PCT}% ном. ранга</span>
+            {formatPoolChipPct(dailyRemaining ?? 0)}
+            <span className="signal-form__chip-dim">/{SIGNAL_DAILY_STOP_LIMIT_PCT}%</span>
           </span>
         </div>
         <div className="signal-form__chip">
           <span className="signal-form__chip-k">Пул</span>
           <span className="signal-form__chip-v">
-            {formatPoolChipPct(poolFree)}%
-            <span className="signal-form__chip-dim">/{STAKE_POOL_TOTAL_PCT}% входа</span>
+            {formatPoolChipPct(poolFree)}
+            <span className="signal-form__chip-dim">/{STAKE_POOL_TOTAL_PCT}%</span>
           </span>
         </div>
         <div className="signal-form__chip signal-form__chip--wide">
           <span className="signal-form__chip-k">В рынке</span>
           <span className="signal-form__chip-v">
-            {formatPoolChipPct(inMarket)}%
-            <span className="signal-form__chip-dim"> сумма % сигналов</span>
+            {formatPoolChipPct(inMarket)}
+            <span className="signal-form__chip-dim">% входа</span>
           </span>
         </div>
       </div>
       {active && resetIn ? (
         <p className="signal-form__reset">
-          Обновление через <time className="signal-form__reset-clock">{resetIn}</time> МСК
+          Сброс <time className="signal-form__reset-clock">{resetIn}</time> МСК
         </p>
       ) : null}
       {dailyBlocked ? (

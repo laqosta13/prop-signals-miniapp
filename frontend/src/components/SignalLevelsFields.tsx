@@ -11,13 +11,11 @@ type Props = {
   onEntryChange: (value: string) => void;
   onStopChange: (value: string) => void;
   onTargetChange: (value: string) => void;
-  /** % движения цены от входа до стопа; цель = R:R 1:3. */
   onRiskPctChange: (value: string) => void;
   entryPlaceholder?: string;
   stakePct?: number;
   leverage?: number;
   dailyRemainingPct?: number;
-  dailyLossUsd?: number;
   balanceUsd?: number;
   rankMaxStakePct?: number;
   dailyStopBlocked?: boolean;
@@ -38,12 +36,11 @@ export function SignalLevelsFields({
   stakePct,
   leverage,
   dailyRemainingPct,
-  dailyLossUsd = 0,
   balanceUsd = 0,
   rankMaxStakePct = 0,
   dailyStopBlocked = false,
 }: Props) {
-  const accountMode =
+  const trackerMode =
     dailyRemainingPct !== undefined &&
     stakePct !== undefined &&
     leverage !== undefined &&
@@ -61,34 +58,31 @@ export function SignalLevelsFields({
           onChange={(e) => onEntryChange(e.target.value)}
           placeholder={priceLoading ? "…" : entryPlaceholder}
           disabled={priceLoading}
+          inputMode="decimal"
         />
       </div>
       <div className="signal-form__level signal-form__level--stop">
-        <label className="signal-form__level-label">
-          Стоп
-          {accountMode ? <span className="signal-form__level-badge">бегунок</span> : null}
-        </label>
+        <label className="signal-form__level-label">Стоп</label>
         <input
           className="signal-form__level-input"
           value={stop}
-          readOnly={accountMode}
-          aria-readonly={accountMode}
-          onChange={accountMode ? undefined : (e) => onStopChange(e.target.value)}
+          readOnly={trackerMode}
+          aria-readonly={trackerMode}
+          onChange={trackerMode ? undefined : (e) => onStopChange(e.target.value)}
           placeholder="—"
+          inputMode="decimal"
         />
       </div>
       <div className="signal-form__level signal-form__level--target">
-        <label className="signal-form__level-label">
-          Цель
-          {accountMode ? <span className="signal-form__level-badge">1:3</span> : null}
-        </label>
+        <label className="signal-form__level-label">Цель 1:3</label>
         <input
           className="signal-form__level-input"
           value={target}
-          readOnly={accountMode}
-          aria-readonly={accountMode}
-          onChange={accountMode ? undefined : (e) => onTargetChange(e.target.value)}
+          readOnly={trackerMode}
+          aria-readonly={trackerMode}
+          onChange={trackerMode ? undefined : (e) => onTargetChange(e.target.value)}
           placeholder="—"
+          inputMode="decimal"
         />
       </div>
       <div className="signal-form__levels-slider">
@@ -96,14 +90,12 @@ export function SignalLevelsFields({
           value={riskPct}
           onChange={onRiskPctChange}
           hasEntry={hasEntry}
-          dailyRemainingPct={accountMode ? dailyRemainingPct : undefined}
-          dailyLossUsd={accountMode ? dailyLossUsd : undefined}
-          balanceUsd={accountMode ? balanceUsd : undefined}
-          rankMaxStakePct={accountMode ? rankMaxStakePct : undefined}
-          stakePct={accountMode ? stakePct : undefined}
-          leverage={accountMode ? leverage : undefined}
+          dailyRemainingRankPct={trackerMode ? dailyRemainingPct : undefined}
+          balanceUsd={trackerMode ? balanceUsd : undefined}
+          rankMaxStakePct={trackerMode ? rankMaxStakePct : undefined}
+          stakePct={trackerMode ? stakePct : undefined}
+          leverage={trackerMode ? leverage : undefined}
           blocked={dailyStopBlocked || !hasEntry}
-          showBudget={false}
         />
       </div>
     </div>

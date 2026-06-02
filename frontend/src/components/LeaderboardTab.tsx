@@ -25,7 +25,6 @@ type Props = {
   isAdmin: boolean;
   onCultChannelsChange: () => void;
   onCultCandidatesChange: () => void;
-  onOpenPay?: () => void;
 };
 
 function TopTraderCard({
@@ -94,7 +93,6 @@ export function LeaderboardTab({
   isAdmin,
   onCultChannelsChange,
   onCultCandidatesChange,
-  onOpenPay,
 }: Props) {
   const [profileTrader, setProfileTrader] = useState<Trader | null>(null);
   const [signalModalOpen, setSignalModalOpen] = useState(false);
@@ -162,7 +160,7 @@ export function LeaderboardTab({
         <section className="top-cult-block top-cult-block--candidates">
           <p className="top-cult-label top-cult-label--candidates">КОНДИДАТЫ В CULT</p>
           {myId != null && (
-            <CultCandidateJoinPanel onJoined={onCultCandidatesChange} onOpenPay={onOpenPay} />
+            <CultCandidateJoinPanel onJoined={onCultCandidatesChange} />
           )}
           {userCandidates.length > 0 && (
             <ol className="top-list top-list--user-candidates">
