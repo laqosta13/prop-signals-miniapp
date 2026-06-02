@@ -402,13 +402,13 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 `data_cleanup.py` → `purge_all_published_content()`:
 
-- Удаляет **сигналы** (+ copy-trades, лайки, просмотры, дополнения), **CULT-сигналы** (каналы остаются, stats=0), **новости**, **отзывы** + медиа
+- Удаляет **сигналы** (+ copy-trades, лайки, просмотры, дополнения, в т.ч. сделки кандидатов CULT), **CULT-сигналы каналов** (каналы остаются, stats=0), **stats кандидатов CULT** (записи остаются), **новости**, **отзывы** + медиа
 - Сброс ТОП (рейтинг, ранги) и трекеров админов ($10k); очистка скринов пропа
 - **Не** трогает подписчиков, trial, `payment_txs`, подключённые CULT-каналы, настройки Bybit
 
 | Способ | Как |
 |---|---|
-| Одноразово при деплое | маркеры `.purged_all_published_*` в `migrate.py` (актуально: `.purged_all_published_jun2026_v2`) |
+| Одноразово при деплое | маркеры `.purged_all_published_*` в `migrate.py` (актуально: `.purged_all_published_jun2026_v3`) |
 | API (без UI) | `POST /admin/purge-published` — `require_admin` |
 | Скрипт на сервере | `python backend/scripts/purge_published.py` |
 
@@ -541,7 +541,7 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 
 ## Одноразовые миграции (маркеры на диске)
 
-- `.purged_test_v2`, `.purged_reset_v3`, `.purged_all_published_may2026`, `.purged_all_published_may2026_v2`, `.purged_all_published_jun2026`, `.purged_all_published_may2026_v3`, **`.purged_all_published_jun2026_v2`** — purge через `data_cleanup.py` / `migrate.py`
+- `.purged_test_v2`, `.purged_reset_v3`, `.purged_all_published_may2026`, `.purged_all_published_may2026_v2`, `.purged_all_published_jun2026`, `.purged_all_published_may2026_v3`, `.purged_all_published_jun2026_v2`, **`.purged_all_published_jun2026_v3`** — purge через `data_cleanup.py` / `migrate.py`
 - `.recalc_closed_signal_pnl_v2`, `.recalc_closed_signal_pnl_v3` — пересчёт P/L от `account_size` и risk_percent
 - `.recalc_winrate_by_pnl_v1` — пересчёт W/L и WR по фактическому P/L ($)
 
@@ -602,6 +602,7 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 49. **Лимит формы сигнала** — **3 сделки или 2% стопа** / MSK / трейдер; бегунок в % счёта на весь остаток; backend validation
 50. **Purge v3** — очистка контента incl. CULT-сигналы и copy-trades; маркер `.purged_all_published_may2026_v3`
 51. **Purge jun2026 v2** — разовая полная очистка ленты/новостей/отзывов/CULT-stats; маркер `.purged_all_published_jun2026_v2`
+52. **Purge jun2026 v3** — полная очистка + сброс stats кандидатов CULT; кнопка «Регистрация в HASH HEDGE»; маркер `.purged_all_published_jun2026_v3`
 
 ---
 

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.media_storage import clear_tracker_screenshot_dir, delete_media_files, media_root
 from app.models import (
+    CultCandidate,
     CultChannel,
     CultChannelSignal,
     NewsPost,
@@ -40,6 +41,13 @@ def _purge_cult_channel_content(db: Session) -> None:
         ch.rating_percent = 0.0
         ch.wins = 0
         ch.losses = 0
+
+
+def _purge_cult_candidate_stats(db: Session) -> None:
+    for row in db.scalars(select(CultCandidate)):
+        row.rating_percent = 0.0
+        row.wins = 0
+        row.losses = 0
 
 
 def _purge_signals_media_and_rows(db: Session) -> None:
@@ -129,6 +137,7 @@ def purge_all_published_content(db: Session) -> None:
     """Сигналы, CULT, новости, отзывы, медиа; рейтинг и трекеры админов — сброс."""
     _purge_signals_media_and_rows(db)
     _purge_cult_channel_content(db)
+    _purge_cult_candidate_stats(db)
     _purge_news_and_reviews(db)
     _reset_trader_leaderboard(db, reset_ranks=True)
     _reset_admin_trackers(db)

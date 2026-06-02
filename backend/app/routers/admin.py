@@ -19,5 +19,5 @@ def purge_published(
     return {
         "ok": True,
         "purged": ["signals", "cult_channel_signals", "news", "reviews"],
-        "reset": ["trader_stats", "cult_channel_stats", "admin_trackers"],
+        "reset": ["trader_stats", "cult_channel_stats", "cult_candidate_stats", "admin_trackers"],
     }
