@@ -67,7 +67,7 @@ export function useSignalMarketPriceInit({
         const lev = parseLeverage(leverage);
         const stakePct =
           opts.stakePct ??
-          defaultStakePct(trackerSnap.maxStakePct, trackerSnap.stakePoolRemainingPct);
+          defaultStakePct(trackerSnap.maxStakePct);
         const balance = trackerSnap.balance > 0 ? trackerSnap.balance : trackerSnap.accountSize;
 
         const rankStopCtx: RankDailyStopContext = {
@@ -98,8 +98,8 @@ export function useSignalMarketPriceInit({
     if (trackerInitRef.current === tKey) return;
     trackerInitRef.current = tKey;
 
-    const stakeDefault = defaultStakePct(trackerSnap.maxStakePct, trackerSnap.stakePoolRemainingPct);
-    setRisk(formatStakeForForm(trackerSnap.maxStakePct, trackerSnap.stakePoolRemainingPct));
+    const stakeDefault = defaultStakePct(trackerSnap.maxStakePct);
+    setRisk(formatStakeForForm(trackerSnap.maxStakePct));
     lastSymbolRef.current = symbol.trim().toUpperCase();
     const t = window.setTimeout(
       () => void loadMarketPrice(symbol, { stakePct: stakeDefault, withTracker: true }),

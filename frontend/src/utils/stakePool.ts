@@ -1,4 +1,8 @@
-/** Пул суммы входа % для копирующих volnovoi. */
+/**
+ * Пул суммы входа % для копирующих volnovoi.
+ * 100% = сумма долей входа (risk_percent) по всем активным сигналам админов,
+ * без веса по балансу трекера (20% + 20% у двух трейдеров → занято 40%).
+ */
 
 export const STAKE_POOL_TOTAL_PCT = 100;
 
@@ -23,7 +27,7 @@ export function stakeSliderMarks(maxPct: number): number[] {
 export function stakePoolBlockedMessage(maxStakePct: number, poolRemainingPct: number): string {
   if (maxStakePct <= 0) {
     if (poolRemainingPct <= 0) {
-      return "100% депозита копирующих задействовано другими активными сигналами";
+      return "100% пула суммы входа занято другими активными сигналами";
     }
     return "Сумма входа недоступна для вашего ранга при текущей загрузке пула";
   }

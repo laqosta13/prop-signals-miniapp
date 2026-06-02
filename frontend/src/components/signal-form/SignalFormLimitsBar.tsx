@@ -68,12 +68,15 @@ export function SignalFormLimitsBar({
           <span className="signal-form__chip-k">Пул</span>
           <span className="signal-form__chip-v">
             {formatPoolChipPct(poolFree)}%
-            <span className="signal-form__chip-dim">/{STAKE_POOL_TOTAL_PCT}%</span>
+            <span className="signal-form__chip-dim">/{STAKE_POOL_TOTAL_PCT}% входа</span>
           </span>
         </div>
         <div className="signal-form__chip signal-form__chip--wide">
           <span className="signal-form__chip-k">В рынке</span>
-          <span className="signal-form__chip-v">{formatPoolChipPct(inMarket)}%</span>
+          <span className="signal-form__chip-v">
+            {formatPoolChipPct(inMarket)}%
+            <span className="signal-form__chip-dim"> сумма % сигналов</span>
+          </span>
         </div>
       </div>
       {active && resetIn ? (

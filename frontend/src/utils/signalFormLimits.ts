@@ -63,23 +63,14 @@ export function dailyStopBudgetRemainingUsd(ctx: RankDailyStopContext): number {
   return dailyStopRemainingUsd(ctx.dailyLossUsd, rankNominal(ctx));
 }
 
-/** Сумма входа %: по умолчанию максимум (при полном пуле — 100% в пределах ранга). */
-export function defaultStakePct(
-  maxStakePct: number | undefined,
-  poolRemainingPct?: number,
-): number {
+/** Доля входа по умолчанию: макс. по рангу и свободному пулу (сумма %, не баланс трекера). */
+export function defaultStakePct(maxStakePct: number | undefined): number {
   if (maxStakePct === undefined || maxStakePct <= 0) return DEFAULT_RISK_PERCENT;
-  if (poolRemainingPct != null && poolRemainingPct >= 99.5) {
-    return Math.min(100, maxStakePct);
-  }
   return maxStakePct;
 }
 
-export function formatStakeForForm(
-  maxStakePct: number | undefined,
-  poolRemainingPct?: number,
-): string {
-  return formatRiskPercent(defaultStakePct(maxStakePct, poolRemainingPct));
+export function formatStakeForForm(maxStakePct: number | undefined): string {
+  return formatRiskPercent(defaultStakePct(maxStakePct));
 }
 
 export { SIGNAL_DAILY_STOP_LIMIT_PCT, rankNominalUsd };

@@ -1,4 +1,11 @@
-"""Общий пул суммы входа % для копирующих volnovoi: активные сигналы админов ≤ 100%."""
+"""Общий пул суммы входа % для копирующих volnovoi.
+
+100% пула — это не сумма балансов трекеров и не доля «депозита» в долларах.
+Занятость = простая сумма risk_percent активных сигналов всех админов культа
+(каждый сигнал вносит свой % входа независимо от баланса автора).
+
+Пример: админ A вошёл на 20%, админ B на 20% → занято 40%, свободно 60%.
+"""
 
 from __future__ import annotations
 
@@ -113,11 +120,11 @@ def validate_signal_stake_pool(
         if pool_left <= 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="100% депозита копирующих уже задействовано другими активными сигналами",
+                detail="100% пула суммы входа уже занято другими активными сигналами",
             )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Занято {used:g}% депозита копирующих — доступно {pool_left:g}%",
+            detail=f"В пуле занято {used:g}% суммы входа — доступно {pool_left:g}%",
         )
     if stake_pct > max_allowed + 0.001:
         raise HTTPException(
