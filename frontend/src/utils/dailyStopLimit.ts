@@ -190,6 +190,22 @@ export function priceStopToAccountRiskPct(
   return roundStopPct((priceStopPct * stakePct * leverage) / 100);
 }
 
+/**
+ * Смена плеча при той же доле входа: риск счёта на стопе тот же → % цены до стопа обратно пропорционален плечу.
+ * Плечо 2× → путь цены до стопа в 2 раза короче.
+ */
+export function priceStopPctPreservingAccountRisk(
+  priceStopPct: number,
+  stakePct: number,
+  prevLeverage: number,
+  newLeverage: number,
+): number {
+  if (stakePct <= 0 || newLeverage < 1) return priceStopPct;
+  const account = priceStopToAccountRiskPct(priceStopPct, stakePct, Math.max(1, prevLeverage));
+  if (account <= 0) return priceStopPct;
+  return accountRiskToPriceStopPct(account, stakePct, newLeverage);
+}
+
 /** % потери счёта → % движения цены до стопа. */
 export function accountRiskToPriceStopPct(
   accountRiskPct: number,

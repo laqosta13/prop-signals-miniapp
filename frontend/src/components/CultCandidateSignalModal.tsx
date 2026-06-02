@@ -41,7 +41,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
     onStopChange,
     onTargetChange,
     onRiskPctChange,
-    resyncStopTarget,
+    resyncStopTargetForLeverage,
     applyMarketPrice,
     resetForm,
   } = useSignalLevelFields("long");
@@ -169,8 +169,14 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
         <SignalFormPositionCard
           leverage={leverage}
           onLeverageChange={(lev) => {
+            const prev = parseLeverage(leverage);
+            const next = parseLeverage(lev);
             setLeverage(lev);
-            resyncStopTarget();
+            resyncStopTargetForLeverage({
+              prevLeverage: prev,
+              newLeverage: next,
+              stakePct,
+            });
           }}
           risk={risk}
           onRiskChange={setRisk}

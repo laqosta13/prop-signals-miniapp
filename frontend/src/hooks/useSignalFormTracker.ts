@@ -5,6 +5,7 @@ import {
   dailyStopRemainingRankPct,
   dailyTradingBlocked,
   dailyTradesRemaining,
+  maxPriceStopPctFromRankDailyBudget,
   rankNominalUsd,
   SIGNAL_DAILY_TRADE_LIMIT,
 } from "../utils/dailyStopLimit";
@@ -86,5 +87,15 @@ export function useSignalFormTracker(
       return balance > 0 ? balance : trackerSnap?.accountSize ?? fallbackAccountSize;
     },
     stakeUsd: (balance: number) => entryNominalUsd(balance, stakePct, lev),
+    maxPriceStopForLeverage: (leverage: number, stakePctValue: number, balance: number) => {
+      if (balance <= 0 || rankMaxStakePct <= 0 || stakePctValue <= 0) return undefined;
+      return maxPriceStopPctFromRankDailyBudget(
+        dailyLossUsd,
+        balance,
+        rankMaxStakePct,
+        stakePctValue,
+        leverage,
+      );
+    },
   };
 }

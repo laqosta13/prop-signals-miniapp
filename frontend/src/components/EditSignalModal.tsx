@@ -50,7 +50,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
     onStopChange,
     onTargetChange,
     onRiskPctChange,
-    resyncStopTarget,
+    resyncStopTargetForLeverage,
     applyMarketPrice,
     loadLevels,
   } = useSignalLevelFields("long");
@@ -192,8 +192,15 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
         <SignalFormPositionCard
           leverage={leverage}
           onLeverageChange={(lev) => {
+            const prev = parseLeverage(leverage);
+            const next = parseLeverage(lev);
             setLeverage(lev);
-            resyncStopTarget();
+            resyncStopTargetForLeverage({
+              prevLeverage: prev,
+              newLeverage: next,
+              stakePct: tracker.stakePct,
+              maxPriceStopPct: tracker.maxPriceStopForLeverage(next, tracker.stakePct, balance),
+            });
           }}
           risk={risk}
           onRiskChange={setRisk}

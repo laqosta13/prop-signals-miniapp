@@ -6,6 +6,7 @@ import { useSignalFormTracker } from "../hooks/useSignalFormTracker";
 import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
 import { useSignalMarketPriceInit } from "../hooks/useSignalMarketPriceInit";
 import { buildSignalFormData } from "../utils/buildSignalFormData";
+import { parseLeverage } from "../utils/signalForm";
 import { initialUploadProgress, mediaBytesInForm } from "../utils/upload";
 import { SignalLevelsFields } from "./SignalLevelsFields";
 import { SignalMediaPicker } from "./SignalMediaPicker";
@@ -48,7 +49,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
     onStopChange,
     onTargetChange,
     onRiskPctChange,
-    resyncStopTarget,
+    resyncStopTargetForLeverage,
     applyMarketPrice,
     resetForm,
   } = useSignalLevelFields("long");
@@ -189,8 +190,15 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
         <SignalFormPositionCard
           leverage={leverage}
           onLeverageChange={(lev) => {
+            const prev = parseLeverage(leverage);
+            const next = parseLeverage(lev);
             setLeverage(lev);
-            resyncStopTarget();
+            resyncStopTargetForLeverage({
+              prevLeverage: prev,
+              newLeverage: next,
+              stakePct: tracker.stakePct,
+              maxPriceStopPct: tracker.maxPriceStopForLeverage(next, tracker.stakePct, balance),
+            });
           }}
           risk={risk}
           onRiskChange={setRisk}

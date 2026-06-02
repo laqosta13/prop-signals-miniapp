@@ -1,13 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { priceStopPctPreservingAccountRisk } from "../utils/dailyStopLimit";
 import {
   DEFAULT_STOP_RISK_PCT,
+  STOP_OFFSET_SLIDER_CAP_PCT,
   clampStopOffsetPct,
   formatRiskPct,
   levelsFromEntryAndRisk,
+  parseEntryPrice,
   parseRiskPctValue,
   riskPctFromEntryStop,
   stopTargetFromEntryAndRisk,
 } from "../utils/signalLevels";
+
+export type ResyncStopForLeverageOpts = {
+  prevLeverage: number;
+  newLeverage: number;
+  stakePct: number;
+  maxPriceStopPct?: number;
+};
 
 export function useSignalLevelFields(initialDirection: "long" | "short" = "long") {
   const [direction, setDirectionState] = useState<"long" | "short">(initialDirection);
@@ -106,13 +116,30 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
     [entry, riskPct, syncStopTarget],
   );
 
-  /** Пересчёт стоп/цели от входа и % стопа (после смены плеча — без сдвига бегунка стопа). */
-  const resyncStopTarget = useCallback(() => {
-    const next = stopTargetFromEntryAndRisk(entry, direction, parseRiskPctValue(riskPct));
-    if (!next) return;
-    setStop(next.stop);
-    setTarget(next.target);
-  }, [entry, direction, riskPct]);
+  /** Смена плеча: риск счёта на стопе сохраняем → % от входа и цены стоп/цель 1:3 пересчитываем. */
+  const resyncStopTargetForLeverage = useCallback(
+    ({ prevLeverage, newLeverage, stakePct, maxPriceStopPct }: ResyncStopForLeverageOpts) => {
+      if (parseEntryPrice(entry) === null || stakePct <= 0 || newLeverage < 1) return;
+
+      const cap = maxPriceStopPct ?? STOP_OFFSET_SLIDER_CAP_PCT;
+      const pricePct = clampStopOffsetPct(
+        priceStopPctPreservingAccountRisk(
+          parseRiskPctValue(riskPct),
+          stakePct,
+          prevLeverage,
+          newLeverage,
+        ),
+        cap,
+      );
+      const label = formatRiskPct(pricePct);
+      setRiskPct(label);
+      const next = stopTargetFromEntryAndRisk(entry, direction, pricePct);
+      if (!next) return;
+      setStop(next.stop);
+      setTarget(next.target);
+    },
+    [entry, direction, riskPct],
+  );
 
   const loadLevels = useCallback(
     (params: {
@@ -143,7 +170,7 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
     onStopChange,
     onTargetChange,
     onRiskPctChange,
-    resyncStopTarget,
+    resyncStopTargetForLeverage,
     applyMarketPrice,
     resetForm,
     resetLevels,
