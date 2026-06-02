@@ -12,7 +12,8 @@ export const STAKE_POOL_TOTAL_PCT = 100;
 export function formatPoolChipPct(pct: number): string {
   if (!Number.isFinite(pct) || pct < 0) return "0";
   const rounded = Math.round(pct * 100) / 100;
-  return String(rounded).replace(/\.?0+$/, "");
+  if (Number.isInteger(rounded)) return String(rounded);
+  return rounded.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
 }
 
 export function stakeSliderMarks(maxPct: number): number[] {

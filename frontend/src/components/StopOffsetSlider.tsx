@@ -46,12 +46,13 @@ export function StopOffsetSlider({
 
   const priceRaw = parseRiskPctValue(value);
 
+  // Потолок шкалы от лимита ранга, не от текущей доли входа — иначе бегунок стопа едет при смене входа.
   const dailyMaxPrice = trackerMode
     ? maxPriceStopPctFromDailyRemaining(
         dailyRemainingRankPct!,
         balanceUsd,
         rankMaxStakePct,
-        stakePct,
+        rankMaxStakePct,
         leverage,
       )
     : 0;
