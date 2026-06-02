@@ -2,7 +2,7 @@ import { LEVERAGE_OPTIONS, onLeveragePick, parseLeverage } from "../utils/signal
 
 type Props = {
   leverage: string;
-  onLeverageChange: (leverage: string, risk: string) => void;
+  onLeverageChange: (leverage: string) => void;
 };
 
 export function LeveragePicker({ leverage, onLeverageChange }: Props) {
@@ -10,8 +10,7 @@ export function LeveragePicker({ leverage, onLeverageChange }: Props) {
 
   const pick = (lev: number) => {
     if (lev === current) return;
-    const next = onLeveragePick(lev);
-    onLeverageChange(next.leverage, next.risk);
+    onLeverageChange(onLeveragePick(lev));
   };
 
   return (

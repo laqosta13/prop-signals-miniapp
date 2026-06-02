@@ -50,6 +50,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
     onStopChange,
     onTargetChange,
     onRiskPctChange,
+    resyncStopTarget,
     applyMarketPrice,
     loadLevels,
   } = useSignalLevelFields("long");
@@ -190,9 +191,9 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
       <SignalFormSection title="Размер позиции">
         <SignalFormPositionCard
           leverage={leverage}
-          onLeverageChange={(lev, nextRisk) => {
+          onLeverageChange={(lev) => {
             setLeverage(lev);
-            if (nextRisk != null) setRisk(nextRisk);
+            resyncStopTarget();
           }}
           risk={risk}
           onRiskChange={setRisk}

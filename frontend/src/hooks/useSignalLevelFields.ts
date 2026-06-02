@@ -106,6 +106,14 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
     [entry, riskPct, syncStopTarget],
   );
 
+  /** Пересчёт стоп/цели от входа и % стопа (после смены плеча — без сдвига бегунка стопа). */
+  const resyncStopTarget = useCallback(() => {
+    const next = stopTargetFromEntryAndRisk(entry, direction, parseRiskPctValue(riskPct));
+    if (!next) return;
+    setStop(next.stop);
+    setTarget(next.target);
+  }, [entry, direction, riskPct]);
+
   const loadLevels = useCallback(
     (params: {
       entryVal: string;
@@ -135,6 +143,7 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
     onStopChange,
     onTargetChange,
     onRiskPctChange,
+    resyncStopTarget,
     applyMarketPrice,
     resetForm,
     resetLevels,

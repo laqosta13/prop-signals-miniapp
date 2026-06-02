@@ -3,7 +3,7 @@ import { RiskPercentSlider } from "../RiskPercentSlider";
 
 type Props = {
   leverage: string;
-  onLeverageChange: (leverage: string, risk?: string) => void;
+  onLeverageChange: (leverage: string) => void;
   risk: string;
   onRiskChange: (value: string) => void;
   maxStakePct: number;

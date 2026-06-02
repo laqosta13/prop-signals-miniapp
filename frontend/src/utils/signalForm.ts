@@ -29,9 +29,6 @@ export function entryNominalUsd(accountUsd: number, riskPercent: number, leverag
   return (accountUsd * riskPercent * lev) / 100;
 }
 
-export function onLeveragePick(newLeverage: number): { leverage: string; risk: string } {
-  return {
-    leverage: String(Math.min(MAX_LEVERAGE, Math.max(1, newLeverage))),
-    risk: String(DEFAULT_RISK_PERCENT),
-  };
+export function onLeveragePick(newLeverage: number): string {
+  return String(Math.min(MAX_LEVERAGE, Math.max(1, newLeverage)));
 }
