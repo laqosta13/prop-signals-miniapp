@@ -2434,9 +2434,11 @@
 
 .volnovoi-copy__checks {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
   margin: 2px 0 0;
+  width: 100%;
 }
 
 .volnovoi-copy__err {
@@ -2493,13 +2495,30 @@
 }
 
 .volnovoi-copy__check {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 8px;
+  width: 100%;
+  max-width: 100%;
   margin: 0;
+  flex-shrink: 0;
   font-size: 0.78rem;
+  line-height: 1.35;
   color: var(--prop-cta-panel-muted);
   cursor: pointer;
+}
+
+.volnovoi-copy__check input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+.volnovoi-copy__check-text {
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .volnovoi-copy__panel .field-label {

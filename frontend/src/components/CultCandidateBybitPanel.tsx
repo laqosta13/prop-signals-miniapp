@@ -229,11 +229,11 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
                 <div className="volnovoi-copy__checks">
                   <label className="volnovoi-copy__check">
                     <input type="checkbox" checked={testnet} onChange={(e) => setTestnet(e.target.checked)} />
-                    Testnet
+                    <span className="volnovoi-copy__check-text">Testnet</span>
                   </label>
                   <label className="volnovoi-copy__check">
                     <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
-                    Исполнение на Bybit включено
+                    <span className="volnovoi-copy__check-text">Исполнение на Bybit включено</span>
                   </label>
                 </div>
               </div>
