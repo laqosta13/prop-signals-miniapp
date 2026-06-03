@@ -1,5 +1,6 @@
 import { createPortal } from "react-dom";
-import { RANK_RULES, RANK_TIERS, rankMaxStakePct, rankStyle } from "../utils/ranks";
+import { RANK_RULES, RANK_TIERS, rankMaxStakePct, rankStyle, rankTierExtraClass } from "../utils/ranks";
+import { RankIcon } from "./RankIcon";
 
 type Props = {
   onClose: () => void;
@@ -35,10 +36,10 @@ export function RankGuideModal({ onClose, highlightRankId }: Props) {
             return (
               <li
                 key={tier.id}
-                className={`rank-guide__tier${highlighted ? " rank-guide__tier--current" : ""}`}
+                className={`rank-guide__tier${rankTierExtraClass(tier.id)}${highlighted ? " rank-guide__tier--current" : ""}`}
               >
                 <span className="rank-guide__tier-pill" style={{ background: st.bg, color: st.color }}>
-                  {st.icon && <span className="rank-guide__tier-icon">{st.icon}</span>}
+                  {st.iconId && <RankIcon id={st.iconId} size={18} className="rank-guide__tier-icon" />}
                   {tier.name}
                 </span>
                 <div className="rank-guide__tier-meta">

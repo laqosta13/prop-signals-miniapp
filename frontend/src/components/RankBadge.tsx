@@ -1,7 +1,8 @@
 import { useState, type MouseEvent } from "react";
 import type { TraderRank } from "../api";
-import { rankStyle } from "../utils/ranks";
+import { rankPillExtraClass, rankStyle } from "../utils/ranks";
 import { RankGuideModal } from "./RankGuideModal";
+import { RankIcon } from "./RankIcon";
 
 type Props = {
   rank: TraderRank;
@@ -20,10 +21,10 @@ export function RankBadge({ rank, compact, featured, interactive = true }: Props
 
   const pill = (
     <span
-      className={`rank-badge__pill${isFeatured ? " rank-badge__pill--featured" : ""}`}
+      className={`rank-badge__pill ${rankPillExtraClass(rank.current_rank_id, isFeatured)}`.trim()}
       style={{ background: st.bg, color: st.color }}
     >
-      {st.icon && <span className="rank-badge__icon">{st.icon}</span>}
+      {st.iconId && <RankIcon id={st.iconId} size={isFeatured ? 20 : 16} className="rank-badge__icon" />}
       <span className="rank-badge__name">{rank.current_rank_name}</span>
       {rank.shield_active && (
         <span className="rank-badge__shield" title="Страховка">

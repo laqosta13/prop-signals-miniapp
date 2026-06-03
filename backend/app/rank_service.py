@@ -10,7 +10,16 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import Trader
-from app.rank_constants import DEFAULT_RANK_ID, RANK_BY_ID, TRADER_RANKS
+from app.rank_constants import (
+    DEFAULT_RANK_ID,
+    RANK_BY_ID,
+    better_rank,
+    clamp_rank_id,
+    get_rank_by_pct,
+    rank_name,
+    rank_one_step_better,
+    rank_steps_worse,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,17 +42,6 @@ class RankHistoryEntry:
             "rank_name": self.rank_name,
             "confirmed": self.confirmed,
         }
-
-
-def get_rank_by_pct(weekly_pct: float) -> int:
-    for r in TRADER_RANKS:
-        if r.min_pct <= weekly_pct < r.max_pct:
-            return r.id
-    return DEFAULT_RANK_ID
-
-
-def rank_name(rank_id: int) -> str:
-    return RANK_BY_ID.get(rank_id, RANK_BY_ID[DEFAULT_RANK_ID]).name
 
 
 def _utc_now() -> datetime:
@@ -105,12 +103,8 @@ def add_weekly_pct(trader: Trader, delta_pct: float) -> None:
     trader.weekly_pct = round((trader.weekly_pct or 0.0) + delta_pct, 2)
 
 
-def _clamp_rank(rank_id: int) -> int:
-    return max(1, min(8, rank_id))
-
-
 def _apply_rank_change(trader: Trader, new_rank_id: int) -> None:
-    trader.current_rank_id = _clamp_rank(new_rank_id)
+    trader.current_rank_id = clamp_rank_id(new_rank_id)
 
 
 def apply_penalty(trader: Trader, steps: int = 1) -> None:
@@ -128,18 +122,18 @@ def apply_weekly_rank(trader: Trader, weekly_pct: float) -> int:
 
     if weekly_pct < 0 and not shield_skip:
         penalty = 2 if (trader.consecutive_loss_weeks or 0) >= 1 else 1
-        new_rank = _clamp_rank(cur + penalty)
+        new_rank = rank_steps_worse(cur, penalty)
     elif weekly_pct < 0 and shield_skip:
         trader.shield_active = False
         new_rank = cur
     else:
-        next_id = max(1, cur - 1)
-        if cur > 1:
-            nxt = RANK_BY_ID[next_id]
+        step_better = rank_one_step_better(cur)
+        if step_better != cur:
+            nxt = RANK_BY_ID[step_better]
             if nxt.min_pct <= weekly_pct < nxt.max_pct:
-                new_rank = next_id
+                new_rank = step_better
         perf_id = get_rank_by_pct(weekly_pct)
-        if perf_id < new_rank:
+        if better_rank(perf_id, new_rank):
             new_rank = perf_id
 
     _apply_rank_change(trader, new_rank)

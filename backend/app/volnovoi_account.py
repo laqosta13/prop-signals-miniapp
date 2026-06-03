@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import Signal
-from app.rank_service import get_rank_by_pct, next_sunday_deadline, rank_name
+from app.rank_constants import get_rank_by_pct, rank_name
+from app.rank_service import next_sunday_deadline
 from app.schemas import TraderDayStat, TraderRankRead, TraderRead
 from app.trader_stats import (
     closed_signal_move_pct,

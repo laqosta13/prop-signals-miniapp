@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import type { TraderRank } from "../api";
 import { confirmMyRank } from "../api";
 import { rankStyle } from "../utils/ranks";
+import { RankIcon } from "./RankIcon";
 
 type Props = {
   rank: TraderRank;
@@ -32,7 +33,7 @@ export function RankConfirmModal({ rank, onDone }: Props) {
       <div className="rank-confirm-sheet">
         <h2>Подтверди свой ранг</h2>
         <div className="rank-confirm-sheet__hero" style={{ background: st.bg, color: st.color }}>
-          {st.icon && <span className="rank-confirm-sheet__icon">{st.icon}</span>}
+          {st.iconId && <RankIcon id={st.iconId} size={32} className="rank-confirm-sheet__icon" />}
           <span className="rank-confirm-sheet__name">{rank.current_rank_name}</span>
           <span className="rank-confirm-sheet__pct">{pctLabel}</span>
           <span className="rank-confirm-sheet__sub">за неделю</span>

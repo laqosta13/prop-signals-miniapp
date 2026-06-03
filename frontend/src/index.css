@@ -3099,8 +3099,44 @@
   animation: rank-badge-glow 2.6s ease-in-out infinite;
 }
 
+.rank-badge__pill--legend {
+  box-shadow:
+    0 0 0 1px rgba(239, 159, 39, 0.35),
+    0 0 14px rgba(239, 159, 39, 0.2),
+    0 4px 14px rgba(0, 0, 0, 0.32);
+}
+
+.rank-badge__pill--elite {
+  box-shadow:
+    0 0 0 1px rgba(240, 180, 41, 0.45),
+    0 0 18px rgba(240, 180, 41, 0.28),
+    0 0 28px rgba(255, 215, 80, 0.12),
+    0 4px 16px rgba(0, 0, 0, 0.35);
+  animation: rank-badge-glow-gold 2.4s ease-in-out infinite;
+}
+
+.rank-badge__pill--apex {
+  box-shadow:
+    0 0 0 1px rgba(245, 215, 110, 0.55),
+    0 0 22px rgba(245, 215, 110, 0.35),
+    0 0 36px rgba(200, 160, 60, 0.2),
+    0 6px 20px rgba(0, 0, 0, 0.4);
+  animation: rank-badge-glow-apex 2.2s ease-in-out infinite;
+}
+
+.rank-badge__pill--elite .rank-badge__icon,
+.rank-badge__pill--apex .rank-badge__icon {
+  filter: drop-shadow(0 0 6px rgba(255, 220, 120, 0.45));
+}
+
+.rank-icon {
+  display: block;
+  flex-shrink: 0;
+}
+
 .rank-badge--featured .rank-badge__icon {
-  font-size: 1.05em;
+  width: 20px;
+  height: 20px;
 }
 
 .rank-badge__name {
@@ -3115,7 +3151,6 @@
 }
 
 .rank-badge__icon {
-  font-size: 0.85em;
   flex-shrink: 0;
 }
 
@@ -3151,8 +3186,43 @@
   }
 }
 
+@keyframes rank-badge-glow-gold {
+  0%,
+  100% {
+    filter: brightness(1);
+    box-shadow:
+      0 0 0 1px rgba(240, 180, 41, 0.4),
+      0 0 14px rgba(240, 180, 41, 0.22),
+      0 4px 14px rgba(0, 0, 0, 0.32);
+  }
+  50% {
+    filter: brightness(1.1);
+    box-shadow:
+      0 0 0 1px rgba(255, 220, 100, 0.55),
+      0 0 24px rgba(255, 200, 60, 0.38),
+      0 6px 18px rgba(0, 0, 0, 0.36);
+  }
+}
+
+@keyframes rank-badge-glow-apex {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.12);
+    box-shadow:
+      0 0 0 1px rgba(255, 230, 140, 0.65),
+      0 0 28px rgba(255, 215, 90, 0.45),
+      0 0 42px rgba(180, 140, 40, 0.25),
+      0 8px 22px rgba(0, 0, 0, 0.42);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .rank-badge__pill--featured {
+  .rank-badge__pill--featured,
+  .rank-badge__pill--elite,
+  .rank-badge__pill--apex {
     animation: none;
   }
 }
@@ -3243,7 +3313,9 @@
 }
 
 .rank-confirm-sheet__icon {
-  font-size: 2rem;
+  display: block;
+  margin: 0 auto 4px;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.15));
 }
 
 .rank-confirm-sheet__name {
@@ -3527,6 +3599,26 @@
   border: 1px solid transparent;
 }
 
+.rank-guide__tier--legend .rank-guide__tier-pill {
+  box-shadow: 0 0 12px rgba(239, 159, 39, 0.25);
+}
+
+.rank-guide__tier--elite .rank-guide__tier-pill {
+  box-shadow:
+    0 0 0 1px rgba(240, 180, 41, 0.35),
+    0 0 16px rgba(240, 180, 41, 0.22);
+}
+
+.rank-guide__tier--apex .rank-guide__tier-pill {
+  box-shadow:
+    0 0 0 1px rgba(245, 215, 110, 0.45),
+    0 0 20px rgba(245, 215, 110, 0.3);
+}
+
+.rank-guide__tier--apex .rank-guide__tier-icon {
+  filter: drop-shadow(0 0 8px rgba(255, 220, 100, 0.5));
+}
+
 .rank-guide__tier--current {
   border-color: rgba(127, 119, 221, 0.45);
   background: rgba(127, 119, 221, 0.1);
@@ -3563,7 +3655,7 @@
 }
 
 .rank-guide__tier-icon {
-  font-size: 0.9em;
+  flex-shrink: 0;
 }
 
 .rank-guide__tier-range {

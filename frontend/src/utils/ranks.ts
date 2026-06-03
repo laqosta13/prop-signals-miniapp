@@ -1,26 +1,52 @@
+import type { RankIconId } from "../components/RankIcon";
+
 export type RankStyle = {
   bg: string;
   color: string;
-  icon?: string;
+  iconId?: RankIconId;
+  /** Доп. подсветка бейджа */
+  tier?: "apex" | "elite" | "legend";
 };
 
 export const RANK_STYLES: Record<number, RankStyle> = {
-  1: { bg: "#2a1f00", color: "#EF9F27", icon: "👑" },
-  2: { bg: "#2a1200", color: "#EF9F27", icon: "⚡" },
-  3: { bg: "#1a1530", color: "#7F77DD", icon: "👁" },
-  4: { bg: "#0e2010", color: "#639922" },
-  5: { bg: "#0e2010", color: "#639922" },
-  6: { bg: "#1a1f2e", color: "#378ADD" },
-  7: { bg: "#1a1f2e", color: "#378ADD" },
-  8: { bg: "#222222", color: "#888888" },
+  10: { bg: "#1a1408", color: "#f5d76e", iconId: "pyramid-eye", tier: "apex" },
+  9: { bg: "#1a1608", color: "#f0b429", iconId: "satoshi-pyramid", tier: "elite" },
+  1: { bg: "#2a1f00", color: "#EF9F27", iconId: "crown", tier: "legend" },
+  2: { bg: "#2a1200", color: "#EF9F27", iconId: "wolf" },
+  3: { bg: "#1a1530", color: "#9b8cff", iconId: "chart-down" },
+  4: { bg: "#0e2010", color: "#7dd957", iconId: "shark" },
+  5: { bg: "#0e2010", color: "#639922", iconId: "clover" },
+  6: { bg: "#1a1f2e", color: "#5eb3ff", iconId: "wave" },
+  7: { bg: "#1a1f2e", color: "#378ADD", iconId: "bolt" },
+  8: { bg: "#222222", color: "#888888", iconId: "zero" },
 };
 
 export function rankStyle(rankId: number): RankStyle {
   return RANK_STYLES[rankId] ?? RANK_STYLES[8];
 }
 
+export function rankPillExtraClass(rankId: number, featured: boolean): string {
+  const st = rankStyle(rankId);
+  const parts: string[] = [];
+  if (featured) parts.push("rank-badge__pill--featured");
+  if (st.tier === "apex") parts.push("rank-badge__pill--apex");
+  else if (st.tier === "elite") parts.push("rank-badge__pill--elite");
+  else if (st.tier === "legend") parts.push("rank-badge__pill--legend");
+  return parts.join(" ");
+}
+
+export function rankTierExtraClass(rankId: number): string {
+  const t = rankStyle(rankId).tier;
+  if (t === "apex") return " rank-guide__tier--apex";
+  if (t === "elite") return " rank-guide__tier--elite";
+  if (t === "legend") return " rank-guide__tier--legend";
+  return "";
+}
+
 /** Макс. сумма входа % в одном сигнале (как в backend rank_constants). */
 export const RANK_MAX_STAKE_PCT: Record<number, number> = {
+  10: 100,
+  9: 100,
   1: 50,
   2: 45,
   3: 40,
@@ -48,9 +74,11 @@ function formatPctRange(minPct: number, maxPct: number): string {
   return `${minPct}% — ${maxPct}%`;
 }
 
-/** От высшего к низшему (Легенда → Нулёвый). */
+/** От высшего к низшему. */
 export const RANK_TIERS: RankTierInfo[] = [
-  { id: 1, name: "Легенда", rangeLabel: formatPctRange(30, Infinity), maxStakePct: rankMaxStakePct(1) },
+  { id: 10, name: "Тот самый глаз пирамиды", rangeLabel: formatPctRange(100, Infinity), maxStakePct: rankMaxStakePct(10) },
+  { id: 9, name: "Сатоши Накамото", rangeLabel: formatPctRange(50, 100), maxStakePct: rankMaxStakePct(9) },
+  { id: 1, name: "Легенда", rangeLabel: formatPctRange(30, 50), maxStakePct: rankMaxStakePct(1) },
   { id: 2, name: "Волк с Уолл-Стрит", rangeLabel: formatPctRange(25, 30), maxStakePct: rankMaxStakePct(2) },
   { id: 3, name: "Большой Шорт", rangeLabel: formatPctRange(18, 25), maxStakePct: rankMaxStakePct(3) },
   { id: 4, name: "Хищник", rangeLabel: formatPctRange(12, 18), maxStakePct: rankMaxStakePct(4) },
@@ -66,4 +94,5 @@ export const RANK_RULES: string[] = [
   "Если % недели попадает в диапазон следующего ранга — ранг повышается на ступень.",
   "Минусовая неделя: −1 ступень; две минусовые подряд: −2. Без подтверждения к воскресенью — ещё −1.",
   "Страховка (1 раз в месяц) — одна минусовая неделя не снижает ранг.",
+  "Сатоши Накамото и «глаз пирамиды» — до 100% суммы входа в одном сигнале.",
 ];
