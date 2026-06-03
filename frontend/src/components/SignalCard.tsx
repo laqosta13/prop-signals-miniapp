@@ -54,7 +54,7 @@ export function SignalCard({
 
   useEffect(() => {
     viewRecorded.current = false;
-  }, [s.id]);
+  }, [s.id, s.created_at]);
 
   useEffect(() => {
     if (!canEngage || viewRecorded.current) return;
@@ -75,7 +75,7 @@ export function SignalCard({
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, [s.id, canEngage, onPatch]);
+  }, [s.id, s.created_at, canEngage, onPatch]);
 
   const entry = s.entry_low || s.entry_high || "—";
   const target = formatTakeProfits(s.take_profits);

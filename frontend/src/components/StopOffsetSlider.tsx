@@ -1,5 +1,6 @@
+import { useEffect } from "react";
 import {
-  maxPriceStopPctFromDailyRemaining,
+  maxPriceStopPctForStopSlider,
   priceStopToAccountRiskPct,
   SIGNAL_DAILY_STOP_LIMIT_PCT,
 } from "../utils/dailyStopLimit";
@@ -46,12 +47,10 @@ export function StopOffsetSlider({
 
   const priceRaw = parseRiskPctValue(value);
 
-  // Потолок шкалы от лимита ранга, не от текущей доли входа — иначе бегунок стопа едет при смене входа.
   const dailyMaxPrice = trackerMode
-    ? maxPriceStopPctFromDailyRemaining(
+    ? maxPriceStopPctForStopSlider(
         dailyRemainingRankPct!,
         balanceUsd,
-        rankMaxStakePct,
         rankMaxStakePct,
         leverage,
       )
@@ -85,6 +84,11 @@ export function StopOffsetSlider({
     const clamped = n <= 0 ? STOP_OFFSET_MIN_PCT : clampStopOffsetPct(n, maxPct);
     onChange(formatRiskPct(clamped));
   };
+
+  useEffect(() => {
+    if (disabled || priceRaw <= maxPct + 0.005) return;
+    onChange(formatRiskPct(clampStopOffsetPct(priceRaw, maxPct)));
+  }, [disabled, maxPct, priceRaw, onChange]);
 
   if (disabled) {
     return (

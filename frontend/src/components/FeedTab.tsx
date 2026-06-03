@@ -86,7 +86,7 @@ export function FeedTab({
       )}
       {visible.map((s) => (
         <SignalCard
-          key={s.id}
+          key={`${s.id}-${s.created_at}`}
           signal={s}
           liveTrackerBalance={trackers.find((t) => t.owner_telegram_id === s.author_telegram_id)?.balance}
           isAdmin={isAdmin}

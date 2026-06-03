@@ -5,7 +5,7 @@ import {
   dailyStopRemainingRankPct,
   dailyTradingBlocked,
   dailyTradesRemaining,
-  maxPriceStopPctFromRankDailyBudget,
+  rankNominalForDailyStopLimit,
   rankNominalUsd,
   SIGNAL_DAILY_TRADE_LIMIT,
 } from "../utils/dailyStopLimit";
@@ -50,9 +50,14 @@ export function useSignalFormTracker(
     [balanceUsd, rankMaxStakePct, lev],
   );
 
+  const rankNominalForDailyStop = useMemo(
+    () => rankNominalForDailyStopLimit(balanceUsd, rankMaxStakePct),
+    [balanceUsd, rankMaxStakePct],
+  );
+
   const dailyRemainingRank = useMemo(
-    () => dailyStopRemainingRankPct(dailyLossUsd, rankNominal),
-    [dailyLossUsd, rankNominal],
+    () => dailyStopRemainingRankPct(dailyLossUsd, rankNominalForDailyStop),
+    [dailyLossUsd, rankNominalForDailyStop],
   );
 
   const dailyStopBlocked = dailyRemainingRank < ACCOUNT_STOP_MIN_STEP;
@@ -61,7 +66,7 @@ export function useSignalFormTracker(
   const dailyTradesLimit = trackerSnap?.dailyTradesLimit ?? SIGNAL_DAILY_TRADE_LIMIT;
   const dailyLimit = dailyTradingBlocked({
     dailyLossUsd,
-    rankNominalUsd: rankNominal,
+    rankNominalUsd: rankNominalForDailyStop,
     dailyTradesCount,
     dailyTradesLimit,
   });
@@ -87,15 +92,6 @@ export function useSignalFormTracker(
       return balance > 0 ? balance : trackerSnap?.accountSize ?? fallbackAccountSize;
     },
     stakeUsd: (balance: number) => entryNominalUsd(balance, stakePct, lev),
-    maxPriceStopForLeverage: (leverage: number, stakePctValue: number, balance: number) => {
-      if (balance <= 0 || rankMaxStakePct <= 0 || stakePctValue <= 0) return undefined;
-      return maxPriceStopPctFromRankDailyBudget(
-        dailyLossUsd,
-        balance,
-        rankMaxStakePct,
-        stakePctValue,
-        leverage,
-      );
-    },
+    rankNominalForDailyStop,
   };
 }

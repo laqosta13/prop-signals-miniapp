@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { priceStopPctPreservingAccountRisk } from "../utils/dailyStopLimit";
+import { maxPriceStopPctForStopSlider, priceStopPctPreservingAccountRisk } from "../utils/dailyStopLimit";
 import {
   DEFAULT_STOP_RISK_PCT,
   STOP_OFFSET_SLIDER_CAP_PCT,
@@ -16,7 +16,9 @@ export type ResyncStopForLeverageOpts = {
   prevLeverage: number;
   newLeverage: number;
   stakePct: number;
-  maxPriceStopPct?: number;
+  dailyRemainingRankPct: number;
+  balanceUsd: number;
+  rankMaxStakePct: number;
 };
 
 export function useSignalLevelFields(initialDirection: "long" | "short" = "long") {
@@ -118,19 +120,27 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
 
   /** Смена плеча: риск счёта на стопе сохраняем → % от входа и цены стоп/цель 1:3 пересчитываем. */
   const resyncStopTargetForLeverage = useCallback(
-    ({ prevLeverage, newLeverage, stakePct, maxPriceStopPct }: ResyncStopForLeverageOpts) => {
+    ({
+      prevLeverage,
+      newLeverage,
+      stakePct,
+      dailyRemainingRankPct,
+      balanceUsd,
+      rankMaxStakePct,
+    }: ResyncStopForLeverageOpts) => {
       if (parseEntryPrice(entry) === null || stakePct <= 0 || newLeverage < 1) return;
 
-      const cap = maxPriceStopPct ?? STOP_OFFSET_SLIDER_CAP_PCT;
-      const pricePct = clampStopOffsetPct(
-        priceStopPctPreservingAccountRisk(
-          parseRiskPctValue(riskPct),
-          stakePct,
-          prevLeverage,
-          newLeverage,
-        ),
-        cap,
+      const cap = Math.min(
+        STOP_OFFSET_SLIDER_CAP_PCT,
+        maxPriceStopPctForStopSlider(dailyRemainingRankPct, balanceUsd, rankMaxStakePct, newLeverage),
       );
+      const preserved = priceStopPctPreservingAccountRisk(
+        parseRiskPctValue(riskPct),
+        stakePct,
+        prevLeverage,
+        newLeverage,
+      );
+      const pricePct = clampStopOffsetPct(Math.min(preserved, cap > 0 ? cap : preserved), cap);
       const label = formatRiskPct(pricePct);
       setRiskPct(label);
       const next = stopTargetFromEntryAndRisk(entry, direction, pricePct);

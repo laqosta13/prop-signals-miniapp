@@ -9,6 +9,9 @@ function mergeClosedSignal(local: Signal, remote: Signal): Signal {
     realized_pnl: remote.realized_pnl ?? local.realized_pnl,
     close_reason: remote.close_reason ?? local.close_reason,
     entry_filled_at: remote.entry_filled_at ?? local.entry_filled_at,
+    views_count: Math.max(remote.views_count ?? 0, local.views_count ?? 0),
+    likes_count: Math.max(remote.likes_count ?? 0, local.likes_count ?? 0),
+    liked_by_me: remote.liked_by_me ?? local.liked_by_me,
   };
 }
 
@@ -32,6 +35,11 @@ export function mergeFeedSignals(prev: Signal[], next: Signal[]): Signal[] {
     }
 
     if (remoteClosed) return mergeClosedSignal(local, remote);
-    return remote;
+    return {
+      ...remote,
+      views_count: Math.max(remote.views_count ?? 0, local.views_count ?? 0),
+      likes_count: Math.max(remote.likes_count ?? 0, local.likes_count ?? 0),
+      liked_by_me: remote.liked_by_me ?? local.liked_by_me,
+    };
   });
 }

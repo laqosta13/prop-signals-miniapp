@@ -197,7 +197,9 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
               prevLeverage: prev,
               newLeverage: next,
               stakePct: tracker.stakePct,
-              maxPriceStopPct: tracker.maxPriceStopForLeverage(next, tracker.stakePct, balance),
+              dailyRemainingRankPct: tracker.dailyRemainingRank,
+              balanceUsd: balance,
+              rankMaxStakePct: tracker.rankMaxStakePct,
             });
           }}
           risk={risk}

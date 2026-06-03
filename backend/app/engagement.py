@@ -1,7 +1,14 @@
+from sqlalchemy import delete
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models import Signal, SignalLike, SignalView
+
+
+def purge_signal_engagement(db: Session, signal_id: int) -> None:
+    """Удалить просмотры/лайки — иначе новый сигнал с тем же id не наберёт просмотры."""
+    db.execute(delete(SignalView).where(SignalView.signal_id == signal_id))
+    db.execute(delete(SignalLike).where(SignalLike.signal_id == signal_id))
 
 
 def record_view(db: Session, signal_id: int, telegram_user_id: int) -> int:

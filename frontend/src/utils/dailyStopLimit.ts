@@ -1,3 +1,5 @@
+import { MAX_LEVERAGE } from "./signalForm";
+
 /** Дневной лимит стопа: 2% от номинала ранга (счёт × лимит ранга % × плечо). */
 export const SIGNAL_DAILY_STOP_LIMIT_PCT = 2;
 
@@ -78,6 +80,29 @@ export function maxPriceStopPctFromRankDailyBudget(
   const remainingUsd = dailyStopRemainingUsd(dailyLossUsd, rankNominal);
   const maxAccountRisk = (remainingUsd / balanceUsd) * 100;
   return accountRiskToPriceStopPct(maxAccountRisk, stakePct, leverage);
+}
+
+/**
+ * Номинал для чипа «Стоп дня» и остатка % — не от плеча в форме (иначе лимит сбивается при 2x/5x).
+ */
+export function rankNominalForDailyStopLimit(balanceUsd: number, rankMaxStakePct: number): number {
+  return rankNominalUsd(balanceUsd, rankMaxStakePct, MAX_LEVERAGE);
+}
+
+/** Потолок бегунка «До стопа» и пересчёт при смене плеча (лимит ранга, не доля входа). */
+export function maxPriceStopPctForStopSlider(
+  dailyRemainingRankPct: number,
+  balanceUsd: number,
+  rankMaxStakePct: number,
+  leverage: number,
+): number {
+  return maxPriceStopPctFromDailyRemaining(
+    dailyRemainingRankPct,
+    balanceUsd,
+    rankMaxStakePct,
+    rankMaxStakePct,
+    leverage,
+  );
 }
 
 /** Макс. % цены при остатке лимита в «% от номинала ранга» (0–2). */

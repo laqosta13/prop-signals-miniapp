@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.deps import db_session, get_current_user, require_active_subscription, require_admin
 from app.signal_permissions import require_signal_engagement, require_signal_owner
-from app.engagement import record_view, toggle_like
+from app.engagement import purge_signal_engagement, record_view, toggle_like
 from app.media_storage import (
     delete_media_files,
     delete_signal_media_dir,
@@ -290,6 +290,7 @@ async def delete_signal(
     db.execute(delete(SignalSupplement).where(SignalSupplement.signal_id == signal_id))
     delete_media_files(row.media_image_path, row.media_video_path)
     delete_signal_media_dir(signal_id)
+    purge_signal_engagement(db, signal_id)
     db.delete(row)
     db.commit()
 
