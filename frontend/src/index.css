@@ -3129,6 +3129,14 @@
   filter: drop-shadow(0 0 6px rgba(255, 220, 120, 0.45));
 }
 
+.rank-icon--satoshi {
+  filter: drop-shadow(0 0 4px rgba(247, 147, 26, 0.55));
+}
+
+.rank-icon--pyramid-eye {
+  filter: drop-shadow(0 0 5px rgba(245, 215, 110, 0.4));
+}
+
 .rank-icon {
   display: block;
   flex-shrink: 0;

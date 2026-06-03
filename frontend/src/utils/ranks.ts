@@ -10,7 +10,7 @@ export type RankStyle = {
 
 export const RANK_STYLES: Record<number, RankStyle> = {
   10: { bg: "#1a1408", color: "#f5d76e", iconId: "pyramid-eye", tier: "apex" },
-  9: { bg: "#1a1608", color: "#f0b429", iconId: "satoshi-pyramid", tier: "elite" },
+  9: { bg: "#1a1608", color: "#f0b429", iconId: "satoshi", tier: "elite" },
   1: { bg: "#2a1f00", color: "#EF9F27", iconId: "crown", tier: "legend" },
   2: { bg: "#2a1200", color: "#EF9F27", iconId: "wolf" },
   3: { bg: "#1a1530", color: "#9b8cff", iconId: "chart-down" },
