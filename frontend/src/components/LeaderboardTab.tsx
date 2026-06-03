@@ -72,7 +72,18 @@ function TopTraderCard({
                 {trader.rating_percent.toFixed(2)}%
               </p>
               <p className="top-meta">
-                W {trader.wins} · L {trader.losses} · WR {trader.win_rate}%
+                {fired && trader.trader_rank != null ? (
+                  <>
+                    Неделя: {trader.trader_rank.weekly_pct >= 0 ? "+" : ""}
+                    {trader.trader_rank.weekly_pct.toFixed(1)}% · минус. подряд:{" "}
+                    {trader.trader_rank.consecutive_loss_weeks >= 2
+                      ? trader.trader_rank.consecutive_loss_weeks
+                      : trader.trader_rank.consecutive_loss_weeks + (trader.trader_rank.weekly_pct < 0 ? 1 : 0)}{" "}
+                    · W {trader.wins} · L {trader.losses}
+                  </>
+                ) : (
+                  <>W {trader.wins} · L {trader.losses} · WR {trader.win_rate}%</>
+                )}
               </p>
             </div>
           </div>
@@ -133,7 +144,12 @@ export function LeaderboardTab({
     [cultChannels],
   );
   const firedList = useMemo(
-    () => [...firedTraders].sort((a, b) => b.rating_percent - a.rating_percent),
+    () =>
+      [...firedTraders].sort(
+        (a, b) =>
+          (a.trader_rank?.weekly_pct ?? 0) - (b.trader_rank?.weekly_pct ?? 0) ||
+          a.rating_percent - b.rating_percent,
+      ),
     [firedTraders],
   );
 

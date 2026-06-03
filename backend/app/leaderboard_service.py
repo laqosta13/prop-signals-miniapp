@@ -57,18 +57,28 @@ def daily_stats_map(db: Session, admin_ids: list[int]) -> dict[int, list[TraderD
     return out
 
 
-def fired_trader_ids(db: Session) -> list[int]:
-    active = settings.admin_id_set
-    explicit = {tid for tid in settings.former_admin_id_set if tid not in active and tid != 0}
-    if explicit:
-        return sorted(explicit)
+def _trader_has_two_minus_weeks(trader: Trader) -> bool:
+    """Две минусовые недели подряд: уже зафиксированы или идёт вторая (первая в consecutive_loss_weeks)."""
+    ensure_rank_fields(trader)
+    clw = trader.consecutive_loss_weeks or 0
+    weekly = trader.weekly_pct or 0.0
+    return clw >= 2 or (clw >= 1 and weekly < 0)
 
-    rows = db.scalars(
-        select(Signal.author_telegram_id)
-        .where(Signal.status.in_(("win", "lose")))
-        .distinct()
-    ).all()
-    return sorted({tid for tid in rows if tid not in active and tid != 0})
+
+def fired_trader_ids(db: Session) -> list[int]:
+    """Уволенные: бывшие админы из env и админы с двумя минусовыми неделями подряд."""
+    active = settings.admin_id_set
+    fired: set[int] = {
+        tid for tid in settings.former_admin_id_set if tid not in active and tid != 0
+    }
+    if not active:
+        return sorted(fired)
+
+    traders = db.scalars(select(Trader).where(Trader.telegram_id.in_(active))).all()
+    for t in traders:
+        if _trader_has_two_minus_weeks(t):
+            fired.add(t.telegram_id)
+    return sorted(fired)
 
 
 def _traders_leaderboard_rows(db: Session, ids: list[int]) -> list[TraderRead]:
@@ -94,7 +104,8 @@ def _traders_leaderboard_rows(db: Session, ids: list[int]) -> list[TraderRead]:
 
 
 def build_leaderboard(db: Session) -> list[TraderRead]:
-    ids = sorted(settings.admin_id_set)
+    fired = set(fired_trader_ids(db))
+    ids = sorted(aid for aid in settings.admin_id_set if aid not in fired)
     if not ids:
         return []
     result: list[TraderRead] = []
@@ -106,4 +117,11 @@ def build_leaderboard(db: Session) -> list[TraderRead]:
 
 
 def build_fired_leaderboard(db: Session) -> list[TraderRead]:
-    return _traders_leaderboard_rows(db, fired_trader_ids(db))
+    rows = _traders_leaderboard_rows(db, fired_trader_ids(db))
+    rows.sort(
+        key=lambda r: (
+            r.trader_rank.weekly_pct if r.trader_rank else 0.0,
+            r.rating_percent,
+        ),
+    )
+    return rows
