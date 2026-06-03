@@ -7,6 +7,7 @@ import { useSignalLivePnl } from "../hooks/useSignalLivePnl";
 import { canEditOrDeleteSignal, canCloseAtMarketSignal, canSupplementSignal } from "../utils/signalActions";
 import { signalOutcomeDisplay } from "../utils/signalChartLevels";
 import { Avatar } from "./Avatar";
+import { RankBadge } from "./RankBadge";
 import { SignalChart } from "./SignalChart";
 
 type Props = {
@@ -136,7 +137,10 @@ export function SignalCard({
         <div className="signal-card__identity">
           <Avatar url={s.author_avatar_url} displayName={s.author_display_name} username={s.author_username} size={40} />
           <div className="signal-card__who">
-            <p className="signal-card__name">{author.title}</p>
+            <div className="signal-card__name-row">
+              <p className="signal-card__name">{author.title}</p>
+              {s.author_rank && <RankBadge rank={s.author_rank} card />}
+            </div>
             <div className="signal-card__sym">
               <span className="signal-number">#{s.number}</span>
               <span className="signal-ticker">{s.symbol}</span>

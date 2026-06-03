@@ -49,6 +49,7 @@ export type Signal = {
   media_image_url: string | null;
   media_video_url: string | null;
   author_avatar_url: string | null;
+  author_rank?: TraderRank | null;
   supplements?: SignalSupplement[];
 };
 

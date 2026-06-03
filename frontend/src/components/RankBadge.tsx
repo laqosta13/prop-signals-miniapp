@@ -10,21 +10,26 @@ type Props = {
   compact?: boolean;
   /** Крупный бейдж с акцентной анимацией (ТОП, профиль). */
   featured?: boolean;
+  /** Средний бейдж на карточке сигнала. */
+  card?: boolean;
   /** Открыть описание рангов по нажатию (по умолчанию true). */
   interactive?: boolean;
 };
 
-export function RankBadge({ rank, compact, featured, interactive = true }: Props) {
+export function RankBadge({ rank, compact, featured, card, interactive = true }: Props) {
   const [guideOpen, setGuideOpen] = useState(false);
   const st = rankStyle(rank.current_rank_id);
-  const isFeatured = featured ?? !compact;
+  const isCard = !!card;
+  const isFeatured = !isCard && (featured ?? !compact);
 
   const pill = (
     <span
-      className={`rank-badge__pill ${rankPillExtraClass(rank.current_rank_id, isFeatured)}`.trim()}
+      className={`rank-badge__pill ${rankPillExtraClass(rank.current_rank_id, isFeatured)}${isCard ? " rank-badge__pill--card" : ""}`.trim()}
       style={{ background: st.bg, color: st.color }}
     >
-      {st.iconId && <RankIcon id={st.iconId} size={isFeatured ? 20 : 16} className="rank-badge__icon" />}
+      {st.iconId && (
+        <RankIcon id={st.iconId} size={isFeatured ? 20 : isCard ? 18 : 16} className="rank-badge__icon" />
+      )}
       <span className="rank-badge__name">{rank.current_rank_name}</span>
       {rank.shield_active && (
         <span className="rank-badge__shield" title="Страховка">
@@ -49,7 +54,7 @@ export function RankBadge({ rank, compact, featured, interactive = true }: Props
   const body = interactive ? (
     <button
       type="button"
-      className={`rank-badge rank-badge--btn${isFeatured ? " rank-badge--featured" : ""}`}
+      className={`rank-badge rank-badge--btn${isFeatured ? " rank-badge--featured" : ""}${isCard ? " rank-badge--card" : ""}`}
       onClick={openGuide}
       aria-label={`Ранг ${rank.current_rank_name}. Описание рангов`}
     >
@@ -57,7 +62,7 @@ export function RankBadge({ rank, compact, featured, interactive = true }: Props
       {warn}
     </button>
   ) : (
-    <span className={`rank-badge${isFeatured ? " rank-badge--featured" : ""}`}>
+    <span className={`rank-badge${isFeatured ? " rank-badge--featured" : ""}${isCard ? " rank-badge--card" : ""}`}>
       {pill}
       {warn}
     </span>

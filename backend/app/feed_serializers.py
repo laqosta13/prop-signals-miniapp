@@ -10,7 +10,14 @@ from sqlalchemy.orm import Session
 from app.media_storage import public_url
 from app.models import Signal, SignalLike, SignalSupplement, Trader
 from app.schemas import SignalRead, SignalSupplementRead
-from app.serializers import signal_display_number, trader_avatar_url, trader_display_name, trader_login
+from app.rank_service import ensure_rank_fields
+from app.serializers import (
+    signal_display_number,
+    trader_avatar_url,
+    trader_display_name,
+    trader_login,
+    trader_rank_read,
+)
 from app.trader_stats import signal_realized_pnl_for_read
 
 FEED_SIGNAL_LIMIT = 80
@@ -62,6 +69,10 @@ def signals_list_read(db: Session, signals: list[Signal], viewer_id: int | None)
     for s in signals:
         trader = traders.get(s.author_telegram_id)
         login = trader_login(trader, s.author_username)
+        author_rank = None
+        if trader is not None:
+            ensure_rank_fields(trader)
+            author_rank = trader_rank_read(trader, include_history=False)
         out.append(
             SignalRead(
                 id=s.id,
@@ -96,6 +107,7 @@ def signals_list_read(db: Session, signals: list[Signal], viewer_id: int | None)
                 media_image_url=public_url(s.media_image_path),
                 media_video_url=public_url(s.media_video_path),
                 author_avatar_url=trader_avatar_url(trader),
+                author_rank=author_rank,
                 supplements=supplements_map.get(s.id, []),
             )
         )

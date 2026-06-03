@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime
 
 from pydantic import BaseModel, Field
@@ -44,6 +46,7 @@ class SignalRead(BaseModel):
     media_image_url: str | None = None
     media_video_url: str | None = None
     author_avatar_url: str | None = None
+    author_rank: TraderRankRead | None = None
     supplements: list[SignalSupplementRead] = []
 
     model_config = {"from_attributes": True}

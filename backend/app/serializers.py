@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.engagement import user_liked
 from app.media_storage import public_url
 from app.models import NewsPost, Review, Signal, SignalSupplement, Trader
-from app.rank_service import trader_rank_payload
+from app.rank_service import ensure_rank_fields, trader_rank_payload
 from app.trader_stats import signal_realized_pnl_for_read
 from app.schemas import (
     NewsRead,
@@ -63,6 +63,7 @@ def signal_to_read(db: Session, signal: Signal, viewer_id: int | None = None) ->
     from app.signal_service import get_or_create_trader
 
     trader = get_or_create_trader(db, signal.author_telegram_id, signal.author_username)
+    ensure_rank_fields(trader)
     liked = user_liked(db, signal.id, viewer_id) if viewer_id else False
     login = trader_login(trader, signal.author_username)
     return SignalRead(
@@ -98,6 +99,7 @@ def signal_to_read(db: Session, signal: Signal, viewer_id: int | None = None) ->
         media_image_url=public_url(signal.media_image_path),
         media_video_url=public_url(signal.media_video_path),
         author_avatar_url=trader_avatar_url(trader),
+        author_rank=trader_rank_read(trader, include_history=False),
         supplements=_supplements_read(db, signal.id),
     )
 
