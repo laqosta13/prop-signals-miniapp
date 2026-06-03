@@ -1,4 +1,5 @@
 import { MAX_LEVERAGE } from "./signalForm";
+import { DEFAULT_PRICE_STOP_FROM_ENTRY_PCT } from "./signalLevels";
 
 /** Дневной лимит стопа: 2% от номинала ранга (счёт × лимит ранга % × плечо). */
 export const SIGNAL_DAILY_STOP_LIMIT_PCT = 2;
@@ -89,7 +90,11 @@ export function rankNominalForDailyStopLimit(balanceUsd: number, rankMaxStakePct
   return rankNominalUsd(balanceUsd, rankMaxStakePct, MAX_LEVERAGE);
 }
 
-/** Потолок бегунка «До стопа» и пересчёт при смене плеча. */
+/**
+ * Потолок бегунка «До стопа».
+ * Полный день при 1×: до 2% цены; при 5× — 0.4% (2% / 5); для 2–4× — пропорционально.
+ * Не выше экономического лимита от остатка дня (% номинала ранга).
+ */
 export function maxPriceStopPctForStopSlider(
   dailyRemainingRankPct: number,
   balanceUsd: number,
@@ -97,13 +102,21 @@ export function maxPriceStopPctForStopSlider(
   stakePct: number,
   leverage: number,
 ): number {
-  return maxPriceStopPctFromDailyRemaining(
+  const economic = maxPriceStopPctFromDailyRemaining(
     dailyRemainingRankPct,
     balanceUsd,
     rankMaxStakePct,
     stakePct,
     leverage,
   );
+  if (dailyRemainingRankPct < ACCOUNT_STOP_MIN_STEP || leverage < 1) return 0;
+  const dayShare = dailyRemainingRankPct / SIGNAL_DAILY_STOP_LIMIT_PCT;
+  const sliderCap = roundStopPct(
+    (DEFAULT_PRICE_STOP_FROM_ENTRY_PCT * dayShare) / Math.max(1, leverage),
+  );
+  if (sliderCap < ACCOUNT_STOP_MIN_STEP) return economic;
+  if (economic < ACCOUNT_STOP_MIN_STEP) return sliderCap;
+  return roundStopPct(Math.min(economic, sliderCap));
 }
 
 /** Макс. % цены при остатке лимита в «% от номинала ранга» (0–2). Остаток $ — от номинала 5×, не от плеча в форме. */

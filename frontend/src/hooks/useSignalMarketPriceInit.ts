@@ -76,6 +76,7 @@ export function useSignalMarketPriceInit({
           rankMaxStakePct: trackerSnap.rankMaxStakePct,
           stakePct,
           leverage: lev,
+          dailyRemainingRankPct: trackerSnap.dailyStopRemainingRankPct,
         };
         const priceRisk =
           opts.priceRiskPct ?? parseRiskPctValue(formatDefaultPriceRiskForForm(rankStopCtx));

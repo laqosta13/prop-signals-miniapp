@@ -2,7 +2,9 @@ import {
   ACCOUNT_STOP_MIN_STEP,
   dailyStopRemainingRankPct,
   dailyStopRemainingUsd,
+  maxPriceStopPctForStopSlider,
   maxPriceStopPctFromRankDailyBudget,
+  rankNominalForDailyStopLimit,
   rankNominalUsd,
   SIGNAL_DAILY_STOP_LIMIT_PCT,
 } from "./dailyStopLimit";
@@ -19,16 +21,26 @@ export type RankDailyStopContext = {
   rankMaxStakePct: number;
   stakePct: number;
   leverage: number;
+  dailyRemainingRankPct?: number;
 };
 
 function rankNominal(ctx: RankDailyStopContext): number {
-  return rankNominalUsd(ctx.balanceUsd, ctx.rankMaxStakePct, ctx.leverage);
+  return rankNominalForDailyStopLimit(ctx.balanceUsd, ctx.rankMaxStakePct);
 }
 
-/** Макс. % цены от входа при текущем остатке дневного лимита (2% от номинала ранга). */
+/** Макс. % цены до стопа — тот же потолок, что у бегунка (с учётом плеча). */
 export function maxPriceStopPctForForm(ctx: RankDailyStopContext): number {
   if (ctx.balanceUsd <= 0 || ctx.rankMaxStakePct <= 0 || ctx.stakePct <= 0) {
     return DEFAULT_PRICE_STOP_FROM_ENTRY_PCT;
+  }
+  if (ctx.dailyRemainingRankPct != null && ctx.dailyRemainingRankPct >= ACCOUNT_STOP_MIN_STEP) {
+    return maxPriceStopPctForStopSlider(
+      ctx.dailyRemainingRankPct,
+      ctx.balanceUsd,
+      ctx.rankMaxStakePct,
+      ctx.stakePct,
+      ctx.leverage,
+    );
   }
   return maxPriceStopPctFromRankDailyBudget(
     ctx.dailyLossUsd,
