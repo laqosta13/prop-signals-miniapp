@@ -6,6 +6,7 @@ import { useSignalFormTracker } from "../hooks/useSignalFormTracker";
 import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
 import { useSignalMarketPriceInit } from "../hooks/useSignalMarketPriceInit";
 import { buildSignalFormData } from "../utils/buildSignalFormData";
+import { confirmAction } from "../utils/confirmAction";
 import { parseLeverage } from "../utils/signalForm";
 import { initialUploadProgress, mediaBytesInForm } from "../utils/upload";
 import { SignalLevelsFields } from "./SignalLevelsFields";
@@ -101,6 +102,13 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formBlocked) return;
+    const side = direction === "short" ? "SHORT" : "LONG";
+    const ok = await confirmAction(
+      `Опубликовать ${symbol.trim().toUpperCase()} ${side} в ленту?\nВход ${risk}% · ${parseLeverage(leverage)}×`,
+    );
+    if (!ok) return;
+
     setSubmitting(true);
     setError(null);
     try {
