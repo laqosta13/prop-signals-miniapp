@@ -144,10 +144,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
         />
       </SignalFormSection>
 
-      <SignalFormSection
-        title="Уровни"
-        hint={priceLoading ? "Курс Bybit…" : "Perp USDT · цель 1:3 от стопа"}
-      >
+      <SignalFormSection title="Уровни">
         <SignalLevelsFields
           entry={entry}
           direction={direction}

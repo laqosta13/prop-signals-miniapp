@@ -163,10 +163,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
         />
       </SignalFormSection>
 
-      <SignalFormSection
-        title="Уровни"
-        hint={priceLoading ? "Курс Bybit…" : "Perp · стоп от входа · цель 1:3"}
-      >
+      <SignalFormSection title="Уровни">
         <SignalLevelsFields
           entry={entry}
           direction={direction}

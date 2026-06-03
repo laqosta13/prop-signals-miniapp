@@ -168,7 +168,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
         />
       </SignalFormSection>
 
-      <SignalFormSection title="Уровни" hint="Стоп от цены входа · цель 1:3">
+      <SignalFormSection title="Уровни">
         <SignalLevelsFields
           entry={entry}
           direction={direction}

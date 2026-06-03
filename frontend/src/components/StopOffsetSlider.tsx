@@ -1,9 +1,5 @@
 import { useEffect } from "react";
-import {
-  maxPriceStopPctForStopSlider,
-  priceStopToAccountRiskPct,
-  SIGNAL_DAILY_STOP_LIMIT_PCT,
-} from "../utils/dailyStopLimit";
+import { maxPriceStopPctForStopSlider } from "../utils/dailyStopLimit";
 import {
   STOP_OFFSET_MAX_PCT,
   STOP_OFFSET_MIN_PCT,
@@ -69,15 +65,6 @@ export function StopOffsetSlider({
   const current = clampStopOffsetPct(priceRaw, maxPct);
   const disabled = blocked || !hasEntry || (trackerMode && maxPct < STOP_OFFSET_MIN_PCT);
 
-  const accountAtStop =
-    trackerMode && stakePct > 0 ? priceStopToAccountRiskPct(current, stakePct, leverage) : null;
-
-  const hint = trackerMode
-    ? `от входа · день ${formatRiskPct(dailyRemainingRankPct!)}/${SIGNAL_DAILY_STOP_LIMIT_PCT}% ном.${
-        accountAtStop != null && accountAtStop > 0 ? ` · ≈${formatRiskPct(accountAtStop)}% счёта` : ""
-      }`
-    : "от цены входа";
-
   const fmtPct = (n: number) => (n <= 0 ? "0" : formatRiskPct(n));
 
   const setPricePct = (n: number) => {
@@ -110,7 +97,6 @@ export function StopOffsetSlider({
     <FormRangeSlider
       className="stop-offset-slider"
       label="До стопа"
-      hint={hint}
       value={current}
       onChange={setPricePct}
       min={minPct}
