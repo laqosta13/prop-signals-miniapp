@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import math
+import time
 from dataclasses import dataclass
 
 import httpx
@@ -15,6 +16,19 @@ from app.signal_utils import entry_triggered, evaluate_signal
 logger = logging.getLogger(__name__)
 
 _cache: dict[str, list[PriceQuote]] = {}
+_linear_symbols_cache: list[str] | None = None
+_linear_symbols_cache_at: float = 0.0
+_LINEAR_SYMBOLS_CACHE_TTL = 3600.0
+_LINEAR_SYMBOLS_POPULAR = (
+    "BTCUSDT",
+    "ETHUSDT",
+    "SOLUSDT",
+    "BNBUSDT",
+    "XRPUSDT",
+    "DOGEUSDT",
+    "ADAUSDT",
+    "AVAXUSDT",
+)
 _price_httpx: httpx.AsyncClient | None = None
 _PRICE_FETCH_RETRIES = 3
 _PRICE_FETCH_RETRY_DELAY = 0.5
@@ -124,6 +138,52 @@ async def _fetch_gold_usd() -> float | None:
         return None
     raw = data.get("price") or data.get("value")
     return _valid_price(float(raw)) if raw is not None else None
+
+
+async def fetch_bybit_linear_symbols() -> list[str]:
+    """USDT perpetual (linear) на Bybit в статусе Trading."""
+    global _linear_symbols_cache, _linear_symbols_cache_at
+    now = time.monotonic()
+    if _linear_symbols_cache is not None and now - _linear_symbols_cache_at < _LINEAR_SYMBOLS_CACHE_TTL:
+        return _linear_symbols_cache
+
+    symbols: list[str] = []
+    cursor: str | None = None
+    for _ in range(20):
+        url = "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1000"
+        if cursor:
+            url += f"&cursor={cursor}"
+        data = await _get_json(url)
+        if not isinstance(data, dict) or data.get("retCode") != 0:
+            break
+        result = data.get("result") or {}
+        for item in result.get("list") or []:
+            if not isinstance(item, dict):
+                continue
+            if item.get("status") != "Trading":
+                continue
+            sym = item.get("symbol")
+            if isinstance(sym, str) and sym.endswith("USDT"):
+                symbols.append(sym)
+        cursor = result.get("nextPageCursor") or None
+        if not cursor:
+            break
+
+    out = sorted(set(symbols))
+    if out:
+        _linear_symbols_cache = out
+        _linear_symbols_cache_at = now
+    return out if out else (_linear_symbols_cache or [])
+
+
+def filter_bybit_linear_symbols(symbols: list[str], query: str, *, limit: int = 16) -> list[str]:
+    q = normalize_symbol(query)
+    if len(q) < 1:
+        return []
+    sym_set = set(symbols)
+    popular = [p for p in _LINEAR_SYMBOLS_POPULAR if p.startswith(q) and p in sym_set]
+    rest = [s for s in symbols if s.startswith(q) and s not in popular]
+    return (popular + rest)[:limit]
 
 
 async def fetch_bybit_perp_quote(symbol: str) -> PriceQuote | None:

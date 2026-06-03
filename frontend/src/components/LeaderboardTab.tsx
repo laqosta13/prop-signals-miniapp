@@ -57,12 +57,12 @@ function TopTraderCard({
                 {aggregate ? (
                   <VolnovoiMarketingBadge trader={trader} />
                 ) : (
-                  trader.trader_rank && <RankBadge rank={trader.trader_rank} compact />
+                  trader.trader_rank && <RankBadge rank={trader.trader_rank} featured />
                 )}
               </div>
               {aggregate && trader.trader_rank && (
                 <div className="top-aggregate-rank">
-                  <RankBadge rank={trader.trader_rank} compact />
+                  <RankBadge rank={trader.trader_rank} featured />
                 </div>
               )}
               {aggregate && <p className="top-aggregate-hint">{VOLNOVOI_SUBTITLE}</p>}

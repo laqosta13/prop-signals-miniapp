@@ -16,10 +16,15 @@ from app.media_storage import (
     save_supplement_video,
 )
 from app.models import Signal, SignalSupplement
-from app.schemas import LikeResponse, MarketPriceRead, SignalRead, TelegramUser, ViewResponse
+from app.schemas import LikeResponse, MarketPriceRead, MarketSymbolsRead, SignalRead, TelegramUser, ViewResponse
 from app.feed_serializers import FEED_SIGNAL_LIMIT, signals_list_read
 from app.serializers import signal_to_read
-from app.price_service import fetch_bybit_perp_quote, normalize_symbol
+from app.price_service import (
+    fetch_bybit_linear_symbols,
+    fetch_bybit_perp_quote,
+    filter_bybit_linear_symbols,
+    normalize_symbol,
+)
 from app.challenge_service import admin_account_size, admin_tracker_balance, ensure_tracker_for_new_signal
 from app.daily_stop_limit import validate_signal_daily_stop, validate_signal_daily_trades
 from app.signal_stake_pool import validate_signal_stake_pool
@@ -83,6 +88,32 @@ async def list_signals_preview(
     return signals_list_read(db, rows, user.telegram_user_id)
 
 
+def _require_signal_form_market_access(user: TelegramUser, db: Session) -> None:
+    from app.cult_candidate_service import is_cult_candidate
+    from app.models import Subscriber
+
+    if user.is_admin:
+        return
+    sub = db.get(Subscriber, user.telegram_user_id)
+    if sub is None or not is_cult_candidate(db, user.telegram_user_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="forbidden")
+
+
+@router.get("/market-symbols", response_model=MarketSymbolsRead)
+async def market_symbols(
+    q: str = "",
+    user: TelegramUser = Depends(get_current_user),
+    db: Session = Depends(db_session),
+) -> MarketSymbolsRead:
+    """Подсказки тикеров Bybit USDT perp для формы сигнала (по префиксу)."""
+    _require_signal_form_market_access(user, db)
+    prefix = normalize_symbol(q)
+    if len(prefix) < 1:
+        return MarketSymbolsRead(symbols=[])
+    all_symbols = await fetch_bybit_linear_symbols()
+    return MarketSymbolsRead(symbols=filter_bybit_linear_symbols(all_symbols, prefix))
+
+
 @router.get("/market-price", response_model=MarketPriceRead)
 async def market_price(
     symbol: str,
@@ -90,13 +121,7 @@ async def market_price(
     db: Session = Depends(db_session),
 ) -> MarketPriceRead:
     """Курс Bybit perp для формы сигнала (админ или кандидат CULT)."""
-    from app.cult_candidate_service import is_cult_candidate
-    from app.models import Subscriber
-
-    if not user.is_admin:
-        sub = db.get(Subscriber, user.telegram_user_id)
-        if sub is None or not is_cult_candidate(db, user.telegram_user_id):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="forbidden")
+    _require_signal_form_market_access(user, db)
     sym = normalize_symbol(symbol)
     if not sym:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="symbol required")

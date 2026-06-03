@@ -55,6 +55,10 @@ class MarketPriceRead(BaseModel):
     source: str = "bybit_perp"
 
 
+class MarketSymbolsRead(BaseModel):
+    symbols: list[str]
+
+
 class LikeResponse(BaseModel):
     liked: bool
     likes_count: int

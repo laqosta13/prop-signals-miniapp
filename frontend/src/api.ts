@@ -339,6 +339,11 @@ export type MarketPrice = { symbol: string; price: number; source?: string };
 
 export const fetchMarketPrice = (symbol: string) =>
   api<MarketPrice>(`/signals/market-price?symbol=${encodeURIComponent(symbol.trim())}`);
+
+export const fetchMarketSymbols = (query: string) =>
+  api<{ symbols: string[] }>(
+    `/signals/market-symbols?q=${encodeURIComponent(query.trim().toUpperCase())}`,
+  );
 export type CopyTradingInvoice = {
   id: number;
   period_date: string;
