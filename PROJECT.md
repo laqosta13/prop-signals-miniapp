@@ -408,7 +408,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 | Способ | Как |
 |---|---|
-| Одноразово при деплое | маркеры `.purged_all_published_*` в `migrate.py` (актуально: `.purged_all_published_jun2026_v3`) |
+| Одноразово при деплое | маркеры `.purged_all_published_*` в `migrate.py` (актуально: `.purged_all_published_jun2026_v4`) |
 | API (без UI) | `POST /admin/purge-published` — `require_admin` |
 | Скрипт на сервере | `python backend/scripts/purge_published.py` |
 
@@ -541,7 +541,7 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 
 ## Одноразовые миграции (маркеры на диске)
 
-- `.purged_test_v2`, `.purged_reset_v3`, `.purged_all_published_may2026`, `.purged_all_published_may2026_v2`, `.purged_all_published_jun2026`, `.purged_all_published_may2026_v3`, `.purged_all_published_jun2026_v2`, **`.purged_all_published_jun2026_v3`** — purge через `data_cleanup.py` / `migrate.py`
+- `.purged_test_v2`, `.purged_reset_v3`, `.purged_all_published_may2026`, `.purged_all_published_may2026_v2`, `.purged_all_published_jun2026`, `.purged_all_published_may2026_v3`, `.purged_all_published_jun2026_v2`, `.purged_all_published_jun2026_v3`, **`.purged_all_published_jun2026_v4`** — purge через `data_cleanup.py` / `migrate.py`
 - `.recalc_closed_signal_pnl_v2`, `.recalc_closed_signal_pnl_v3` — пересчёт P/L от `account_size` и risk_percent
 - `.recalc_winrate_by_pnl_v1` — пересчёт W/L и WR по фактическому P/L ($)
 
@@ -603,6 +603,7 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 50. **Purge v3** — очистка контента incl. CULT-сигналы и copy-trades; маркер `.purged_all_published_may2026_v3`
 51. **Purge jun2026 v2** — разовая полная очистка ленты/новостей/отзывов/CULT-stats; маркер `.purged_all_published_jun2026_v2`
 52. **Purge jun2026 v3** — полная очистка + сброс stats кандидатов CULT; кнопка «Регистрация в HASH HEDGE»; маркер `.purged_all_published_jun2026_v3`
+53. **Purge jun2026 v4** — разовая полная очистка ленты/новостей/отзывов; маркер `.purged_all_published_jun2026_v4`
 
 ---
 
