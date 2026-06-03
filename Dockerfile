@@ -1,12 +1,13 @@
 # Сборка фронта и один контейнер с FastAPI + статикой (удобно для cloud.amvera.ru).
-FROM node:20-alpine AS frontend
+# Теги node:18 и python:3.11 — как в документации Amvera; alpine/20-alpine часто отсутствуют в harbor.amvera.ru.
+FROM node:18 AS frontend
 WORKDIR /src
 COPY frontend/package.json ./
 RUN npm install
 COPY frontend/ ./
 RUN npm run build
 
-FROM python:3.12-slim
+FROM python:3.11
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

@@ -38,7 +38,7 @@ npm run dev
 
 Подходит один сервис: **Docker** собирает React и кладёт `dist` в образ; **FastAPI** отдаёт API и SPA с одного HTTPS-домена (удобно для Mini App: запросы идут на тот же хост, `VITE_API_URL` не нужен).
 
-1. Создайте проект в кабинете → окружение **Docker**, подключите Git-репозиторий с этим кодом (корень репозитория = корень `prop-signals-miniapp`, где лежат `Dockerfile` и `amvera.yml`).
+1. Создайте проект в кабинете → окружение **Docker**, подключите Git-репозиторий с этим кодом (корень репозитория = корень `prop-signals-miniapp`, где лежат `Dockerfile` и `amvera.yml`). В `Dockerfile` для сборки на Amvera используются образы `node:18` и `python:3.11` (теги вроде `node:20-alpine` в их mirror часто недоступны).
 2. Включите **постоянное хранилище** (диск): в `amvera.yml` уже указано `persistenceMount: /data`. SQLite пишет в `DATABASE_URL` по умолчанию `sqlite:////data/signals.db` (задаётся в `Dockerfile`).
 3. В разделе переменных окружения Amvera задайте секреты (как в `backend/.env.example`):
    - `BOT_TOKEN`
