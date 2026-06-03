@@ -56,7 +56,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
   const directionRef = useRef(direction);
   directionRef.current = direction;
 
-  const tracker = useSignalFormTracker(open, { risk, setRisk }, leverage);
+  const tracker = useSignalFormTracker(open, { risk, setRisk }, { leverage, setLeverage });
 
   const balance = tracker.balanceForNominal();
 
@@ -203,6 +203,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
           risk={risk}
           onRiskChange={setRisk}
           maxStakePct={tracker.maxStakePct}
+          maxLeverage={tracker.rankMaxLeverage}
           disabled={tracker.stakePoolBlocked}
           balanceUsd={balance}
           stakeUsd={tracker.stakeUsd(balance)}

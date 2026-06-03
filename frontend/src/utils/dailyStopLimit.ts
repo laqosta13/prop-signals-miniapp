@@ -91,48 +91,56 @@ export function rankNominalForDailyStopLimit(balanceUsd: number, rankMaxStakePct
 }
 
 /**
- * Потолок бегунка «До стопа».
- * Полный день при 1×: до 2% цены; при 5× — 0.4% (2% / 5); для 2–4× — пропорционально.
- * Не выше экономического лимита от остатка дня (% номинала ранга).
+ * Заморозка / списание в шкале СТОП ЛИМИТ 2%: % цены до стопа × плечо.
+ * 1×: 2%→2%; 2×: 1%→2%; 3×: 0.67%→2%; 4×: 0.5%→2%; 5×: 0.4%→2%.
+ */
+export function priceStopToReservedRankPct(priceStopPct: number, leverage: number): number {
+  const lev = Math.max(1, leverage);
+  if (!Number.isFinite(priceStopPct) || priceStopPct <= 0) return 0;
+  const effective = priceStopPct * lev;
+  return roundStopPct(
+    Math.min(
+      (effective * SIGNAL_DAILY_STOP_LIMIT_PCT) / DEFAULT_PRICE_STOP_FROM_ENTRY_PCT,
+      SIGNAL_DAILY_STOP_LIMIT_PCT,
+    ),
+  );
+}
+
+/** Макс. % цены до стопа при остатке дневного лимита (обратно к priceStopToReservedRankPct). */
+export function maxPriceStopPctForRemainingRank(
+  dailyRemainingRankPct: number,
+  leverage: number,
+): number {
+  const lev = Math.max(1, leverage);
+  if (dailyRemainingRankPct < ACCOUNT_STOP_MIN_STEP || lev < 1) return 0;
+  return roundStopPct(
+    (dailyRemainingRankPct * DEFAULT_PRICE_STOP_FROM_ENTRY_PCT) /
+      (lev * SIGNAL_DAILY_STOP_LIMIT_PCT),
+  );
+}
+
+/**
+ * Потолок бегунка «До стопа» от остатка СТОП ЛИМИТ и плеча (2×…5× — как заморозка на бэке).
  */
 export function maxPriceStopPctForStopSlider(
   dailyRemainingRankPct: number,
-  balanceUsd: number,
-  rankMaxStakePct: number,
-  stakePct: number,
+  _balanceUsd: number,
+  _rankMaxStakePct: number,
+  _stakePct: number,
   leverage: number,
 ): number {
-  const economic = maxPriceStopPctFromDailyRemaining(
-    dailyRemainingRankPct,
-    balanceUsd,
-    rankMaxStakePct,
-    stakePct,
-    leverage,
-  );
-  if (dailyRemainingRankPct < ACCOUNT_STOP_MIN_STEP || leverage < 1) return 0;
-  const dayShare = dailyRemainingRankPct / SIGNAL_DAILY_STOP_LIMIT_PCT;
-  const sliderCap = roundStopPct(
-    (DEFAULT_PRICE_STOP_FROM_ENTRY_PCT * dayShare) / Math.max(1, leverage),
-  );
-  if (sliderCap < ACCOUNT_STOP_MIN_STEP) return economic;
-  if (economic < ACCOUNT_STOP_MIN_STEP) return sliderCap;
-  return roundStopPct(Math.min(economic, sliderCap));
+  return maxPriceStopPctForRemainingRank(dailyRemainingRankPct, leverage);
 }
 
-/** Макс. % цены при остатке лимита в «% от номинала ранга» (0–2). Остаток $ — от номинала 5×, не от плеча в форме. */
+/** @deprecated Используйте maxPriceStopPctForRemainingRank — лимит от плеча, не от % входа. */
 export function maxPriceStopPctFromDailyRemaining(
   dailyRemainingRankPct: number,
-  balanceUsd: number,
-  rankMaxStakePct: number,
-  stakePct: number,
+  _balanceUsd: number,
+  _rankMaxStakePct: number,
+  _stakePct: number,
   leverage: number,
 ): number {
-  if (dailyRemainingRankPct < ACCOUNT_STOP_MIN_STEP || stakePct <= 0 || leverage < 1) return 0;
-  const rankNominalRef = rankNominalForDailyStopLimit(balanceUsd, rankMaxStakePct);
-  if (rankNominalRef <= 0 || balanceUsd <= 0) return 0;
-  const remainingUsd = (dailyRemainingRankPct / 100) * rankNominalRef;
-  const maxAccountRisk = (remainingUsd / balanceUsd) * 100;
-  return accountRiskToPriceStopPct(maxAccountRisk, stakePct, leverage);
+  return maxPriceStopPctForRemainingRank(dailyRemainingRankPct, leverage);
 }
 
 const PRICE_STOP_MARK_PRESETS = [0.5, 0.7, 1, 1.5, 2, 2.5, 3, 4, 5, 7.5, 10] as const;
@@ -142,23 +150,11 @@ const PRICE_STOP_MARK_PRESETS = [0.5, 0.7, 1, 1.5, 2, 2.5, 3, 4, 5, 7.5, 10] as 
  */
 export function priceStopSliderMarksFromDailyRemaining(
   dailyRemainingPct: number,
-  stakePct: number,
+  _stakePct: number,
   leverage: number,
 ): number[] {
-  const maxPrice = maxPriceStopPctFromDailyRemaining(dailyRemainingPct, stakePct, leverage);
-  if (maxPrice < ACCOUNT_STOP_MIN_STEP) return [];
-
-  const accountMarks = accountStopSliderMarks(dailyRemainingPct);
-  const priceMarks = accountMarks
-    .map((m) => accountRiskToPriceStopPct(m, stakePct, leverage))
-    .filter((m) => m >= ACCOUNT_STOP_MIN_STEP - 0.001 && m <= maxPrice + 0.001);
-
-  const uniq = priceMarks.filter((m, i, arr) => i === 0 || m > arr[i - 1] + 0.009);
-  const last = uniq[uniq.length - 1];
-  if (last == null || last < maxPrice - 0.009) {
-    uniq.push(roundStopPct(maxPrice));
-  }
-  return uniq;
+  const maxPrice = maxPriceStopPctForRemainingRank(dailyRemainingPct, leverage);
+  return priceStopSliderMarks(maxPrice);
 }
 
 /** Метки бегунка «% от номинала» — привычные шаги, если влезают в max. */
@@ -233,6 +229,18 @@ export function priceStopToAccountRiskPct(
 ): number {
   if (!Number.isFinite(priceStopPct) || priceStopPct <= 0) return 0;
   return roundStopPct((priceStopPct * stakePct * leverage) / 100);
+}
+
+/** Смена плеча: заморозка лимита (цена×плечо) не меняется → % цены обратно пропорционален плечу. */
+export function priceStopPctPreservingDailyRank(
+  priceStopPct: number,
+  prevLeverage: number,
+  newLeverage: number,
+): number {
+  const prev = Math.max(1, prevLeverage);
+  const next = Math.max(1, newLeverage);
+  if (!Number.isFinite(priceStopPct) || priceStopPct <= 0) return priceStopPct;
+  return roundStopPct((priceStopPct * prev) / next);
 }
 
 /**

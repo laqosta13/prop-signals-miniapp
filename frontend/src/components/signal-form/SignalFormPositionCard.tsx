@@ -7,6 +7,7 @@ type Props = {
   risk: string;
   onRiskChange: (value: string) => void;
   maxStakePct: number;
+  maxLeverage?: number;
   disabled?: boolean;
   balanceUsd: number;
   stakeUsd: number;
@@ -20,6 +21,7 @@ export function SignalFormPositionCard({
   risk,
   onRiskChange,
   maxStakePct,
+  maxLeverage = 5,
   disabled = false,
   balanceUsd,
   stakeUsd,
@@ -55,7 +57,11 @@ export function SignalFormPositionCard({
 
       <div className="signal-form__position-row">
         <span className="signal-form__inline-label">Плечо</span>
-        <LeveragePicker leverage={leverage} onLeverageChange={onLeverageChange} />
+        <LeveragePicker
+          leverage={leverage}
+          onLeverageChange={onLeverageChange}
+          maxLeverage={maxLeverage}
+        />
       </div>
 
       <RiskPercentSlider

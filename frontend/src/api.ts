@@ -236,6 +236,7 @@ export type ChallengeDashboard = {
   current_rank_id: number;
   current_rank_name: string;
   rank_max_stake_pct: number;
+  rank_max_leverage: number;
   stake_pool_used_pct: number;
   stake_pool_remaining_pct: number;
   max_stake_pct: number;

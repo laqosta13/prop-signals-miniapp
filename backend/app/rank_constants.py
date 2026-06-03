@@ -46,6 +46,28 @@ RANK_MAX_STAKE_PCT: Final[dict[int, float]] = {
     8: 15.0,
 }
 
+# От худшего к лучшему (для плеча в форме сигнала).
+RANKS_WORST_TO_BEST: Final[tuple[int, ...]] = (8, 7, 6, 5, 4, 3, 2, 1, 9, 10)
+
+MAX_SIGNAL_LEVERAGE = 5
+# Первые 5 рангов — только 1×; далее +1× за ступень; два верхних — все 5×.
+RANK_TIERS_LEVERAGE_ONLY_1X = 5
+RANK_TIERS_ALL_LEVERAGE = 2
+
+
+def rank_max_leverage(rank_id: int | None) -> int:
+    """Макс. плечо в сигнале: 8–4 → 1×; 3→2×; 2→3×; 1→4×; 9–10 → 5×."""
+    rid = rank_id if rank_id is not None else DEFAULT_RANK_ID
+    try:
+        idx = RANKS_WORST_TO_BEST.index(rid)
+    except ValueError:
+        return 1
+    if idx < RANK_TIERS_LEVERAGE_ONLY_1X:
+        return 1
+    if idx >= len(RANKS_WORST_TO_BEST) - RANK_TIERS_ALL_LEVERAGE:
+        return MAX_SIGNAL_LEVERAGE
+    return idx - RANK_TIERS_LEVERAGE_ONLY_1X + 2
+
 
 def rank_quality_index(rank_id: int) -> int:
     try:

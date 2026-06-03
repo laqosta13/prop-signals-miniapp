@@ -1,5 +1,12 @@
 import { createPortal } from "react-dom";
-import { RANK_RULES, RANK_TIERS, rankMaxStakePct, rankStyle, rankTierExtraClass } from "../utils/ranks";
+import {
+  RANK_RULES,
+  RANK_TIERS,
+  rankMaxLeverage,
+  rankMaxStakePct,
+  rankStyle,
+  rankTierExtraClass,
+} from "../utils/ranks";
 import { RankIcon } from "./RankIcon";
 
 type Props = {
@@ -44,7 +51,9 @@ export function RankGuideModal({ onClose, highlightRankId }: Props) {
                 </span>
                 <div className="rank-guide__tier-meta">
                   <span className="rank-guide__tier-range">неделя {tier.rangeLabel}</span>
-                  <span className="rank-guide__tier-stake">вход до {tier.maxStakePct}%</span>
+                  <span className="rank-guide__tier-stake">
+                    вход до {tier.maxStakePct}% · плечо до {tier.maxLeverage}×
+                  </span>
                 </div>
               </li>
             );
@@ -52,7 +61,8 @@ export function RankGuideModal({ onClose, highlightRankId }: Props) {
         </ul>
         {highlightRankId != null && (
           <p className="rank-guide-sheet__your-cap">
-            Ваш ранг сейчас: максимум <strong>{rankMaxStakePct(highlightRankId)}%</strong> суммы входа в сигнале.
+            Ваш ранг сейчас: вход до <strong>{rankMaxStakePct(highlightRankId)}%</strong>, плечо до{" "}
+            <strong>{rankMaxLeverage(highlightRankId)}×</strong>.
           </p>
         )}
         <ul className="rank-guide__rules">

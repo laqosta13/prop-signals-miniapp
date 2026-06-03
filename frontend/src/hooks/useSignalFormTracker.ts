@@ -16,10 +16,15 @@ type StakeSync = {
   setRisk: (value: string) => void;
 };
 
+type LeverageSync = {
+  leverage: string;
+  setLeverage: (value: string) => void;
+};
+
 export function useSignalFormTracker(
   enabled: boolean,
   stake: StakeSync,
-  leverage: string,
+  leverageSync: LeverageSync,
   excludeSignalId?: number,
 ) {
   const { snapshot: trackerSnap, loading: trackerLoading } = useAdminTrackerSnapshot(
@@ -28,9 +33,10 @@ export function useSignalFormTracker(
   );
 
   const maxStakePct = trackerSnap?.maxStakePct ?? 100;
+  const rankMaxLeverage = trackerSnap?.rankMaxLeverage ?? 1;
   const stakePoolBlocked = enabled && !trackerLoading && maxStakePct <= 0;
   const stakePct = parseRiskPercent(stake.risk);
-  const lev = parseLeverage(leverage);
+  const lev = Math.min(parseLeverage(leverageSync.leverage), rankMaxLeverage);
 
   useEffect(() => {
     if (!enabled || trackerLoading || trackerSnap == null) return;
@@ -38,6 +44,13 @@ export function useSignalFormTracker(
       stake.setRisk(formatRiskPercent(Math.max(0, trackerSnap.maxStakePct)));
     }
   }, [enabled, trackerLoading, trackerSnap, stake.risk, stake.setRisk]);
+
+  useEffect(() => {
+    if (!enabled || trackerLoading || trackerSnap == null) return;
+    if (parseLeverage(leverageSync.leverage) > trackerSnap.rankMaxLeverage) {
+      leverageSync.setLeverage(String(trackerSnap.rankMaxLeverage));
+    }
+  }, [enabled, trackerLoading, trackerSnap, leverageSync.leverage, leverageSync.setLeverage]);
 
   const balanceUsd =
     trackerSnap && trackerSnap.balance > 0 ? trackerSnap.balance : (trackerSnap?.accountSize ?? 0);
@@ -78,6 +91,7 @@ export function useSignalFormTracker(
     trackerSnap,
     trackerLoading,
     maxStakePct,
+    rankMaxLeverage,
     stakePoolBlocked,
     stakePct,
     lev,

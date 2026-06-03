@@ -148,13 +148,18 @@ def _admin_active_signals(db: Session, admin_id: int) -> list[Signal]:
     )
 
 
-def price_stop_to_reserved_rank_pct(price_stop_pct: float) -> float:
-    """Доля дневного лимита 2% по % цены вход→стоп (как на карточке и бегунке при 1×)."""
+def price_stop_to_reserved_rank_pct(price_stop_pct: float, leverage: int = 1) -> float:
+    """
+    Доля дневного лимита 2%: % цены до стопа × плечо (2×…5× — пропорционально).
+    1×: 2% цены → 2%; 2×: 1% → 2%; 3×: 0.67% → 2%; 4×: 0.5% → 2%; 5×: 0.4% → 2%.
+    """
+    lev = max(1, int(leverage or 1))
     if price_stop_pct <= 0:
         return 0.0
+    effective_pct = price_stop_pct * lev
     return round(
         min(
-            price_stop_pct
+            effective_pct
             * SIGNAL_DAILY_STOP_LIMIT_PCT
             / DEFAULT_PRICE_STOP_FROM_ENTRY_PCT,
             SIGNAL_DAILY_STOP_LIMIT_PCT,
@@ -178,9 +183,10 @@ def signal_reserved_rank_pct(
     balance: float,
     rank_max_stake_pct: float,
 ) -> float:
-    """Сколько % дневного лимита (0–2) «заморожено» расстоянием до стопа сигнала."""
+    """Сколько % дневного лимита (0–2) «заморожено» стопом сигнала с учётом плеча."""
     _ = balance, rank_max_stake_pct
-    return price_stop_to_reserved_rank_pct(signal_price_stop_pct(signal))
+    lev = int(signal.leverage or 1)
+    return price_stop_to_reserved_rank_pct(signal_price_stop_pct(signal), lev)
 
 
 def admin_active_stop_reserved_rank_pct(
@@ -309,7 +315,7 @@ def validate_signal_daily_stop(
         return
 
     price_stop_pct = compute_signal_points_percent(entry_low, entry_high, stop_loss)
-    needed_rank_pct = price_stop_to_reserved_rank_pct(price_stop_pct)
+    needed_rank_pct = price_stop_to_reserved_rank_pct(price_stop_pct, leverage)
     if needed_rank_pct > remaining_pct + 0.01:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

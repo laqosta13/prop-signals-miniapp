@@ -12,6 +12,7 @@ export type TrackerSnapshot = {
   currentRankId: number;
   currentRankName: string;
   rankMaxStakePct: number;
+  rankMaxLeverage: number;
   dailyStopReservedRankPct: number;
   dailyStopRemainingRankPct: number;
   stakePoolUsedPct: number;
@@ -45,6 +46,7 @@ export function useAdminTrackerSnapshot(enabled: boolean, excludeSignalId?: numb
             currentRankId: d.current_rank_id,
             currentRankName: d.current_rank_name,
             rankMaxStakePct: d.rank_max_stake_pct,
+            rankMaxLeverage: d.rank_max_leverage ?? 1,
             dailyStopReservedRankPct: d.daily_stop_reserved_rank_pct ?? 0,
             dailyStopRemainingRankPct: d.daily_stop_remaining_rank_pct ?? 2,
             stakePoolUsedPct: d.stake_pool_used_pct,

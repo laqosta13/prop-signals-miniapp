@@ -201,6 +201,7 @@ def build_dashboard(
         current_rank_id=int(pool["current_rank_id"]),
         current_rank_name=str(pool["current_rank_name"]),
         rank_max_stake_pct=float(pool["rank_max_stake_pct"]),
+        rank_max_leverage=int(pool["rank_max_leverage"]),
         stake_pool_used_pct=float(pool["stake_pool_used_pct"]),
         stake_pool_remaining_pct=float(pool["stake_pool_remaining_pct"]),
         max_stake_pct=float(pool["max_stake_pct"]),

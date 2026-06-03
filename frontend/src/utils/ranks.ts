@@ -61,11 +61,27 @@ export function rankMaxStakePct(rankId: number): number {
   return RANK_MAX_STAKE_PCT[rankId] ?? RANK_MAX_STAKE_PCT[8];
 }
 
+/** От худшего к лучшему — как на бэкенде. */
+export const RANKS_WORST_TO_BEST = [8, 7, 6, 5, 4, 3, 2, 1, 9, 10] as const;
+
+const RANK_TIERS_LEVERAGE_ONLY_1X = 5;
+const RANK_TIERS_ALL_LEVERAGE = 2;
+
+/** Макс. плечо в сигнале: 8–4 → 1×; 3→2×; 2→3×; 1→4×; 9–10 → 5×. */
+export function rankMaxLeverage(rankId: number): number {
+  const idx = RANKS_WORST_TO_BEST.indexOf(rankId as (typeof RANKS_WORST_TO_BEST)[number]);
+  if (idx < 0) return 1;
+  if (idx < RANK_TIERS_LEVERAGE_ONLY_1X) return 1;
+  if (idx >= RANKS_WORST_TO_BEST.length - RANK_TIERS_ALL_LEVERAGE) return 5;
+  return idx - RANK_TIERS_LEVERAGE_ONLY_1X + 2;
+}
+
 export type RankTierInfo = {
   id: number;
   name: string;
   rangeLabel: string;
   maxStakePct: number;
+  maxLeverage: number;
 };
 
 function formatPctRange(minPct: number, maxPct: number): string {
@@ -76,16 +92,76 @@ function formatPctRange(minPct: number, maxPct: number): string {
 
 /** От высшего к низшему. */
 export const RANK_TIERS: RankTierInfo[] = [
-  { id: 10, name: "Тот самый глаз пирамиды", rangeLabel: formatPctRange(100, Infinity), maxStakePct: rankMaxStakePct(10) },
-  { id: 9, name: "Сатоши Накамото", rangeLabel: formatPctRange(50, 100), maxStakePct: rankMaxStakePct(9) },
-  { id: 1, name: "Легенда", rangeLabel: formatPctRange(30, 50), maxStakePct: rankMaxStakePct(1) },
-  { id: 2, name: "Волк с Уолл-Стрит", rangeLabel: formatPctRange(25, 30), maxStakePct: rankMaxStakePct(2) },
-  { id: 3, name: "Большой Шорт", rangeLabel: formatPctRange(18, 25), maxStakePct: rankMaxStakePct(3) },
-  { id: 4, name: "Китяра", rangeLabel: formatPctRange(12, 18), maxStakePct: rankMaxStakePct(4) },
-  { id: 5, name: "Зелёная зона", rangeLabel: formatPctRange(7, 12), maxStakePct: rankMaxStakePct(5) },
-  { id: 6, name: "На волне", rangeLabel: formatPctRange(3, 7), maxStakePct: rankMaxStakePct(6) },
-  { id: 7, name: "В рынке", rangeLabel: formatPctRange(0, 3), maxStakePct: rankMaxStakePct(7) },
-  { id: 8, name: "Нулёвый", rangeLabel: formatPctRange(-Infinity, 0), maxStakePct: rankMaxStakePct(8) },
+  {
+    id: 10,
+    name: "Тот самый глаз пирамиды",
+    rangeLabel: formatPctRange(100, Infinity),
+    maxStakePct: rankMaxStakePct(10),
+    maxLeverage: rankMaxLeverage(10),
+  },
+  {
+    id: 9,
+    name: "Сатоши Накамото",
+    rangeLabel: formatPctRange(50, 100),
+    maxStakePct: rankMaxStakePct(9),
+    maxLeverage: rankMaxLeverage(9),
+  },
+  {
+    id: 1,
+    name: "Легенда",
+    rangeLabel: formatPctRange(30, 50),
+    maxStakePct: rankMaxStakePct(1),
+    maxLeverage: rankMaxLeverage(1),
+  },
+  {
+    id: 2,
+    name: "Волк с Уолл-Стрит",
+    rangeLabel: formatPctRange(25, 30),
+    maxStakePct: rankMaxStakePct(2),
+    maxLeverage: rankMaxLeverage(2),
+  },
+  {
+    id: 3,
+    name: "Большой Шорт",
+    rangeLabel: formatPctRange(18, 25),
+    maxStakePct: rankMaxStakePct(3),
+    maxLeverage: rankMaxLeverage(3),
+  },
+  {
+    id: 4,
+    name: "Китяра",
+    rangeLabel: formatPctRange(12, 18),
+    maxStakePct: rankMaxStakePct(4),
+    maxLeverage: rankMaxLeverage(4),
+  },
+  {
+    id: 5,
+    name: "Зелёная зона",
+    rangeLabel: formatPctRange(7, 12),
+    maxStakePct: rankMaxStakePct(5),
+    maxLeverage: rankMaxLeverage(5),
+  },
+  {
+    id: 6,
+    name: "На волне",
+    rangeLabel: formatPctRange(3, 7),
+    maxStakePct: rankMaxStakePct(6),
+    maxLeverage: rankMaxLeverage(6),
+  },
+  {
+    id: 7,
+    name: "В рынке",
+    rangeLabel: formatPctRange(0, 3),
+    maxStakePct: rankMaxStakePct(7),
+    maxLeverage: rankMaxLeverage(7),
+  },
+  {
+    id: 8,
+    name: "Нулёвый",
+    rangeLabel: formatPctRange(-Infinity, 0),
+    maxStakePct: rankMaxStakePct(8),
+    maxLeverage: rankMaxLeverage(8),
+  },
 ];
 
 export const RANK_RULES: string[] = [
@@ -95,4 +171,5 @@ export const RANK_RULES: string[] = [
   "Минусовая неделя: −1 ступень; две минусовые подряд: −2. Без подтверждения к воскресенью — ещё −1.",
   "Страховка (1 раз в месяц) — одна минусовая неделя не снижает ранг.",
   "Сатоши Накамото и «глаз пирамиды» — до 100% суммы входа в одном сигнале.",
+  "Плечо: первые 5 рангов — только 1×; выше — по одному (до 4×); Сатоши и «глаз» — все 5×.",
 ];

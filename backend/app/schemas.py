@@ -283,6 +283,7 @@ class ChallengeDashboard(BaseModel):
     current_rank_id: int = 8
     current_rank_name: str = "Нулёвый"
     rank_max_stake_pct: float = 15.0
+    rank_max_leverage: int = 1
     stake_pool_used_pct: float = 0.0
     stake_pool_remaining_pct: float = 100.0
     max_stake_pct: float = 15.0

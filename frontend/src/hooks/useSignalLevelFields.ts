@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { maxPriceStopPctForStopSlider, priceStopPctPreservingAccountRisk } from "../utils/dailyStopLimit";
+import { maxPriceStopPctForStopSlider, priceStopPctPreservingDailyRank } from "../utils/dailyStopLimit";
 import {
   DEFAULT_STOP_RISK_PCT,
   STOP_OFFSET_MIN_PCT,
@@ -141,9 +141,8 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
           newLeverage,
         ),
       );
-      const preserved = priceStopPctPreservingAccountRisk(
+      const preserved = priceStopPctPreservingDailyRank(
         parseRiskPctValue(riskPct),
-        stakePct,
         prevLeverage,
         newLeverage,
       );

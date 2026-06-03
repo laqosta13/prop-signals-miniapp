@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import Signal, Trader
-from app.rank_constants import DEFAULT_RANK_ID, RANK_MAX_STAKE_PCT
+from app.rank_constants import DEFAULT_RANK_ID, MAX_SIGNAL_LEVERAGE, RANK_MAX_STAKE_PCT, rank_max_leverage
 from app.rank_service import ensure_rank_fields
 from app.trader_stats import DEFAULT_ENTRY_STAKE_PCT
 
@@ -81,6 +81,7 @@ def stake_pool_snapshot(
         "current_rank_id": rank_id,
         "current_rank_name": rank_name(rank_id),
         "rank_max_stake_pct": rank_cap,
+        "rank_max_leverage": rank_max_leverage(rank_id),
         "stake_pool_used_pct": used,
         "stake_pool_remaining_pct": remaining,
         "max_stake_pct": round(min(rank_cap, remaining), 2),
@@ -130,4 +131,27 @@ def validate_signal_stake_pool(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Максимальная сумма входа сейчас {max_allowed:g}%",
+        )
+
+
+def validate_signal_leverage(
+    db: Session,
+    author_telegram_id: int,
+    leverage: int,
+) -> None:
+    from fastapi import HTTPException, status
+
+    from app.signal_service import get_or_create_trader
+
+    lev = max(1, min(int(leverage or 1), MAX_SIGNAL_LEVERAGE))
+    trader = get_or_create_trader(db, author_telegram_id, None)
+    ensure_rank_fields(trader)
+    rank_id = trader.current_rank_id or DEFAULT_RANK_ID
+    max_lev = rank_max_leverage(rank_id)
+    if lev > max_lev:
+        from app.rank_constants import rank_name
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Для ранга «{rank_name(rank_id)}» доступно плечо до {max_lev}×",
         )
