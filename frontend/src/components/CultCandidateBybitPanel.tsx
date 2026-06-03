@@ -161,15 +161,12 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
         <div className="volnovoi-copy__panel">
           <p className="cult-candidate-bybit__step meta">2. API Bybit</p>
           <p className="volnovoi-copy__desc cult-candidate-bybit__desc">
-            Сигналы из формы «+ Сделка» в вашей карточке отправляются на ваш Bybit USDT perpetual. На бирже
-            выставляются вход, стоп и цель по параметрам сигнала.
+            «+ Сделка» → ваш Bybit perp: вход, стоп, цель.
           </p>
 
           <ul className="volnovoi-copy__hints cult-candidate-bybit__hints">
-            <li>Права API — только <strong>Trade</strong></li>
-            <li>Ключи хранятся в зашифрованном виде</li>
-            <li>Номинал: баланс Bybit × % входа × плечо</li>
-            <li>«Проверить» — подтянуть баланс и связь с биржей</li>
+            <li>API Trade · ключи шифруются</li>
+            <li>Номинал = баланс × % × плечо</li>
           </ul>
 
           {loading ? (

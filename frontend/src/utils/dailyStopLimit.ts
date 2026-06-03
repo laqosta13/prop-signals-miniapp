@@ -1,3 +1,4 @@
+import { formatPct, roundPct } from "./formatPct";
 import { MAX_LEVERAGE } from "./signalForm";
 import { DEFAULT_PRICE_STOP_FROM_ENTRY_PCT } from "./signalLevels";
 
@@ -14,16 +15,10 @@ export function dailyTradesRemaining(count: number, limit = SIGNAL_DAILY_TRADE_L
   return Math.max(0, limit - Math.max(0, count));
 }
 
-export function roundStopPct(pct: number): number {
-  return Math.round(pct * 100) / 100;
-}
+export const roundStopPct = roundPct;
 
-/** Формат % счёта на бегунке стопа (0 остаётся 0). */
 export function formatAccountStopPct(pct: number): string {
-  if (!Number.isFinite(pct) || pct < 0) return "0";
-  const rounded = roundStopPct(pct);
-  if (Number.isInteger(rounded)) return String(rounded);
-  return rounded.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+  return formatPct(pct);
 }
 
 /** Номинал по рангу: макс. сумма входа % ранга × плечо. */
@@ -212,13 +207,9 @@ export function dailyTradingBlocked(opts: {
 }
 
 export function dailyLimitBlockedMessage(reason: "stop" | "trades" | null): string {
-  if (reason === "stop") {
-    return `Дневной лимит ${SIGNAL_DAILY_STOP_LIMIT_PCT}% стопа от номинала ранга исчерпан — торговля сегодня недоступна`;
-  }
-  if (reason === "trades") {
-    return `Лимит ${SIGNAL_DAILY_TRADE_LIMIT} сделок в день исчерпан — торговля сегодня недоступна`;
-  }
-  return `Лимит дня: ${SIGNAL_DAILY_TRADE_LIMIT} сделки или ${SIGNAL_DAILY_STOP_LIMIT_PCT}% стопа от номинала ранга`;
+  if (reason === "stop") return `Стоп-лимит ${SIGNAL_DAILY_STOP_LIMIT_PCT}% на сегодня исчерпан`;
+  if (reason === "trades") return `Сделок на сегодня: макс. ${SIGNAL_DAILY_TRADE_LIMIT}`;
+  return `Лимит: ${SIGNAL_DAILY_TRADE_LIMIT} сделки или стоп ${SIGNAL_DAILY_STOP_LIMIT_PCT}%`;
 }
 
 /** % движения цены до стопа → % потери счёта при срабатывании стопа. */

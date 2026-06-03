@@ -126,14 +126,12 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
   return (
     <SignalFormShell
       title="Сделка кандидата"
-      subtitle="Отправка на ваш Bybit"
+      subtitle="Bybit"
       onClose={onClose}
       onBackdropClick={onClose}
       onSubmit={submit}
     >
-      <p className="meta cult-candidate-signal-hint">
-        Сигнал не попадает в общую ленту — только в вашу карточку в ТОП. Исполнение через подключённый API Bybit.
-      </p>
+      <p className="meta cult-candidate-signal-hint">Только ваша карточка в ТОП · исполнение через API Bybit.</p>
 
       <SignalFormSection title="Сделка">
         <SignalFormDealSection

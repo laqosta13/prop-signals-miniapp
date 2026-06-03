@@ -189,17 +189,15 @@ export function VolnovoiCopyPanel() {
       {open && (
         <div className="volnovoi-copy__panel">
           <p className="volnovoi-copy__desc">
-            Сделки аккаунта <strong>volnovoi</strong> копируются на ваш Bybit USDT perpetual с теми же стопом и
-            целью. Оплата отдельная от подписки на ленту.
+            Копия <strong>volnovoi</strong> на ваш Bybit (perp). Отдельная оплата от ленты.
           </p>
 
           <ul className="volnovoi-copy__hints">
-            <li>Комиссия — <strong>{status?.fee_percent ?? 20}%</strong> от прибыли с момента подключения</li>
-            <li>Счёт выставляется раз в сутки при росте прибыли</li>
-            <li>Оплата USDT TON на наш кошелёк, проверка TXID on-chain</li>
-            <li>Без оплаты счёта копирование приостанавливается</li>
-            <li>Ключи шифруются; права API — только <strong>Trade</strong></li>
-            <li>Размер позиции = баланс Bybit × % депозита × плечо сигнала</li>
+            <li>
+              Комиссия <strong>{status?.fee_percent ?? 20}%</strong> с прибыли
+            </li>
+            <li>Счёт раз в сутки · USDT TON · TXID on-chain</li>
+            <li>API только Trade · без оплаты — пауза</li>
           </ul>
 
           {loading ? (
@@ -228,9 +226,7 @@ export function VolnovoiCopyPanel() {
                     <span>К оплате ({status?.fee_percent}%)</span>
                     <strong>{formatUsd(pending.fee_usd)}</strong>
                   </p>
-                  <p className="meta volnovoi-copy__bill-hint">
-                    TXID проверяется on-chain. После подтверждений копирование возобновится.
-                  </p>
+                  <p className="meta volnovoi-copy__bill-hint">После TXID копирование включится снова.</p>
                   <div className="pay-addr-row">
                     <input
                       ref={walletRef}

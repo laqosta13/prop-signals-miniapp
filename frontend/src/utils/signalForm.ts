@@ -1,5 +1,7 @@
 /** Поля формы сигнала: плечо и сумма входа %. */
 
+import { formatPct } from "./formatPct";
+
 export const LEVERAGE_OPTIONS = [1, 2, 3, 4, 5] as const;
 export const MAX_LEVERAGE = 5;
 export const DEFAULT_RISK_PERCENT = 10;
@@ -17,9 +19,7 @@ export function parseRiskPercent(raw: string): number {
 }
 
 export function formatRiskPercent(value: number): string {
-  const rounded = Math.round(value * 100) / 100;
-  if (Number.isInteger(rounded)) return String(rounded);
-  return rounded.toFixed(2).replace(/\.?0+$/, "");
+  return formatPct(value);
 }
 
 /** Номинал позиции: счёт × сумма входа % × плечо / 100. */

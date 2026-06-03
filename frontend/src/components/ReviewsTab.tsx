@@ -25,10 +25,10 @@ function stars(n: number) {
 }
 
 function writeBlockMessage(reason: string | null, days: number | null): string {
-  if (reason === "paid_required") return "Отзыв можно оставить только с платной подпиской (не trial).";
-  if (reason === "wait_days") return `Отзыв доступен через ${days ?? 3} дн. после первого входа в приложение.`;
-  if (reason === "subscription_required") return "Нужна активная подписка, чтобы оставить отзыв.";
-  return "Сейчас нельзя оставить отзыв.";
+  if (reason === "paid_required") return "Нужна платная подписка (не trial).";
+  if (reason === "wait_days") return `Отзыв через ${days ?? 3} дн. после входа.`;
+  if (reason === "subscription_required") return "Нужна активная подписка.";
+  return "Отзыв недоступен.";
 }
 
 export function ReviewsTab({

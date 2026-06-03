@@ -46,12 +46,12 @@ type Tab = "feed" | "tracker" | "top" | "reviews" | "news" | "pay";
 const FEED_POLL_MS = 15_000;
 
 const TITLES: Record<Tab, { title: string; sub: string }> = {
-  feed: { title: "Сигналы", sub: "PROP-DESK · Hash Hedge" },
-  tracker: { title: "Трекер", sub: "Админы · Hash Hedge" },
-  top: { title: "ТОП трейдеров", sub: "Рейтинг по сигналам" },
-  reviews: { title: "Отзывы", sub: "Мнения подписчиков" },
-  news: { title: "Новости", sub: "Обновления PROP-DESK" },
-  pay: { title: "Подписка", sub: "USDT TON · рефералы" },
+  feed: { title: "Сигналы", sub: "PROP-DESK" },
+  tracker: { title: "Трекер", sub: "Hash Hedge" },
+  top: { title: "ТОП", sub: "Рейтинг" },
+  reviews: { title: "Отзывы", sub: "" },
+  news: { title: "Новости", sub: "" },
+  pay: { title: "Подписка", sub: "USDT · TON" },
 };
 
 const NAV: { id: Tab; label: string }[] = [
@@ -355,7 +355,7 @@ export default function App() {
       <header className="topbar">
         <div>
           <h1>{head.title}</h1>
-          <p>{head.sub}</p>
+          {head.sub ? <p>{head.sub}</p> : null}
         </div>
         <div className="topbar__actions">
           <ThemeToggle />

@@ -69,7 +69,7 @@ export function SignalFormPositionCard({
         onChange={onRiskChange}
         max={maxStakePct}
         disabled={disabled}
-        label="Доля входа"
+        label="Вход"
       />
     </div>
   );

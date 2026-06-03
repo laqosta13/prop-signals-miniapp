@@ -4,16 +4,13 @@
  * без веса по балансу трекера (20% + 20% у двух трейдеров → занято 40%).
  */
 
+import { formatPct } from "./formatPct";
 import { evenSliderMarks } from "./sliderMarks";
 
 export const STAKE_POOL_TOTAL_PCT = 100;
 
-/** Формат % для чипов лимитов (0 остаётся 0, без подстановки дефолта стопа 0.7). */
 export function formatPoolChipPct(pct: number): string {
-  if (!Number.isFinite(pct) || pct < 0) return "0";
-  const rounded = Math.round(pct * 100) / 100;
-  if (Number.isInteger(rounded)) return String(rounded);
-  return rounded.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+  return formatPct(pct);
 }
 
 export function stakeSliderMarks(maxPct: number): number[] {
@@ -22,10 +19,8 @@ export function stakeSliderMarks(maxPct: number): number[] {
 
 export function stakePoolBlockedMessage(maxStakePct: number, poolRemainingPct: number): string {
   if (maxStakePct <= 0) {
-    if (poolRemainingPct <= 0) {
-      return "100% пула суммы входа занято другими активными сигналами";
-    }
-    return "Сумма входа недоступна для вашего ранга при текущей загрузке пула";
+    if (poolRemainingPct <= 0) return "Пул входа занят (100%)";
+    return "Вход недоступен — лимит ранга или пул";
   }
   return "";
 }

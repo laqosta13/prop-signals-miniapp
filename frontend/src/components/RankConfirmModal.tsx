@@ -41,9 +41,7 @@ export function RankConfirmModal({ rank, onDone }: Props) {
         <button type="button" className="btn-primary" disabled={busy} onClick={() => void submit()}>
           {busy ? "…" : "Подтвердить результат"}
         </button>
-        <p className="rank-confirm-sheet__hint">
-          До воскресенья 23:59 — иначе ранг понизится автоматически
-        </p>
+        <p className="rank-confirm-sheet__hint">Подтвердите до вс 23:59 МСК</p>
       </div>
     </div>,
     document.body,

@@ -83,7 +83,7 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
 
         <label className="field-label">Размер счёта ($)</label>
         <input type="text" className="readonly" value={accountSize} readOnly tabIndex={-1} aria-readonly />
-        <p className="meta signal-nominal-hint">Старт челленджа — база для шкалы прогресса и цели.</p>
+        <p className="meta signal-nominal-hint">Старт челленджа — база цели и шкалы.</p>
 
         <label className="field-label">Этап</label>
         <div className="leverage-picker leverage-picker--3col">

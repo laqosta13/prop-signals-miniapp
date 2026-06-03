@@ -59,15 +59,13 @@ export function SignalFormLimitsBar({
           </span>
         </div>
         <div className="signal-form__chip">
-          <span className="signal-form__chip-k">СТОП ЛИМИТ</span>
+          <span className="signal-form__chip-k">Стоп</span>
           <span className="signal-form__chip-v">
             {formatPoolChipPct(dailyRemaining ?? 0)}
             <span className="signal-form__chip-dim">/{SIGNAL_DAILY_STOP_LIMIT_PCT}%</span>
           </span>
           {dailyStopReservedRankPct > 0 ? (
-            <span className="signal-form__chip-sub">
-              заморожено {formatPoolChipPct(dailyStopReservedRankPct)}%
-            </span>
+            <span className="signal-form__chip-sub">−{formatPoolChipPct(dailyStopReservedRankPct)}%</span>
           ) : null}
         </div>
         <div className="signal-form__chip">
@@ -87,7 +85,7 @@ export function SignalFormLimitsBar({
       </div>
       {active && resetIn ? (
         <p className="signal-form__reset">
-          Сброс лимитов дня <time className="signal-form__reset-clock">{resetIn}</time> МСК
+          Сброс <time className="signal-form__reset-clock">{resetIn}</time> МСК
         </p>
       ) : null}
       {dailyBlocked ? (

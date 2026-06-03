@@ -32,7 +32,7 @@ export function RiskPercentSlider({
   return (
     <FormRangeSlider
       label={label}
-      hint={hint ?? (cap < 100 ? `макс. ${formatRiskPercent(cap)}%` : undefined)}
+      hint={hint ?? (cap < 100 ? `≤${formatRiskPercent(cap)}%` : undefined)}
       value={current}
       onChange={setPercent}
       min={0}

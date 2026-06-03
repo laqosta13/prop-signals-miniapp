@@ -20,9 +20,7 @@ export function PasteButton({ onPaste, disabled, className }: Props) {
         WebApp.HapticFeedback?.impactOccurred("light");
         return;
       }
-      WebApp.showAlert(
-        "Не удалось вставить из буфера. На Linux в Telegram Desktop Ctrl+V часто не работает — скопируйте текст ещё раз и нажмите «Вставить», либо перезапустите Telegram.",
-      );
+      WebApp.showAlert("Вставка не сработала. Скопируйте ещё раз и нажмите «Вставить».");
     } finally {
       setBusy(false);
     }

@@ -28,14 +28,8 @@ export function RankGuideModal({ onClose, highlightRankId }: Props) {
           ×
         </button>
         <h2 id="rank-guide-title">Система рангов</h2>
-        <p className="rank-guide-sheet__intro">
-          Недельный % по закрытым сигналам задаёт диапазон ранга. Чем выше ранг — тем больше можно взять в одном
-          сигнале.
-        </p>
-        <p className="rank-guide-sheet__pool">
-          Фактический максимум входа = min(лимит ранга, свободный остаток общего пула 100% по активным сигналам
-          админов).
-        </p>
+        <p className="rank-guide-sheet__intro">Недельный % → ранг. Выше ранг — больше вход и плечо.</p>
+        <p className="rank-guide-sheet__pool">Вход = min(лимит ранга, свободный пул 100% у всех админов).</p>
         <ul className="rank-guide__tiers rank-guide__tiers--modal">
           {RANK_TIERS.map((tier) => {
             const st = rankStyle(tier.id);
@@ -52,7 +46,7 @@ export function RankGuideModal({ onClose, highlightRankId }: Props) {
                 <div className="rank-guide__tier-meta">
                   <span className="rank-guide__tier-range">неделя {tier.rangeLabel}</span>
                   <span className="rank-guide__tier-stake">
-                    вход до {tier.maxStakePct}% · плечо до {tier.maxLeverage}×
+                    {tier.maxStakePct}% · {tier.maxLeverage}×
                   </span>
                 </div>
               </li>
@@ -61,8 +55,8 @@ export function RankGuideModal({ onClose, highlightRankId }: Props) {
         </ul>
         {highlightRankId != null && (
           <p className="rank-guide-sheet__your-cap">
-            Ваш ранг сейчас: вход до <strong>{rankMaxStakePct(highlightRankId)}%</strong>, плечо до{" "}
-            <strong>{rankMaxLeverage(highlightRankId)}×</strong>.
+            Сейчас: <strong>{rankMaxStakePct(highlightRankId)}%</strong> вход ·{" "}
+            <strong>{rankMaxLeverage(highlightRankId)}×</strong> плечо.
           </p>
         )}
         <ul className="rank-guide__rules">

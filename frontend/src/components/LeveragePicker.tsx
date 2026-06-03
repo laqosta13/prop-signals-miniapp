@@ -30,7 +30,7 @@ export function LeveragePicker({ leverage, onLeverageChange, maxLeverage = 5 }: 
             aria-pressed={current === lev}
             aria-disabled={locked}
             disabled={locked}
-            title={locked ? `Доступно с более высоким рангом (сейчас до ${cap}×)` : undefined}
+            title={locked ? `Ранг: до ${cap}×` : undefined}
             onClick={() => pick(lev)}
           >
             {lev}x

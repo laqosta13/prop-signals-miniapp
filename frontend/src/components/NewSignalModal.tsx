@@ -134,7 +134,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
   return (
     <SignalFormShell
       title="Новый сигнал"
-      subtitle="Публикация в ленту"
+      subtitle="В ленту"
       onClose={onClose}
       onBackdropClick={onClose}
       onSubmit={submit}
