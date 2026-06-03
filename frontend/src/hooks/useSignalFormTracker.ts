@@ -71,6 +71,7 @@ export function useSignalFormTracker(
     rankNominalUsd: rankNominalForDailyStop,
     dailyTradesCount,
     dailyTradesLimit,
+    dailyStopRemainingRankPct: trackerSnap?.dailyStopRemainingRankPct,
   });
 
   return {

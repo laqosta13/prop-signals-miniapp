@@ -185,8 +185,14 @@ export function dailyTradingBlocked(opts: {
   rankNominalUsd: number;
   dailyTradesCount: number;
   dailyTradesLimit?: number;
+  /** С бэкенда: остаток с учётом заморозки и стопов за день. */
+  dailyStopRemainingRankPct?: number;
 }): { blocked: boolean; reason: "stop" | "trades" | null } {
-  if (isDailyStopBudgetExhaustedRank(opts.dailyLossUsd, opts.rankNominalUsd)) {
+  if (opts.dailyStopRemainingRankPct != null) {
+    if (opts.dailyStopRemainingRankPct < ACCOUNT_STOP_MIN_STEP) {
+      return { blocked: true, reason: "stop" };
+    }
+  } else if (isDailyStopBudgetExhaustedRank(opts.dailyLossUsd, opts.rankNominalUsd)) {
     return { blocked: true, reason: "stop" };
   }
   if (isDailyTradesExhausted(opts.dailyTradesCount, opts.dailyTradesLimit)) {

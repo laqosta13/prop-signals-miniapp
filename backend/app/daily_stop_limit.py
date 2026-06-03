@@ -71,6 +71,7 @@ def _admin_tracker_stats(db: Session, admin_id: int):
 
 
 def admin_daily_loss_usd(db: Session, admin_id: int) -> float:
+    """Фактический убыток за день (трекер Hash Hedge), не лимит формы сигнала."""
     _, stats = _admin_tracker_stats(db, admin_id)
     return stats.daily_loss_usd
 
@@ -80,18 +81,55 @@ def admin_daily_loss_pct(db: Session, admin_id: int) -> float:
     return stats.daily_loss_pct
 
 
+def signal_counts_toward_daily_stop_consumed(signal: Signal) -> bool:
+    """Дневной лимит 2%: списание только при срабатывании стопа (не цель / не рынок)."""
+    if signal.status != "lose":
+        return False
+    if signal.close_reason in ("target", "market"):
+        return False
+    return True
+
+
+def admin_stop_consumed_rank_pct(
+    db: Session,
+    admin_id: int,
+    balance: float,
+    rank_max_stake_pct: float,
+) -> float:
+    """Сумма % номинала ранга по стопам, сработавшим сегодня (MSK)."""
+    today_key = msk_day_key(datetime.now(timezone.utc))
+    if not today_key:
+        return 0.0
+    total = 0.0
+    rows = db.scalars(
+        select(Signal).where(
+            Signal.author_telegram_id == admin_id,
+            Signal.status == "lose",
+            Signal.is_cult_candidate.is_(False),
+        )
+    ).all()
+    for sig in rows:
+        if msk_day_key(sig.closed_at) != today_key:
+            continue
+        if not signal_counts_toward_daily_stop_consumed(sig):
+            continue
+        total += signal_reserved_rank_pct(sig, balance, rank_max_stake_pct)
+    return round(min(total, SIGNAL_DAILY_STOP_LIMIT_PCT), 2)
+
+
 def daily_stop_remaining_rank_pct(
-    daily_loss_usd: float,
-    rank_nominal_usd: float,
+    consumed_rank_pct: float,
     *,
     reserved_rank_pct: float = 0.0,
 ) -> float:
     """Остаток дневного лимита 2% в единицах «% от номинала ранга»."""
-    if rank_nominal_usd <= 0:
-        return 0.0
-    used_pct = daily_loss_usd / rank_nominal_usd * 100.0
     return round(
-        max(0.0, SIGNAL_DAILY_STOP_LIMIT_PCT - used_pct - max(0.0, reserved_rank_pct)),
+        max(
+            0.0,
+            SIGNAL_DAILY_STOP_LIMIT_PCT
+            - max(0.0, consumed_rank_pct)
+            - max(0.0, reserved_rank_pct),
+        ),
         2,
     )
 
@@ -160,7 +198,7 @@ def admin_daily_stop_form_state(
     exclude_signal_id: int | None = None,
 ) -> dict[str, float]:
     rank_nominal_ref = rank_nominal_usd(balance, rank_max_stake_pct, RANK_NOMINAL_LEVERAGE_FOR_DAILY)
-    daily_loss_usd = admin_daily_loss_usd(db, admin_id)
+    consumed_rank_pct = admin_stop_consumed_rank_pct(db, admin_id, balance, rank_max_stake_pct)
     reserved_rank_pct = admin_active_stop_reserved_rank_pct(
         db,
         admin_id,
@@ -169,16 +207,19 @@ def admin_daily_stop_form_state(
         exclude_signal_id=exclude_signal_id,
     )
     remaining_rank_pct = daily_stop_remaining_rank_pct(
-        daily_loss_usd,
-        rank_nominal_ref,
+        consumed_rank_pct,
         reserved_rank_pct=reserved_rank_pct,
+    )
+    consumed_usd = (
+        round(consumed_rank_pct / 100.0 * rank_nominal_ref, 2) if rank_nominal_ref > 0 else 0.0
     )
     remaining_usd = (
         round(remaining_rank_pct / 100.0 * rank_nominal_ref, 2) if rank_nominal_ref > 0 else 0.0
     )
     return {
         "rank_nominal_usd": rank_nominal_ref,
-        "daily_loss_usd": daily_loss_usd,
+        "consumed_rank_pct": consumed_rank_pct,
+        "consumed_usd": consumed_usd,
         "reserved_rank_pct": reserved_rank_pct,
         "remaining_rank_pct": remaining_rank_pct,
         "remaining_usd": remaining_usd,
@@ -238,7 +279,7 @@ def validate_signal_daily_stop(
     balance = ch.balance
     stop_state = admin_daily_stop_form_state(db, admin_id, balance, rank_cap)
     rank_nominal = stop_state["rank_nominal_usd"]
-    daily_loss_usd = stop_state["daily_loss_usd"]
+    consumed_pct = stop_state["consumed_rank_pct"]
     remaining_pct = stop_state["remaining_rank_pct"]
     reserved_pct = stop_state["reserved_rank_pct"]
 
@@ -248,7 +289,7 @@ def validate_signal_daily_stop(
             detail=(
                 f"Лимит дня: {SIGNAL_DAILY_TRADE_LIMIT} сделки или "
                 f"{SIGNAL_DAILY_STOP_LIMIT_PCT:g}% стопа от номинала ранга — дневной стоп исчерпан "
-                f"(потери ${daily_loss_usd:g}, заморожено {reserved_pct:g}%, "
+                f"(использовано {consumed_pct:g}%, заморожено {reserved_pct:g}%, "
                 f"лимит ${daily_stop_budget_usd(rank_nominal):g})"
             ),
         )
@@ -265,6 +306,6 @@ def validate_signal_daily_stop(
             detail=(
                 f"Риск до стопа ${risk_usd:g} превышает остаток ${budget_left_usd:g} "
                 f"(лимит {SIGNAL_DAILY_STOP_LIMIT_PCT:g}% от номинала ранга ${rank_nominal:g}, "
-                f"потери ${daily_loss_usd:g}, в активных сигналах {reserved_pct:g}%)"
+                f"использовано {consumed_pct:g}%, в активных сигналах {reserved_pct:g}%)"
             ),
         )
