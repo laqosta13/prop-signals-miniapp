@@ -17,6 +17,8 @@ from app.tracker_metrics import compute_tracker_stats, msk_day_key
 SIGNAL_DAILY_STOP_LIMIT_PCT = 2.0
 SIGNAL_DAILY_TRADE_LIMIT = 3
 ACCOUNT_STOP_MIN_STEP = 0.01
+# Полный день при 1×: 2% цены = 2% шкалы «СТОП ЛИМИТ» (как бегунок «До стопа»).
+DEFAULT_PRICE_STOP_FROM_ENTRY_PCT = 2.0
 # Номинал ранга для дневного лимита 2% (как в форме — не от плеча в черновике).
 RANK_NOMINAL_LEVERAGE_FOR_DAILY = 5
 
@@ -146,30 +148,39 @@ def _admin_active_signals(db: Session, admin_id: int) -> list[Signal]:
     )
 
 
+def price_stop_to_reserved_rank_pct(price_stop_pct: float) -> float:
+    """Доля дневного лимита 2% по % цены вход→стоп (как на карточке и бегунке при 1×)."""
+    if price_stop_pct <= 0:
+        return 0.0
+    return round(
+        min(
+            price_stop_pct
+            * SIGNAL_DAILY_STOP_LIMIT_PCT
+            / DEFAULT_PRICE_STOP_FROM_ENTRY_PCT,
+            SIGNAL_DAILY_STOP_LIMIT_PCT,
+        ),
+        2,
+    )
+
+
+def signal_price_stop_pct(signal: Signal) -> float:
+    if not signal.stop_loss:
+        return 0.0
+    return compute_signal_points_percent(
+        signal.entry_low,
+        signal.entry_high,
+        signal.stop_loss,
+    )
+
+
 def signal_reserved_rank_pct(
     signal: Signal,
     balance: float,
     rank_max_stake_pct: float,
 ) -> float:
-    """Сколько % номинала ранга «заморожено» стопом активного сигнала."""
-    rank_nominal_ref = rank_nominal_usd(balance, rank_max_stake_pct, RANK_NOMINAL_LEVERAGE_FOR_DAILY)
-    if rank_nominal_ref <= 0 or balance <= 0:
-        return 0.0
-    stake = float(signal.risk_percent if signal.risk_percent is not None else DEFAULT_ENTRY_STAKE_PCT)
-    lev = int(signal.leverage or 1)
-    if lev < 1:
-        lev = 1
-    account_risk = account_risk_at_stop(
-        signal.entry_low,
-        signal.entry_high,
-        signal.stop_loss,
-        stake,
-        lev,
-    )
-    if account_risk is None or account_risk <= 0:
-        return 0.0
-    risk_usd = balance * account_risk / 100.0
-    return round(risk_usd / rank_nominal_ref * 100.0, 2)
+    """Сколько % дневного лимита (0–2) «заморожено» расстоянием до стопа сигнала."""
+    _ = balance, rank_max_stake_pct
+    return price_stop_to_reserved_rank_pct(signal_price_stop_pct(signal))
 
 
 def admin_active_stop_reserved_rank_pct(
@@ -294,18 +305,17 @@ def validate_signal_daily_stop(
             ),
         )
 
-    account_risk = account_risk_at_stop(entry_low, entry_high, stop_loss, stake_pct, leverage)
-    if account_risk is None:
+    if not stop_loss:
         return
 
-    risk_usd = balance * account_risk / 100.0
-    budget_left_usd = max(0.0, stop_state["remaining_usd"])
-    if risk_usd > budget_left_usd + 0.01:
+    price_stop_pct = compute_signal_points_percent(entry_low, entry_high, stop_loss)
+    needed_rank_pct = price_stop_to_reserved_rank_pct(price_stop_pct)
+    if needed_rank_pct > remaining_pct + 0.01:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
-                f"Риск до стопа ${risk_usd:g} превышает остаток ${budget_left_usd:g} "
-                f"(лимит {SIGNAL_DAILY_STOP_LIMIT_PCT:g}% от номинала ранга ${rank_nominal:g}, "
-                f"использовано {consumed_pct:g}%, в активных сигналах {reserved_pct:g}%)"
+                f"Стоп {price_stop_pct:g}% цены занимает {needed_rank_pct:g}% дневного лимита "
+                f"({SIGNAL_DAILY_STOP_LIMIT_PCT:g}% макс.), остаток {remaining_pct:g}% "
+                f"(использовано {consumed_pct:g}%, заморожено {reserved_pct:g}%)"
             ),
         )
