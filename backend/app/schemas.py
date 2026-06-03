@@ -226,7 +226,9 @@ class CultCandidateMeRead(BaseModel):
 
 
 class CultCandidateJoinBody(BaseModel):
-    display_name: str = Field(min_length=2, max_length=64)
+    """Необязательно: без поля имя берётся из профиля Telegram (имя, фамилия или @username)."""
+
+    display_name: str | None = Field(None, min_length=2, max_length=64)
 
 
 class CultCandidatePatchBody(BaseModel):
@@ -250,6 +252,8 @@ class ChallengeDashboard(BaseModel):
     daily_loss_usd: float = 0.0
     max_daily_loss_pct: float
     daily_remaining_usd: float
+    daily_stop_reserved_rank_pct: float = 0.0
+    daily_stop_remaining_rank_pct: float = 2.0
     daily_trades_count: int = 0
     daily_trades_limit: int = 3
     trading_days: int

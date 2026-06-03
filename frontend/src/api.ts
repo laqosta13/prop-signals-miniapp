@@ -204,6 +204,8 @@ export type ChallengeDashboard = {
   daily_loss_usd: number;
   max_daily_loss_pct: number;
   daily_remaining_usd: number;
+  daily_stop_reserved_rank_pct?: number;
+  daily_stop_remaining_rank_pct?: number;
   daily_trades_count: number;
   daily_trades_limit: number;
   trading_days: number;
@@ -434,11 +436,11 @@ export async function deleteCultChannel(id: number): Promise<void> {
 
 export const fetchCultCandidates = () => api<CultCandidate[]>("/cult-candidates");
 export const fetchCultCandidateMe = () => api<CultCandidateMe>("/cult-candidates/me");
-export const joinCultCandidate = (display_name: string) =>
+export const joinCultCandidate = () =>
   api<CultCandidate>("/cult-candidates/me", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ display_name }),
+    body: JSON.stringify({}),
   });
 export const patchCultCandidateMe = (display_name: string) =>
   api<CultCandidate>("/cult-candidates/me", {

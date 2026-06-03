@@ -143,6 +143,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
         active
         loading={tracker.trackerLoading}
         dailyRemaining={tracker.dailyRemaining}
+        dailyStopReservedRankPct={tracker.dailyStopReservedRank}
         dailyTradesRemaining={tracker.dailyTradesRemainingCount}
         dailyTradesLimit={tracker.dailyTradesLimit}
         stakePoolUsedPct={tracker.trackerSnap?.stakePoolUsedPct}

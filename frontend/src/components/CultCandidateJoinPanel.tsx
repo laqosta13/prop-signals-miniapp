@@ -3,6 +3,7 @@ import WebApp from "@twa-dev/sdk";
 import { fetchCultCandidateMe, joinCultCandidate, type CultCandidateMe } from "../api";
 import { CultCandidateBybitPanel } from "./CultCandidateBybitPanel";
 import { CultCandidatePaySection } from "./CultCandidatePaySection";
+import { telegramCardDisplayName } from "../utils/telegramProfile";
 
 type Props = {
   onJoined: () => void;
@@ -11,9 +12,9 @@ type Props = {
 export function CultCandidateJoinPanel({ onJoined }: Props) {
   const [me, setMe] = useState<CultCandidateMe | null>(null);
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const tgName = telegramCardDisplayName();
 
   const reload = () => {
     void fetchCultCandidateMe()
@@ -28,16 +29,15 @@ export function CultCandidateJoinPanel({ onJoined }: Props) {
   if (!me || me.is_candidate) return null;
 
   const onJoin = () => {
-    const trimmed = name.trim();
-    if (trimmed.length < 2) {
-      setErr("Укажите имя для карточки (от 2 символов)");
+    if (tgName.length < 2) {
+      setErr("В профиле Telegram нужны имя или username (от 2 символов)");
       return;
     }
     void (async () => {
       setBusy(true);
       setErr(null);
       try {
-        await joinCultCandidate(trimmed);
+        await joinCultCandidate();
         WebApp.HapticFeedback.notificationOccurred("success");
         setOpen(false);
         onJoined();
@@ -78,20 +78,19 @@ export function CultCandidateJoinPanel({ onJoined }: Props) {
               <li className={me.bybit_configured ? "ok" : "pending"}>
                 Подключить API Bybit {me.bybit_configured ? "✓" : ""}
               </li>
-              <li>Указать имя в карточке и нажать «Вступить»</li>
+              <li>Нажать «Вступить»</li>
             </ol>
             <CultCandidatePaySection onPaid={reload} />
             <CultCandidateBybitPanel onConfigured={reload} />
-            <label className="cult-candidate-join__label">
-              3. Имя в карточке
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Как вас показывать в ТОП"
-                maxLength={64}
-                disabled={busy}
-              />
-            </label>
+            <p className="cult-candidate-join__tg-name meta">
+              {tgName.length >= 2 ? (
+                <>
+                  Имя в карточке: <strong>{tgName}</strong> (из Telegram)
+                </>
+              ) : (
+                <>Добавьте имя или @username в профиле Telegram</>
+              )}
+            </p>
             {me.blockers.length > 0 && !me.can_join && (
               <p className="meta cult-candidate-join__blockers">{me.blockers.join(" · ")}</p>
             )}
@@ -99,7 +98,7 @@ export function CultCandidateJoinPanel({ onJoined }: Props) {
             <button
               type="button"
               className="btn-primary"
-              disabled={busy || !me.can_join || name.trim().length < 2}
+              disabled={busy || !me.can_join || tgName.length < 2}
               onClick={onJoin}
             >
               Вступить

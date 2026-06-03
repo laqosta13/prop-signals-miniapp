@@ -2826,17 +2826,14 @@
   margin-bottom: 12px;
 }
 
-.cult-candidate-join__label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 12px;
-  font-size: 0.8rem;
-  font-weight: 600;
+.cult-candidate-join__tg-name {
+  margin: 0 0 12px;
+  line-height: 1.4;
 }
 
-.cult-candidate-join__label input {
-  width: 100%;
+.cult-candidate-join__tg-name strong {
+  color: var(--text);
+  font-weight: 700;
 }
 
 .cult-candidate-join__pay {
@@ -4577,6 +4574,13 @@ input.readonly {
   font-size: 0.68rem;
   font-weight: 600;
   color: var(--muted);
+}
+
+.signal-form__chip-sub {
+  font-size: 0.58rem;
+  line-height: 1.2;
+  color: var(--muted);
+  margin-top: 2px;
 }
 
 .signal-form__reset {

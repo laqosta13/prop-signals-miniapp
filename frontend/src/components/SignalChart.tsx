@@ -17,6 +17,9 @@ import {
   closeReasonColor,
   closeReasonLabel,
   entryCandleTimeForFill,
+  chartLevelPrices,
+  chartPriceFormatOptions,
+  createLevelAutoscaleProvider,
   levelsFromSignal,
   resolveCloseReason,
   tradingViewSymbol,
@@ -357,7 +360,9 @@ export function SignalChart({
       crosshair: { mode: CrosshairMode.Normal },
       rightPriceScale: {
         borderVisible: false,
-        scaleMargins: { top: 0.06, bottom: 0.06 },
+        autoScale: true,
+        entireTextOnly: false,
+        scaleMargins: { top: 0.1, bottom: 0.1 },
       },
       timeScale: {
         borderVisible: false,
@@ -417,18 +422,23 @@ export function SignalChart({
         if (!chart) return;
         const data = clipCandlesForSignal(candles, createdAt, closedAt, candleSec, frozen);
         if (seriesRef.current) chart.removeSeries(seriesRef.current);
+        const scalePrices = chartLevelPrices(lv, { entryPrice, closedExitPrice });
         const series = chart.addCandlestickSeries({
           upColor: "#3dff8a",
           downColor: "#ff6b6b",
           borderVisible: false,
           wickUpColor: "#3dff8a",
           wickDownColor: "#ff6b6b",
+          priceFormat: chartPriceFormatOptions(scalePrices),
+          autoscaleInfoProvider: createLevelAutoscaleProvider(scalePrices),
         });
         seriesRef.current = series;
         series.setData(data);
         applyLevelLines(series, lv);
         paintChartMarkers(series, data, candleSec, lv);
         applyFeedVisibleRange(chart, data, entryCandleTimeRef.current, closeCandleTimeRef.current, createdAt);
+        series.priceScale().applyOptions({ autoScale: true });
+        chart.priceScale("right").applyOptions({ autoScale: true });
         syncOverlayLines(chart);
         loadedRef.current = true;
       })
@@ -490,6 +500,8 @@ export function SignalChart({
             closeCandleTimeRef.current,
             createdAt,
           );
+          seriesNow.priceScale().applyOptions({ autoScale: true });
+          chartNow.priceScale("right").applyOptions({ autoScale: true });
           syncOverlayLines(chartNow);
         })
         .catch(() => {

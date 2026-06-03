@@ -106,7 +106,13 @@ def become_cult_candidate(
 ) -> CultCandidateRead:
     sub = _subscriber(db, user)
     try:
-        join_cult_candidate(db, sub, is_admin=user.is_admin, display_name=body.display_name)
+        join_cult_candidate(
+            db,
+            sub,
+            is_admin=user.is_admin,
+            user=user,
+            display_name=body.display_name,
+        )
         db.commit()
     except ValueError as e:
         db.rollback()

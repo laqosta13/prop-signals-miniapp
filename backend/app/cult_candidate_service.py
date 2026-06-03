@@ -10,7 +10,13 @@ from sqlalchemy.orm import Session
 
 from app.copy_trading_service import copy_deposit_base_usd
 from app.models import CultCandidate, Signal, UserBybitSettings
-from app.schemas import CultCandidateActiveSignalRead, CultCandidateMeRead, CultCandidateRead, TraderDayStat
+from app.schemas import (
+    CultCandidateActiveSignalRead,
+    CultCandidateMeRead,
+    CultCandidateRead,
+    TelegramUser,
+    TraderDayStat,
+)
 from app.serializers import trader_avatar_url, trader_display_name, trader_login
 from app.signal_service import get_or_create_trader
 from app.signal_utils import (
@@ -36,6 +42,22 @@ def _normalize_display_name(raw: str) -> str:
     return name
 
 
+def display_name_from_telegram(
+    *,
+    first_name: str | None,
+    last_name: str | None,
+    username: str | None,
+) -> str:
+    parts = [first_name, last_name]
+    name = " ".join(p.strip() for p in parts if p and str(p).strip())
+    if len(name) >= 2:
+        return _normalize_display_name(name)
+    login = (username or "").strip().lstrip("@")
+    if len(login) >= 2:
+        return _normalize_display_name(login)
+    raise ValueError("Укажите имя и фамилию в профиле Telegram или username от 2 символов")
+
+
 def is_cult_candidate(db: Session, telegram_id: int) -> bool:
     row = db.get(CultCandidate, telegram_id)
     return row is not None and bool(row.enabled)
@@ -52,11 +74,34 @@ def join_blockers(db: Session, sub: Subscriber, *, is_admin: bool) -> list[str]:
     return []
 
 
-def join_cult_candidate(db: Session, sub: Subscriber, *, is_admin: bool, display_name: str) -> CultCandidate:
+def join_cult_candidate(
+    db: Session,
+    sub: Subscriber,
+    *,
+    is_admin: bool,
+    user: TelegramUser,
+    display_name: str | None = None,
+) -> CultCandidate:
+    from app.signal_service import get_or_create_trader
+
     blockers = join_blockers(db, sub, is_admin=is_admin)
     if blockers:
         raise ValueError(blockers[0])
-    name = _normalize_display_name(display_name)
+    if display_name and display_name.strip():
+        name = _normalize_display_name(display_name)
+    else:
+        name = display_name_from_telegram(
+            first_name=user.first_name,
+            last_name=user.last_name,
+            username=user.username,
+        )
+    get_or_create_trader(
+        db,
+        sub.telegram_user_id,
+        user.username,
+        first_name=user.first_name,
+        last_name=user.last_name,
+    )
     existing = db.get(CultCandidate, sub.telegram_user_id)
     if existing:
         existing.display_name = name

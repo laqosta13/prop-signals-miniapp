@@ -150,7 +150,7 @@ def build_dashboard(
     min_days_unlimited = rules.min_trading_days is None
     target_pct = rules.profit_target_pct or 0.0
     goal = balance if profit_unlimited else round(start * (1 + target_pct / 100.0), 2)
-    from app.daily_stop_limit import SIGNAL_DAILY_TRADE_LIMIT, admin_signals_today_count
+    from app.daily_stop_limit import SIGNAL_DAILY_TRADE_LIMIT, admin_daily_stop_form_state, admin_signals_today_count
 
     daily_trades_count = admin_signals_today_count(db, owner_id)
 
@@ -159,6 +159,14 @@ def build_dashboard(
 
     ensure_rank_fields(trader)
     pool = stake_pool_snapshot(db, trader, exclude_signal_id=exclude_signal_id)
+    rank_cap = float(pool["rank_max_stake_pct"])
+    stop_state = admin_daily_stop_form_state(
+        db,
+        owner_id,
+        balance,
+        rank_cap,
+        exclude_signal_id=exclude_signal_id,
+    )
 
     return ChallengeDashboard(
         owner_telegram_id=owner_id,
@@ -177,6 +185,8 @@ def build_dashboard(
         daily_loss_usd=stats.daily_loss_usd,
         max_daily_loss_pct=rules.max_daily_loss_pct,
         daily_remaining_usd=stats.daily_remaining_usd,
+        daily_stop_reserved_rank_pct=stop_state["reserved_rank_pct"],
+        daily_stop_remaining_rank_pct=stop_state["remaining_rank_pct"],
         daily_trades_count=daily_trades_count,
         daily_trades_limit=SIGNAL_DAILY_TRADE_LIMIT,
         trading_days=stats.trading_days,

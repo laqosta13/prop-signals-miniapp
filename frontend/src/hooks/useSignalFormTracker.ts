@@ -55,10 +55,12 @@ export function useSignalFormTracker(
     [balanceUsd, rankMaxStakePct],
   );
 
-  const dailyRemainingRank = useMemo(
-    () => dailyStopRemainingRankPct(dailyLossUsd, rankNominalForDailyStop),
-    [dailyLossUsd, rankNominalForDailyStop],
-  );
+  const dailyRemainingRank = useMemo(() => {
+    if (trackerSnap?.dailyStopRemainingRankPct != null) {
+      return trackerSnap.dailyStopRemainingRankPct;
+    }
+    return dailyStopRemainingRankPct(dailyLossUsd, rankNominalForDailyStop);
+  }, [trackerSnap?.dailyStopRemainingRankPct, dailyLossUsd, rankNominalForDailyStop]);
 
   const dailyStopBlocked = dailyRemainingRank < ACCOUNT_STOP_MIN_STEP;
 
@@ -83,6 +85,7 @@ export function useSignalFormTracker(
     dailyLossUsd,
     dailyRemaining: dailyRemainingRank,
     dailyRemainingRank,
+    dailyStopReservedRank: trackerSnap?.dailyStopReservedRankPct ?? 0,
     dailyStopBlocked,
     dailyLimit,
     dailyTradesRemainingCount: dailyTradesRemaining(dailyTradesCount, dailyTradesLimit),

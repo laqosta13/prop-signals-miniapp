@@ -1,7 +1,7 @@
 /** Парсинг уровней сигнала для графика. */
 
 import { parseApiDate } from "../utils";
-import type { UTCTimestamp } from "lightweight-charts";
+import type { AutoscaleInfo, UTCTimestamp } from "lightweight-charts";
 
 export type ChartCandle = { time: UTCTimestamp; open: number; high: number; low: number; close: number };
 
@@ -78,6 +78,70 @@ export function levelsFromSignal(
     entryHigh: high ?? low,
     stop: parseLevelPrice(stopLoss),
     targets: parseTakeProfitPrices(takeProfits),
+  };
+}
+
+/** Все уровни сигнала для расчёта шкалы цены (вход, стоп, цели, выход). */
+export function chartLevelPrices(
+  levels: SignalChartLevels,
+  extras?: { entryPrice?: number | null; closedExitPrice?: number | null },
+): number[] {
+  const out: number[] = [];
+  if (levels.entryLow != null) out.push(levels.entryLow);
+  if (levels.entryHigh != null && levels.entryHigh !== levels.entryLow) out.push(levels.entryHigh);
+  if (levels.stop != null) out.push(levels.stop);
+  out.push(...levels.targets);
+  const ep = extras?.entryPrice;
+  if (ep != null && Number.isFinite(ep) && ep > 0) out.push(ep);
+  const xp = extras?.closedExitPrice;
+  if (xp != null && Number.isFinite(xp) && xp > 0) out.push(xp);
+  return out;
+}
+
+/** Точность подписей на оси цены — без усечения значимых цифр. */
+export function chartPriceFormatOptions(prices: number[]): {
+  type: "price";
+  precision: number;
+  minMove: number;
+} {
+  const ref = prices.length ? Math.max(...prices.map((p) => Math.abs(p))) : 1;
+  if (ref >= 10_000) return { type: "price", precision: 2, minMove: 0.01 };
+  if (ref >= 1000) return { type: "price", precision: 2, minMove: 0.01 };
+  if (ref >= 100) return { type: "price", precision: 3, minMove: 0.001 };
+  if (ref >= 1) return { type: "price", precision: 4, minMove: 0.0001 };
+  if (ref >= 0.01) return { type: "price", precision: 5, minMove: 0.00001 };
+  return { type: "price", precision: 6, minMove: 0.000001 };
+}
+
+/** Шкала включает свечи и уровни сигнала — стоп/цель не обрезаются. */
+export function createLevelAutoscaleProvider(extraPrices: number[]) {
+  const valid = extraPrices.filter((p) => Number.isFinite(p) && p > 0);
+  return (base: () => AutoscaleInfo | null): AutoscaleInfo | null => {
+    const info = base();
+    if (!valid.length) return info;
+
+    let min = info?.priceRange?.minValue ?? Infinity;
+    let max = info?.priceRange?.maxValue ?? -Infinity;
+    if (!info) {
+      min = Math.min(...valid);
+      max = Math.max(...valid);
+    } else {
+      for (const p of valid) {
+        min = Math.min(min, p);
+        max = Math.max(max, p);
+      }
+    }
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return info;
+
+    const span = max - min;
+    const pad = span > 0 ? span * 0.04 : Math.max(max * 0.02, 0.0001);
+    return {
+      priceRange: {
+        minValue: min - pad,
+        maxValue: max + pad,
+      },
+      margins: info?.margins ?? { above: 0.12, below: 0.12 },
+    };
   };
 }
 
