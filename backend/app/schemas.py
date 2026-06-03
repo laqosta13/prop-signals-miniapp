@@ -187,6 +187,17 @@ class CultCandidateActiveSignalRead(BaseModel):
     stake_percent: float
 
 
+class CultCandidateClosedSignalRead(BaseModel):
+    id: int
+    symbol: str
+    direction: str
+    status: str
+    move_pct: float
+    exit_price: float | None = None
+    stake_percent: float
+    closed_at: datetime
+
+
 class CultCandidateRead(BaseModel):
     telegram_user_id: int
     display_name: str
@@ -200,6 +211,7 @@ class CultCandidateRead(BaseModel):
     joined_at: datetime
     daily_stats: list[TraderDayStat] = []
     active_signals: list[CultCandidateActiveSignalRead] = []
+    closed_signals: list[CultCandidateClosedSignalRead] = []
     is_me: bool = False
 
 

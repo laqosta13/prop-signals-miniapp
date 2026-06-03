@@ -153,6 +153,17 @@ export type CultCandidateActiveSignal = {
   stake_percent: number;
 };
 
+export type CultCandidateClosedSignal = {
+  id: number;
+  symbol: string;
+  direction: string;
+  status: string;
+  move_pct: number;
+  exit_price: number | null;
+  stake_percent: number;
+  closed_at: string;
+};
+
 export type CultCandidate = {
   telegram_user_id: number;
   display_name: string;
@@ -166,8 +177,12 @@ export type CultCandidate = {
   joined_at: string;
   daily_stats: TraderDayStat[];
   active_signals: CultCandidateActiveSignal[];
+  closed_signals: CultCandidateClosedSignal[];
   is_me: boolean;
 };
+
+export const fetchCultCandidateSignal = (signalId: number) =>
+  api<Signal>(`/cult-candidates/signals/${signalId}`);
 
 export type CultCandidateSubscriptionInfo = {
   usdt_ton_address: string;

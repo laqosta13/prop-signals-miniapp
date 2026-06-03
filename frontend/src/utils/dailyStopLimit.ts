@@ -89,23 +89,24 @@ export function rankNominalForDailyStopLimit(balanceUsd: number, rankMaxStakePct
   return rankNominalUsd(balanceUsd, rankMaxStakePct, MAX_LEVERAGE);
 }
 
-/** Потолок бегунка «До стопа» и пересчёт при смене плеча (лимит ранга, не доля входа). */
+/** Потолок бегунка «До стопа» и пересчёт при смене плеча. */
 export function maxPriceStopPctForStopSlider(
   dailyRemainingRankPct: number,
   balanceUsd: number,
   rankMaxStakePct: number,
+  stakePct: number,
   leverage: number,
 ): number {
   return maxPriceStopPctFromDailyRemaining(
     dailyRemainingRankPct,
     balanceUsd,
     rankMaxStakePct,
-    rankMaxStakePct,
+    stakePct,
     leverage,
   );
 }
 
-/** Макс. % цены при остатке лимита в «% от номинала ранга» (0–2). */
+/** Макс. % цены при остатке лимита в «% от номинала ранга» (0–2). Остаток $ — от номинала 5×, не от плеча в форме. */
 export function maxPriceStopPctFromDailyRemaining(
   dailyRemainingRankPct: number,
   balanceUsd: number,
@@ -114,9 +115,9 @@ export function maxPriceStopPctFromDailyRemaining(
   leverage: number,
 ): number {
   if (dailyRemainingRankPct < ACCOUNT_STOP_MIN_STEP || stakePct <= 0 || leverage < 1) return 0;
-  const rankNominal = rankNominalUsd(balanceUsd, rankMaxStakePct, leverage);
-  if (rankNominal <= 0 || balanceUsd <= 0) return 0;
-  const remainingUsd = (dailyRemainingRankPct / 100) * rankNominal;
+  const rankNominalRef = rankNominalForDailyStopLimit(balanceUsd, rankMaxStakePct);
+  if (rankNominalRef <= 0 || balanceUsd <= 0) return 0;
+  const remainingUsd = (dailyRemainingRankPct / 100) * rankNominalRef;
   const maxAccountRisk = (remainingUsd / balanceUsd) * 100;
   return accountRiskToPriceStopPct(maxAccountRisk, stakePct, leverage);
 }

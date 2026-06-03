@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { maxPriceStopPctForStopSlider, priceStopPctPreservingAccountRisk } from "../utils/dailyStopLimit";
 import {
   DEFAULT_STOP_RISK_PCT,
+  STOP_OFFSET_MIN_PCT,
   STOP_OFFSET_SLIDER_CAP_PCT,
   clampStopOffsetPct,
   formatRiskPct,
@@ -132,7 +133,13 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
 
       const cap = Math.min(
         STOP_OFFSET_SLIDER_CAP_PCT,
-        maxPriceStopPctForStopSlider(dailyRemainingRankPct, balanceUsd, rankMaxStakePct, newLeverage),
+        maxPriceStopPctForStopSlider(
+          dailyRemainingRankPct,
+          balanceUsd,
+          rankMaxStakePct,
+          stakePct,
+          newLeverage,
+        ),
       );
       const preserved = priceStopPctPreservingAccountRisk(
         parseRiskPctValue(riskPct),
@@ -140,7 +147,9 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
         prevLeverage,
         newLeverage,
       );
-      const pricePct = clampStopOffsetPct(Math.min(preserved, cap > 0 ? cap : preserved), cap);
+      const capped =
+        cap >= STOP_OFFSET_MIN_PCT ? Math.min(preserved, cap) : preserved;
+      const pricePct = clampStopOffsetPct(capped, cap >= STOP_OFFSET_MIN_PCT ? cap : STOP_OFFSET_SLIDER_CAP_PCT);
       const label = formatRiskPct(pricePct);
       setRiskPct(label);
       const next = stopTargetFromEntryAndRisk(entry, direction, pricePct);

@@ -12,6 +12,7 @@ from app.copy_trading_service import copy_deposit_base_usd
 from app.models import CultCandidate, Signal, UserBybitSettings
 from app.schemas import (
     CultCandidateActiveSignalRead,
+    CultCandidateClosedSignalRead,
     CultCandidateMeRead,
     CultCandidateRead,
     TelegramUser,
@@ -211,6 +212,49 @@ def _active_signals_for(db: Session, user_ids: list[int]) -> dict[int, list[Cult
     return out
 
 
+def _closed_signals_for(db: Session, user_ids: list[int], *, limit: int = 30) -> dict[int, list[CultCandidateClosedSignalRead]]:
+    if not user_ids:
+        return {}
+    rows = list(
+        db.scalars(
+            select(Signal)
+            .where(
+                Signal.is_cult_candidate.is_(True),
+                Signal.author_telegram_id.in_(user_ids),
+                Signal.status.in_(("win", "lose")),
+            )
+            .order_by(Signal.closed_at.desc(), Signal.id.desc())
+        ).all()
+    )
+    out: dict[int, list[CultCandidateClosedSignalRead]] = defaultdict(list)
+    for s in rows:
+        uid = s.author_telegram_id
+        if len(out[uid]) >= limit:
+            continue
+        stake = s.risk_percent if s.risk_percent is not None else 10.0
+        exit_px = float(s.closed_exit_price) if s.closed_exit_price is not None else None
+        out[uid].append(
+            CultCandidateClosedSignalRead(
+                id=s.id,
+                symbol=s.symbol,
+                direction=s.direction,
+                status=s.status,
+                move_pct=_closed_move_pct(s),
+                exit_price=exit_px,
+                stake_percent=float(stake),
+                closed_at=s.closed_at or s.created_at,
+            )
+        )
+    return out
+
+
+def get_cult_candidate_signal(db: Session, signal_id: int) -> Signal:
+    row = db.get(Signal, signal_id)
+    if row is None or not row.is_cult_candidate or row.status not in ("win", "lose"):
+        raise ValueError("Сделка не найдена")
+    return row
+
+
 def _daily_stats(db: Session, user_ids: list[int]) -> dict[int, list[TraderDayStat]]:
     if not user_ids:
         return {}
@@ -249,6 +293,7 @@ def _candidate_read(
     rank: int,
     daily: dict[int, list[TraderDayStat]],
     active: dict[int, list[CultCandidateActiveSignalRead]],
+    closed: dict[int, list[CultCandidateClosedSignalRead]],
     is_me: bool = False,
 ) -> CultCandidateRead:
     from app.models import Trader
@@ -269,6 +314,7 @@ def _candidate_read(
         joined_at=row.joined_at,
         daily_stats=daily.get(row.telegram_user_id, []),
         active_signals=active.get(row.telegram_user_id, []),
+        closed_signals=closed.get(row.telegram_user_id, []),
         is_me=is_me,
     )
 
@@ -280,6 +326,7 @@ def build_cult_candidates_read(db: Session, *, viewer_id: int | None = None) -> 
     ids = [r.telegram_user_id for r in rows]
     daily = _daily_stats(db, ids)
     active = _active_signals_for(db, ids)
+    closed = _closed_signals_for(db, ids)
     ranked = sorted(rows, key=lambda c: (-(c.rating_percent or 0), -(c.wins or 0)))
     return [
         _candidate_read(
@@ -288,6 +335,7 @@ def build_cult_candidates_read(db: Session, *, viewer_id: int | None = None) -> 
             rank=rank,
             daily=daily,
             active=active,
+            closed=closed,
             is_me=viewer_id is not None and row.telegram_user_id == viewer_id,
         )
         for rank, row in enumerate(ranked, start=1)

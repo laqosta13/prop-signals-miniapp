@@ -1,13 +1,15 @@
-import type { CultCandidate } from "../api";
+import type { CultCandidate, CultCandidateClosedSignal } from "../api";
 import { Avatar } from "./Avatar";
+import { CultCandidateClosedTrades } from "./CultCandidateClosedTrades";
 import { EquityCurve } from "./EquityCurve";
 
 type Props = {
   candidate: CultCandidate;
   onTrade?: () => void;
+  onOpenClosedTrade?: (trade: CultCandidateClosedSignal) => void;
 };
 
-export function CultCandidateCard({ candidate, onTrade }: Props) {
+export function CultCandidateCard({ candidate, onTrade, onOpenClosedTrade }: Props) {
   const dirLabel = (d: string) => (d.toLowerCase() === "long" ? "LONG" : "SHORT");
 
   return (
@@ -48,6 +50,10 @@ export function CultCandidateCard({ candidate, onTrade }: Props) {
               </li>
             ))}
           </ul>
+        )}
+
+        {(candidate.closed_signals?.length ?? 0) > 0 && onOpenClosedTrade && (
+          <CultCandidateClosedTrades trades={candidate.closed_signals ?? []} onOpen={onOpenClosedTrade} />
         )}
 
         {candidate.daily_stats.length > 0 && (

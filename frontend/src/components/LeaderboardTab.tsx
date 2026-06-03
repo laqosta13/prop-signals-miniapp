@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import type { CultCandidate, CultChannel, Trader } from "../api";
+import { fetchCultCandidateSignal, type CultCandidate, type CultCandidateClosedSignal, type CultChannel, type Signal, type Trader } from "../api";
 import { EquityCurve } from "./EquityCurve";
 import { CultCandidateCard } from "./CultCandidateCard";
 import { CultCandidateJoinPanel } from "./CultCandidateJoinPanel";
+import { CultCandidateSignalDetailModal } from "./CultCandidateSignalDetailModal";
 import { CultCandidateSignalModal } from "./CultCandidateSignalModal";
 import { CultChannelAdminPanel } from "./CultChannelAdminPanel";
 import { CultChannelCard } from "./CultChannelCard";
@@ -96,6 +97,24 @@ export function LeaderboardTab({
 }: Props) {
   const [profileTrader, setProfileTrader] = useState<Trader | null>(null);
   const [signalModalOpen, setSignalModalOpen] = useState(false);
+  const [closedTradeDetail, setClosedTradeDetail] = useState<Signal | null>(null);
+  const [closedTradeLoading, setClosedTradeLoading] = useState(false);
+  const [closedTradeError, setClosedTradeError] = useState<string | null>(null);
+
+  const openClosedTrade = (trade: CultCandidateClosedSignal) => {
+    setClosedTradeDetail(null);
+    setClosedTradeError(null);
+    setClosedTradeLoading(true);
+    void fetchCultCandidateSignal(trade.id)
+      .then((s) => {
+        setClosedTradeDetail(s);
+        setClosedTradeError(null);
+      })
+      .catch((e) => {
+        setClosedTradeError(e instanceof Error ? e.message : "Не удалось загрузить сделку");
+      })
+      .finally(() => setClosedTradeLoading(false));
+  };
 
   const volnovoi = traders.find((t) => isVolnovoiTrader(t));
   const traderCandidates = useMemo(
@@ -169,6 +188,7 @@ export function LeaderboardTab({
                   key={candidate.telegram_user_id}
                   candidate={candidate}
                   onTrade={candidate.is_me ? () => setSignalModalOpen(true) : undefined}
+                  onOpenClosedTrade={openClosedTrade}
                 />
               ))}
             </ol>
@@ -191,6 +211,17 @@ export function LeaderboardTab({
         open={signalModalOpen}
         onClose={() => setSignalModalOpen(false)}
         onCreated={onCultCandidatesChange}
+      />
+
+      <CultCandidateSignalDetailModal
+        signal={closedTradeDetail}
+        loading={closedTradeLoading}
+        error={closedTradeError}
+        onClose={() => {
+          setClosedTradeDetail(null);
+          setClosedTradeError(null);
+          setClosedTradeLoading(false);
+        }}
       />
 
       {showFiredBlock && (

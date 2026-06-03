@@ -52,6 +52,7 @@ export function StopOffsetSlider({
         dailyRemainingRankPct!,
         balanceUsd,
         rankMaxStakePct,
+        stakePct,
         leverage,
       )
     : 0;
@@ -86,9 +87,12 @@ export function StopOffsetSlider({
   };
 
   useEffect(() => {
-    if (disabled || priceRaw <= maxPct + 0.005) return;
-    onChange(formatRiskPct(clampStopOffsetPct(priceRaw, maxPct)));
-  }, [disabled, maxPct, priceRaw, onChange]);
+    if (disabled) return;
+    const clamped = clampStopOffsetPct(priceRaw, maxPct);
+    if (Math.abs(clamped - priceRaw) > 0.005) {
+      onChange(formatRiskPct(clamped));
+    }
+  }, [disabled, maxPct, priceRaw, onChange, leverage]);
 
   if (disabled) {
     return (

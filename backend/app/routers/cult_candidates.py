@@ -8,6 +8,7 @@ from app.cult_candidate_service import (
     build_cult_candidates_read,
     cult_candidate_account_size,
     ensure_can_trade,
+    get_cult_candidate_signal,
     join_cult_candidate,
     update_display_name,
 )
@@ -88,6 +89,19 @@ def cult_subscription_pay(
         cult_subscription_until=sub.cult_subscription_until,
         cult_subscription_active=cult_subscription_active(sub, is_admin=user.is_admin),
     )
+
+
+@router.get("/signals/{signal_id}", response_model=SignalRead)
+def cult_candidate_signal_detail(
+    signal_id: int,
+    db: Session = Depends(db_session),
+    user: TelegramUser = Depends(get_current_user),
+) -> SignalRead:
+    try:
+        row = get_cult_candidate_signal(db, signal_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    return signal_to_read(db, row, user.telegram_user_id)
 
 
 @router.get("/me", response_model=CultCandidateMeRead)
