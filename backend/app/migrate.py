@@ -377,6 +377,7 @@ def run_migrations(engine: Engine) -> None:
     _purge_all_published_jun2026_v2(engine)
     _purge_all_published_jun2026_v3(engine)
     _purge_all_published_jun2026_v4(engine)
+    _purge_all_published_jun2026_v5(engine)
     _sync_news_notify_flags_v1(engine)
     _reset_news_notify_opt_in_v2(engine)
     _recalc_market_close_ratings_v1(engine)
@@ -686,6 +687,28 @@ def _purge_all_published_jun2026_v4(engine: Engine) -> None:
         from app.media_storage import media_root
 
         marker = media_root() / ".purged_all_published_jun2026_v4"
+    if marker.exists():
+        return
+    from app.database import SessionLocal
+    from app.data_cleanup import purge_all_published_content
+
+    db = SessionLocal()
+    try:
+        purge_all_published_content(db)
+        db.commit()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
+
+
+def _purge_all_published_jun2026_v5(engine: Engine) -> None:
+    """Одноразово: полная очистка опубликованного контента (июнь 2026 v5)."""
+    marker = _marker_path(engine, ".purged_all_published_jun2026_v5")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".purged_all_published_jun2026_v5"
     if marker.exists():
         return
     from app.database import SessionLocal

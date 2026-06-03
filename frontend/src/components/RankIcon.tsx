@@ -4,7 +4,7 @@ export type RankIconId =
   | "crown"
   | "wolf"
   | "chart-down"
-  | "shark"
+  | "kittyra"
   | "clover"
   | "wave"
   | "bolt"
@@ -98,17 +98,27 @@ export function RankIcon({ id, size = 18, className = "" }: Props) {
           <path {...strokeRound} stroke="#f07178" d="M17 8.5v5h-5" />
         </svg>
       );
-    case "shark":
+    case "kittyra":
       return (
         <svg {...dim}>
           <path
-            {...strokeRound}
-            stroke="#5eb3ff"
-            fill="#1e3a5f"
-            d="M4 13.2c2.2-2.2 4.2-3.2 7.2-3.2 2.6 0 4.7.9 6.7 2.6 1.3 1.1 2.3 1.6 3.6 1.6H20l-2.2-2.2"
+            fill="#2d6b4a"
+            stroke="#7dd957"
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+            d="M3.5 12.8c0-2.8 2.8-4.8 6.2-4.8 2.4 0 4.5.8 6.3 2.2 1.2 1 2.2 1.4 3.5 1.4h2.5l-1.8-1.8"
           />
-          <path {...strokeRound} stroke="#9ec8ff" d="M7 11l-2.2-1.2M9.2 8.8V7" />
-          <circle cx="15.2" cy="12.2" r="0.9" fill="#fff" stroke="none" />
+          <path fill="#7dd957" stroke="none" d="M3.2 12.5 1.5 10.8v3.4z" />
+          <path fill="#63c74d" stroke="none" opacity="0.85" d="M7.5 13.8c2.5.8 5.2.8 7.8 0 .8-.3 1.5-.7 2.2-1.2-1.8 1.2-4 1.9-6.5 1.6-2-.2-3.8-1-5.2-2.2z" />
+          <path fill="#7dd957" stroke="#5cb83e" strokeWidth="0.8" d="M9.2 7.2 8.4 5.2h1.2l.4 2zM14.8 7.2 15.6 5.2h-1.2l-.4 2z" />
+          <circle cx="15.8" cy="11.8" r="1" fill="#e8ffe0" stroke="none" />
+          <circle cx="16.1" cy="11.8" r="0.45" fill="#1a3d28" stroke="none" />
+          <path
+            {...strokeRound}
+            stroke="#9ef07a"
+            strokeWidth="1.2"
+            d="M14.2 13.6c.8.5 1.6.7 2.4.5"
+          />
         </svg>
       );
     case "clover":
