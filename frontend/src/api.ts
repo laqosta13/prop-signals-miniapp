@@ -334,9 +334,14 @@ async function parseApiError(res: Response): Promise<string> {
     if (typeof body.detail === "string") return body.detail;
     if (Array.isArray(body.detail) && body.detail[0]?.msg) return body.detail[0].msg;
   } catch {
-    /* raw text */
+    /* не JSON */
   }
-  return text || res.statusText;
+  const trimmed = text.trim();
+  if (/<!doctype html/i.test(trimmed) || trimmed.includes("503 Service Unavailable")) {
+    return "Сервер временно недоступен. Подождите минуту и повторите.";
+  }
+  if (trimmed.length > 200) return res.statusText || "Ошибка сервера";
+  return trimmed || res.statusText;
 }
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {

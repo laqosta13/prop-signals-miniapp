@@ -3936,6 +3936,13 @@
   min-height: 52px;
 }
 
+.support-chat__form + .err,
+.support-sheet--chat > .err {
+  max-height: 6rem;
+  overflow: auto;
+  word-break: break-word;
+}
+
 .support-chat__form .submit-btn {
   margin-top: 0;
 }

@@ -18,6 +18,7 @@ from app.price_monitor import price_monitor_loop
 from app.copy_billing_scheduler import copy_billing_scheduler_loop
 from app.rank_scheduler import rank_scheduler_loop
 from app.subscription_pause_scheduler import run_subscription_pause_sync, subscription_pause_scheduler_loop
+from app.support_chat import verify_support_group_at_startup
 from app.telegram_updates import telegram_updates_loop
 from app.routers import (
     admin,
@@ -49,6 +50,10 @@ async def lifespan(app: FastAPI):
     from app.price_monitor import check_active_signals_once
 
     await check_active_signals_once()
+    try:
+        await asyncio.to_thread(verify_support_group_at_startup)
+    except Exception:
+        logging.getLogger(__name__).exception("support group startup check failed")
     try:
         run_subscription_pause_sync()
     except Exception:

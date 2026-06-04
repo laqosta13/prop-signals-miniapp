@@ -12,6 +12,19 @@ from app.support_links import build_support_url, telegram_support_username
 
 router = APIRouter(prefix="/support", tags=["support"])
 
+# Не использовать HTTP 503 для ошибок чата: на Amvera 503 подменяется HTML-страницей платформы.
+_SUPPORT_ERROR_HTTP: dict[str, int] = {
+    "support_chat_disabled": 400,
+    "empty_message": 400,
+    "message_too_long": 400,
+    "group_send_failed": 502,
+    "support_group_not_found": 502,
+    "support_bot_not_in_group": 502,
+    "support_bot_no_send_rights": 502,
+    "support_group_id_outdated": 502,
+    "support_message_format": 400,
+}
+
 
 def _message_to_read(row) -> SupportMessageRead:
     return SupportMessageRead(
@@ -52,7 +65,7 @@ async def support_send_message(
     user: TelegramUser = Depends(get_current_user),
 ) -> SupportMessageRead:
     if not live_chat_enabled():
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="support_chat_disabled")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="support_chat_disabled")
     try:
         row = await post_user_message(
             db,
@@ -66,7 +79,5 @@ async def support_send_message(
         return _message_to_read(row)
     except ValueError as e:
         code = str(e)
-        status_code = status.HTTP_400_BAD_REQUEST
-        if code in ("group_send_failed", "support_chat_disabled"):
-            status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        status_code = _SUPPORT_ERROR_HTTP.get(code, status.HTTP_400_BAD_REQUEST)
         raise HTTPException(status_code=status_code, detail=code) from e

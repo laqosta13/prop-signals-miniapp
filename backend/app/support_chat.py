@@ -31,6 +31,42 @@ def live_chat_enabled() -> bool:
     return support_group_id() is not None and bool(settings.bot_token)
 
 
+def map_telegram_send_error(description: str) -> str:
+    """Код ошибки для API (не HTTP 503 — Amvera подменяет 503 HTML-страницей)."""
+    d = description.lower()
+    if "chat not found" in d:
+        return "support_group_not_found"
+    if "bot is not a member" in d or "kicked from" in d or "user is deactivated" in d:
+        return "support_bot_not_in_group"
+    if "not enough rights" in d or "can't write" in d or "have no rights" in d:
+        return "support_bot_no_send_rights"
+    if "group chat was upgraded" in d:
+        return "support_group_id_outdated"
+    if "parse" in d or "can't parse" in d:
+        return "support_message_format"
+    return "group_send_failed"
+
+
+def verify_support_group_at_startup() -> None:
+    """Проверка TELEGRAM_SUPPORT_GROUP_ID при старте (логи Amvera)."""
+    gid = support_group_id()
+    if gid is None:
+        return
+    if not settings.bot_token:
+        logger.warning("support: TELEGRAM_SUPPORT_GROUP_ID задан, но BOT_TOKEN пуст")
+        return
+    from app.telegram_bot_api import TelegramApiError, get_chat
+
+    try:
+        chat = get_chat(gid)
+        title = (chat.get("title") or chat.get("username") or "?").strip()
+        logger.info("support: группа ok id=%s title=%r", gid, title)
+    except ValueError as e:
+        logger.error("support: группа недоступна id=%s — %s", gid, e)
+    except TelegramApiError as e:
+        logger.error("support: getChat failed id=%s — %s", gid, e)
+
+
 def _user_label(*, username: str | None, telegram_user_id: int, first_name: str | None = None) -> str:
     if username:
         return f"@{username.lstrip('@')}"
@@ -120,8 +156,9 @@ async def post_user_message(
     try:
         result = await send_message(gid, group_text, parse_mode="HTML")
     except TelegramApiError as e:
-        logger.warning("support group send failed uid=%s: %s", telegram_user_id, e)
-        raise ValueError("group_send_failed") from e
+        code = map_telegram_send_error(str(e))
+        logger.warning("support group send failed uid=%s gid=%s code=%s: %s", telegram_user_id, gid, code, e)
+        raise ValueError(code) from e
 
     msg_id = int((result or {}).get("message_id") or 0)
     if msg_id <= 0:
@@ -145,7 +182,7 @@ async def notify_user_staff_reply(telegram_user_id: int, text: str) -> None:
     safe = html.escape(preview)
     await send_message(
         telegram_user_id,
-        f"💬 <b>Поддержка</b>\n{safe}\n\n<i>Ответ также в приложении → ?</i>",
+        f"💬 <b>Поддержка</b>\n{safe}\n\n<i>Ответ также в приложении → Подписка → Чат</i>",
         parse_mode="HTML",
     )
 

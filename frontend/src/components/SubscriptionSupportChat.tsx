@@ -7,6 +7,7 @@ import {
   type SupportInfo,
   type SupportMessage,
 } from "../api";
+import { formatSupportSendError } from "../data/support";
 import { SupportModal } from "./SupportModal";
 
 const POLL_MS = 4000;
@@ -120,7 +121,8 @@ export function SubscriptionSupportChat() {
       setDraft("");
       WebApp.HapticFeedback.notificationOccurred("success");
     } catch (e) {
-      setSendErr(e instanceof Error ? e.message : "Не удалось отправить");
+      const raw = e instanceof Error ? e.message : "Не удалось отправить";
+      setSendErr(formatSupportSendError(raw));
       WebApp.HapticFeedback.notificationOccurred("error");
     } finally {
       setSending(false);
