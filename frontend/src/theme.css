@@ -517,6 +517,16 @@ body {
   background: var(--surface-hover);
 }
 
+[data-theme="light"] .topbar__marketplace-kicker {
+  color: #6d28d9;
+}
+
+[data-theme="light"] .topbar__marketplace-main {
+  background: linear-gradient(105deg, #0f172a 0%, #6d28d9 45%, #047857 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
 [data-theme="light"] .topbar h1 {
   background: linear-gradient(135deg, #0f172a 0%, #4f46e5 100%);
   -webkit-background-clip: text;

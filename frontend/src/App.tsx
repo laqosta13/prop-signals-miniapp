@@ -22,7 +22,7 @@ import {
 import { FeedTab } from "./components/FeedTab";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { mergeFeedSignals } from "./utils/mergeFeedSignals";
-import { TAB_SUBTITLES } from "./data/appCopy";
+import { PRODUCT_TAGLINE, TAB_SUBTITLES } from "./data/appCopy";
 import { hasAcceptedDisclaimer, markDisclaimerAccepted } from "./utils/disclaimerStorage";
 
 const TrackerTab = lazy(() => import("./components/TrackerTab").then((m) => ({ default: m.TrackerTab })));
@@ -48,7 +48,7 @@ type Tab = "feed" | "tracker" | "top" | "reviews" | "news" | "pay";
 const FEED_POLL_MS = 15_000;
 
 const TITLES: Record<Tab, { title: string; sub: string }> = {
-  feed: { title: "Сигналы", sub: TAB_SUBTITLES.feed },
+  feed: { title: "", sub: "" },
   tracker: { title: "Трекер", sub: TAB_SUBTITLES.tracker },
   top: { title: "ТОП", sub: TAB_SUBTITLES.top },
   reviews: { title: "Отзывы", sub: TAB_SUBTITLES.reviews },
@@ -402,10 +402,19 @@ export default function App() {
           <p className="app-boot__meta">Загрузка…</p>
         </div>
       )}
-      <header className="topbar">
-        <div>
-          <h1>{head.title}</h1>
-          {head.sub ? <p>{head.sub}</p> : null}
+      <header className={`topbar${tab === "feed" ? " topbar--feed" : ""}`}>
+        <div className="topbar__titles">
+          {tab === "feed" ? (
+            <p className="topbar__marketplace" aria-label={PRODUCT_TAGLINE}>
+              <span className="topbar__marketplace-kicker">Marketplace</span>
+              <span className="topbar__marketplace-main">крипто-сделок</span>
+            </p>
+          ) : (
+            <>
+              <h1>{head.title}</h1>
+              {head.sub ? <p className="topbar__sub">{head.sub}</p> : null}
+            </>
+          )}
         </div>
         <div className="topbar__actions">
           <ThemeToggle />
@@ -441,28 +450,10 @@ export default function App() {
       </header>
 
       {tab === "feed" && (
-        <NotifySettingsPanel
-          enabled={notifyEnabled}
-          onToggle={() => void toggleSignalNotify()}
-          hint={
-            notifyEnabled && !notifyPushActive && !isAdmin
-              ? "Push по сигналам только при активной подписке."
-              : notifyEnabled && notifyPushActive
-                ? "Если сообщений нет — откройте бота и нажмите /start."
-                : null
-          }
-        />
+        <NotifySettingsPanel enabled={notifyEnabled} onToggle={() => void toggleSignalNotify()} />
       )}
       {tab === "news" && (
-        <NotifySettingsPanel
-          enabled={notifyNewsEnabled}
-          onToggle={() => void toggleNewsNotify()}
-          hint={
-            notifyNewsEnabled
-              ? "Если сообщений нет — откройте бота и нажмите /start."
-              : null
-          }
-        />
+        <NotifySettingsPanel enabled={notifyNewsEnabled} onToggle={() => void toggleNewsNotify()} />
       )}
 
       {error && <p className="err">{error}</p>}
