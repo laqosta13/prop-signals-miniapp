@@ -392,10 +392,10 @@ export default function App() {
       </header>
 
       {tab === "feed" && (
-        <NotifySettingsPanel variant="signals" enabled={notifyEnabled} onToggle={() => void toggleSignalNotify()} />
+        <NotifySettingsPanel enabled={notifyEnabled} onToggle={() => void toggleSignalNotify()} />
       )}
       {tab === "news" && (
-        <NotifySettingsPanel variant="news" enabled={notifyNewsEnabled} onToggle={() => void toggleNewsNotify()} />
+        <NotifySettingsPanel enabled={notifyNewsEnabled} onToggle={() => void toggleNewsNotify()} />
       )}
 
       {error && <p className="err">{error}</p>}

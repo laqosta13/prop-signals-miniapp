@@ -394,7 +394,8 @@ body {
 
 /* ── Light theme component fixes ─────────────────────────── */
 
-[data-theme="light"] .topbar p {
+[data-theme="light"] .topbar p,
+[data-theme="light"] .notify-row__label {
   color: var(--text-secondary);
 }
 
