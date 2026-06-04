@@ -124,7 +124,8 @@ function addAwaitingEntryPriceLines(
       color: palette.entryWaiting,
       lineWidth: 2,
       lineStyle: LineStyle.Dashed,
-      axisLabelVisible: false,
+      axisLabelVisible: true,
+      axisLabelColor: palette.entryWaiting,
       title: "Лимитка",
     });
   }
