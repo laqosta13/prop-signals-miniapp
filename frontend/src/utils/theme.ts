@@ -2,6 +2,18 @@ export type Theme = "light" | "dark";
 
 const STORAGE_KEY = "hh-theme";
 
+const themeListeners = new Set<() => void>();
+
+function emitThemeChange(): void {
+  themeListeners.forEach((fn) => fn());
+}
+
+/** Подписка на смену темы (переключатель, init). */
+export function subscribeTheme(listener: () => void): () => void {
+  themeListeners.add(listener);
+  return () => themeListeners.delete(listener);
+}
+
 export function getStoredTheme(): Theme {
   try {
     const v = localStorage.getItem(STORAGE_KEY);
@@ -20,6 +32,7 @@ export function applyTheme(theme: Theme): void {
   } catch {
     /* ignore */
   }
+  emitThemeChange();
 }
 
 export function initTheme(): Theme {

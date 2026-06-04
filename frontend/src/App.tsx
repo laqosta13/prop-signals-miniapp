@@ -138,6 +138,7 @@ export default function App() {
   const [newsRefreshKey, setNewsRefreshKey] = useState(0);
   const [reviewsRefreshKey, setReviewsRefreshKey] = useState(0);
   const [payRefreshKey, setPayRefreshKey] = useState(0);
+  const [feedRefreshKey, setFeedRefreshKey] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rankPending, setRankPending] = useState<TraderRank | null>(null);
@@ -169,6 +170,35 @@ export default function App() {
       setSignals((prev) => mergeFeedSignals(prev, sig));
     } catch {
       /* keep previous feed on poll errors */
+    }
+  }, []);
+
+  /** Ручное обновление: полная замена ленты и перезагрузка графиков. */
+  const refreshSignalsFull = useCallback(async () => {
+    try {
+      const sig = fullAccessRef.current ? await fetchSignals() : await fetchSignalsPreview();
+      setSignals(sig);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Не удалось обновить ленту");
+    }
+  }, []);
+
+  const refreshMe = useCallback(async () => {
+    try {
+      const me = await fetchMe();
+      setIsAdmin(me.is_admin);
+      setMyId(me.telegram_user_id);
+      setNotifyEnabled(me.notify_enabled);
+      setNotifyNewsEnabled(me.notify_news_enabled);
+      const fullAccess = me.subscription_active || me.is_admin;
+      fullAccessRef.current = fullAccess;
+      setSubActive(me.subscription_active);
+      setCanWriteReview(me.can_write_review);
+      setReviewWriteBlockedReason(me.review_write_blocked_reason);
+      setDaysUntilReview(me.days_until_review);
+    } catch {
+      /* ignore */
     }
   }, []);
 
@@ -260,23 +290,30 @@ export default function App() {
     setRefreshing(true);
     try {
       if (tab === "feed") {
-        await Promise.all([refreshSignalsOnly(), loadTrackers()]);
+        trackersFetchedRef.current = true;
+        await Promise.all([refreshSignalsFull(), loadTrackers(), refreshMe()]);
+        setFeedRefreshKey((k) => k + 1);
       } else if (tab === "tracker") {
-        await Promise.all([loadTrackers(), refreshSignalsOnly()]);
+        trackersFetchedRef.current = true;
+        await Promise.all([loadTrackers(), refreshSignalsFull(), refreshMe()]);
+        setFeedRefreshKey((k) => k + 1);
       } else if (tab === "top") {
-        await loadTop();
+        await Promise.all([loadTop(), refreshMe()]);
       } else if (tab === "news") {
+        await refreshMe();
         setNewsRefreshKey((k) => k + 1);
       } else if (tab === "reviews") {
+        await refreshMe();
         setReviewsRefreshKey((k) => k + 1);
       } else if (tab === "pay") {
+        await refreshMe();
         setPayRefreshKey((k) => k + 1);
       }
       WebApp.HapticFeedback.impactOccurred("light");
     } finally {
       setRefreshing(false);
     }
-  }, [refreshing, tab, refreshSignalsOnly, loadTrackers, loadTop]);
+  }, [refreshing, tab, refreshSignalsFull, loadTrackers, loadTop, refreshMe]);
 
   useEffect(() => {
     void loadBootstrap();
@@ -409,6 +446,7 @@ export default function App() {
             isAdmin={isAdmin}
             myId={myId}
             subscriptionActive={subActive}
+            refreshKey={feedRefreshKey}
             onChanged={reloadAfterSignalChange}
             onReloadTrackers={reloadTrackersOnly}
             onEdit={setEditSignal}

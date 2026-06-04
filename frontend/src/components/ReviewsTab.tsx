@@ -71,6 +71,7 @@ export function ReviewsTab({
   }, []);
 
   useEffect(() => {
+    if (refreshKey > 0) setLoading(true);
     void load();
   }, [load, refreshKey]);
 

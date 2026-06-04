@@ -27,6 +27,7 @@ export function NewsTab({ isAdmin, onEdit, refreshKey = 0 }: Props) {
   }, []);
 
   useEffect(() => {
+    if (refreshKey > 0) setLoading(true);
     void load();
   }, [load, refreshKey]);
 

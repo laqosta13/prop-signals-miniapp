@@ -31,6 +31,8 @@ import {
   type ChartInterval,
   type CloseReason,
 } from "../utils/signalChartLevels";
+import { chartPaletteFor, type ChartPalette } from "../utils/chartTheme";
+import { getStoredTheme, subscribeTheme, type Theme } from "../utils/theme";
 
 const CHART_POLL_MS = 30_000;
 const CHART_KLINE_LIMIT = 1000;
@@ -89,18 +91,19 @@ async function fetchBybitKlines(
   return candles;
 }
 
-const ENTRY_WAITING_LINE_COLOR = "#9ca3af";
 const ENTRY_ZONE_PRICE_EPS = 1e-8;
 
 type LevelLineOpts = {
   direction: "long" | "short";
   entryRef: number | null;
   awaitingEntry?: boolean;
+  palette: ChartPalette;
 };
 
 function addAwaitingEntryPriceLines(
   series: ISeriesApi<"Candlestick">,
   levels: ReturnType<typeof levelsFromSignal>,
+  palette: ChartPalette,
 ) {
   const low = levels.entryLow;
   const high = levels.entryHigh;
@@ -118,7 +121,7 @@ function addAwaitingEntryPriceLines(
   for (const price of prices) {
     series.createPriceLine({
       price,
-      color: ENTRY_WAITING_LINE_COLOR,
+      color: palette.entryWaiting,
       lineWidth: 2,
       lineStyle: LineStyle.Dashed,
       axisLabelVisible: false,
@@ -136,13 +139,13 @@ function applyLevelLines(
   const dir = opts.direction;
 
   if (opts.awaitingEntry) {
-    addAwaitingEntryPriceLines(series, levels);
+    addAwaitingEntryPriceLines(series, levels, opts.palette);
   }
 
   if (stop != null) {
     series.createPriceLine({
       price: stop,
-      color: "#ff6b6b",
+      color: opts.palette.stop,
       lineWidth: 2,
       lineStyle: LineStyle.Solid,
       axisLabelVisible: true,
@@ -154,7 +157,7 @@ function applyLevelLines(
     const base = targets.length > 1 ? `Цель ${i + 1}` : "Цель";
     series.createPriceLine({
       price: tp,
-      color: "#e0afff",
+      color: opts.palette.target,
       lineWidth: 2,
       lineStyle: LineStyle.Solid,
       axisLabelVisible: true,
@@ -335,6 +338,10 @@ export function SignalChart({
   const [entryLineLeft, setEntryLineLeft] = useState<number | null>(null);
   const [closeLineLeft, setCloseLineLeft] = useState<number | null>(null);
   const [closeOverlay, setCloseOverlay] = useState<{ label: string; reason: CloseReason } | null>(null);
+  const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
+  const palette = chartPaletteFor(theme);
+
+  useEffect(() => subscribeTheme(() => setTheme(getStoredTheme())), []);
 
   const pair = bybitSymbol(symbol);
   const tvLink = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tradingViewSymbol(symbol))}`;
@@ -432,10 +439,11 @@ export function SignalChart({
   useEffect(() => {
     if (!visible || !chartRef.current) return;
 
+    const colors = chartPaletteFor(theme);
     const chart = createChart(chartRef.current, {
       layout: {
-        background: { type: ColorType.Solid, color: "#141416" },
-        textColor: "#8a8a93",
+        background: { type: ColorType.Solid, color: colors.background },
+        textColor: colors.text,
       },
       grid: {
         vertLines: { visible: false },
@@ -483,7 +491,7 @@ export function SignalChart({
       setCloseOverlay(null);
       loadedRef.current = false;
     };
-  }, [visible]);
+  }, [visible, theme]);
 
   useEffect(() => {
     if (!visible || !pair || !chartApi.current) return;
@@ -511,17 +519,17 @@ export function SignalChart({
         if (seriesRef.current) chart.removeSeries(seriesRef.current);
         const scalePrices = chartLevelPrices(lv, { entryPrice: entryRef, closedExitPrice });
         const series = chart.addCandlestickSeries({
-          upColor: "#3dff8a",
-          downColor: "#ff6b6b",
+          upColor: palette.upColor,
+          downColor: palette.downColor,
           borderVisible: false,
-          wickUpColor: "#3dff8a",
-          wickDownColor: "#ff6b6b",
+          wickUpColor: palette.wickUp,
+          wickDownColor: palette.wickDown,
           priceFormat: chartPriceFormatOptions(scalePrices),
           autoscaleInfoProvider: createLevelAutoscaleProvider(scalePrices),
         });
         seriesRef.current = series;
         series.setData(data);
-        applyLevelLines(series, lv, { direction, entryRef, awaitingEntry });
+        applyLevelLines(series, lv, { direction, entryRef, awaitingEntry, palette });
         paintChartMarkers(series, data, candleSec, lv, entryRef);
         applyFeedVisibleRange(chart, data, entryCandleTimeRef.current, closeCandleTimeRef.current, createdAt);
         series.priceScale().applyOptions({ autoScale: true });
@@ -558,6 +566,9 @@ export function SignalChart({
     entryFilledAt,
     entryPrice,
     frozen,
+    theme,
+    palette.upColor,
+    palette.downColor,
   ]);
 
   useEffect(() => {

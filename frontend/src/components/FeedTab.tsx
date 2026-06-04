@@ -19,6 +19,7 @@ type Props = {
   onPatch: (id: number, patch: Partial<Signal>) => void;
   onOpenPay: () => void;
   onOpenTracker: () => void;
+  refreshKey?: number;
 };
 
 export function FeedTab({
@@ -35,6 +36,7 @@ export function FeedTab({
   onPatch,
   onOpenPay,
   onOpenTracker,
+  refreshKey = 0,
 }: Props) {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [closingId, setClosingId] = useState<number | null>(null);
@@ -86,7 +88,7 @@ export function FeedTab({
       )}
       {visible.map((s) => (
         <SignalCard
-          key={`${s.id}-${s.created_at}`}
+          key={`${s.id}-${s.status}-${s.closed_at ?? "open"}-${refreshKey}`}
           signal={s}
           liveTrackerBalance={trackers.find((t) => t.owner_telegram_id === s.author_telegram_id)?.balance}
           isAdmin={isAdmin}
