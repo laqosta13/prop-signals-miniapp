@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+import asyncio
 import html
 import logging
+
+import httpx
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import SupportMessage, SupportThread
-from app.telegram_bot_api import TelegramApiError, send_message
+from app.telegram_bot_api import TelegramApiError, get_chat, send_message
 
 logger = logging.getLogger(__name__)
 
@@ -48,23 +51,36 @@ def map_telegram_send_error(description: str) -> str:
 
 
 def verify_support_group_at_startup() -> None:
-    """Проверка TELEGRAM_SUPPORT_GROUP_ID при старте (логи Amvera)."""
+    """Проверка TELEGRAM_SUPPORT_GROUP_ID (логи Amvera). Не бросает исключений."""
     gid = support_group_id()
     if gid is None:
         return
     if not settings.bot_token:
         logger.warning("support: TELEGRAM_SUPPORT_GROUP_ID задан, но BOT_TOKEN пуст")
         return
-    from app.telegram_bot_api import TelegramApiError, get_chat
 
     try:
         chat = get_chat(gid)
         title = (chat.get("title") or chat.get("username") or "?").strip()
         logger.info("support: группа ok id=%s title=%r", gid, title)
+    except httpx.HTTPError as e:
+        logger.warning(
+            "support: getChat — сеть/Telegram недоступны id=%s (%s). Чат попробует отправку при сообщении пользователя.",
+            gid,
+            e,
+        )
     except ValueError as e:
         logger.error("support: группа недоступна id=%s — %s", gid, e)
     except TelegramApiError as e:
         logger.error("support: getChat failed id=%s — %s", gid, e)
+    except Exception as e:
+        logger.warning("support: getChat unexpected id=%s — %s", gid, e)
+
+
+async def verify_support_group_after_delay(delay_sec: float = 15.0) -> None:
+    """Повтор проверки, когда сеть на Amvera уже поднялась."""
+    await asyncio.sleep(delay_sec)
+    await asyncio.to_thread(verify_support_group_at_startup)
 
 
 def _user_label(*, username: str | None, telegram_user_id: int, first_name: str | None = None) -> str:

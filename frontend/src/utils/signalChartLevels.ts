@@ -66,16 +66,26 @@ export type SignalChartLevels = {
   targets: number[];
 };
 
-/** Референс входа для % на графике: явная цена → середина зоны → одна граница. */
+/**
+ * Референс входа для % и P/L — как backend `effective_entry_price`:
+ * лимитная зона (entry_low/high) важнее снимка рынка при публикации.
+ */
 export function chartEntryReference(
   levels: SignalChartLevels,
-  entryPrice?: number | null,
+  publishedMarketPrice?: number | null,
 ): number | null {
-  if (entryPrice != null && Number.isFinite(entryPrice) && entryPrice > 0) return entryPrice;
   const low = levels.entryLow;
   const high = levels.entryHigh;
   if (low != null && high != null) return (low + high) / 2;
-  return low ?? high ?? null;
+  if (low != null || high != null) return low ?? high ?? null;
+  if (
+    publishedMarketPrice != null &&
+    Number.isFinite(publishedMarketPrice) &&
+    publishedMarketPrice > 0
+  ) {
+    return publishedMarketPrice;
+  }
+  return null;
 }
 
 /** % движения цены от входа с учётом направления (+ в сторону профита). */

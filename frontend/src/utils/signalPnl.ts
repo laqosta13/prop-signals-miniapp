@@ -10,7 +10,7 @@ import {
 const DEFAULT_STAKE_PCT = 10;
 const MAX_LEVERAGE = 5;
 
-/** Та же база входа, что на графике: цена публикации → середина зоны → граница. */
+/** Та же база входа, что на графике: лимит → иначе рынок при публикации. */
 function entryPrice(s: Signal): number | null {
   const lv = levelsFromSignal(s.entry_low, s.entry_high, s.stop_loss, s.take_profits);
   return chartEntryReference(lv, s.published_market_price);

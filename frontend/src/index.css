@@ -1462,6 +1462,10 @@
   background: #3dff8a;
 }
 
+.signal-chart--awaiting-entry .signal-chart__legend-item.entry::before {
+  background: #9ca3af;
+}
+
 .signal-chart__legend-item.stop::before {
   background: #ff6b6b;
 }

@@ -89,10 +89,50 @@ async function fetchBybitKlines(
   return candles;
 }
 
+const ENTRY_WAITING_LINE_COLOR = "#9ca3af";
+const ENTRY_ZONE_PRICE_EPS = 1e-8;
+
 type LevelLineOpts = {
   direction: "long" | "short";
   entryRef: number | null;
+  awaitingEntry?: boolean;
 };
+
+function formatEntryLinePrice(price: number): string {
+  const abs = Math.abs(price);
+  const digits = abs >= 10_000 ? 0 : abs >= 100 ? 1 : abs >= 1 ? 2 : abs >= 0.01 ? 4 : 6;
+  const raw = price.toFixed(digits);
+  return raw.replace(/\.?0+$/, "") || raw;
+}
+
+function addAwaitingEntryPriceLines(
+  series: ISeriesApi<"Candlestick">,
+  levels: ReturnType<typeof levelsFromSignal>,
+) {
+  const low = levels.entryLow;
+  const high = levels.entryHigh;
+  const prices: number[] = [];
+  if (
+    low != null &&
+    high != null &&
+    Math.abs(low - high) > ENTRY_ZONE_PRICE_EPS
+  ) {
+    prices.push(low, high);
+  } else {
+    const single = low ?? high;
+    if (single != null) prices.push(single);
+  }
+  for (const price of prices) {
+    series.createPriceLine({
+      price,
+      color: ENTRY_WAITING_LINE_COLOR,
+      lineWidth: 2,
+      lineStyle: LineStyle.Dashed,
+      axisLabelVisible: true,
+      title: `Вход ${formatEntryLinePrice(price)}`,
+    });
+  }
+}
 
 function applyLevelLines(
   series: ISeriesApi<"Candlestick">,
@@ -101,6 +141,10 @@ function applyLevelLines(
 ) {
   const { stop, targets } = levels;
   const dir = opts.direction;
+
+  if (opts.awaitingEntry) {
+    addAwaitingEntryPriceLines(series, levels);
+  }
 
   if (stop != null) {
     series.createPriceLine({
@@ -457,6 +501,8 @@ export function SignalChart({
     setErr(null);
     const lv = levelsFromSignal(entryLow, entryHigh, stopLoss, takeProfits);
     const entryRef = chartEntryReference(lv, entryPrice);
+    const awaitingEntry =
+      !entryFilledAt && (lv.entryLow != null || lv.entryHigh != null);
     const candleSec = Math.max(60, Number(bybitIv) * 60);
     const closeEndMs =
       frozen && closedAt
@@ -470,7 +516,7 @@ export function SignalChart({
         if (!chart) return;
         const data = clipCandlesForSignal(candles, createdAt, closedAt, candleSec, frozen);
         if (seriesRef.current) chart.removeSeries(seriesRef.current);
-        const scalePrices = chartLevelPrices(lv, { entryPrice, closedExitPrice });
+        const scalePrices = chartLevelPrices(lv, { entryPrice: entryRef, closedExitPrice });
         const series = chart.addCandlestickSeries({
           upColor: "#3dff8a",
           downColor: "#ff6b6b",
@@ -482,7 +528,7 @@ export function SignalChart({
         });
         seriesRef.current = series;
         series.setData(data);
-        applyLevelLines(series, lv, { direction, entryRef });
+        applyLevelLines(series, lv, { direction, entryRef, awaitingEntry });
         paintChartMarkers(series, data, candleSec, lv, entryRef);
         applyFeedVisibleRange(chart, data, entryCandleTimeRef.current, closeCandleTimeRef.current, createdAt);
         series.priceScale().applyOptions({ autoScale: true });
@@ -564,8 +610,17 @@ export function SignalChart({
 
   if (!pair) return null;
 
+  const lvLegend = levelsFromSignal(entryLow, entryHigh, stopLoss, takeProfits);
+  const awaitingEntryLegend =
+    !entryFilledAt && (lvLegend.entryLow != null || lvLegend.entryHigh != null);
+
   return (
-    <section ref={wrapRef} className={`signal-chart${frozen ? " signal-chart--frozen" : ""}`}>
+    <section
+      ref={wrapRef}
+      className={`signal-chart${frozen ? " signal-chart--frozen" : ""}${
+        awaitingEntryLegend ? " signal-chart--awaiting-entry" : ""
+      }`}
+    >
       <div className="signal-chart__head">
         {!frozen && (
           <div className="signal-chart__tf">
@@ -613,7 +668,9 @@ export function SignalChart({
         )}
       </div>
       <div className="signal-chart__legend">
-        <span className="signal-chart__legend-item entry">Вход</span>
+        <span className="signal-chart__legend-item entry">
+          {awaitingEntryLegend ? "Вход (ожидание)" : "Вход"}
+        </span>
         <span className="signal-chart__legend-item stop">Стоп</span>
         <span className="signal-chart__legend-item target">Цель</span>
         {closeOverlay && (
