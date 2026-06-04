@@ -2,7 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { recordSignalView, toggleSignalLike, type Signal } from "../api";
 import { calcRR, authorProfile, formatTakeProfits, formatTime, formatUsd, mediaUrl } from "../utils";
-import { signalEntryStakePct, signalPriceMovePct, signalRealizedPnl, signalTrackerBalanceUsd } from "../utils/signalPnl";
+import {
+  signalEntryStakePct,
+  signalPriceMovePct,
+  signalRealizedPnl,
+  signalStopMovePct,
+  signalTrackerBalanceUsd,
+} from "../utils/signalPnl";
+import { formatSignedMovePct } from "../utils/signalChartLevels";
 import { useSignalLivePnl } from "../hooks/useSignalLivePnl";
 import { canEditOrDeleteSignal, canCloseAtMarketSignal, canSupplementSignal } from "../utils/signalActions";
 import { signalOutcomeDisplay } from "../utils/signalChartLevels";
@@ -104,6 +111,7 @@ export function SignalCard({
   const statusClass = outcome.className;
   const author = authorProfile(s.author_display_name, s.author_username);
   const rr = calcRR(entry === "—" ? null : entry, s.stop_loss, s.take_profits);
+  const stopMovePct = signalStopMovePct(s);
   const showResult = headerPnl != null || headerMove != null || (livePnl.loading && s.status === "active" && entryDone);
 
   const handleLike = async () => {
@@ -167,10 +175,7 @@ export function SignalCard({
                 <span className="signal-card__result-usd signal-card__result-usd--pending">…</span>
               ) : null}
               {headerMove != null && (
-                <span className="signal-card__result-pct">
-                  {headerMove >= 0 ? "+" : ""}
-                  {headerMove.toFixed(2)}%
-                </span>
+                <span className="signal-card__result-pct">{formatSignedMovePct(headerMove)}</span>
               )}
             </div>
           )}
@@ -238,7 +243,10 @@ export function SignalCard({
         </div>
         <div className="stop">
           <span>стоп</span>
-          <strong>{s.stop_loss || "—"}</strong>
+          <strong>
+            {s.stop_loss || "—"}
+            {stopMovePct != null && <span className="levels-grid__pct"> {formatSignedMovePct(stopMovePct)}</span>}
+          </strong>
         </div>
         <div className="target">
           <span>цель</span>

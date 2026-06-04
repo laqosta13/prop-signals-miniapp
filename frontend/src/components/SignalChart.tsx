@@ -92,8 +92,6 @@ async function fetchBybitKlines(
 type LevelLineOpts = {
   direction: "long" | "short";
   entryRef: number | null;
-  closeExit?: number | null;
-  closeReason?: CloseReason | null;
 };
 
 function applyLevelLines(
@@ -126,18 +124,6 @@ function applyLevelLines(
       title: chartLevelLineTitle(base, opts.entryRef, dir, tp),
     });
   });
-
-  const exit = opts.closeExit;
-  if (exit != null && Number.isFinite(exit) && exit > 0 && opts.closeReason === "market") {
-    series.createPriceLine({
-      price: exit,
-      color: "#ffd166",
-      lineWidth: 2,
-      lineStyle: LineStyle.Dashed,
-      axisLabelVisible: true,
-      title: chartLevelLineTitle("По рынку", opts.entryRef, dir, exit),
-    });
-  }
 }
 
 function clipCandlesAtClose(candles: ChartCandle[], closedAt: string | null | undefined, candleSec: number): ChartCandle[] {
@@ -471,8 +457,6 @@ export function SignalChart({
     setErr(null);
     const lv = levelsFromSignal(entryLow, entryHigh, stopLoss, takeProfits);
     const entryRef = chartEntryReference(lv, entryPrice);
-    const closeReasonResolved =
-      frozen && closedAt ? resolveCloseReason(closeReason, status, closedExitPrice, lv) : null;
     const candleSec = Math.max(60, Number(bybitIv) * 60);
     const closeEndMs =
       frozen && closedAt
@@ -498,12 +482,7 @@ export function SignalChart({
         });
         seriesRef.current = series;
         series.setData(data);
-        applyLevelLines(series, lv, {
-          direction,
-          entryRef,
-          closeExit: closedExitPrice,
-          closeReason: closeReasonResolved,
-        });
+        applyLevelLines(series, lv, { direction, entryRef });
         paintChartMarkers(series, data, candleSec, lv, entryRef);
         applyFeedVisibleRange(chart, data, entryCandleTimeRef.current, closeCandleTimeRef.current, createdAt);
         series.priceScale().applyOptions({ autoScale: true });

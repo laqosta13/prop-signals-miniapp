@@ -1,11 +1,28 @@
 import type { Signal } from "../api";
-import { parseLevelPrice, parseTakeProfitPrices } from "./signalChartLevels";
+import {
+  chartEntryReference,
+  levelMovePctFromEntry,
+  levelsFromSignal,
+  parseLevelPrice,
+  parseTakeProfitPrices,
+} from "./signalChartLevels";
 
 const DEFAULT_STAKE_PCT = 10;
 const MAX_LEVERAGE = 5;
 
+/** Та же база входа, что на графике: цена публикации → середина зоны → граница. */
 function entryPrice(s: Signal): number | null {
-  return parseLevelPrice(s.entry_low) ?? parseLevelPrice(s.entry_high) ?? s.published_market_price ?? null;
+  const lv = levelsFromSignal(s.entry_low, s.entry_high, s.stop_loss, s.take_profits);
+  return chartEntryReference(lv, s.published_market_price);
+}
+
+/** % от входа до стопа (как подпись «Стоп …%» на графике). */
+export function signalStopMovePct(s: Signal): number | null {
+  const entry = entryPrice(s);
+  const stop = parseLevelPrice(s.stop_loss);
+  if (entry == null || stop == null) return null;
+  const dir = s.direction === "short" ? "short" : "long";
+  return levelMovePctFromEntry(entry, dir, stop);
 }
 
 function exitPrice(s: Signal): number | null {
@@ -27,10 +44,8 @@ function priceMovePct(s: Signal): number | null {
   const entry = entryPrice(s);
   const exit = exitPrice(s);
   if (entry == null || exit == null || entry <= 0) return null;
-  if (s.direction === "short") {
-    return Math.round(((entry - exit) / entry) * 10000) / 100;
-  }
-  return Math.round(((exit - entry) / entry) * 10000) / 100;
+  const dir = s.direction === "short" ? "short" : "long";
+  return levelMovePctFromEntry(entry, dir, exit);
 }
 
 function stakePct(s: Signal): number {
@@ -60,11 +75,8 @@ export function signalPnlBaseUsd(s: Signal): number {
 }
 
 function priceMoveAt(entry: number, direction: string, marketPrice: number): number {
-  if (entry <= 0 || !Number.isFinite(marketPrice)) return 0;
-  if (direction === "short") {
-    return Math.round(((entry - marketPrice) / entry) * 10000) / 100;
-  }
-  return Math.round(((marketPrice - entry) / entry) * 10000) / 100;
+  const dir = direction === "short" ? "short" : "long";
+  return levelMovePctFromEntry(entry, dir, marketPrice);
 }
 
 function nominalUsd(s: Signal): number {

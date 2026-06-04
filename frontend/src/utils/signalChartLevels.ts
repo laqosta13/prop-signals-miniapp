@@ -2,6 +2,7 @@
 
 import { parseApiDate } from "../utils";
 import type { AutoscaleInfo, UTCTimestamp } from "lightweight-charts";
+import { roundPct } from "./formatPct";
 
 export type ChartCandle = { time: UTCTimestamp; open: number; high: number; low: number; close: number };
 
@@ -84,10 +85,11 @@ export function levelMovePctFromEntry(
   levelPrice: number,
 ): number {
   if (entry <= 0 || !Number.isFinite(levelPrice)) return 0;
-  if (direction === "short") {
-    return Math.round(((entry - levelPrice) / entry) * 10000) / 100;
-  }
-  return Math.round(((levelPrice - entry) / entry) * 10000) / 100;
+  const raw =
+    direction === "short"
+      ? ((entry - levelPrice) / entry) * 100
+      : ((levelPrice - entry) / entry) * 100;
+  return roundPct(raw);
 }
 
 export function formatSignedMovePct(pct: number): string {

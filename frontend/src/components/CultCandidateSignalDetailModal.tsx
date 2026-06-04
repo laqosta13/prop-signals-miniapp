@@ -1,7 +1,13 @@
 import type { Signal } from "../api";
 import { calcRR, formatTakeProfits, formatTime, formatUsd } from "../utils";
-import { signalEntryStakePct, signalPriceMovePct, signalRealizedPnl, signalTrackerBalanceUsd } from "../utils/signalPnl";
-import { signalOutcomeDisplay } from "../utils/signalChartLevels";
+import {
+  signalEntryStakePct,
+  signalPriceMovePct,
+  signalRealizedPnl,
+  signalStopMovePct,
+  signalTrackerBalanceUsd,
+} from "../utils/signalPnl";
+import { formatSignedMovePct, signalOutcomeDisplay } from "../utils/signalChartLevels";
 import { SignalChart } from "./SignalChart";
 
 type Props = {
@@ -35,6 +41,7 @@ export function CultCandidateSignalDetailModal({ signal, loading = false, error 
       )
     : null;
   const rr = s ? calcRR(entry === "—" ? null : entry, s.stop_loss, s.take_profits) : "—";
+  const stopMovePct = s ? signalStopMovePct(s) : null;
 
   return (
     <div className="modal-backdrop modal-backdrop--sheet" role="presentation" onClick={onClose}>
@@ -69,10 +76,7 @@ export function CultCandidateSignalDetailModal({ signal, loading = false, error 
                       </span>
                     )}
                     {movePct != null && (
-                      <span className="signal-card__result-pct">
-                        {movePct >= 0 ? "+" : ""}
-                        {movePct.toFixed(2)}%
-                      </span>
+                      <span className="signal-card__result-pct">{formatSignedMovePct(movePct)}</span>
                     )}
                   </div>
                 )}
@@ -127,7 +131,10 @@ export function CultCandidateSignalDetailModal({ signal, loading = false, error 
               </div>
               <div className="stop">
                 <span>стоп</span>
-                <strong>{s.stop_loss || "—"}</strong>
+                <strong>
+                  {s.stop_loss || "—"}
+                  {stopMovePct != null && <span className="levels-grid__pct"> {formatSignedMovePct(stopMovePct)}</span>}
+                </strong>
               </div>
               <div className="target">
                 <span>цель</span>
