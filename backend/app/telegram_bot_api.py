@@ -94,10 +94,39 @@ def verify_bot_is_channel_admin(chat_id: int) -> None:
         raise ValueError("Добавьте бота администратором канала (права на чтение постов)")
 
 
-async def get_updates(offset: int | None = None, timeout: int = 25) -> list[dict[str, Any]]:
+async def send_message(
+    chat_id: int,
+    text: str,
+    *,
+    parse_mode: str | None = "HTML",
+    reply_to_message_id: int | None = None,
+    disable_web_page_preview: bool = True,
+) -> dict[str, Any] | None:
+    payload: dict[str, Any] = {
+        "chat_id": chat_id,
+        "text": text[:4096],
+        "disable_web_page_preview": disable_web_page_preview,
+    }
+    if parse_mode:
+        payload["parse_mode"] = parse_mode
+    if reply_to_message_id is not None:
+        payload["reply_to_message_id"] = reply_to_message_id
+    data = await _api_async("sendMessage", payload)
+    if not data.get("ok"):
+        raise TelegramApiError(str(data.get("description") or "send_failed"))
+    return data.get("result") or {}
+
+
+async def get_updates(
+    offset: int | None = None,
+    timeout: int = 25,
+    *,
+    allowed_updates: list[str] | None = None,
+) -> list[dict[str, Any]]:
     payload: dict[str, Any] = {
         "timeout": timeout,
-        "allowed_updates": ["channel_post", "edited_channel_post"],
+        "allowed_updates": allowed_updates
+        or ["channel_post", "edited_channel_post", "message"],
     }
     if offset is not None:
         payload["offset"] = offset

@@ -70,9 +70,17 @@ export type Me = {
 };
 
 export type SupportInfo = {
+  live_chat_enabled: boolean;
   username: string;
   url: string;
   available: boolean;
+};
+
+export type SupportMessage = {
+  id: number;
+  direction: "user" | "staff";
+  text: string;
+  created_at: string;
 };
 
 export type SubscriptionInfo = {
@@ -340,6 +348,16 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 export const fetchSubscriptionInfo = () => api<SubscriptionInfo>("/subscriptions/info");
 
 export const fetchSupportInfo = () => api<SupportInfo>("/support/info");
+
+export const fetchSupportMessages = (afterId = 0) =>
+  api<SupportMessage[]>(`/support/messages?after_id=${afterId}`);
+
+export const sendSupportMessage = (text: string) =>
+  api<SupportMessage>("/support/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
 
 export const submitPayment = (plan: "week" | "month", tx_id: string) =>
   api<SubscriptionInfo>("/subscriptions/pay", {

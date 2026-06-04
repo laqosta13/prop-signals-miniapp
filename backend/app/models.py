@@ -269,6 +269,28 @@ class Review(Base):
     image_path: Mapped[str | None] = mapped_column(String(256), nullable=True)
 
 
+class SupportThread(Base):
+    __tablename__ = "support_threads"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    telegram_user_id: Mapped[int] = mapped_column(Integer, nullable=False, unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class SupportMessage(Base):
+    __tablename__ = "support_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    thread_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    direction: Mapped[str] = mapped_column(String(8), nullable=False)  # user | staff
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    group_message_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class NewsPost(Base):
     __tablename__ = "news_posts"
 

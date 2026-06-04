@@ -4,7 +4,6 @@ import { fetchSubscriptionInfo, submitPayment, type SubscriptionInfo } from "../
 import { PasteButton } from "./PasteButton";
 import { copyToClipboard, formatDateTimeMsk, selectFieldText } from "../utils";
 import { copyReferralLink, openReferralShare } from "../utils/referralShare";
-import { SUPPORT_WRITE_LABEL } from "../data/support";
 import { PartnerLinks } from "./PartnerLinks";
 
 type Props = {
@@ -209,12 +208,10 @@ export function SubscriptionTab({ onPaid, refreshKey = 0, onOpenSupport }: Props
 
       <section className="sub-card sub-card--support">
         <h3>Поддержка</h3>
-        <p className="meta">
-          Вопросы по оплате, подписке, сигналам и работе приложения — напишите нам в Telegram.
-        </p>
+        <p className="meta">Лайв-чат в приложении: вопросы по оплате, подписке и сигналам.</p>
         {onOpenSupport && (
           <button type="button" className="submit-btn submit-btn--outline" onClick={onOpenSupport}>
-            {SUPPORT_WRITE_LABEL}
+            Открыть чат
           </button>
         )}
       </section>

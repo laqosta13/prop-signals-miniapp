@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { maxPriceStopPctForStopSlider } from "../utils/dailyStopLimit";
+import { maxPriceStopPctForStopSlider, SIGNAL_DAILY_STOP_LIMIT_PCT } from "../utils/dailyStopLimit";
 import {
   STOP_OFFSET_MAX_PCT,
   STOP_OFFSET_MIN_PCT,

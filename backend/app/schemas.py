@@ -99,7 +99,19 @@ class PaymentSubmit(BaseModel):
     tx_id: str = Field(..., min_length=8, max_length=128)
 
 
+class SupportMessageRead(BaseModel):
+    id: int
+    direction: str
+    text: str
+    created_at: datetime
+
+
+class SupportMessageCreate(BaseModel):
+    text: str = Field(..., min_length=1, max_length=2000)
+
+
 class SupportInfo(BaseModel):
+    live_chat_enabled: bool = False
     username: str = ""
     url: str = ""
     available: bool = False

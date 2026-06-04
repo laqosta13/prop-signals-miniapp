@@ -176,6 +176,40 @@ def run_migrations(engine: Engine) -> None:
             if not _has_column(engine, "reviews", "image_path"):
                 conn.execute(text("ALTER TABLE reviews ADD COLUMN image_path VARCHAR(256)"))
 
+        table_names = inspect(engine).get_table_names()
+        if "support_threads" not in table_names:
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE support_threads (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        telegram_user_id INTEGER NOT NULL UNIQUE,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
+            )
+        if "support_messages" not in table_names:
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE support_messages (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        thread_id INTEGER NOT NULL,
+                        direction VARCHAR(8) NOT NULL,
+                        text TEXT NOT NULL,
+                        group_message_id INTEGER,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
+            )
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_support_messages_thread ON support_messages (thread_id)"))
+            conn.execute(
+                text("CREATE INDEX IF NOT EXISTS ix_support_messages_group_msg ON support_messages (group_message_id)")
+            )
+
         if "news_posts" in tables:
             if not _has_column(engine, "news_posts", "video_path"):
                 conn.execute(text("ALTER TABLE news_posts ADD COLUMN video_path VARCHAR(256)"))

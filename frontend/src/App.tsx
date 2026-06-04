@@ -387,7 +387,7 @@ export default function App() {
             type="button"
             className="support-btn"
             onClick={openSupport}
-            aria-label="Поддержка"
+            aria-label="Чат поддержки"
           >
             <span className="support-btn__icon" aria-hidden>
               ?
