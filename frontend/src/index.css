@@ -5619,6 +5619,33 @@ input.readonly {
   font-size: 1rem;
 }
 
+.review-rules {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+.review-rules__title {
+  margin: 0 0 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.review-rules__list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.review-rules__list li + li {
+  margin-top: 4px;
+}
+
 .review-form-card textarea {
   width: 100%;
   box-sizing: border-box;

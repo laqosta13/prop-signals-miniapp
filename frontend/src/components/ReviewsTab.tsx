@@ -7,7 +7,9 @@ import {
   updateReview,
   type Review,
 } from "../api";
+import { REVIEW_RULES, REVIEW_RULES_TITLE } from "../data/reviewRules";
 import { authorProfile, formatTime, mediaUrl } from "../utils";
+import { reviewTextError } from "../utils/reviewText";
 import { ruTextFieldProps } from "../utils/textFieldProps";
 import { Avatar } from "./Avatar";
 import { FieldLabelWithPaste, appendPastedText } from "./FieldLabelWithPaste";
@@ -25,8 +27,7 @@ function stars(n: number) {
 }
 
 function writeBlockMessage(reason: string | null, days: number | null): string {
-  if (reason === "paid_required") return "Нужна платная подписка (не trial).";
-  if (reason === "wait_days") return `Отзыв через ${days ?? 3} дн. после входа.`;
+  if (reason === "wait_days") return `Отзыв через ${days ?? 7} дн. после регистрации.`;
   if (reason === "subscription_required") return "Нужна активная подписка.";
   return "Отзыв недоступен.";
 }
@@ -88,6 +89,11 @@ export function ReviewsTab({
       setErr("Минимум 3 символа");
       return;
     }
+    const textErr = reviewTextError(body);
+    if (textErr) {
+      setErr(textErr);
+      return;
+    }
     setBusy(true);
     setErr(null);
     const fd = new FormData();
@@ -140,6 +146,14 @@ export function ReviewsTab({
     <div className="reviews-tab">
       <section className="review-form-card">
         <h3>{mine ? "Ваш отзыв" : "Оставить отзыв"}</h3>
+        <div className="review-rules" aria-label={REVIEW_RULES_TITLE}>
+          <p className="review-rules__title">{REVIEW_RULES_TITLE}</p>
+          <ul className="review-rules__list">
+            {REVIEW_RULES.map((rule) => (
+              <li key={rule}>{rule}</li>
+            ))}
+          </ul>
+        </div>
         {!canEdit && !mine && (
           <p className="meta review-hint">{writeBlockMessage(reviewWriteBlockedReason, daysUntilReview)}</p>
         )}

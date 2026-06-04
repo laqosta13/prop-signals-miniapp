@@ -6,6 +6,7 @@ from app.deps import db_session, get_current_user
 from app.media_storage import delete_media_files, save_review_image
 from app.models import Review, Subscriber
 from app.review_access import require_review_write
+from app.review_text import review_text_error
 from app.schemas import ReviewRead, TelegramUser
 from app.serializers import review_to_read
 
@@ -49,6 +50,8 @@ async def create_review(
     body = text.strip()
     if len(body) < 3:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Текст слишком короткий")
+    if err := review_text_error(body):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err)
     row = Review(
         author_telegram_id=user.telegram_user_id,
         author_username=user.username,
@@ -86,6 +89,8 @@ async def update_review(
     body = text.strip()
     if len(body) < 3:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Текст слишком короткий")
+    if err := review_text_error(body):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err)
     row.text = body[:2000]
     row.rating = rating
     if user.username:

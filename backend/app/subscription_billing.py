@@ -15,7 +15,7 @@ from app.ton_payments import TonPaymentError, verify_usdt_ton_payment
 
 TRIAL_DAYS = 3
 REFERRAL_BONUS_DAYS = 3
-REVIEW_WAIT_DAYS = 3
+REVIEW_WAIT_DAYS = 7
 WEEK_USD = 20.0
 MONTH_USD = 70.0
 WEEK_DAYS = 7

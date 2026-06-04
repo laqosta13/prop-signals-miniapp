@@ -8,9 +8,8 @@ from datetime import timedelta
 from sqlalchemy.orm import Session
 
 from app.models import Subscriber
-from app.subscription_billing import REVIEW_WAIT_DAYS, _now, has_paid_subscription, subscription_active
+from app.subscription_billing import REVIEW_WAIT_DAYS, _now, subscription_active
 
-REVIEW_BLOCK_PAID = "paid_required"
 REVIEW_BLOCK_WAIT = "wait_days"
 REVIEW_BLOCK_SUB = "subscription_required"
 
@@ -18,13 +17,11 @@ REVIEW_BLOCK_SUB = "subscription_required"
 def review_write_access(
     db: Session, sub: Subscriber, *, is_admin: bool
 ) -> tuple[bool, str | None, int | None]:
-    """Можно писать отзыв: платная активная подписка + 3 дня с первого входа."""
+    """Можно писать отзыв: активная подписка + 7 дней с регистрации."""
     if is_admin:
         return True, None, None
     if not subscription_active(sub, is_admin):
         return False, REVIEW_BLOCK_SUB, None
-    if not has_paid_subscription(db, sub.telegram_user_id):
-        return False, REVIEW_BLOCK_PAID, None
     created = sub.created_at
     if created.tzinfo is None:
         from datetime import timezone
@@ -47,7 +44,6 @@ def require_review_write(db: Session, sub: Subscriber, *, is_admin: bool) -> Non
         return
     detail = {
         REVIEW_BLOCK_SUB: "subscription_required",
-        REVIEW_BLOCK_PAID: "paid_subscription_required",
         REVIEW_BLOCK_WAIT: "review_wait_days",
     }.get(reason or "", "forbidden")
     if reason == REVIEW_BLOCK_WAIT and days_left is not None:
