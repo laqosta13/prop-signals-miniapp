@@ -22,7 +22,7 @@ export function volnovoiCopyPitch(trader: Pick<Trader, "total_pnl_usd" | "rating
     badgeLabel: positive ? pnlText : "Копируй",
     headline: "Ваш профит",
     profitLine: `${pnlText} (${pctText})`,
-    depositLine: `Если копируете volnovoi с депозитом $${capital}`,
+    depositLine: `При копировании volnovoi с депозитом $${capital}`,
     positive,
   };
 }

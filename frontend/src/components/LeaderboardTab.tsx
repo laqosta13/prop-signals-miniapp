@@ -13,6 +13,14 @@ import { TraderProfileModal } from "./TraderProfileModal";
 import { VolnovoiCopyPanel } from "./VolnovoiCopyPanel";
 import { VolnovoiMarketingBadge } from "./VolnovoiMarketingBadge";
 import { authorProfile } from "../utils";
+import {
+  TOP_CANDIDATES_EMPTY,
+  TOP_EMPTY,
+  TOP_INTRO,
+  TOP_LABEL_CANDIDATES,
+  TOP_LABEL_FIRED,
+  TOP_LABEL_TRADERS,
+} from "../data/appCopy";
 import { isVolnovoiTrader, VOLNOVOI_SUBTITLE } from "../utils/volnovoi";
 import { Avatar } from "./Avatar";
 
@@ -163,14 +171,15 @@ export function LeaderboardTab({
   return (
     <>
       {!traders.length && !firedList.length && !userCandidates.length && !cultChannels.length && (
-        <p className="meta">Рейтинг появится после закрытых сигналов.</p>
+        <p className="meta">{TOP_EMPTY}</p>
       )}
 
+      <p className="meta top-marketplace-intro">{TOP_INTRO}</p>
       <RankGuide />
 
       {showTradersBlock && (
         <section className="top-cult-block top-cult-block--traders">
-          <p className="top-cult-label top-cult-label--traders">ТРЕЙДЕРЫ CULT/A</p>
+          <p className="top-cult-label top-cult-label--traders">{TOP_LABEL_TRADERS}</p>
           {volnovoi && (
             <ol className="top-list top-list--solo">
               <TopTraderCard trader={volnovoi} onOpen={() => setProfileTrader(volnovoi)} />
@@ -193,7 +202,7 @@ export function LeaderboardTab({
 
       {showCandidatesBlock && (
         <section className="top-cult-block top-cult-block--candidates">
-          <p className="top-cult-label top-cult-label--candidates">КОНДИДАТЫ В CULT</p>
+          <p className="top-cult-label top-cult-label--candidates">{TOP_LABEL_CANDIDATES}</p>
           {myId != null && (
             <CultCandidateJoinPanel onJoined={onCultCandidatesChange} />
           )}
@@ -217,7 +226,7 @@ export function LeaderboardTab({
             </ol>
           )}
           {userCandidates.length === 0 && channelCandidates.length === 0 && !isAdmin && (
-            <p className="meta">Станьте кандидатом или дождитесь подключения каналов.</p>
+            <p className="meta">{TOP_CANDIDATES_EMPTY}</p>
           )}
           {isAdmin && <CultChannelAdminPanel channels={cultChannels} onChange={onCultChannelsChange} />}
         </section>
@@ -242,7 +251,7 @@ export function LeaderboardTab({
 
       {showFiredBlock && (
         <section className="top-cult-block top-cult-block--fired">
-          <p className="top-cult-label top-cult-label--fired">УВОЛЕННЫЕ ТРЕЙДЕРЫ</p>
+          <p className="top-cult-label top-cult-label--fired">{TOP_LABEL_FIRED}</p>
           <ol className="top-list">
             {firedList.map((trader) => (
               <TopTraderCard

@@ -22,6 +22,7 @@ import {
 import { FeedTab } from "./components/FeedTab";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { mergeFeedSignals } from "./utils/mergeFeedSignals";
+import { TAB_SUBTITLES } from "./data/appCopy";
 import { hasAcceptedDisclaimer, markDisclaimerAccepted } from "./utils/disclaimerStorage";
 
 const TrackerTab = lazy(() => import("./components/TrackerTab").then((m) => ({ default: m.TrackerTab })));
@@ -47,12 +48,12 @@ type Tab = "feed" | "tracker" | "top" | "reviews" | "news" | "pay";
 const FEED_POLL_MS = 15_000;
 
 const TITLES: Record<Tab, { title: string; sub: string }> = {
-  feed: { title: "Сигналы", sub: "PROP-DESK" },
-  tracker: { title: "Трекер", sub: "Hash Hedge" },
-  top: { title: "ТОП", sub: "Рейтинг" },
-  reviews: { title: "Отзывы", sub: "" },
-  news: { title: "Новости", sub: "" },
-  pay: { title: "Подписка", sub: "USDT · TON" },
+  feed: { title: "Сигналы", sub: TAB_SUBTITLES.feed },
+  tracker: { title: "Трекер", sub: TAB_SUBTITLES.tracker },
+  top: { title: "ТОП", sub: TAB_SUBTITLES.top },
+  reviews: { title: "Отзывы", sub: TAB_SUBTITLES.reviews },
+  news: { title: "Новости", sub: TAB_SUBTITLES.news },
+  pay: { title: "Подписка", sub: TAB_SUBTITLES.pay },
 };
 
 const NAV: { id: Tab; label: string }[] = [

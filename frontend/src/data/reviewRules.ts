@@ -1,11 +1,4 @@
-export const REVIEW_RULES_TITLE = "Правила отзыва";
+export { REVIEW_RULES, REVIEW_RULES_TITLE } from "./appCopy";
 
 export const REVIEW_TEXT_FORBIDDEN_MSG =
   "В отзыве нельзя указывать ссылки, @логины, почту и другие контакты.";
-
-export const REVIEW_RULES = [
-  "Нужна активная подписка.",
-  "Отзыв можно оставить через 7 дней после регистрации.",
-  "Без ссылок, @логинов, почты и других контактов.",
-  "Один отзыв на аккаунт — его можно редактировать.",
-] as const;

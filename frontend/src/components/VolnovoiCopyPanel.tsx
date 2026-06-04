@@ -11,6 +11,12 @@ import {
 } from "../api";
 import { copyToClipboard, formatUsd, selectFieldText } from "../utils";
 import { PasteButton } from "./PasteButton";
+import {
+  VOLNOVOI_COPY_DESC,
+  VOLNOVOI_COPY_HINT_API,
+  VOLNOVOI_COPY_HINT_BILLING,
+  VOLNOVOI_COPY_TITLE,
+} from "../data/appCopy";
 import { BybitLogo } from "./BrandLogos";
 import { PartnerLinks } from "./PartnerLinks";
 import { RiskPercentSlider } from "./RiskPercentSlider";
@@ -179,7 +185,7 @@ export function VolnovoiCopyPanel() {
       >
         <span className="cta-btn__label">
           <BybitLogo size={22} />
-          <span>Копирование volnovoi · Bybit</span>
+          <span>{VOLNOVOI_COPY_TITLE}</span>
         </span>
         <span className="volnovoi-copy__chevron" aria-hidden>
           {open ? "▾" : "▸"}
@@ -188,16 +194,14 @@ export function VolnovoiCopyPanel() {
 
       {open && (
         <div className="volnovoi-copy__panel">
-          <p className="volnovoi-copy__desc">
-            Копия <strong>volnovoi</strong> на ваш Bybit (perp). Отдельная оплата от ленты.
-          </p>
+          <p className="volnovoi-copy__desc">{VOLNOVOI_COPY_DESC}</p>
 
           <ul className="volnovoi-copy__hints">
             <li>
-              Комиссия <strong>{status?.fee_percent ?? 20}%</strong> с прибыли
+              Комиссия <strong>{status?.fee_percent ?? 20}%</strong> с прибыли копирования
             </li>
-            <li>Счёт раз в сутки · USDT TON · TXID on-chain</li>
-            <li>API только Trade · без оплаты — пауза</li>
+            <li>{VOLNOVOI_COPY_HINT_BILLING}</li>
+            <li>{VOLNOVOI_COPY_HINT_API}</li>
           </ul>
 
           {loading ? (

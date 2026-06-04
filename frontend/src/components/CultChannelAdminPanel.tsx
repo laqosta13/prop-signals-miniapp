@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { CultChannel } from "../api";
 import { createCultChannel, deleteCultChannel } from "../api";
+import { CULT_CHANNEL_ADMIN_HINT } from "../data/appCopy";
 
 type Props = {
   channels: CultChannel[];
@@ -48,9 +49,7 @@ export function CultChannelAdminPanel({ channels, onChange }: Props) {
 
   return (
     <div className="cult-channel-admin">
-      <p className="cult-channel-admin__hint meta">
-        Добавьте бота админом в канал. Аналитика — только с момента подключения; нужны тикер, вход, стоп и цель в посте.
-      </p>
+      <p className="cult-channel-admin__hint meta">{CULT_CHANNEL_ADMIN_HINT}</p>
       <div className="cult-channel-admin__row">
         <input
           value={url}

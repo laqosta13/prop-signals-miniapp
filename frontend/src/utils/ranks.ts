@@ -1,4 +1,5 @@
 import type { RankIconId } from "../components/RankIcon";
+import { RANK_RULES as RANK_RULES_COPY } from "../data/appCopy";
 
 export type RankStyle = {
   bg: string;
@@ -164,11 +165,4 @@ export const RANK_TIERS: RankTierInfo[] = [
   },
 ];
 
-export const RANK_RULES: string[] = [
-  "Недельный % по закрытым сигналам → ранг.",
-  "Подтвердите результат до вс 23:59 МСК.",
-  "Минусовая неделя: −1 ранг; две подряд: −2; без подтверждения: ещё −1.",
-  "Страховка — 1 раз в месяц, минус не снижает ранг.",
-  "Сатоши и «глаз» — вход до 100%; плечо до 5×.",
-  "Ниже «Китяры» — плечо 1×; дальше +1× за ранг (до 4×).",
-];
+export const RANK_RULES: string[] = [...RANK_RULES_COPY];

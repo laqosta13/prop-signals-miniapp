@@ -1,4 +1,5 @@
 import type { PartnerBrandId } from "../components/BrandLogos";
+import { PARTNER_BYBIT_HINT } from "./appCopy";
 
 /** Реферальные ссылки на биржи и вывод средств. */
 
@@ -21,7 +22,7 @@ export const PARTNER_LINKS: PartnerLink[] = [
   {
     id: "bybit",
     shortLabel: "Bybit",
-    hint: "Регистрация Bybit — копирование volnovoi",
+    hint: PARTNER_BYBIT_HINT,
     url: BYBIT_REGISTER_URL,
   },
   {

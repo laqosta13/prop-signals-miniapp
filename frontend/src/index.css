@@ -247,6 +247,11 @@
   padding-bottom: 88px;
 }
 
+.sub-pay__intro {
+  margin: 0 0 10px;
+  line-height: 1.45;
+}
+
 .support-fab {
   position: fixed;
   right: max(12px, calc((100vw - var(--app-max-width, 480px)) / 2 + 12px));
@@ -2281,6 +2286,12 @@
 .top-card--aggregate {
   border-color: rgba(129, 140, 248, 0.28);
   background: linear-gradient(135deg, var(--purple-soft), var(--green-soft));
+}
+
+.top-marketplace-intro {
+  margin: 0 0 12px;
+  line-height: 1.45;
+  font-size: 0.82rem;
 }
 
 .top-aggregate-hint {

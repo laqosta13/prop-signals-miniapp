@@ -5,6 +5,7 @@ import { PasteButton } from "./PasteButton";
 import { copyToClipboard, formatDateTimeMsk, selectFieldText } from "../utils";
 import { copyReferralLink, openReferralShare } from "../utils/referralShare";
 import { PartnerLinks } from "./PartnerLinks";
+import { REFERRAL_SHARE_FALLBACK, SUBSCRIPTION_INTRO } from "../data/appCopy";
 import { SubscriptionSupportChat } from "./SubscriptionSupportChat";
 
 type Props = {
@@ -72,7 +73,7 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: Props) {
 
   const shareReferral = () => {
     if (!info?.referral_link) return;
-    openReferralShare(info.referral_link, info.referral_share_text || "PROP-DESK");
+    openReferralShare(info.referral_link, info.referral_share_text || REFERRAL_SHARE_FALLBACK);
     WebApp.HapticFeedback.impactOccurred("medium");
   };
 
@@ -80,7 +81,7 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: Props) {
     if (!info?.referral_link) return;
     const ok = await copyReferralLink(
       info.referral_link,
-      info.referral_share_text || "PROP-DESK — торговые сигналы",
+      info.referral_share_text || REFERRAL_SHARE_FALLBACK,
     );
     WebApp.HapticFeedback.notificationOccurred(ok ? "success" : "error");
     if (ok) {
@@ -103,6 +104,7 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: Props) {
   return (
     <div className="sub-pay sub-pay--with-chat">
       <SubscriptionSupportChat />
+      <p className="meta sub-pay__intro">{SUBSCRIPTION_INTRO}</p>
       <p className={`sub-pay__status ${info.subscription_active ? "on" : "off"}`}>
         {info.subscription_active ? (
           <>Подписка активна до {formatDateTimeMsk(info.subscription_until)} МСК</>

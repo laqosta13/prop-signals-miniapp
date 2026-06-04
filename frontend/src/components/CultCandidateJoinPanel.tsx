@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { fetchCultCandidateMe, joinCultCandidate, type CultCandidateMe } from "../api";
+import { CULT_JOIN_INTRO, CULT_JOIN_TITLE } from "../data/appCopy";
 import { CultCandidateBybitPanel } from "./CultCandidateBybitPanel";
 import { CultCandidatePaySection } from "./CultCandidatePaySection";
 import { telegramCardDisplayName } from "../utils/telegramProfile";
@@ -62,15 +63,12 @@ export function CultCandidateJoinPanel({ onJoined }: Props) {
         <div className="modal-backdrop" role="presentation" onClick={() => !busy && setOpen(false)}>
           <div className="modal cult-candidate-join__modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal__head">
-              <h2>Кандидат в CULT</h2>
+              <h2>{CULT_JOIN_TITLE}</h2>
               <button type="button" className="btn-ghost" disabled={busy} onClick={() => setOpen(false)}>
                 ×
               </button>
             </div>
-            <p className="meta cult-candidate-join__intro">
-              Ваши сделки попадают в рейтинг «Кондидаты в CULT». Подписка кандидата ($20 / 30 дней) — отдельно от
-              подписки на ленту во вкладке «Подписка».
-            </p>
+            <p className="meta cult-candidate-join__intro">{CULT_JOIN_INTRO}</p>
             <ol className="cult-candidate-join__steps">
               <li className={me.cult_subscription_active ? "ok" : "pending"}>
                 Оплатить подписку кандидата {me.cult_subscription_active ? "✓" : ""}

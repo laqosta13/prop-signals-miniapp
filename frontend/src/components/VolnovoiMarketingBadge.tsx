@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { Trader } from "../api";
+import { VOLNOVOI_MARKETING_CTA } from "../data/appCopy";
 import { volnovoiCopyPitch } from "../utils/volnovoiPitch";
 
 type Props = {
@@ -53,7 +54,7 @@ export function VolnovoiMarketingBadge({ trader, className = "" }: Props) {
         <p className="volnovoi-marketing__tip-head">{pitch.headline}</p>
         <p className={`volnovoi-marketing__tip-profit${pitch.positive ? " up" : " down"}`}>{pitch.profitLine}</p>
         <p className="volnovoi-marketing__tip-body">{pitch.depositLine}</p>
-        <p className="volnovoi-marketing__tip-cta">Подключите Bybit под карточкой ↓</p>
+        <p className="volnovoi-marketing__tip-cta">{VOLNOVOI_MARKETING_CTA}</p>
       </div>
     </div>
   );

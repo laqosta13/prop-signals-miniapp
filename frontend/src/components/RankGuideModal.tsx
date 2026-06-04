@@ -1,4 +1,5 @@
 import { createPortal } from "react-dom";
+import { RANK_GUIDE_INTRO, RANK_GUIDE_POOL, RANK_GUIDE_TITLE } from "../data/appCopy";
 import {
   RANK_RULES,
   RANK_TIERS,
@@ -27,11 +28,9 @@ export function RankGuideModal({ onClose, highlightRankId }: Props) {
         <button type="button" className="modal-close" onClick={onClose} aria-label="Закрыть">
           ×
         </button>
-        <h2 id="rank-guide-title">Система рангов</h2>
-        <p className="rank-guide-sheet__intro">Недельный % → ранг. Выше ранг — больше вход и плечо.</p>
-        <p className="rank-guide-sheet__pool">
-          Пример: 1 трейдер 50%, 2 трейдер 50% в сделке 100% депо. 3 трейдер не может дать сделку.
-        </p>
+        <h2 id="rank-guide-title">{RANK_GUIDE_TITLE}</h2>
+        <p className="rank-guide-sheet__intro">{RANK_GUIDE_INTRO}</p>
+        <p className="rank-guide-sheet__pool">{RANK_GUIDE_POOL}</p>
         <ul className="rank-guide__tiers rank-guide__tiers--modal">
           {RANK_TIERS.map((tier) => {
             const st = rankStyle(tier.id);

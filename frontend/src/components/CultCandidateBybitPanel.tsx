@@ -8,6 +8,7 @@ import {
   saveCopyTradingSettings,
   testCopyTradingConnection,
 } from "../api";
+import { CULT_BYBIT_DESC } from "../data/appCopy";
 import { formatUsd } from "../utils";
 import { BybitLogo } from "./BrandLogos";
 import { PartnerLinks } from "./PartnerLinks";
@@ -160,9 +161,7 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
       {open && (
         <div className="volnovoi-copy__panel">
           <p className="cult-candidate-bybit__step meta">2. API Bybit</p>
-          <p className="volnovoi-copy__desc cult-candidate-bybit__desc">
-            «+ Сделка» → ваш Bybit perp: вход, стоп, цель.
-          </p>
+          <p className="volnovoi-copy__desc cult-candidate-bybit__desc">{CULT_BYBIT_DESC}</p>
 
           <ul className="volnovoi-copy__hints cult-candidate-bybit__hints">
             <li>API Trade · ключи шифруются</li>
