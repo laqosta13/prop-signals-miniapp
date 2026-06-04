@@ -23,7 +23,6 @@ from app.trader_stats import (
 
 logger = logging.getLogger(__name__)
 
-_SEP = "┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈"
 _TAG_RE = re.compile(r"<[^>]+>")
 
 
@@ -31,6 +30,11 @@ def _esc(value: object | None) -> str:
     if value is None or value == "":
         return "—"
     return html.escape(str(value))
+
+
+def _val(text: str) -> str:
+    """Числа и уровни без <code> — в клиенте Telegram у code часто подчёркивание."""
+    return _esc(text)
 
 
 def _format_take_profits(raw: str | None) -> str:
@@ -43,9 +47,9 @@ def _format_take_profits(raw: str | None) -> str:
 def _entry_label(entry_low: str | None, entry_high: str | None) -> str:
     low, high = entry_low, entry_high
     if low and high and low != high:
-        return f"<code>{_esc(low)}</code> – <code>{_esc(high)}</code>"
+        return f"{_val(low)} – {_val(high)}"
     val = low or high
-    return f"<code>{_esc(val)}</code>" if val else "—"
+    return _val(val) if val else "—"
 
 
 def _direction_badge(direction: str) -> str:
@@ -60,7 +64,7 @@ def _direction_badge(direction: str) -> str:
 def _signal_headline(signal: Signal) -> str:
     num = signal.number if signal.number is not None else signal.id
     return (
-        f"<blockquote>"
+        f"\n<blockquote>"
         f"<b>#{num}</b> · <b>{_esc(signal.symbol)}</b> · {_direction_badge(signal.direction)}"
         f"</blockquote>"
     )
@@ -71,13 +75,13 @@ def _section(title: str) -> str:
 
 
 def _row(label: str, value: str) -> str:
-    return f"\n▸ <b>{label}</b>  {value}"
+    return f"\n▸ {_esc(label)}  {value}"
 
 
 def _levels_block(signal: Signal) -> str:
     body = _section("Уровни")
     body += _row("Вход", _entry_label(signal.entry_low, signal.entry_high))
-    body += _row("Стоп", f"<code>{_esc(signal.stop_loss)}</code>")
+    body += _row("Стоп", _esc(signal.stop_loss))
     body += _row("Цель", _format_take_profits(signal.take_profits))
     return body
 
@@ -88,8 +92,8 @@ def _position_block(signal: Signal) -> str:
     tracker = signal_tracker_balance(signal)
     lev = signal_leverage(signal)
     body = _section("Позиция")
-    body += _row("Сумма", f"<b>{stake}%</b> × <b>{lev}x</b> · <code>${stake_usd:,.0f}</code>")
-    body += _row("Трекер", f"<code>${tracker:,.0f}</code>")
+    body += _row("Сумма", f"<b>{stake}%</b> × <b>{lev}x</b> · {_val(f'${stake_usd:,.0f}')}")
+    body += _row("Трекер", _val(f"${tracker:,.0f}"))
     return body
 
 
@@ -106,7 +110,7 @@ def _market_snapshot_line(signal: Signal) -> str:
     src_part = f" · <i>{_esc(src)}</i>" if src else ""
     return (
         _section("Рынок")
-        + _row("При посте", f"<code>{signal.published_market_price:g}</code>{src_part}")
+        + _row("При посте", f"{_val(f'{signal.published_market_price:g}')}{src_part}")
     )
 
 
@@ -156,26 +160,26 @@ def diff_signal_changes(
     def _cmp(label: str, old: object | None, new: object | None, fmt=_esc) -> None:
         o, n = fmt(old), fmt(new)
         if o != n:
-            lines.append(f"▸ <b>{label}</b>  <code>{o}</code> → <code>{n}</code>")
+            lines.append(f"▸ {_esc(label)}  {o} → {n}")
 
     _cmp("Тикер", before.symbol, after_snap.symbol)
     if before.direction != after_snap.direction:
         lines.append(
-            f"▸ <b>Направление</b>  {_direction_badge(before.direction)} → {_direction_badge(after_snap.direction)}"
+            f"▸ Направление  {_direction_badge(before.direction)} → {_direction_badge(after_snap.direction)}"
         )
 
     before_entry = _entry_label(before.entry_low, before.entry_high)
     after_entry = _entry_label(after_snap.entry_low, after_snap.entry_high)
     if before_entry != after_entry:
-        lines.append(f"▸ <b>Вход</b>  {before_entry} → {after_entry}")
+        lines.append(f"▸ Вход  {before_entry} → {after_entry}")
 
     _cmp("Стоп", before.stop_loss, after_snap.stop_loss)
     _cmp("Цель", _format_take_profits(before.take_profits), _format_take_profits(after_snap.take_profits), fmt=str)
     _cmp("Плечо", before.leverage, after_snap.leverage)
     if before.risk_percent != after_snap.risk_percent:
-        lines.append(f"▸ <b>Сумма %</b>  <code>{_esc(before.risk_percent)}</code> → <code>{_esc(after_snap.risk_percent)}</code>")
+        lines.append(f"▸ Сумма %  {_val(str(before.risk_percent))} → {_val(str(after_snap.risk_percent))}")
     if (before.comment or "") != (after_snap.comment or ""):
-        lines.append("▸ <b>Комментарий</b>  обновлён")
+        lines.append("▸ Комментарий  обновлён")
 
     if image_removed:
         lines.append("▸ <b>Медиа</b>  скрин убран")
@@ -304,8 +308,7 @@ async def notify_subscribers(text: str, subscriber_ids: list[int], *, photo_rel_
 
 def format_new_signal_message(signal: Signal) -> str:
     return (
-        f"⚡️ <b>НОВЫЙ СИГНАЛ</b>\n"
-        f"{_SEP}\n"
+        f"⚡️ <b>НОВЫЙ СИГНАЛ</b>"
         f"{_signal_headline(signal)}"
         f"{_signal_body(signal)}"
     )
@@ -315,7 +318,6 @@ def format_updated_signal_message(signal: Signal, changes: list[str], *, actor_l
     num = signal.number if signal.number is not None else signal.id
     parts = [
         f"✏️ <b>ОБНОВЛЕНИЕ</b>",
-        _SEP,
         _signal_headline(signal),
     ]
     if actor_label:
@@ -333,15 +335,15 @@ def format_updated_signal_message(signal: Signal, changes: list[str], *, actor_l
         lev_note = f" · <b>{lev}x</b>" if lev > 1 else ""
         body += (
             _section("Итог")
-            + _row("Движение", f"<code>{sign}{ret:.2f}%</code>")
-            + _row("P/L", f"<code>{pnl:+.0f}$</code>{lev_note}")
-            + _row("Счёт", f"<code>${signal_pnl_base_usd(signal):,.0f}</code>")
+            + _row("Движение", _val(f"{sign}{ret:.2f}%"))
+            + _row("P/L", _val(f"{pnl:+.0f}$") + lev_note)
+            + _row("Счёт", _val(f"${signal_pnl_base_usd(signal):,.0f}"))
         )
     return body
 
 
 def format_deleted_signal_message(signal: Signal, *, actor_label: str | None = None) -> str:
-    parts = [f"🗑 <b>СИГНАЛ СНЯТ</b>", _SEP, _signal_headline(signal)]
+    parts = [f"🗑 <b>СИГНАЛ СНЯТ</b>", _signal_headline(signal)]
     if actor_label:
         parts.append(_section("Кто") + _row("Удалил", f"<b>{_esc(actor_label)}</b>"))
     parts.append(_signal_body(signal))
@@ -364,13 +366,12 @@ def format_closed_signal_message(signal: Signal, *, market_close: bool = False) 
         emoji = "🏆" if signal.status == "win" else "💥"
         label = "WIN" if signal.status == "win" else "LOSE"
     return (
-        f"{emoji} <b>{label}</b>\n"
-        f"{_SEP}\n"
+        f"{emoji} <b>{label}</b>"
         f"{_signal_headline(signal)}"
         + _section("Результат")
-        + _row("Движение", f"<code>{sign}{ret:.2f}%</code>")
-        + _row("P/L трекера", f"<code>{pnl:+.0f}$</code>{lev_note}")
-        + _row("Счёт", f"<code>${signal_pnl_base_usd(signal):,.0f}</code>")
+        + _row("Движение", _val(f"{sign}{ret:.2f}%"))
+        + _row("P/L трекера", _val(f"{pnl:+.0f}$") + lev_note)
+        + _row("Счёт", _val(f"${signal_pnl_base_usd(signal):,.0f}"))
         + _author_block(signal)
     )
 
@@ -385,9 +386,7 @@ def format_supplement_message(
 ) -> str:
     num = signal.number if signal.number is not None else signal.id
     parts = [
-        f"➕ <b>ДОПОЛНЕНИЕ</b>",
-        _SEP,
-        f"<blockquote><b>#{num}</b> · <b>{_esc(signal.symbol)}</b> · {_direction_badge(signal.direction)}</blockquote>",
+        f"➕ <b>ДОПОЛНЕНИЕ</b>\n<blockquote><b>#{num}</b> · <b>{_esc(signal.symbol)}</b> · {_direction_badge(signal.direction)}</blockquote>",
     ]
     if actor_label:
         parts.append(_section("Кто") + _row("Автор", f"<b>{_esc(actor_label)}</b>"))
@@ -408,9 +407,7 @@ def format_new_news_message(post: NewsPost, *, author_label: str | None = None) 
     if len(body) > 280:
         body = body[:277] + "…"
     parts = [
-        f"📰 <b>НОВОСТЬ</b>",
-        _SEP,
-        f"<blockquote><b>{_esc(post.title)}</b></blockquote>",
+        f"📰 <b>НОВОСТЬ</b>\n<blockquote><b>{_esc(post.title)}</b></blockquote>",
     ]
     if body:
         parts.append(_section("Текст") + f"\n<i>{_esc(body)}</i>")
@@ -418,7 +415,7 @@ def format_new_news_message(post: NewsPost, *, author_label: str | None = None) 
     if post.video_path:
         extras.append("🎬 видео в приложении")
     if post.link_url:
-        extras.append(f"🔗 <code>{_esc(post.link_url)}</code>")
+        extras.append(f"🔗 {_esc(post.link_url)}")
     if extras:
         parts.append(_section("Ещё") + "\n" + "\n".join(f"▸ {x}" for x in extras))
     if author_label:
@@ -428,8 +425,7 @@ def format_new_news_message(post: NewsPost, *, author_label: str | None = None) 
 
 def format_entry_filled_message(signal: Signal) -> str:
     return (
-        f"🎯 <b>В РЫНКЕ</b>\n"
-        f"{_SEP}\n"
+        f"🎯 <b>В РЫНКЕ</b>"
         f"{_signal_headline(signal)}"
         + _section("Статус")
         + "\n▸ Лимитка <b>сработала</b> — позиция в работе"
