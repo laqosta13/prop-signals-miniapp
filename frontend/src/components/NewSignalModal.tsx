@@ -56,6 +56,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
   } = useSignalLevelFields("long");
   const directionRef = useRef(direction);
   directionRef.current = direction;
+  const wasOpenRef = useRef(false);
 
   const tracker = useSignalFormTracker(open, { risk, setRisk }, { leverage, setLeverage });
 
@@ -77,24 +78,37 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
   });
 
   useEffect(() => {
-    if (!open) resetInitKey();
-  }, [open, resetInitKey]);
+    const wasOpen = wasOpenRef.current;
+    wasOpenRef.current = open;
 
-  useEffect(() => {
-    if (!open) return;
-    setError(null);
-    setSymbol(DEFAULT_SYMBOL);
-    setLeverage("1");
-    setRisk("10");
-    setComment("");
-    resetForm();
-    setScreenshot(null);
-    setVideo(null);
-    setShotPreview((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return null;
-    });
-  }, [open, resetForm]);
+    if (!open) {
+      if (wasOpen) {
+        setPriceLoading(false);
+        setSubmitting(false);
+        setUploadProgress(null);
+      }
+      return;
+    }
+
+    if (!wasOpen) {
+      resetInitKey();
+      setError(null);
+      setPriceLoading(false);
+      setSubmitting(false);
+      setUploadProgress(null);
+      setSymbol(DEFAULT_SYMBOL);
+      setLeverage("1");
+      setRisk("10");
+      setComment("");
+      resetForm();
+      setScreenshot(null);
+      setVideo(null);
+      setShotPreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+    }
+  }, [open, resetForm, resetInitKey]);
 
   if (!open) return null;
 

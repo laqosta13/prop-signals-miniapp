@@ -42,6 +42,7 @@ export function useSignalMarketPriceInit({
   setError,
   skipTrackerInit = false,
 }: Args) {
+  const openGenRef = useRef(0);
   const trackerInitRef = useRef<string | null>(null);
   const lastSymbolRef = useRef("");
   const riskPctRef = useRef(riskPct);
@@ -95,7 +96,7 @@ export function useSignalMarketPriceInit({
   // Первичная инициализация: доля входа + вход по Bybit + стоп 0.7% (в пределах лимита).
   useEffect(() => {
     if (skipTrackerInit || !open || trackerLoading || !trackerSnap) return;
-    const tKey = `${trackerSnap.dailyLossUsd}|${trackerSnap.rankMaxStakePct}|${trackerSnap.maxStakePct}|${trackerSnap.stakePoolRemainingPct}`;
+    const tKey = `${openGenRef.current}|${trackerSnap.dailyLossUsd}|${trackerSnap.rankMaxStakePct}|${trackerSnap.maxStakePct}|${trackerSnap.stakePoolRemainingPct}`;
     if (trackerInitRef.current === tKey) return;
     trackerInitRef.current = tKey;
 
@@ -111,29 +112,42 @@ export function useSignalMarketPriceInit({
 
   // Смена тикера: только цена входа, % стопа не сбрасываем.
   useEffect(() => {
-    if (!open || !symbol.trim()) return;
+    if (!open || !symbol.trim() || trackerLoading) return;
     const sym = symbol.trim().toUpperCase();
     if (sym === lastSymbolRef.current) return;
     lastSymbolRef.current = sym;
 
     const t = window.setTimeout(() => {
       const keepRisk = parseRiskPctValue(riskPctRef.current);
-      if (trackerSnap && !trackerLoading) {
-        void loadMarketPrice(symbol, {
-          stakePct: parseRiskPercent(stakePctLabel),
-          priceRiskPct: keepRisk,
-          withTracker: true,
-        });
-        return;
-      }
-      if (!trackerSnap && !trackerLoading) {
-        void loadMarketPrice(symbol, { priceRiskPct: keepRisk, withTracker: false });
-      }
+      void loadMarketPrice(symbol, {
+        stakePct: trackerSnap ? parseRiskPercent(stakePctLabel) : undefined,
+        priceRiskPct: keepRisk,
+        withTracker: !!trackerSnap,
+      });
     }, 200);
     return () => clearTimeout(t);
   }, [open, symbol, stakePctLabel, trackerSnap, trackerLoading, loadMarketPrice]);
 
+  // Трекер подгрузился после открытия формы — повторить цену, если смена тикера уже «прошла».
+  useEffect(() => {
+    if (!open || skipTrackerInit || trackerLoading || !trackerSnap || !symbol.trim()) return;
+    if (trackerInitRef.current != null) return;
+    const sym = symbol.trim().toUpperCase();
+    if (sym !== lastSymbolRef.current) return;
+    const t = window.setTimeout(
+      () =>
+        void loadMarketPrice(symbol, {
+          stakePct: parseRiskPercent(stakePctLabel),
+          priceRiskPct: parseRiskPctValue(riskPctRef.current),
+          withTracker: true,
+        }),
+      80,
+    );
+    return () => clearTimeout(t);
+  }, [open, skipTrackerInit, trackerLoading, trackerSnap, symbol, stakePctLabel, loadMarketPrice]);
+
   const resetInitKey = useCallback(() => {
+    openGenRef.current += 1;
     trackerInitRef.current = null;
     lastSymbolRef.current = "";
   }, []);

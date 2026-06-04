@@ -69,6 +69,12 @@ export type Me = {
   days_until_review: number | null;
 };
 
+export type SupportInfo = {
+  username: string;
+  url: string;
+  available: boolean;
+};
+
 export type SubscriptionInfo = {
   usdt_ton_address: string;
   week_usd: number;
@@ -332,6 +338,8 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const fetchSubscriptionInfo = () => api<SubscriptionInfo>("/subscriptions/info");
+
+export const fetchSupportInfo = () => api<SupportInfo>("/support/info");
 
 export const submitPayment = (plan: "week" | "month", tx_id: string) =>
   api<SubscriptionInfo>("/subscriptions/pay", {

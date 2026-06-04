@@ -30,6 +30,7 @@ from app.routers import (
     reviews,
     signals,
     subscriptions,
+    support,
     traders,
 )
 
@@ -87,6 +88,7 @@ app.include_router(challenge.router)
 app.include_router(signals.router)
 app.include_router(traders.router)
 app.include_router(subscriptions.router)
+app.include_router(support.router)
 app.include_router(reviews.router)
 app.include_router(news.router)
 

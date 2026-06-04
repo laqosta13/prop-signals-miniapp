@@ -6,6 +6,7 @@ class Settings(BaseSettings):
 
     bot_token: str = ""
     telegram_bot_username: str = ""
+    telegram_support_username: str = ""
     telegram_admin_ids: str = ""
     telegram_former_admin_ids: str = ""
     database_url: str = "sqlite:///./signals.db"

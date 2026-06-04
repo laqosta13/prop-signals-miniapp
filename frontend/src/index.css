@@ -243,6 +243,34 @@
   }
 }
 
+.support-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--icon-btn-border);
+  background: var(--icon-btn-bg);
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.12s ease, background 0.14s ease, color 0.14s ease;
+}
+
+.support-btn:active {
+  transform: scale(0.96);
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.support-btn__icon {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .notify-row {
   display: flex;
   align-items: center;
@@ -1617,6 +1645,10 @@
 .ref-code {
   margin: 8px 0;
   font-size: 0.9rem;
+}
+
+.sub-card--support .submit-btn--outline {
+  margin-top: 10px;
 }
 
 .sub-card--referral {
@@ -3692,6 +3724,73 @@
   margin-top: 0;
 }
 
+.support-sheet {
+  width: 100%;
+  max-width: 480px;
+  padding: 18px 16px 16px;
+  background: var(--surface);
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  animation: rank-sheet-in 0.25s ease;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.55);
+}
+
+.support-sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.support-sheet__head h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.support-sheet__lead {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.support-sheet__list {
+  margin: 0 0 10px;
+  padding: 0 0 0 1.1rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.support-sheet__list li + li {
+  margin-top: 6px;
+}
+
+.support-sheet__hint {
+  margin: 0 0 8px;
+}
+
+.support-sheet__contact {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+}
+
+.support-sheet__contact span {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.support-sheet__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.support-sheet__actions .submit-btn {
+  margin-top: 0;
+}
+
 .rank-confirm-sheet {
   position: relative;
   width: 100%;
@@ -5575,6 +5674,17 @@ input.readonly {
 
 .submit-btn:active:not(:disabled) {
   transform: scale(0.985);
+}
+
+.submit-btn--outline {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+.submit-btn--outline:active:not(:disabled) {
+  background: var(--surface-hover);
 }
 
 .submit-btn:disabled {

@@ -4,9 +4,16 @@ import { fetchSubscriptionInfo, submitPayment, type SubscriptionInfo } from "../
 import { PasteButton } from "./PasteButton";
 import { copyToClipboard, formatDateTimeMsk, selectFieldText } from "../utils";
 import { copyReferralLink, openReferralShare } from "../utils/referralShare";
+import { SUPPORT_WRITE_LABEL } from "../data/support";
 import { PartnerLinks } from "./PartnerLinks";
 
-export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void; refreshKey?: number }) {
+type Props = {
+  onPaid: () => void;
+  refreshKey?: number;
+  onOpenSupport?: () => void;
+};
+
+export function SubscriptionTab({ onPaid, refreshKey = 0, onOpenSupport }: Props) {
   const [info, setInfo] = useState<SubscriptionInfo | null>(null);
   const [tx, setTx] = useState("");
   const [plan, setPlan] = useState<"week" | "month">("month");
@@ -197,6 +204,18 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: { onPaid: () => void
           </>
         ) : (
           <p className="meta referral-warn">{info.referral_link_hint}</p>
+        )}
+      </section>
+
+      <section className="sub-card sub-card--support">
+        <h3>Поддержка</h3>
+        <p className="meta">
+          Вопросы по оплате, подписке, сигналам и работе приложения — напишите нам в Telegram.
+        </p>
+        {onOpenSupport && (
+          <button type="button" className="submit-btn submit-btn--outline" onClick={onOpenSupport}>
+            {SUPPORT_WRITE_LABEL}
+          </button>
         )}
       </section>
 

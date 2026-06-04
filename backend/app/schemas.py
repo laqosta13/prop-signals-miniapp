@@ -99,6 +99,12 @@ class PaymentSubmit(BaseModel):
     tx_id: str = Field(..., min_length=8, max_length=128)
 
 
+class SupportInfo(BaseModel):
+    username: str = ""
+    url: str = ""
+    available: bool = False
+
+
 class SubscriptionInfo(BaseModel):
     usdt_ton_address: str
     week_usd: float
