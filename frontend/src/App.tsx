@@ -34,6 +34,7 @@ const AppendSupplementModal = lazy(() =>
 );
 const EditSignalModal = lazy(() => import("./components/EditSignalModal").then((m) => ({ default: m.EditSignalModal })));
 import { NewSignalModal } from "./components/NewSignalModal";
+import { NotifySettingsPanel } from "./components/NotifySettingsPanel";
 const NewsModal = lazy(() => import("./components/NewsModal").then((m) => ({ default: m.NewsModal })));
 const DisclaimerModal = lazy(() => import("./components/DisclaimerModal").then((m) => ({ default: m.DisclaimerModal })));
 const RankConfirmModal = lazy(() => import("./components/RankConfirmModal").then((m) => ({ default: m.RankConfirmModal })));
@@ -391,20 +392,10 @@ export default function App() {
       </header>
 
       {tab === "feed" && (
-        <label className="notify-row">
-          <input type="checkbox" checked={notifyEnabled} onChange={() => void toggleSignalNotify()} />
-          Уведомления о сигналах в Telegram
-        </label>
+        <NotifySettingsPanel variant="signals" enabled={notifyEnabled} onToggle={() => void toggleSignalNotify()} />
       )}
       {tab === "news" && (
-        <label className="notify-row">
-          <input
-            type="checkbox"
-            checked={notifyNewsEnabled}
-            onChange={() => void toggleNewsNotify()}
-          />
-          Уведомления о новостях в Telegram
-        </label>
+        <NotifySettingsPanel variant="news" enabled={notifyNewsEnabled} onToggle={() => void toggleNewsNotify()} />
       )}
 
       {error && <p className="err">{error}</p>}

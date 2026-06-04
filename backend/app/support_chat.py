@@ -196,9 +196,15 @@ async def notify_user_staff_reply(telegram_user_id: int, text: str) -> None:
     if len(preview) > 500:
         preview = preview[:497] + "…"
     safe = html.escape(preview)
+    sep = "┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈"
     await send_message(
         telegram_user_id,
-        f"💬 <b>Поддержка</b>\n{safe}\n\n<i>Ответ также в приложении → Подписка → Чат</i>",
+        (
+            f"💬 <b>ПОДДЕРЖКА</b>\n{sep}\n"
+            f"<blockquote><b>Новый ответ</b></blockquote>"
+            f"<i>Сообщение</i>\n{safe}\n\n"
+            f"<i>Дубль в Mini App → Подписка → чат</i>"
+        ),
         parse_mode="HTML",
     )
 

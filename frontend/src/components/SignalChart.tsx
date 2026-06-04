@@ -98,13 +98,6 @@ type LevelLineOpts = {
   awaitingEntry?: boolean;
 };
 
-function formatEntryLinePrice(price: number): string {
-  const abs = Math.abs(price);
-  const digits = abs >= 10_000 ? 0 : abs >= 100 ? 1 : abs >= 1 ? 2 : abs >= 0.01 ? 4 : 6;
-  const raw = price.toFixed(digits);
-  return raw.replace(/\.?0+$/, "") || raw;
-}
-
 function addAwaitingEntryPriceLines(
   series: ISeriesApi<"Candlestick">,
   levels: ReturnType<typeof levelsFromSignal>,
@@ -128,8 +121,8 @@ function addAwaitingEntryPriceLines(
       color: ENTRY_WAITING_LINE_COLOR,
       lineWidth: 2,
       lineStyle: LineStyle.Dashed,
-      axisLabelVisible: true,
-      title: `Вход ${formatEntryLinePrice(price)}`,
+      axisLabelVisible: false,
+      title: "Лимитка",
     });
   }
 }
@@ -669,7 +662,7 @@ export function SignalChart({
       </div>
       <div className="signal-chart__legend">
         <span className="signal-chart__legend-item entry">
-          {awaitingEntryLegend ? "Вход (ожидание)" : "Вход"}
+          {awaitingEntryLegend ? "Лимитка" : "Вход"}
         </span>
         <span className="signal-chart__legend-item stop">Стоп</span>
         <span className="signal-chart__legend-item target">Цель</span>

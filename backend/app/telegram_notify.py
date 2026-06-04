@@ -10,7 +10,7 @@ import httpx
 from app.config import settings
 from app.media_storage import media_root
 from app.models import NewsPost, Signal
-from app.signal_utils import parse_take_profit_levels
+from app.signal_utils import entry_zone_defined, parse_take_profit_levels
 from app.trader_stats import (
     signal_entry_stake_pct,
     signal_entry_stake_usd,
@@ -25,6 +25,8 @@ logger = logging.getLogger(__name__)
 
 API = "https://api.telegram.org/bot{token}/{method}"
 
+_SEP = "┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈"
+
 
 def _esc(value: object | None) -> str:
     if value is None or value == "":
@@ -36,14 +38,77 @@ def _format_take_profits(raw: str | None) -> str:
     levels = parse_take_profit_levels(raw)
     if not levels:
         return "—"
-    return ", ".join(_esc(x) for x in levels)
+    return ", ".join(_esc(f"{x:g}") for x in levels)
 
 
 def _entry_label(entry_low: str | None, entry_high: str | None) -> str:
     low, high = entry_low, entry_high
     if low and high and low != high:
-        return f"{_esc(low)} – {_esc(high)}"
-    return _esc(low or high)
+        return f"<code>{_esc(low)}</code> – <code>{_esc(high)}</code>"
+    val = low or high
+    return f"<code>{_esc(val)}</code>" if val else "—"
+
+
+def _direction_badge(direction: str) -> str:
+    d = (direction or "").lower()
+    if d == "long":
+        return "🟢 <b>LONG</b>"
+    if d == "short":
+        return "🔴 <b>SHORT</b>"
+    return f"<b>{_esc(direction.upper())}</b>"
+
+
+def _signal_headline(signal: Signal) -> str:
+    num = signal.number if signal.number is not None else signal.id
+    return (
+        f"<blockquote>"
+        f"<b>#{num}</b> · <b>{_esc(signal.symbol)}</b> · {_direction_badge(signal.direction)}"
+        f"</blockquote>"
+    )
+
+
+def _section(title: str) -> str:
+    return f"\n<i>{title}</i>"
+
+
+def _row(label: str, value: str) -> str:
+    return f"\n▸ <b>{label}</b>  {value}"
+
+
+def _levels_block(signal: Signal) -> str:
+    body = _section("Уровни")
+    body += _row("Вход", _entry_label(signal.entry_low, signal.entry_high))
+    body += _row("Стоп", f"<code>{_esc(signal.stop_loss)}</code>")
+    body += _row("Цель", _format_take_profits(signal.take_profits))
+    return body
+
+
+def _position_block(signal: Signal) -> str:
+    stake = signal_entry_stake_pct(signal)
+    stake_usd = signal_entry_stake_usd(signal)
+    tracker = signal_tracker_balance(signal)
+    lev = signal_leverage(signal)
+    body = _section("Позиция")
+    body += _row("Сумма", f"<b>{stake}%</b> × <b>{lev}x</b> · <code>${stake_usd:,.0f}</code>")
+    body += _row("Трекер", f"<code>${tracker:,.0f}</code>")
+    return body
+
+
+def _author_block(signal: Signal) -> str:
+    return _section("Трейдер") + _row("Автор", f"<b>{_esc(_signal_author_label(signal))}</b>")
+
+
+def _market_snapshot_line(signal: Signal) -> str:
+    if signal.published_market_price is None:
+        return ""
+    if entry_zone_defined(signal.entry_low, signal.entry_high):
+        return ""
+    src = _market_source_label(signal.published_market_source)
+    src_part = f" · <i>{_esc(src)}</i>" if src else ""
+    return (
+        _section("Рынок")
+        + _row("При посте", f"<code>{signal.published_market_price:g}</code>{src_part}")
+    )
 
 
 @dataclass
@@ -92,33 +157,35 @@ def diff_signal_changes(
     def _cmp(label: str, old: object | None, new: object | None, fmt=_esc) -> None:
         o, n = fmt(old), fmt(new)
         if o != n:
-            lines.append(f"• {label}: {o} → {n}")
+            lines.append(f"▸ <b>{label}</b>  <code>{o}</code> → <code>{n}</code>")
 
-    _cmp("Инструмент", before.symbol, after_snap.symbol)
+    _cmp("Тикер", before.symbol, after_snap.symbol)
     if before.direction != after_snap.direction:
-        lines.append(f"• Направление: {_esc(before.direction.upper())} → {_esc(after_snap.direction.upper())}")
+        lines.append(
+            f"▸ <b>Направление</b>  {_direction_badge(before.direction)} → {_direction_badge(after_snap.direction)}"
+        )
 
     before_entry = _entry_label(before.entry_low, before.entry_high)
     after_entry = _entry_label(after_snap.entry_low, after_snap.entry_high)
     if before_entry != after_entry:
-        lines.append(f"• Вход: {before_entry} → {after_entry}")
+        lines.append(f"▸ <b>Вход</b>  {before_entry} → {after_entry}")
 
     _cmp("Стоп", before.stop_loss, after_snap.stop_loss)
     _cmp("Цель", _format_take_profits(before.take_profits), _format_take_profits(after_snap.take_profits), fmt=str)
     _cmp("Плечо", before.leverage, after_snap.leverage)
     if before.risk_percent != after_snap.risk_percent:
-        lines.append(f"• Сумма входа %: {_esc(before.risk_percent)} → {_esc(after_snap.risk_percent)}")
+        lines.append(f"▸ <b>Сумма %</b>  <code>{_esc(before.risk_percent)}</code> → <code>{_esc(after_snap.risk_percent)}</code>")
     if (before.comment or "") != (after_snap.comment or ""):
-        lines.append(f"• Комментарий: {_esc(before.comment)} → {_esc(after_snap.comment)}")
+        lines.append("▸ <b>Комментарий</b>  обновлён")
 
     if image_removed:
-        lines.append("• Скрин: удалён")
+        lines.append("▸ <b>Медиа</b>  скрин убран")
     elif image_added:
-        lines.append("• Скрин: добавлен")
+        lines.append("▸ <b>Медиа</b>  + скрин")
     if video_removed:
-        lines.append("• Видео: удалено")
+        lines.append("▸ <b>Медиа</b>  видео убрано")
     elif video_added:
-        lines.append("• Видео: добавлено")
+        lines.append("▸ <b>Медиа</b>  + видео")
 
     return lines
 
@@ -154,32 +221,20 @@ def _market_source_label(source: str | None) -> str:
         "binance_spot": "Binance spot",
         "binance_perp": "Binance perp",
         "bybit_spot": "Bybit spot",
-        "bybit_perp": "Bybit бессрочный",
+        "bybit_perp": "Bybit perp",
         "bingx_spot": "BingX spot",
         "bingx_perp": "BingX perp",
     }
     return labels.get(source, source)
 
 
-def _signal_summary(signal: Signal) -> str:
-    author = _esc(_signal_author_label(signal))
-    stake = signal_entry_stake_pct(signal)
-    stake_usd = signal_entry_stake_usd(signal)
-    tracker = signal_tracker_balance(signal)
-    num = signal.number if signal.number is not None else signal.id
-    lines = [
-        f"<b>#{num}</b> · {_esc(signal.symbol)} · <b>{_esc(signal.direction.upper())}</b>",
-        f"Вход: {_entry_label(signal.entry_low, signal.entry_high)}",
-        f"Стоп: {_esc(signal.stop_loss)}",
-        f"Цель: {_format_take_profits(signal.take_profits)}",
-        f"Сумма входа: {stake}% × {signal_leverage(signal)}x (${stake_usd:,.0f}) · Трекер: ${tracker:,.0f}",
-    ]
-    if signal.published_market_price is not None:
-        src = _market_source_label(signal.published_market_source)
-        src_part = f" ({src})" if src else ""
-        lines.append(f"Рынок при публикации: {signal.published_market_price:g}{src_part}")
-    lines.append(f"Автор: {author}")
-    return "\n".join(lines)
+def _signal_body(signal: Signal) -> str:
+    return (
+        _levels_block(signal)
+        + _position_block(signal)
+        + _market_snapshot_line(signal)
+        + _author_block(signal)
+    )
 
 
 async def _send_message(chat_id: int, text: str) -> None:
@@ -236,37 +291,49 @@ async def notify_subscribers(text: str, subscriber_ids: list[int], *, photo_rel_
 
 
 def format_new_signal_message(signal: Signal) -> str:
-    return f"📢 <b>Новый сигнал</b>\n{_signal_summary(signal)}"
+    return (
+        f"⚡️ <b>НОВЫЙ СИГНАЛ</b>\n"
+        f"{_SEP}\n"
+        f"{_signal_headline(signal)}"
+        f"{_signal_body(signal)}"
+    )
 
 
 def format_updated_signal_message(signal: Signal, changes: list[str], *, actor_label: str | None = None) -> str:
     num = signal.number if signal.number is not None else signal.id
-    header = f"✏️ <b>Сигнал #{num} обновлён</b>\n{_esc(signal.symbol)} · <b>{_esc(signal.direction.upper())}</b>\n"
+    parts = [
+        f"✏️ <b>ОБНОВЛЕНИЕ</b>",
+        _SEP,
+        _signal_headline(signal),
+    ]
     if actor_label:
-        header += f"<b>Изменил:</b> {_esc(actor_label)}\n"
+        parts.append(_section("Кто") + _row("Изменил", f"<b>{_esc(actor_label)}</b>"))
     if changes:
-        body = "<b>Изменения:</b>\n" + "\n".join(changes)
+        parts.append(_section("Что поменялось") + "\n" + "\n".join(changes))
     else:
-        body = "Обновлены параметры сигнала."
+        parts.append("\n<i>Параметры сигнала обновлены</i>")
+    body = "".join(parts)
     if signal.status in ("win", "lose"):
         ret = _closed_price_move_pct(signal)
         pnl = signal_realized_pnl_for_read(signal) or 0
         sign = "+" if ret >= 0 else ""
         lev = signal_leverage(signal)
-        lev_note = f" · {lev}x" if lev > 1 else ""
+        lev_note = f" · <b>{lev}x</b>" if lev > 1 else ""
         body += (
-            f"\n\n<b>P/L:</b> {sign}{ret:.2f}% · трекер{lev_note}: {pnl:+.0f}$"
-            f"\n<b>Счёт сигнала:</b> ${signal_pnl_base_usd(signal):,.0f}"
+            _section("Итог")
+            + _row("Движение", f"<code>{sign}{ret:.2f}%</code>")
+            + _row("P/L", f"<code>{pnl:+.0f}$</code>{lev_note}")
+            + _row("Счёт", f"<code>${signal_pnl_base_usd(signal):,.0f}</code>")
         )
-    return header + body
+    return body
 
 
 def format_deleted_signal_message(signal: Signal, *, actor_label: str | None = None) -> str:
-    num = signal.number if signal.number is not None else signal.id
-    head = f"🗑 <b>Сигнал #{num} удалён</b>\n"
+    parts = [f"🗑 <b>СИГНАЛ СНЯТ</b>", _SEP, _signal_headline(signal)]
     if actor_label:
-        head += f"<b>Удалил:</b> {_esc(actor_label)}\n"
-    return head + _signal_summary(signal)
+        parts.append(_section("Кто") + _row("Удалил", f"<b>{_esc(actor_label)}</b>"))
+    parts.append(_signal_body(signal))
+    return "".join(parts)
 
 
 def _closed_price_move_pct(signal: Signal) -> float:
@@ -278,20 +345,21 @@ def format_closed_signal_message(signal: Signal, *, market_close: bool = False) 
     pnl = signal_realized_pnl_for_read(signal) or 0
     sign = "+" if ret >= 0 else ""
     lev = signal_leverage(signal)
-    lev_note = f" · {lev}x" if lev > 1 else ""
-    num = signal.number if signal.number is not None else signal.id
+    lev_note = f" · <b>{lev}x</b>" if lev > 1 else ""
     if market_close:
-        emoji = "📤"
-        label = "ЗАКРЫТ ПО РЫНКУ"
+        emoji, label = "📤", "ЗАКРЫТ ПО РЫНКУ"
     else:
-        emoji = "✅" if signal.status == "win" else "❌"
+        emoji = "🏆" if signal.status == "win" else "💥"
         label = "WIN" if signal.status == "win" else "LOSE"
     return (
-        f"{emoji} <b>Сигнал #{num} {label}</b>\n"
-        f"{_esc(signal.symbol)} · {_esc(signal.direction.upper())}\n"
-        f"Движение цены: {sign}{ret:.2f}% · P/L трекера{lev_note}: {pnl:+.0f}$\n"
-        f"Счёт сигнала: ${signal_pnl_base_usd(signal):,.0f}\n"
-        f"Автор: {_esc(_signal_author_label(signal))}"
+        f"{emoji} <b>{label}</b>\n"
+        f"{_SEP}\n"
+        f"{_signal_headline(signal)}"
+        + _section("Результат")
+        + _row("Движение", f"<code>{sign}{ret:.2f}%</code>")
+        + _row("P/L трекера", f"<code>{pnl:+.0f}$</code>{lev_note}")
+        + _row("Счёт", f"<code>${signal_pnl_base_usd(signal):,.0f}</code>")
+        + _author_block(signal)
     )
 
 
@@ -304,18 +372,22 @@ def format_supplement_message(
     actor_label: str | None = None,
 ) -> str:
     num = signal.number if signal.number is not None else signal.id
-    parts = [f"➕ <b>Дополнение к сигналу #{num}</b>\n{_esc(signal.symbol)} · {_esc(signal.direction.upper())}"]
+    parts = [
+        f"➕ <b>ДОПОЛНЕНИЕ</b>",
+        _SEP,
+        f"<blockquote><b>#{num}</b> · <b>{_esc(signal.symbol)}</b> · {_direction_badge(signal.direction)}</blockquote>",
+    ]
     if actor_label:
-        parts.append(f"\n<b>Дополнил:</b> {_esc(actor_label)}")
+        parts.append(_section("Кто") + _row("Автор", f"<b>{_esc(actor_label)}</b>"))
     if comment and comment.strip():
-        parts.append(f"\n{_esc(comment.strip())}")
+        parts.append(_section("Текст") + f"\n<i>{_esc(comment.strip())}</i>")
     media: list[str] = []
     if has_image:
-        media.append("скрин")
+        media.append("📷 скрин")
     if has_video:
-        media.append("видео")
+        media.append("🎬 видео")
     if media:
-        parts.append(f"\n<b>Добавлено:</b> {', '.join(media)}")
+        parts.append(_section("Вложения") + _row("Файлы", " · ".join(media)))
     return "".join(parts)
 
 
@@ -323,25 +395,32 @@ def format_new_news_message(post: NewsPost, *, author_label: str | None = None) 
     body = (post.body or "").strip()
     if len(body) > 280:
         body = body[:277] + "…"
-    lines = [f"📰 <b>Новость</b>", f"<b>{_esc(post.title)}</b>"]
+    parts = [
+        f"📰 <b>НОВОСТЬ</b>",
+        _SEP,
+        f"<blockquote><b>{_esc(post.title)}</b></blockquote>",
+    ]
     if body:
-        lines.append(_esc(body))
+        parts.append(_section("Текст") + f"\n<i>{_esc(body)}</i>")
+    extras: list[str] = []
     if post.video_path:
-        lines.append("🎬 Есть видео в приложении")
+        extras.append("🎬 видео в приложении")
     if post.link_url:
-        lines.append(f"🔗 {_esc(post.link_url)}")
+        extras.append(f"🔗 <code>{_esc(post.link_url)}</code>")
+    if extras:
+        parts.append(_section("Ещё") + "\n" + "\n".join(f"▸ {x}" for x in extras))
     if author_label:
-        lines.append(f"Автор: {_esc(author_label)}")
-    return "\n".join(lines)
+        parts.append(_section("Редакция") + _row("Автор", f"<b>{_esc(author_label)}</b>"))
+    return "".join(parts)
 
 
 def format_entry_filled_message(signal: Signal) -> str:
-    author = _esc(_signal_author_label(signal))
-    num = signal.number if signal.number is not None else signal.id
     return (
-        f"🎯 <b>Вход в зоне · #{num}</b>\n"
-        f"{_esc(signal.symbol)} · <b>{_esc(signal.direction.upper())}</b>\n"
-        f"Цена достигла уровня входа — позиция в работе.\n"
-        f"Вход: {_entry_label(signal.entry_low, signal.entry_high)}\n"
-        f"Автор: {author}"
+        f"🎯 <b>В РЫНКЕ</b>\n"
+        f"{_SEP}\n"
+        f"{_signal_headline(signal)}"
+        + _section("Статус")
+        + "\n▸ Лимитка <b>сработала</b> — позиция в работе"
+        + _levels_block(signal)
+        + _author_block(signal)
     )
