@@ -41,6 +41,7 @@ def _info(db, user: TelegramUser) -> SubscriptionInfo:
         referral_bonus_days=REFERRAL_BONUS_DAYS,
         subscription_until=sub.subscription_until if sub else None,
         subscription_active=user.subscription_active,
+        trial_used=bool(sub.trial_used) if sub else False,
         referral_code=code,
         referral_link=link,
         referral_share_text=referral_share_text(bonus_days=REFERRAL_BONUS_DAYS) if link else "",

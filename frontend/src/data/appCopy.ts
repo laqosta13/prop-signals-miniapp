@@ -14,6 +14,13 @@ export const PRODUCT_PITCH =
 export const SUBSCRIPTION_INTRO =
   "Доступ к ленте сигналов трейдеров Cult — отобранных по рангам и результатам.";
 
+export const SUBSCRIPTION_TRIAL_USED_MSG = "Пробный период уже использован. Оформите подписку ниже.";
+
+export function subscriptionInactiveHint(trialDays: number, trialUsed: boolean): string {
+  if (trialUsed) return SUBSCRIPTION_TRIAL_USED_MSG;
+  return `Подписка не активна. Доступен пробный период — ${trialDays} дн.`;
+}
+
 export const TAB_SUBTITLES = {
   feed: PRODUCT_TAGLINE,
   tracker: "Челлендж Hash Hedge",

@@ -94,6 +94,9 @@ def run_migrations(engine: Engine) -> None:
                 conn.execute(text("UPDATE subscribers SET notify_news_enabled = 0 WHERE notify_news_enabled IS NULL"))
             if not _has_column(engine, "subscribers", "cult_subscription_until"):
                 conn.execute(text("ALTER TABLE subscribers ADD COLUMN cult_subscription_until DATETIME"))
+            if not _has_column(engine, "subscribers", "trial_used"):
+                conn.execute(text("ALTER TABLE subscribers ADD COLUMN trial_used BOOLEAN DEFAULT 0"))
+                conn.execute(text("UPDATE subscribers SET trial_used = 1"))
             conn.execute(
                 text(
                     "UPDATE subscribers SET subscription_until = datetime('now', '+3 days') "

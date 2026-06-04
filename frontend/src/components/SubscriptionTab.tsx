@@ -5,7 +5,11 @@ import { PasteButton } from "./PasteButton";
 import { copyToClipboard, formatDateTimeMsk, selectFieldText } from "../utils";
 import { copyReferralLink, openReferralShare } from "../utils/referralShare";
 import { PartnerLinks } from "./PartnerLinks";
-import { REFERRAL_SHARE_FALLBACK, SUBSCRIPTION_INTRO } from "../data/appCopy";
+import {
+  REFERRAL_SHARE_FALLBACK,
+  SUBSCRIPTION_INTRO,
+  subscriptionInactiveHint,
+} from "../data/appCopy";
 import { SubscriptionSupportChat } from "./SubscriptionSupportChat";
 
 type Props = {
@@ -109,7 +113,7 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: Props) {
         {info.subscription_active ? (
           <>Подписка активна до {formatDateTimeMsk(info.subscription_until)} МСК</>
         ) : (
-          <>Подписка не активна. Новым пользователям — {info.trial_days} дня бесплатно.</>
+          <>{subscriptionInactiveHint(info.trial_days, info.trial_used)}</>
         )}
       </p>
       {info.subscription_pause_hint && (

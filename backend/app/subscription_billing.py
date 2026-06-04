@@ -138,6 +138,7 @@ def register_subscriber_with_meta(
         notify_enabled=True,
         notify_news_enabled=False,
         subscription_until=_now() + timedelta(days=TRIAL_DAYS),
+        trial_used=True,
         referral_code=_gen_referral_code(db),
         referred_by_telegram_id=referrer_id if referrer_id and referrer_id != telegram_id else None,
     )

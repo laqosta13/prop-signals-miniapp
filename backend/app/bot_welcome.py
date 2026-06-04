@@ -9,7 +9,11 @@ import re
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.subscription_billing import TRIAL_DAYS, register_subscriber_with_meta
+from app.subscription_billing import (
+    TRIAL_DAYS,
+    register_subscriber_with_meta,
+    subscription_active,
+)
 from app.telegram_bot_api import send_message
 
 logger = logging.getLogger(__name__)
@@ -25,7 +29,13 @@ def parse_start_command(text: str) -> str | None:
     return (m.group(1) or "").strip()
 
 
-def build_bot_welcome_text(*, first_name: str | None, has_app_button: bool) -> str:
+def build_bot_welcome_text(
+    *,
+    first_name: str | None,
+    has_app_button: bool,
+    trial_used: bool,
+    has_active_sub: bool,
+) -> str:
     who = html.escape((first_name or "").strip()) or "трейдер"
     trial = TRIAL_DAYS
     footer = (
@@ -33,6 +43,12 @@ def build_bot_welcome_text(*, first_name: str | None, has_app_button: bool) -> s
         if has_app_button
         else "Откройте Mini App через меню бота (кнопка «Open» / «Запустить»)."
     )
+    if has_active_sub:
+        access_line = "Подписка активна — откройте ленту сигналов."
+    elif trial_used:
+        access_line = "Пробный период уже использован — оформите подписку в приложении."
+    else:
+        access_line = f"Вам доступен пробный период — <b>{trial} дн.</b> активных сигналов."
     return (
         f"👋 <b>Добро пожаловать, {who}!</b>\n\n"
         f"<b>Volnovoi Cult</b> — marketplace крипто-сделок.\n"
@@ -40,7 +56,7 @@ def build_bot_welcome_text(*, first_name: str | None, has_app_button: bool) -> s
         "• <b>Лента</b> — сигналы после отбора\n"
         "• <b>ТОП</b> — рейтинг и volnovoi\n"
         "• <b>Трекер</b> — Hash Hedge\n"
-        f"• Новым — <b>{trial} дня</b> доступа к активным сигналам\n\n"
+        f"• {access_line}\n\n"
         f"{footer}"
     )
 
@@ -87,7 +103,7 @@ async def process_bot_start_message(db: Session, message: dict) -> bool:
         first_name = None
 
     try:
-        register_subscriber_with_meta(
+        sub = register_subscriber_with_meta(
             db,
             uid,
             username,
@@ -100,7 +116,12 @@ async def process_bot_start_message(db: Session, message: dict) -> bool:
         return False
 
     keyboard = build_mini_app_keyboard()
-    text = build_bot_welcome_text(first_name=first_name, has_app_button=keyboard is not None)
+    text = build_bot_welcome_text(
+        first_name=first_name,
+        has_app_button=keyboard is not None,
+        trial_used=bool(sub.trial_used),
+        has_active_sub=subscription_active(sub, is_admin=False),
+    )
     try:
         await send_message(
             uid,

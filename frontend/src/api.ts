@@ -91,6 +91,7 @@ export type SubscriptionInfo = {
   referral_bonus_days: number;
   subscription_until: string | null;
   subscription_active: boolean;
+  trial_used: boolean;
   referral_code: string;
   referral_link: string;
   referral_share_text: string;

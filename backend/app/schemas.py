@@ -125,6 +125,7 @@ class SubscriptionInfo(BaseModel):
     referral_bonus_days: int
     subscription_until: datetime | None
     subscription_active: bool
+    trial_used: bool = False
     referral_code: str
     referral_link: str = ""
     referral_share_text: str = ""
