@@ -37,8 +37,8 @@ import { getStoredTheme, subscribeTheme, type Theme } from "../utils/theme";
 const CHART_POLL_MS = 30_000;
 const CHART_KLINE_LIMIT = 1000;
 const CHART_VISIBLE_BARS = 220;
-/** Плашки «Вход» и закрытие на разных уровнях, если линии ближе (быстрое закрытие). */
-const MARKER_BADGE_OVERLAP_PX = 72;
+/** Плашки в одной колонке, если линии входа и закрытия близко (быстрое закрытие). */
+const MARKER_BADGE_CLUSTER_PX = 100;
 const CHART_HISTORY_BEFORE_MS = 36 * 60 * 60 * 1000;
 const CHART_RIGHT_OFFSET_BARS = 24;
 
@@ -621,10 +621,16 @@ export function SignalChart({
   const awaitingEntryLegend =
     !entryFilledAt && (lvLegend.entryLow != null || lvLegend.entryHigh != null);
 
-  const markerBadgesStacked =
+  const markerBadgeCluster =
     entryLineLeft != null &&
     closeLineLeft != null &&
-    Math.abs(entryLineLeft - closeLineLeft) < MARKER_BADGE_OVERLAP_PX;
+    entryFilledAt &&
+    closeOverlay != null &&
+    Math.abs(entryLineLeft - closeLineLeft) < MARKER_BADGE_CLUSTER_PX;
+  const markerClusterLeft =
+    markerBadgeCluster && entryLineLeft != null && closeLineLeft != null
+      ? (entryLineLeft + closeLineLeft) / 2
+      : null;
 
   return (
     <section
@@ -657,31 +663,45 @@ export function SignalChart({
         {err && <p className="signal-chart__err err">{err}</p>}
         <div ref={chartRef} className="signal-chart__canvas" />
         {entryLineLeft != null && entryFilledAt && (
-          <>
-            <div className="signal-chart__marker-line signal-chart__marker-line--entry" style={{ left: `${entryLineLeft}px` }} />
-            <div
-              className="signal-chart__marker-badge signal-chart__marker-badge--entry"
-              style={{ left: `${entryLineLeft}px` }}
-            >
-              Вход
-            </div>
-          </>
+          <div
+            className="signal-chart__marker-line signal-chart__marker-line--entry"
+            style={{ left: `${entryLineLeft}px` }}
+          />
         )}
         {closeLineLeft != null && closeOverlay && (
-          <>
+          <div
+            className={`signal-chart__marker-line signal-chart__marker-line--${closeOverlay.reason}`}
+            style={{ left: `${closeLineLeft}px` }}
+          />
+        )}
+        {markerBadgeCluster && markerClusterLeft != null && closeOverlay && (
+          <div
+            className="signal-chart__marker-cluster"
+            style={{ left: `${markerClusterLeft}px` }}
+          >
+            <div className="signal-chart__marker-badge signal-chart__marker-badge--entry">Вход</div>
             <div
-              className={`signal-chart__marker-line signal-chart__marker-line--${closeOverlay.reason}`}
-              style={{ left: `${closeLineLeft}px` }}
-            />
-            <div
-              className={`signal-chart__marker-badge signal-chart__marker-badge--${closeOverlay.reason}${
-                markerBadgesStacked ? " signal-chart__marker-badge--stack-lower" : ""
-              }`}
-              style={{ left: `${closeLineLeft}px` }}
+              className={`signal-chart__marker-badge signal-chart__marker-badge--${closeOverlay.reason}`}
             >
               {closeOverlay.label}
             </div>
-          </>
+          </div>
+        )}
+        {!markerBadgeCluster && entryLineLeft != null && entryFilledAt && (
+          <div
+            className="signal-chart__marker-badge signal-chart__marker-badge--entry"
+            style={{ left: `${entryLineLeft}px` }}
+          >
+            Вход
+          </div>
+        )}
+        {!markerBadgeCluster && closeLineLeft != null && closeOverlay && (
+          <div
+            className={`signal-chart__marker-badge signal-chart__marker-badge--${closeOverlay.reason}`}
+            style={{ left: `${closeLineLeft}px` }}
+          >
+            {closeOverlay.label}
+          </div>
         )}
       </div>
       <div className="signal-chart__legend">

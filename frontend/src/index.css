@@ -1562,8 +1562,26 @@
   background: var(--chart-badge-market-bg);
 }
 
-.signal-chart__marker-badge--stack-lower {
-  top: 34px;
+.signal-chart__marker-cluster {
+  position: absolute;
+  top: 8px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  max-width: calc(100% - 16px);
+}
+
+.signal-chart__marker-cluster .signal-chart__marker-badge {
+  position: static;
+  top: auto;
+  left: auto;
+  transform: none;
+  max-width: 100%;
+  text-align: center;
 }
 
 .signal-chart__loading,
