@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import WebApp from "@twa-dev/sdk";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { fetchSupportMessages, sendSupportMessage, type SupportInfo, type SupportMessage } from "../api";
+import type { FormEvent } from "react";
+import type { SupportInfo, SupportMessage } from "../api";
 import {
   SUPPORT_CHAT_HINT,
   SUPPORT_INPUT_PLACEHOLDER,
@@ -13,105 +13,40 @@ import {
 import { formatTime } from "../utils";
 import { ruTextFieldProps } from "../utils/textFieldProps";
 
-const POLL_MS = 4000;
-
 type Props = {
   info: SupportInfo | null;
-  loading: boolean;
-  error: string | null;
+  infoError: string | null;
+  messages: SupportMessage[];
+  chatLoading: boolean;
+  draft: string;
+  onDraftChange: (value: string) => void;
+  sending: boolean;
+  sendErr: string | null;
   onClose: () => void;
-  onRetry: () => void;
+  onRetryInfo: () => void;
+  onSubmit: (e: FormEvent) => void;
 };
 
-export function SupportModal({ info, loading, error, onClose, onRetry }: Props) {
-  const [messages, setMessages] = useState<SupportMessage[]>([]);
-  const [draft, setDraft] = useState("");
-  const [chatLoading, setChatLoading] = useState(true);
-  const [sending, setSending] = useState(false);
-  const [sendErr, setSendErr] = useState<string | null>(null);
-  const afterIdRef = useRef(0);
-  const listRef = useRef<HTMLDivElement>(null);
+export function SupportModal({
+  info,
+  infoError,
+  messages,
+  chatLoading,
+  draft,
+  onDraftChange,
+  sending,
+  sendErr,
+  onClose,
+  onRetryInfo,
+  onSubmit,
+}: Props) {
   const chatEnabled = info?.live_chat_enabled ?? false;
+  const listRef = useRef<HTMLDivElement>(null);
 
-  const scrollBottom = () => {
+  useEffect(() => {
     const el = listRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  };
-
-  const mergeMessages = useCallback((incoming: SupportMessage[]) => {
-    if (!incoming.length) return;
-    setMessages((prev) => {
-      const seen = new Set(prev.map((m) => m.id));
-      const next = [...prev];
-      for (const m of incoming) {
-        if (!seen.has(m.id)) {
-          seen.add(m.id);
-          next.push(m);
-        }
-      }
-      next.sort((a, b) => a.id - b.id);
-      return next;
-    });
-    const maxId = Math.max(afterIdRef.current, ...incoming.map((m) => m.id));
-    afterIdRef.current = maxId;
-  }, []);
-
-  const loadMessages = useCallback(async (initial = false) => {
-    if (!chatEnabled) {
-      setChatLoading(false);
-      return;
-    }
-    try {
-      const data = await fetchSupportMessages(initial ? 0 : afterIdRef.current);
-      mergeMessages(data);
-      if (initial) setSendErr(null);
-    } catch (e) {
-      if (initial) setSendErr(e instanceof Error ? e.message : "Не удалось загрузить чат");
-    } finally {
-      if (initial) setChatLoading(false);
-    }
-  }, [chatEnabled, mergeMessages]);
-
-  useEffect(() => {
-    if (!chatEnabled) {
-      setChatLoading(false);
-      return;
-    }
-    afterIdRef.current = 0;
-    setMessages([]);
-    setChatLoading(true);
-    void loadMessages(true);
-  }, [chatEnabled, loadMessages]);
-
-  useEffect(() => {
-    if (!chatEnabled) return;
-    const id = window.setInterval(() => void loadMessages(false), POLL_MS);
-    return () => clearInterval(id);
-  }, [chatEnabled, loadMessages]);
-
-  useEffect(() => {
-    scrollBottom();
   }, [messages.length]);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const body = draft.trim();
-    if (!body || sending || !chatEnabled) return;
-    setSending(true);
-    setSendErr(null);
-    try {
-      const row = await sendSupportMessage(body);
-      mergeMessages([row]);
-      setDraft("");
-      WebApp.HapticFeedback.notificationOccurred("success");
-      scrollBottom();
-    } catch (e) {
-      setSendErr(e instanceof Error ? e.message : "Не удалось отправить");
-      WebApp.HapticFeedback.notificationOccurred("error");
-    } finally {
-      setSending(false);
-    }
-  };
 
   return createPortal(
     <div
@@ -129,19 +64,18 @@ export function SupportModal({ info, loading, error, onClose, onRetry }: Props) 
           </button>
         </div>
 
-        {loading && <p className="meta">Загрузка…</p>}
-        {error && (
+        {infoError && (
           <>
-            <p className="err">{error}</p>
-            <button type="button" className="ghost-btn" onClick={onRetry}>
+            <p className="err">{infoError}</p>
+            <button type="button" className="ghost-btn" onClick={onRetryInfo}>
               Повторить
             </button>
           </>
         )}
 
-        {!loading && !error && !chatEnabled && <p className="meta">{SUPPORT_UNAVAILABLE}</p>}
+        {!infoError && !chatEnabled && <p className="meta">{SUPPORT_UNAVAILABLE}</p>}
 
-        {!loading && !error && chatEnabled && (
+        {!infoError && chatEnabled && (
           <>
             <p className="support-sheet__lead">{SUPPORT_LEAD}</p>
             <p className="meta support-sheet__hint">{SUPPORT_CHAT_HINT}</p>
@@ -161,12 +95,12 @@ export function SupportModal({ info, loading, error, onClose, onRetry }: Props) 
               ))}
             </div>
             {sendErr && <p className="err">{sendErr}</p>}
-            <form className="support-chat__form" onSubmit={submit}>
+            <form className="support-chat__form" onSubmit={onSubmit}>
               <textarea
                 {...ruTextFieldProps}
                 rows={2}
                 value={draft}
-                onChange={(e) => setDraft(e.target.value)}
+                onChange={(e) => onDraftChange(e.target.value)}
                 placeholder={SUPPORT_INPUT_PLACEHOLDER}
                 maxLength={2000}
                 disabled={sending}
@@ -178,7 +112,7 @@ export function SupportModal({ info, loading, error, onClose, onRetry }: Props) 
           </>
         )}
 
-        {!chatEnabled && !loading && !error && (
+        {!chatEnabled && !infoError && (
           <button type="button" className="ghost-btn" onClick={onClose}>
             Закрыть
           </button>

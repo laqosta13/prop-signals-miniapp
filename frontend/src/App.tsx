@@ -10,9 +10,7 @@ import {
   fetchRankPending,
   fetchSignals,
   fetchSignalsPreview,
-  fetchSupportInfo,
   setNotifications,
-  type SupportInfo,
   type TraderRank,
   type ChallengeDashboard,
   type NewsPost,
@@ -38,7 +36,6 @@ const EditSignalModal = lazy(() => import("./components/EditSignalModal").then((
 import { NewSignalModal } from "./components/NewSignalModal";
 const NewsModal = lazy(() => import("./components/NewsModal").then((m) => ({ default: m.NewsModal })));
 const DisclaimerModal = lazy(() => import("./components/DisclaimerModal").then((m) => ({ default: m.DisclaimerModal })));
-const SupportModal = lazy(() => import("./components/SupportModal").then((m) => ({ default: m.SupportModal })));
 const RankConfirmModal = lazy(() => import("./components/RankConfirmModal").then((m) => ({ default: m.RankConfirmModal })));
 const TrackerSettingsModal = lazy(() =>
   import("./components/TrackerSettingsModal").then((m) => ({ default: m.TrackerSettingsModal })),
@@ -146,10 +143,6 @@ export default function App() {
   const [disclaimerReady, setDisclaimerReady] = useState(false);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const [feedDisclaimerOpen, setFeedDisclaimerOpen] = useState(false);
-  const [supportOpen, setSupportOpen] = useState(false);
-  const [supportInfo, setSupportInfo] = useState<SupportInfo | null>(null);
-  const [supportLoading, setSupportLoading] = useState(false);
-  const [supportError, setSupportError] = useState<string | null>(null);
   const [trackerSettings, setTrackerSettings] = useState<ChallengeDashboard | null>(null);
 
   const fullAccessRef = useRef(false);
@@ -357,23 +350,6 @@ export default function App() {
     setDisclaimerAccepted(true);
   };
 
-  const loadSupport = useCallback(async () => {
-    setSupportLoading(true);
-    setSupportError(null);
-    try {
-      setSupportInfo(await fetchSupportInfo());
-    } catch (e) {
-      setSupportError(e instanceof Error ? e.message : "Не удалось загрузить");
-    } finally {
-      setSupportLoading(false);
-    }
-  }, []);
-
-  const openSupport = useCallback(() => {
-    setSupportOpen(true);
-    if (!supportInfo && !supportLoading) void loadSupport();
-  }, [loadSupport, supportInfo, supportLoading]);
-
   return (
     <div className="app">
       <header className="topbar">
@@ -383,16 +359,6 @@ export default function App() {
         </div>
         <div className="topbar__actions">
           <ThemeToggle />
-          <button
-            type="button"
-            className="support-btn"
-            onClick={openSupport}
-            aria-label="Чат поддержки"
-          >
-            <span className="support-btn__icon" aria-hidden>
-              ?
-            </span>
-          </button>
           {isAdmin && tab === "news" && (
             <button type="button" className="fab-top" onClick={openNewNews} aria-label="Новая новость">
               +
@@ -503,11 +469,7 @@ export default function App() {
             <NewsTab isAdmin={isAdmin} onEdit={openEditNews} refreshKey={newsRefreshKey} />
           )}
           {tab === "pay" && (
-            <SubscriptionTab
-              onPaid={() => void loadBootstrap()}
-              refreshKey={payRefreshKey}
-              onOpenSupport={openSupport}
-            />
+            <SubscriptionTab onPaid={() => void loadBootstrap()} refreshKey={payRefreshKey} />
           )}
         </Suspense>
       </main>
@@ -562,16 +524,6 @@ export default function App() {
         {feedDisclaimerOpen && !showDisclaimer && (
           <DisclaimerModal variant="info" onClose={() => setFeedDisclaimerOpen(false)} />
         )}
-        {supportOpen && (
-          <SupportModal
-            info={supportInfo}
-            loading={supportLoading}
-            error={supportError}
-            onClose={() => setSupportOpen(false)}
-            onRetry={() => void loadSupport()}
-          />
-        )}
-
         {!showDisclaimer && rankPending && (
           <RankConfirmModal
             rank={rankPending}

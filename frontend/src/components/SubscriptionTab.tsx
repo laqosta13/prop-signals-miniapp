@@ -5,14 +5,14 @@ import { PasteButton } from "./PasteButton";
 import { copyToClipboard, formatDateTimeMsk, selectFieldText } from "../utils";
 import { copyReferralLink, openReferralShare } from "../utils/referralShare";
 import { PartnerLinks } from "./PartnerLinks";
+import { SubscriptionSupportChat } from "./SubscriptionSupportChat";
 
 type Props = {
   onPaid: () => void;
   refreshKey?: number;
-  onOpenSupport?: () => void;
 };
 
-export function SubscriptionTab({ onPaid, refreshKey = 0, onOpenSupport }: Props) {
+export function SubscriptionTab({ onPaid, refreshKey = 0 }: Props) {
   const [info, setInfo] = useState<SubscriptionInfo | null>(null);
   const [tx, setTx] = useState("");
   const [plan, setPlan] = useState<"week" | "month">("month");
@@ -101,7 +101,8 @@ export function SubscriptionTab({ onPaid, refreshKey = 0, onOpenSupport }: Props
   const hasReferralLink = Boolean(info.referral_link);
 
   return (
-    <div className="sub-pay">
+    <div className="sub-pay sub-pay--with-chat">
+      <SubscriptionSupportChat />
       <p className={`sub-pay__status ${info.subscription_active ? "on" : "off"}`}>
         {info.subscription_active ? (
           <>Подписка активна до {formatDateTimeMsk(info.subscription_until)} МСК</>
@@ -203,16 +204,6 @@ export function SubscriptionTab({ onPaid, refreshKey = 0, onOpenSupport }: Props
           </>
         ) : (
           <p className="meta referral-warn">{info.referral_link_hint}</p>
-        )}
-      </section>
-
-      <section className="sub-card sub-card--support">
-        <h3>Поддержка</h3>
-        <p className="meta">Лайв-чат в приложении: вопросы по оплате, подписке и сигналам.</p>
-        {onOpenSupport && (
-          <button type="button" className="submit-btn submit-btn--outline" onClick={onOpenSupport}>
-            Открыть чат
-          </button>
         )}
       </section>
 
