@@ -182,8 +182,9 @@ def exit_price_for_outcome(
     stop_loss: str | None,
     take_profits: str | None,
     direction: str,
+    market_price: float | None = None,
 ) -> float | None:
-    """Уровень выхода по стопу или первой достигнутой цели."""
+    """Уровень выхода по стопу или первой достигнутой цели (без проскальзывания)."""
     if outcome == "lose":
         return parse_price(stop_loss)
     if outcome != "win":
@@ -192,11 +193,41 @@ def exit_price_for_outcome(
     if not tps:
         return parse_price(take_profits)
     d = direction.lower()
+    if market_price is not None:
+        if d == "long":
+            hit = [tp for tp in tps if market_price >= tp]
+            if hit:
+                return min(hit)
+        elif d == "short":
+            hit = [tp for tp in tps if market_price <= tp]
+            if hit:
+                return max(hit)
     if d == "long":
         return min(tps)
     if d == "short":
         return max(tps)
     return tps[0]
+
+
+def monitor_exit_price(
+    outcome: str,
+    *,
+    direction: str,
+    stop_loss: str | None,
+    take_profits: str | None,
+    market_price: float,
+) -> float:
+    """Цена закрытия монитором: ровно стоп/цель, даже если котировка уже прошла уровень."""
+    level = exit_price_for_outcome(
+        outcome,
+        stop_loss=stop_loss,
+        take_profits=take_profits,
+        direction=direction,
+        market_price=market_price,
+    )
+    if level is not None:
+        return level
+    return market_price
 
 
 def trade_move_pct(

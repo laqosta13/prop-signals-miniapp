@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.hashhedge_rules import rules_for_stage
 from app.models import Signal
 from app.signal_utils import compute_signal_points_percent
-from app.trader_stats import DEFAULT_ENTRY_STAKE_PCT
+from app.trader_stats import DEFAULT_ENTRY_STAKE_PCT, closed_signal_move_pct, signal_leverage
 from app.tracker_metrics import compute_tracker_stats, msk_day_key
 
 SIGNAL_DAILY_STOP_LIMIT_PCT = 2.0
@@ -83,13 +83,35 @@ def admin_daily_loss_pct(db: Session, admin_id: int) -> float:
     return stats.daily_loss_pct
 
 
-def signal_counts_toward_daily_stop_consumed(signal: Signal) -> bool:
-    """Дневной лимит 2%: списание только при срабатывании стопа (не цель / не рынок)."""
-    if signal.status != "lose":
-        return False
-    if signal.close_reason in ("target", "market"):
-        return False
-    return True
+def market_close_consumed_rank_pct(signal: Signal) -> float:
+    """Дневной лимит 2%: фактический убыток по рынку (% цены × плечо, как у стопа в форме)."""
+    move = closed_signal_move_pct(signal)
+    if move >= 0:
+        return 0.0
+    return price_stop_to_reserved_rank_pct(abs(move), signal_leverage(signal))
+
+
+def signal_closed_stop_budget_rank_pct(
+    signal: Signal,
+    balance: float,
+    rank_max_stake_pct: float,
+) -> float:
+    """
+    Сколько % дневного лимита (0–2) уже «съел» закрытый сегодня сигнал.
+    Стоп по уровню — по стопу в форме; убыток по рынку — по фактическому % закрытия.
+    Цель и прибыльное закрытие по рынку — 0.
+    """
+    if signal.status not in ("win", "lose"):
+        return 0.0
+    if signal.close_reason == "target":
+        return 0.0
+    if signal.close_reason == "market":
+        if signal.status != "lose":
+            return 0.0
+        return market_close_consumed_rank_pct(signal)
+    if signal.status == "lose":
+        return signal_reserved_rank_pct(signal, balance, rank_max_stake_pct)
+    return 0.0
 
 
 def admin_stop_consumed_rank_pct(
@@ -106,16 +128,14 @@ def admin_stop_consumed_rank_pct(
     rows = db.scalars(
         select(Signal).where(
             Signal.author_telegram_id == admin_id,
-            Signal.status == "lose",
+            Signal.status.in_(("win", "lose")),
             Signal.is_cult_candidate.is_(False),
         )
     ).all()
     for sig in rows:
         if msk_day_key(sig.closed_at) != today_key:
             continue
-        if not signal_counts_toward_daily_stop_consumed(sig):
-            continue
-        total += signal_reserved_rank_pct(sig, balance, rank_max_stake_pct)
+        total += signal_closed_stop_budget_rank_pct(sig, balance, rank_max_stake_pct)
     return round(min(total, SIGNAL_DAILY_STOP_LIMIT_PCT), 2)
 
 

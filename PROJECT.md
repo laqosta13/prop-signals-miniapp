@@ -13,7 +13,7 @@
 | **Путь локально** | `~/prop-signals-miniapp` |
 | **Стек** | FastAPI + SQLite + React/Vite + Telegram Mini App |
 | **Деплой** | Docker → Amvera Cloud, постоянный диск `/data` |
-| **Брендинг** | PROP-DESK · Hash Hedge |
+| **Брендинг** | **Volnovoi Cult** · Marketplace крипто-сделок (`appCopy.ts`); трекер/проп — **Hash Hedge** |
 | **Прод (Amvera)** | тариф **Стандартный**, 1 реплика — достаточно для ~2–3k заходов на публикацию сигнала |
 
 **Суть:** Telegram Mini App с лентой торговых сигналов. Публикуют только **админы** (`TELEGRAM_ADMIN_IDS`). **Активные** сигналы — по подписке; **отработанные** (win/lose), трекер и ТОП — **бесплатно** для всех авторизованных пользователей.
@@ -22,14 +22,14 @@
 
 ## Вкладки приложения
 
-1. **Лента** — сигналы с **нумерацией #N**, график на карточке, просмотры/лайки, мини-трекеры админов, галочка уведомлений, **дисклеймер** (кнопка **!** в шапке + принятие при первом заходе), **анимация WIN/LOSE** при **живом** закрытии сигнала
+1. **Лента** — шапка **Marketplace крипто-сделок** (без заголовка «Сигналы»); сигналы **#N**, график на карточке, просмотры/лайки, мини-трекеры админов, переключатель **«Уведомления в Telegram»** (`NotifySettingsPanel`), **дисклеймер** (кнопка **!** + принятие при первом заходе), **анимация WIN/LOSE** при **живом** закрытии
 2. **Трекер** — Hash Hedge challenge для каждого админа + таблица правил по этапам
 3. **ТОП** — **volnovoi** + копирование Bybit; **RankGuide**; **ТРЕЙДЕРЫ CULT**; **КОНДИДАТЫ В CULT** — админы + **Telegram-каналы** (аналитика % с момента подключения)
 4. **Отзывы** — оценка 1–5 и текст; один отзыв на пользователя
 5. **Новости** — публикации админов; чтение для всех
-6. **Подписка** — оплата USDT TON (проверка TXID в блокчейне), реферальные ссылки, trial
+6. **Подписка** — оплата USDT TON (проверка TXID в блокчейне), реферальные ссылки, trial, **чат поддержки** (`SubscriptionSupportChat` → `POST /support/messages`)
 
-**Шапка:** круглая кнопка **↻** (ручное обновление ленты/трекера/ТОП в зависимости от вкладки) вместо зелёной точки статуса.
+**Шапка:** круглая кнопка **↻** — по вкладке: **Лента/Трекер** — полная перезагрузка сигналов (`refreshSignalsFull`) + `feedRefreshKey` (ремонт графиков), трекеры, `fetchMe`; **ТОП** — рейтинг + me; **Новости/Отзывы/Подписка** — `refreshKey` вкладки + me. Фоновый poll **15 с** — только лёгкий `refreshSignalsOnly()` (без remount графиков).
 
 **Вкладки:** **Лента** (`FeedTab`) — в основном бандле; остальные вкладки и тяжёлые модалки — `React.lazy` + `Suspense`.
 
@@ -69,20 +69,21 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 - **Номер #N** — сквозная нумерация по порядку публикации (`signals.number`); на карточке, в трекере, модалках, WIN/LOSE и Telegram; после полного purge снова с **#1**
 - **Инструмент**, **LONG/SHORT**
 - **Вход / Стоп / Цель**
-- **Плечо** (кнопки 1–5x, по умолчанию **1**)
+- **Плечо** (кнопки 1–5x, по умолчанию **1**; **макс. по рангу** — `rank_max_leverage` из `GET /challenge/my-tracker`)
 - **Сумма входа %** — бегунок 0–25–50–75–100; **при смене плеча сбрасывается на 10%** (`onLeveragePick` в `signalForm.ts`)
 - **Номинал позиции** = трекер × сумма входа % × плечо / 100 — в форме **выделен цветом** (сумма зелёным, % и плечо фиолетовым)
 - **Трекер $** — только чтение, **баланс Hash Hedge**; при открытии формы подгружается **`GET /challenge/my-tracker`** (`useAdminTrackerSnapshot`)
 - **Дополнения** на карточке — отдельный блок с фиолетовым акцентом, бейдж «Доп. N», счётчик дополнений
 - **Скрин / Видео / Комментарий** (на русском)
-- **График на карточке** — `SignalChart.tsx`: свечи **Bybit USDT perpetual (linear)** 1m / 5m / 15m, линии входа / стопа / целей (`lightweight-charts` **v4**, `addCandlestickSeries`); **~220 видимых баров**, высота **268px**, скругление **12px** (внутри карточки, не full-bleed); lazy-load в viewport; TradingView `BYBIT:…` ↗; фон как у карточки, **без сетки**; **`z-index` ниже нижней панели** (график не перекрывает вкладки)
+- **График на карточке** — `SignalChart.tsx` + палитра **`chartTheme.ts`** / `subscribeTheme()` (светлая и тёмная тема): свечи **Bybit USDT perpetual (linear)** 1m / 5m / 15m, линии входа / стопа / целей (`lightweight-charts` **v4**); **~220 видимых баров**, высота **268px**, скругление **12px**; lazy-load в viewport; TradingView `BYBIT:…` ↗; **`z-index` ниже нижней панели**
+- **Ожидание лимитного входа** — серая линия с подписью **«Лимитка»** (цена на оси Y, без цены в title); после входа — **«Вход»** как раньше
 - **График после win/lose** — `frozen`: свечи грузятся **один раз**, таймфреймы **скрыты**, график обрезается на свече `closed_at`, повторных запросов нет
 - **Закрытие на графике** (только frozen): **точка** на свече `closed_at`, **вертикальная линия**, бейдж **«Стоп»** / **«Цель»** / **«По рынку»** (цвет: красный / фиолетовый / жёлтый); поля `close_reason`, `closed_exit_price` в БД
 - **Активный график** — свечи обновляются каждые **30 с** (`CHART_POLL_MS`), пока сигнал не закрыт
 - **Вход на графике** — вертикальная линия + маркер «Вход» после срабатывания входа; маркер **привязан к свече `entry_filled_at`** (не к последней свече)
 - **Рынок при публикации** — `published_market_price` / `published_market_source` (`bybit_perp`) в БД и **Telegram**; на карточке — график, не текст
 
-**Кнопка «+» новый сигнал** — **FAB снизу** на вкладке Лента (`fab-bottom`).  
+**Кнопка «+» новый сигнал** — **FAB снизу** на вкладке Лента (`fab-bottom`). Перед публикацией — **`confirmAction`** (подтверждение в WebView).  
 При открытии формы: **`GET /signals/market-price`** → курс **Bybit perp**, стоп/цель **R:R 1:3**; **`GET /challenge/my-tracker`** — баланс, дневные потери, счётчик сделок за MSK-день.
 
 **Дневной лимит трейдера в форме** (`daily_stop_limit.py`, `utils/dailyStopLimit.ts`):
@@ -91,7 +92,7 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 |---|---|
 | Условие | **3 сделки или 2% стопа** за MSK-день — что наступит **раньше**, торговля блокируется |
 | Сделки | Считаются **опубликованные** сигналы автора за сегодня (MSK) |
-| Стоп | Сумма **убытков закрытых** сигналов за сегодня (% от счёта на начало дня) |
+| Стоп | **Заморозка** на активных (стоп в форме × плечо); **списание** — стоп по уровню (как в форме) или **убыток по рынку** (фактический % вход→выход × плечо); win по рынку / цель — не списывают |
 | Бегунок стопа | **% счёта** (не % цены): шкала **0 → остаток** на **весь трек**; метки равномерно по остатку |
 | Весь риск в одну сделку | Можно выставить **весь остаток** стопа на один сигнал |
 | Конвертация | риск счёта ↔ % цены: `(priceStop × stake% × leverage) / 100` |
@@ -140,6 +141,7 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 - Крипто USDT: только **`bybit_perp`** (Bybit v5 `category=linear`)
 - Форекс / золото: Frankfurter / gold-api (как раньше)
 - Мониторинг входа, win/lose, публикация, `GET /signals/market-price` — одна котировка Bybit
+- **Закрытие по стопу/цели:** котировка только **детектирует** касание; `closed_exit_price` = **ровно уровень** стопа или первой цели (`monitor_exit_price` в `price_monitor.py`) — без проскальзывания, если цена уже ушла дальше между опросами
 - На фронте график: публичный API `GET /v5/market/kline?category=linear` (без бэкенда)
 
 ### Публикация сигнала
@@ -264,6 +266,8 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 **Win rate (WR)** и W/L в трекере и ТОП — по **фактическому P/L в $** (≥ 0 → win, < 0 → loss), не только по статусу win/lose.
 
+**Референс входа на карточке** — как backend `effective_entry_price`: при зоне входа — **лимит** (`entry_low`/`entry_high`), иначе `published_market_price` (`chartEntryReference` в `signalChartLevels.ts` / `signalPnl.ts`).
+
 **P/L на карточке после poll/refresh:** фронт пересчитывает exit из `closed_exit_price` или стоп/цели (`signalPnl.ts`); `mergeFeedSignals.ts` не теряет P/L при устаревшем ответе API.
 
 **Закрытие по рынку:** P/L и win/lose по фактическому движению вход→рыночная цена; в Telegram — «ЗАКРЫТ ПО РЫНКУ».
@@ -356,19 +360,27 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 ---
 
-## Telegram-уведомления
+## Telegram-бот и уведомления
+
+**Доставка:** `telegram_notify.py` → `sendMessage` / `sendPhoto` подписчикам с `notify_enabled` и активной подпиской (`signal_service.subscriber_ids_for_notify`). Формат push — **блочный HTML**: заголовок (⚡️/✏️/…), `blockquote` с **#N · символ · LONG/SHORT**, секции *Уровни* / *Позиция* / *Трейдер*; снимок рынка при посте — только если **нет** лимитной зоны.
+
+**Приём обновлений бота:** **long polling** (`telegram_updates.py`: `delete_webhook` при старте, `getUpdates`, offset в `/data/media/telegram_update_offset.txt`) — **не** зависит от webhook Amvera. В том же цикле: `channel_post` (CULT-каналы), `/start` и рефералы (`bot_welcome.py`), сообщения в группу поддержки (`support_chat.py`).
 
 | Событие | Содержание |
 |---|---|
-| Новый сигнал | **#N** + описание + **рынок при публикации** |
-| Редактирование | **#N** + diff + **кто изменил**; для закрытых — **P/L % и $** |
-| Дополнение | **#N** + комментарий/медиа + **кто дополнил** |
-| Удаление | **#N** + **кто удалил** |
+| Новый сигнал | **НОВЫЙ СИГНАЛ** + уровни + позиция + автор |
+| Редактирование | **ОБНОВЛЕНИЕ** + кто изменил + diff; для закрытых — P/L % и $ |
+| Дополнение | **#N** + комментарий/медиа + кто дополнил |
+| Удаление | **#N** + кто удалил |
 | Вход в зоне | **#N** + позиция в работе |
-| WIN / LOSE | **Сигнал #N** + доходность + P/L $ |
-| Закрыт по рынку | 📤 **Сигнал #N ЗАКРЫТ ПО РЫНКУ** + движение и P/L |
+| WIN / LOSE | итог + доходность + P/L $ |
+| Закрыт по рынку | **ЗАКРЫТ ПО РЫНКУ** + движение и P/L |
 
-Новости: push **всем** зарегистрированным пользователям mini app при публикации — подписка и оплата не проверяются; галочка на вкладке «Новости» — для UI (рассылка идёт всем в БД)
+**UI уведомлений:** вкладка **Лента** — toggle сигналов; **Новости** — отдельный toggle (`notify_news_enabled`). Без подсказок про `/start` в интерфейсе. `notify_push_active` в `/auth/me` = флаг «рассылка включена в настройках» (зеркало `notify_enabled`).
+
+**Новости:** push **всем** зарегистрированным в БД при публикации админом; подписка на ленту не проверяется.
+
+**Поддержка:** `TELEGRAM_SUPPORT_GROUP_ID` (+ `BOT_TOKEN`); UI на вкладке **Подписка**, API `routers/support.py`. На Amvera webhook бота для Mini App **не обязателен** — приложение ходит через initData, бот — через polling.
 
 ---
 
@@ -389,7 +401,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 ## Дизайн-система (актуально)
 
-- **Светлая / тёмная тема** — переключатель в шапке (`ThemeToggle.tsx`, `theme.css`, `utils/theme.ts`); CSS-переменные для карточек, форм, CTA
+- **Светлая / тёмная тема** — переключатель в шапке (`ThemeToggle.tsx`, `theme.css`, `utils/theme.ts`); CSS-переменные для карточек, форм, CTA; **график сигнала** — отдельная палитра `utils/chartTheme.ts`
 - Жёлтые CTA пропа / Bybit — общие токены `--prop-cta-*`; логотипы **Hash Hedge** и **Bybit** (`BrandLogos.tsx`, `public/brands/`)
 - Единый стиль **glassmorphism**: полупрозрачные карточки/модалки/кнопки, blur, мягкие тени
 - Нижнее меню: вместо эмодзи используются SVG-иконки (современный iOS-like стиль)
@@ -463,6 +475,7 @@ GET  /challenge/my-tracker       — require_admin: balance, daily_loss_pct, dai
 GET  /challenge/rules
 PUT  /challenge/settings         — multipart: баланс с пропа / account_size, этап, скрин (require_admin)
 GET  /subscriptions/info | POST /subscriptions/pay | PUT /subscriptions/me
+POST /support/messages           — сообщение в группу поддержки (если настроена)
 POST /admin/purge-published      — require_admin, полная очистка ленты/новостей/отзывов
 ```
 
@@ -486,9 +499,11 @@ POST /admin/purge-published      — require_admin, полная очистка 
 | CULT каналы | `cult_channel_service.py`, `channel_signal_parser.py`, `telegram_updates.py`, `telegram_bot_api.py`, `routers/cult_channels.py` |
 | Ранги | `rank_service.py`, `rank_scheduler.py`, `rank_constants.py` |
 | Трекер | `challenge_service.py`, `tracker_metrics.py`, `hashhedge_rules.py` |
-| Уведомления | `telegram_notify.py` |
-| Frontend shell | `App.tsx` |
-| Лента | `FeedTab.tsx`, `SignalCard.tsx`, `SignalChart.tsx`, `utils/signalChartLevels.ts` |
+| Уведомления | `telegram_notify.py`, `telegram_updates.py`, `bot_welcome.py` |
+| Поддержка | `support_chat.py`, `routers/support.py`, `SubscriptionSupportChat.tsx` |
+| Frontend shell | `App.tsx`, `components/NotifySettingsPanel.tsx`, `data/appCopy.ts` |
+| Лента | `FeedTab.tsx`, `SignalCard.tsx`, `SignalChart.tsx`, `utils/signalChartLevels.ts`, `utils/chartTheme.ts` |
+| Подтверждения | `utils/confirmAction.ts` |
 | Дисклеймер | `DisclaimerModal.tsx`, `data/disclaimer.ts`, `utils/disclaimerStorage.ts` |
 | WIN/LOSE reveal | `OutcomeReveal.tsx`, `hooks/useOutcomeReveal.ts`, `utils/outcomeRevealStorage.ts`, `utils/outcomeSounds.ts` (логика в `App.tsx`) |
 | Подписка / рефералы | `SubscriptionTab.tsx`, `subscription_billing.py`, `ton_payments.py`, `referral_links.py`, `utils/referralShare.ts` |
@@ -511,6 +526,8 @@ POST /admin/purge-published      — require_admin, полная очистка 
 BOT_TOKEN=...
 TELEGRAM_BOT_USERNAME=PropDeskBot   # для реферальных startapp-ссылок
 TELEGRAM_ADMIN_IDS=123456789,...
+TELEGRAM_SUPPORT_GROUP_ID=   # опционально; чат поддержки (-100…)
+TELEGRAM_SUPPORT_USERNAME=   # опционально; ссылка в UI
 DATABASE_URL=sqlite:////data/signals.db
 MEDIA_ROOT=/data/media
 PRICE_CHECK_INTERVAL_SECONDS=60
@@ -566,7 +583,7 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 13. **Реферальная программа** — `startapp`-ссылки, share/copy в Mini App
 14. **WIN/LOSE reveal** — одноразовая анимация на ленте, localStorage
 15. **График на карточке** — Bybit klines, уровни, `lightweight-charts` v4; UI: ряд админ-кнопок, z-index ленты
-16. **Кнопка ↻** в шапке — ручной refresh вкладки
+16. **Кнопка ↻** в шапке — полный refresh по вкладке (`refreshSignalsFull`, `feedRefreshKey`, см. «Вкладки»)
 17. **Purge published** — сигналы + новости + отзывы; API `/admin/purge-published`
 18. **Только Bybit perp** — мониторинг и график; график **frozen** после win/lose
 19. **Точный UI-апдейт ТОП** — цвет рейтинга по знаку (green/red), сохранён цвет кривой доходности по направлению
@@ -606,9 +623,15 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 53. **Purge jun2026 v4** — разовая полная очистка ленты/новостей/отзывов; маркер `.purged_all_published_jun2026_v4`
 54. **Ранг Китяра** — переименование «Хищник» (id 4), иконка kittyra (кит)
 55. **Purge jun2026 v5** — разовая полная очистка ленты/новостей/отзывов; маркер `.purged_all_published_jun2026_v5`
+56. **Брендинг ленты** — Volnovoi Cult, шапка Marketplace крипто-сделок; убран заголовок «Сигналы»
+57. **Уведомления UI** — toggle «Уведомления в Telegram» на Ленте и Новостях; блочные push в `telegram_notify.py`
+58. **↻ полный refresh** — `refreshSignalsFull` + remount графиков; обновление me/новостей/отзывов/подписки по вкладке
+59. **График** — тема light/dark (`chartTheme.ts`); линия **«Лимитка»** до входа; P/L/% от лимита, не от `published_market_price` при зоне входа
+60. **Форма** — `confirmAction` перед постом; `rank_max_leverage`; fix `StopOffsetSlider` (импорт лимита дня)
+61. **Чат поддержки** — группа Telegram + `SubscriptionSupportChat` на вкладке Подписка
 
 ---
 
 ## Быстрое напоминание для AI
 
-> **prop-signals-miniapp** — FastAPI + React Telegram Mini App на Amvera (SQLite, `/data`). Админы публикуют сигналы **#N**; активные — по подписке, win/lose + трекер + ТОП — бесплатно. **Лимит дня в форме:** 3 сделки **или** 2% стопа (MSK). **volnovoi** — сводный портфель всех админов; копирование на Bybit (**20% прибыли**). **Цены и график: Bybit USDT perp.** P/L = (`account_size` × сумма входа % × плечо) × % движения. WIN/LOSE reveal — **active→win/lose**, poll 15s. Полный контекст — этот файл.
+> **prop-signals-miniapp** — FastAPI + React **Volnovoi Cult** Mini App на Amvera (SQLite, `/data`). Админы публикуют сигналы **#N**; активные — по подписке, win/lose + трекер + ТОП — бесплатно. **Лимит дня в форме:** 3 сделки **или** 2% стопа (MSK). **volnovoi** — сводный портфель; копирование Bybit (**20% прибыли**). **Bybit USDT perp** — мониторинг и график. P/L: вход = лимит или рынок при посте; номинал от `account_size`. Бот — **long polling**, не webhook Amvera. **↻** — полная перезагрузка ленты; фон **15 с** — лёгкий poll. Полный контекст — этот файл.

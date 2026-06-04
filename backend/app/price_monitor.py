@@ -21,7 +21,7 @@ from app.price_service import (
 )
 from app.copy_trading_service import open_signal_copies, open_signal_copy_for_user
 from app.signal_service import close_signal_and_notify, notify_entry_filled
-from app.signal_utils import entry_zone_defined
+from app.signal_utils import entry_zone_defined, monitor_exit_price
 
 logger = logging.getLogger(__name__)
 
@@ -94,19 +94,27 @@ async def check_active_signals_once() -> int:
                 continue
             outcome, hit = outcome_hit
             if outcome in ("win", "lose"):
+                exit_px = monitor_exit_price(
+                    outcome,
+                    direction=signal.direction,
+                    stop_loss=signal.stop_loss,
+                    take_profits=signal.take_profits,
+                    market_price=hit.price,
+                )
                 logger.info(
-                    "Монитор: %s signal #%s %s, %s=%.4f",
+                    "Монитор: %s signal #%s %s, %s=%.4f → exit=%.4f",
                     outcome,
                     signal.id,
                     signal.symbol,
                     hit.source,
                     hit.price,
+                    exit_px,
                 )
                 await close_signal_and_notify(
                     db,
                     signal,
                     outcome,
-                    exit_price=hit.price,
+                    exit_price=exit_px,
                     close_reason="target" if outcome == "win" else "stop",
                 )
                 closed += 1
@@ -132,11 +140,18 @@ async def check_active_signals_once() -> int:
                 continue
             outcome, hit = outcome_hit
             if outcome in ("win", "lose"):
+                exit_px = monitor_exit_price(
+                    outcome,
+                    direction=signal.direction,
+                    stop_loss=signal.stop_loss,
+                    take_profits=signal.take_profits,
+                    market_price=hit.price,
+                )
                 await close_signal_and_notify(
                     db,
                     signal,
                     outcome,
-                    exit_price=hit.price,
+                    exit_price=exit_px,
                     close_reason="target" if outcome == "win" else "stop",
                 )
                 closed += 1
@@ -167,7 +182,14 @@ async def check_active_signals_once() -> int:
                 continue
             outcome, hit = outcome_hit
             if outcome in ("win", "lose"):
-                if not apply_outcome_to_channel(db, channel, sig, outcome, hit.price):
+                exit_px = monitor_exit_price(
+                    outcome,
+                    direction=sig.direction,
+                    stop_loss=sig.stop_loss,
+                    take_profits=sig.take_profits,
+                    market_price=hit.price,
+                )
+                if not apply_outcome_to_channel(db, channel, sig, outcome, exit_px):
                     continue
                 db.commit()
                 logger.info("CULT: %s #%s %s @%s", outcome, sig.id, sig.symbol, channel.username)
