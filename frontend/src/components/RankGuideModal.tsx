@@ -29,7 +29,9 @@ export function RankGuideModal({ onClose, highlightRankId }: Props) {
         </button>
         <h2 id="rank-guide-title">Система рангов</h2>
         <p className="rank-guide-sheet__intro">Недельный % → ранг. Выше ранг — больше вход и плечо.</p>
-        <p className="rank-guide-sheet__pool">Вход = min(лимит ранга, свободный пул 100% у всех админов).</p>
+        <p className="rank-guide-sheet__pool">
+          Пример: 1 трейдер 50%, 2 трейдер 50% в сделке 100% депо. 3 трейдер не может дать сделку.
+        </p>
         <ul className="rank-guide__tiers rank-guide__tiers--modal">
           {RANK_TIERS.map((tier) => {
             const st = rankStyle(tier.id);

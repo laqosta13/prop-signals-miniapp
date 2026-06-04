@@ -17,9 +17,13 @@ import {
   closeReasonColor,
   closeReasonLabel,
   entryCandleTimeForFill,
+  chartEntryReference,
+  chartLevelLineTitle,
   chartLevelPrices,
   chartPriceFormatOptions,
   createLevelAutoscaleProvider,
+  formatSignedMovePct,
+  levelMovePctFromEntry,
   levelsFromSignal,
   resolveCloseReason,
   tradingViewSymbol,
@@ -36,6 +40,7 @@ const CHART_RIGHT_OFFSET_BARS = 24;
 
 type Props = {
   symbol: string;
+  direction?: "long" | "short";
   createdAt?: string | null;
   entryLow: string | null;
   entryHigh: string | null;
@@ -84,8 +89,20 @@ async function fetchBybitKlines(
   return candles;
 }
 
-function applyLevelLines(series: ISeriesApi<"Candlestick">, levels: ReturnType<typeof levelsFromSignal>) {
+type LevelLineOpts = {
+  direction: "long" | "short";
+  entryRef: number | null;
+  closeExit?: number | null;
+  closeReason?: CloseReason | null;
+};
+
+function applyLevelLines(
+  series: ISeriesApi<"Candlestick">,
+  levels: ReturnType<typeof levelsFromSignal>,
+  opts: LevelLineOpts,
+) {
   const { stop, targets } = levels;
+  const dir = opts.direction;
 
   if (stop != null) {
     series.createPriceLine({
@@ -94,20 +111,33 @@ function applyLevelLines(series: ISeriesApi<"Candlestick">, levels: ReturnType<t
       lineWidth: 2,
       lineStyle: LineStyle.Solid,
       axisLabelVisible: true,
-      title: "Стоп",
+      title: chartLevelLineTitle("Стоп", opts.entryRef, dir, stop),
     });
   }
 
   targets.forEach((tp, i) => {
+    const base = targets.length > 1 ? `Цель ${i + 1}` : "Цель";
     series.createPriceLine({
       price: tp,
       color: "#e0afff",
       lineWidth: 2,
       lineStyle: LineStyle.Solid,
       axisLabelVisible: true,
-      title: targets.length > 1 ? `Цель ${i + 1}` : "Цель",
+      title: chartLevelLineTitle(base, opts.entryRef, dir, tp),
     });
   });
+
+  const exit = opts.closeExit;
+  if (exit != null && Number.isFinite(exit) && exit > 0 && opts.closeReason === "market") {
+    series.createPriceLine({
+      price: exit,
+      color: "#ffd166",
+      lineWidth: 2,
+      lineStyle: LineStyle.Dashed,
+      axisLabelVisible: true,
+      title: chartLevelLineTitle("По рынку", opts.entryRef, dir, exit),
+    });
+  }
 }
 
 function clipCandlesAtClose(candles: ChartCandle[], closedAt: string | null | undefined, candleSec: number): ChartCandle[] {
@@ -237,8 +267,22 @@ function applyFeedVisibleRange(
   chart.timeScale().applyOptions({ rightOffset: CHART_RIGHT_OFFSET_BARS });
 }
 
+function closeBadgeLabel(
+  reason: CloseReason | null,
+  base: string | null,
+  entryRef: number | null,
+  direction: "long" | "short",
+  exitPrice: number | null,
+): string {
+  const name = base ?? "Закрыт";
+  if (entryRef == null || exitPrice == null || !Number.isFinite(exitPrice)) return name;
+  const pct = levelMovePctFromEntry(entryRef, direction, exitPrice);
+  return `${name} ${formatSignedMovePct(pct)}`;
+}
+
 export function SignalChart({
   symbol,
+  direction = "long",
   createdAt,
   entryLow,
   entryHigh,
@@ -297,6 +341,7 @@ export function SignalChart({
     candles: ChartCandle[],
     candleSec: number,
     levels: ReturnType<typeof levelsFromSignal>,
+    entryRef: number | null,
   ) => {
     const entryTime = resolvePinnedEntryTime(candles, candleSec);
     entryCandleTimeRef.current = entryTime;
@@ -306,11 +351,27 @@ export function SignalChart({
     const label = closeReasonLabel(reason);
     const closeTime = frozen && closedAt ? resolvePinnedCloseTime(candles, candleSec) : null;
     closeCandleTimeRef.current = closeTime;
+    const exitPx =
+      closedExitPrice != null && Number.isFinite(closedExitPrice)
+        ? closedExitPrice
+        : reason === "stop" && levels.stop != null
+          ? levels.stop
+          : reason === "target" && levels.targets.length
+            ? direction === "short"
+              ? Math.max(...levels.targets)
+              : Math.min(...levels.targets)
+            : null;
 
     if (reason && label) {
-      setCloseOverlay({ label, reason });
+      setCloseOverlay({
+        label: closeBadgeLabel(reason, label, entryRef, direction, exitPx),
+        reason,
+      });
     } else if (frozen && closedAt) {
-      setCloseOverlay({ label: label ?? "Закрыт", reason: reason ?? "market" });
+      setCloseOverlay({
+        label: closeBadgeLabel(reason ?? "market", label ?? "Закрыт", entryRef, direction, exitPx),
+        reason: reason ?? "market",
+      });
     } else {
       setCloseOverlay(null);
     }
@@ -409,6 +470,9 @@ export function SignalChart({
     setLoading(true);
     setErr(null);
     const lv = levelsFromSignal(entryLow, entryHigh, stopLoss, takeProfits);
+    const entryRef = chartEntryReference(lv, entryPrice);
+    const closeReasonResolved =
+      frozen && closedAt ? resolveCloseReason(closeReason, status, closedExitPrice, lv) : null;
     const candleSec = Math.max(60, Number(bybitIv) * 60);
     const closeEndMs =
       frozen && closedAt
@@ -434,8 +498,13 @@ export function SignalChart({
         });
         seriesRef.current = series;
         series.setData(data);
-        applyLevelLines(series, lv);
-        paintChartMarkers(series, data, candleSec, lv);
+        applyLevelLines(series, lv, {
+          direction,
+          entryRef,
+          closeExit: closedExitPrice,
+          closeReason: closeReasonResolved,
+        });
+        paintChartMarkers(series, data, candleSec, lv, entryRef);
         applyFeedVisibleRange(chart, data, entryCandleTimeRef.current, closeCandleTimeRef.current, createdAt);
         series.priceScale().applyOptions({ autoScale: true });
         chart.priceScale("right").applyOptions({ autoScale: true });
@@ -479,6 +548,7 @@ export function SignalChart({
     const bybitIv = CHART_INTERVALS.find((x) => x.id === interval)?.bybit ?? "5";
     const candleSec = Math.max(60, Number(bybitIv) * 60);
     const lv = levelsFromSignal(entryLow, entryHigh, stopLoss, takeProfits);
+    const entryRef = chartEntryReference(lv, entryPrice);
 
     const refreshCandles = () => {
       const chart = chartApi.current;
@@ -492,7 +562,7 @@ export function SignalChart({
           if (!chartNow || !seriesNow) return;
           const data = clipCandlesForSignal(candles, createdAt, closedAt, candleSec, false);
           seriesNow.setData(data);
-          paintChartMarkers(seriesNow, data, candleSec, lv);
+          paintChartMarkers(seriesNow, data, candleSec, lv, entryRef);
           applyFeedVisibleRange(
             chartNow,
             data,

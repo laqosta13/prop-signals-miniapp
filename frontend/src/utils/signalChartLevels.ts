@@ -65,6 +65,50 @@ export type SignalChartLevels = {
   targets: number[];
 };
 
+/** Референс входа для % на графике: явная цена → середина зоны → одна граница. */
+export function chartEntryReference(
+  levels: SignalChartLevels,
+  entryPrice?: number | null,
+): number | null {
+  if (entryPrice != null && Number.isFinite(entryPrice) && entryPrice > 0) return entryPrice;
+  const low = levels.entryLow;
+  const high = levels.entryHigh;
+  if (low != null && high != null) return (low + high) / 2;
+  return low ?? high ?? null;
+}
+
+/** % движения цены от входа с учётом направления (+ в сторону профита). */
+export function levelMovePctFromEntry(
+  entry: number,
+  direction: "long" | "short",
+  levelPrice: number,
+): number {
+  if (entry <= 0 || !Number.isFinite(levelPrice)) return 0;
+  if (direction === "short") {
+    return Math.round(((entry - levelPrice) / entry) * 10000) / 100;
+  }
+  return Math.round(((levelPrice - entry) / entry) * 10000) / 100;
+}
+
+export function formatSignedMovePct(pct: number): string {
+  const sign = pct >= 0 ? "+" : "−";
+  const abs = Math.abs(pct);
+  const text = abs >= 10 ? abs.toFixed(2) : abs >= 1 ? abs.toFixed(2) : abs.toFixed(3);
+  const trimmed = text.replace(/\.?0+$/, "");
+  return `${sign}${trimmed}%`;
+}
+
+export function chartLevelLineTitle(
+  baseLabel: string,
+  entry: number | null,
+  direction: "long" | "short",
+  levelPrice: number,
+): string {
+  if (entry == null || entry <= 0) return baseLabel;
+  const pct = levelMovePctFromEntry(entry, direction, levelPrice);
+  return `${baseLabel} ${formatSignedMovePct(pct)}`;
+}
+
 export function levelsFromSignal(
   entryLow: string | null,
   entryHigh: string | null,

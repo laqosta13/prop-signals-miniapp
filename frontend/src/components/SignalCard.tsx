@@ -216,6 +216,7 @@ export function SignalCard({
       <SignalChart
         key={`${s.id}-${s.status}-${s.closed_at ?? "open"}`}
         symbol={s.symbol}
+        direction={isLong ? "long" : "short"}
         createdAt={s.created_at}
         entryLow={s.entry_low}
         entryHigh={s.entry_high}
