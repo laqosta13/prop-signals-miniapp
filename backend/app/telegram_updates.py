@@ -10,6 +10,7 @@ from app.config import settings
 from app.cult_channel_service import ingest_channel_post
 from app.database import SessionLocal
 from app.media_storage import media_root
+from app.bot_welcome import process_bot_start_message
 from app.support_chat import live_chat_enabled, process_support_group_message
 from app.telegram_bot_api import delete_webhook, get_updates
 
@@ -54,13 +55,15 @@ async def process_updates_once() -> int:
             upd_id = int(upd["update_id"])
             next_offset = upd_id + 1
 
-            msg = upd.get("message")
-            if msg and live_chat_enabled():
+            private_msg = upd.get("message")
+            if private_msg:
                 try:
-                    if await process_support_group_message(db, msg):
+                    if await process_bot_start_message(db, private_msg):
+                        processed += 1
+                    elif live_chat_enabled() and await process_support_group_message(db, private_msg):
                         processed += 1
                 except Exception:
-                    logger.exception("support group message failed update_id=%s", upd_id)
+                    logger.exception("bot private message failed update_id=%s", upd_id)
                     db.rollback()
                     return 0
 
@@ -112,7 +115,7 @@ async def telegram_updates_loop() -> None:
         logger.info("telegram_updates: BOT_TOKEN missing, skip")
         return
     await asyncio.to_thread(delete_webhook)
-    logger.info("telegram_updates: polling channel_post + support messages")
+    logger.info("telegram_updates: polling /start, support group, channel_post")
     while True:
         try:
             await process_updates_once()

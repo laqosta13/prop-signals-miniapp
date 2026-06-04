@@ -101,6 +101,7 @@ async def send_message(
     parse_mode: str | None = "HTML",
     reply_to_message_id: int | None = None,
     disable_web_page_preview: bool = True,
+    reply_markup: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     payload: dict[str, Any] = {
         "chat_id": chat_id,
@@ -111,6 +112,8 @@ async def send_message(
         payload["parse_mode"] = parse_mode
     if reply_to_message_id is not None:
         payload["reply_to_message_id"] = reply_to_message_id
+    if reply_markup is not None:
+        payload["reply_markup"] = reply_markup
     data = await _api_async("sendMessage", payload)
     if not data.get("ok"):
         raise TelegramApiError(str(data.get("description") or "send_failed"))
