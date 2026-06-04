@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -118,6 +119,35 @@ async def send_message(
     if not data.get("ok"):
         raise TelegramApiError(str(data.get("description") or "send_failed"))
     return data.get("result") or {}
+
+
+async def send_photo(
+    chat_id: int,
+    photo_path: Path,
+    caption: str,
+    *,
+    parse_mode: str | None = "HTML",
+) -> dict[str, Any] | None:
+    token = settings.bot_token
+    if not token:
+        raise RuntimeError("BOT_TOKEN не задан")
+    url = API.format(token=token, method="sendPhoto")
+    data_fields: dict[str, str] = {"chat_id": str(chat_id), "caption": caption[:1024]}
+    if parse_mode:
+        data_fields["parse_mode"] = parse_mode
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        with photo_path.open("rb") as f:
+            r = await client.post(
+                url,
+                data=data_fields,
+                files={"photo": (photo_path.name, f, "image/jpeg")},
+            )
+        try:
+            parsed = _parse_response(r)
+        except TelegramApiError:
+            logger.warning("telegram sendPhoto failed chat=%s", chat_id)
+            raise
+    return parsed.get("result") or {}
 
 
 async def get_updates(

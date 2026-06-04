@@ -76,8 +76,12 @@ def has_active_paid_subscription(db: Session, sub: Subscriber, is_admin: bool) -
 
 
 def subscriber_ids_for_news_notify(db: Session) -> list[int]:
-    """Все зарегистрированные пользователи — подписка и оплата не проверяются."""
-    return list(db.scalars(select(Subscriber.telegram_user_id)).all())
+    """Пользователи с включёнными уведомлениями о новостях (подписка не требуется)."""
+    return list(
+        db.scalars(
+            select(Subscriber.telegram_user_id).where(Subscriber.notify_news_enabled.is_(True))
+        ).all()
+    )
 
 
 def _gen_referral_code(db: Session) -> str:

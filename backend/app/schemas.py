@@ -79,6 +79,7 @@ class TelegramUser(BaseModel):
     last_name: str | None = None
     notify_enabled: bool = True
     notify_news_enabled: bool = False
+    notify_push_active: bool = False
     subscription_until: datetime | None = None
     subscription_active: bool = False
     referral_code: str = ""

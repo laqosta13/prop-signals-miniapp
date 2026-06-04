@@ -130,6 +130,7 @@ export default function App() {
   const [daysUntilReview, setDaysUntilReview] = useState<number | null>(null);
   const [notifyEnabled, setNotifyEnabled] = useState(true);
   const [notifyNewsEnabled, setNotifyNewsEnabled] = useState(false);
+  const [notifyPushActive, setNotifyPushActive] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showNewSignal, setShowNewSignal] = useState(false);
   const [editSignal, setEditSignal] = useState<Signal | null>(null);
@@ -192,6 +193,7 @@ export default function App() {
       setMyId(me.telegram_user_id);
       setNotifyEnabled(me.notify_enabled);
       setNotifyNewsEnabled(me.notify_news_enabled);
+      setNotifyPushActive(me.notify_push_active);
       const fullAccess = me.subscription_active || me.is_admin;
       fullAccessRef.current = fullAccess;
       setSubActive(me.subscription_active);
@@ -214,6 +216,7 @@ export default function App() {
       setMyId(me.telegram_user_id);
       setNotifyEnabled(me.notify_enabled);
       setNotifyNewsEnabled(me.notify_news_enabled);
+      setNotifyPushActive(me.notify_push_active);
       setError(null);
       const fullAccess = me.subscription_active || me.is_admin;
       fullAccessRef.current = fullAccess;
@@ -354,6 +357,7 @@ export default function App() {
     try {
       const me = await setNotifications({ notify_enabled: !notifyEnabled });
       setNotifyEnabled(me.notify_enabled);
+      setNotifyPushActive(me.notify_push_active);
     } catch {
       /* */
     }
@@ -363,6 +367,7 @@ export default function App() {
     try {
       const me = await setNotifications({ notify_news_enabled: !notifyNewsEnabled });
       setNotifyNewsEnabled(me.notify_news_enabled);
+      setNotifyPushActive(me.notify_push_active);
     } catch (e) {
       alert(e instanceof Error ? e.message : "Не удалось сохранить");
     }
@@ -436,10 +441,28 @@ export default function App() {
       </header>
 
       {tab === "feed" && (
-        <NotifySettingsPanel enabled={notifyEnabled} onToggle={() => void toggleSignalNotify()} />
+        <NotifySettingsPanel
+          enabled={notifyEnabled}
+          onToggle={() => void toggleSignalNotify()}
+          hint={
+            notifyEnabled && !notifyPushActive && !isAdmin
+              ? "Push по сигналам только при активной подписке."
+              : notifyEnabled && notifyPushActive
+                ? "Если сообщений нет — откройте бота и нажмите /start."
+                : null
+          }
+        />
       )}
       {tab === "news" && (
-        <NotifySettingsPanel enabled={notifyNewsEnabled} onToggle={() => void toggleNewsNotify()} />
+        <NotifySettingsPanel
+          enabled={notifyNewsEnabled}
+          onToggle={() => void toggleNewsNotify()}
+          hint={
+            notifyNewsEnabled
+              ? "Если сообщений нет — откройте бота и нажмите /start."
+              : null
+          }
+        />
       )}
 
       {error && <p className="err">{error}</p>}

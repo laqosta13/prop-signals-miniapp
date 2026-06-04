@@ -59,6 +59,7 @@ export type Me = {
   username: string | null;
   notify_enabled: boolean;
   notify_news_enabled: boolean;
+  notify_push_active: boolean;
   subscription_until: string | null;
   subscription_active: boolean;
   referral_code: string;

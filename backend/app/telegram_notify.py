@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import html
 import logging
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
-import httpx
-
 from app.config import settings
+from app.telegram_bot_api import TelegramApiError, send_message, send_photo
 from app.media_storage import media_root
 from app.models import NewsPost, Signal
 from app.signal_utils import entry_zone_defined, parse_take_profit_levels
@@ -23,9 +23,8 @@ from app.trader_stats import (
 
 logger = logging.getLogger(__name__)
 
-API = "https://api.telegram.org/bot{token}/{method}"
-
 _SEP = "┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈"
+_TAG_RE = re.compile(r"<[^>]+>")
 
 
 def _esc(value: object | None) -> str:
@@ -237,40 +236,46 @@ def _signal_body(signal: Signal) -> str:
     )
 
 
-async def _send_message(chat_id: int, text: str) -> None:
+def _plain_fallback(text: str) -> str:
+    return _TAG_RE.sub("", text).replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+
+
+async def _send_message(chat_id: int, text: str) -> bool:
     if not settings.bot_token:
         logger.warning("BOT_TOKEN не задан — уведомление не отправлено")
-        return
-    url = API.format(token=settings.bot_token, method="sendMessage")
-    payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
+        return False
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            r = await client.post(url, json=payload)
-            if r.status_code != 200:
-                logger.warning("Telegram sendMessage %s chat=%s: %s", r.status_code, chat_id, r.text[:300])
+        await send_message(chat_id, text, parse_mode="HTML")
+        return True
+    except TelegramApiError as e:
+        msg = str(e).lower()
+        if "parse" in msg or "entity" in msg:
+            try:
+                await send_message(chat_id, _plain_fallback(text), parse_mode=None)
+                return True
+            except TelegramApiError as e2:
+                logger.warning("Telegram notify (plain) failed chat=%s: %s", chat_id, e2)
+                return False
+        logger.warning("Telegram notify failed chat=%s: %s", chat_id, e)
+        return False
     except Exception as e:
         logger.warning("Telegram notify failed chat=%s: %s", chat_id, e)
+        return False
 
 
-async def _send_photo(chat_id: int, image_path: Path, caption: str) -> None:
+async def _send_photo(chat_id: int, image_path: Path, caption: str) -> bool:
     if not settings.bot_token:
         logger.warning("BOT_TOKEN не задан — фото не отправлено")
-        return
-    url = API.format(token=settings.bot_token, method="sendPhoto")
+        return False
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            with image_path.open("rb") as f:
-                r = await client.post(
-                    url,
-                    data={"chat_id": str(chat_id), "caption": caption, "parse_mode": "HTML"},
-                    files={"photo": (image_path.name, f, "image/jpeg")},
-                )
-            if r.status_code != 200:
-                logger.warning("Telegram sendPhoto %s chat=%s: %s", r.status_code, chat_id, r.text[:300])
-                await _send_message(chat_id, caption)
+        await send_photo(chat_id, image_path, caption, parse_mode="HTML")
+        return True
+    except TelegramApiError as e:
+        logger.warning("Telegram photo failed chat=%s: %s — текст отдельно", chat_id, e)
+        return await _send_message(chat_id, caption)
     except Exception as e:
         logger.warning("Telegram photo failed chat=%s: %s", chat_id, e)
-        await _send_message(chat_id, caption)
+        return await _send_message(chat_id, caption)
 
 
 async def notify_subscribers(text: str, subscriber_ids: list[int], *, photo_rel_path: str | None = None) -> None:
@@ -283,11 +288,18 @@ async def notify_subscribers(text: str, subscriber_ids: list[int], *, photo_rel_
         if candidate.is_file():
             photo_file = candidate
     logger.info("Отправка уведомления %s подписчикам", len(subscriber_ids))
+    ok = 0
+    fail = 0
     for uid in subscriber_ids:
-        if photo_file:
-            await _send_photo(uid, photo_file, text)
+        sent = await _send_photo(uid, photo_file, text) if photo_file else await _send_message(uid, text)
+        if sent:
+            ok += 1
         else:
-            await _send_message(uid, text)
+            fail += 1
+    if fail:
+        logger.warning("Уведомления: доставлено %s, ошибок %s (часто: не нажали /start в боте)", ok, fail)
+    else:
+        logger.info("Уведомления: доставлено %s", ok)
 
 
 def format_new_signal_message(signal: Signal) -> str:
