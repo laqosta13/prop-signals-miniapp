@@ -1562,6 +1562,10 @@
   background: var(--chart-badge-market-bg);
 }
 
+.signal-chart__marker-badge--stack-lower {
+  top: 34px;
+}
+
 .signal-chart__loading,
 .signal-chart__err {
   position: absolute;
