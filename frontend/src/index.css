@@ -1,11 +1,62 @@
 /* App layout — tokens in theme.css */
 
+.html-boot {
+  margin: 0;
+  padding: 48vh 16px 0;
+  text-align: center;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.9rem;
+  color: #8b90a0;
+}
+
 .app {
   --app-max-width: 480px;
   max-width: var(--app-max-width);
   margin: 0 auto;
   min-height: 100vh;
   padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom));
+}
+
+.app--booting .topbar,
+.app--booting .content,
+.app--booting .bottom-nav,
+.app--booting .notify-row,
+.app--booting .sub-banner,
+.app--booting .fab-bottom,
+.app--booting .disclaimer-btn,
+.app--booting .refresh-btn {
+  visibility: hidden;
+}
+
+.app-boot {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  background:
+    radial-gradient(900px 600px at 85% -10%, var(--bg-mesh-1), transparent 55%),
+    radial-gradient(700px 500px at -5% 15%, var(--bg-mesh-2), transparent 50%),
+    var(--bg);
+  pointer-events: none;
+}
+
+.app-boot__title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.app-boot__meta {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--muted);
 }
 
 .topbar {

@@ -36,8 +36,8 @@ const AppendSupplementModal = lazy(() =>
 const EditSignalModal = lazy(() => import("./components/EditSignalModal").then((m) => ({ default: m.EditSignalModal })));
 import { NewSignalModal } from "./components/NewSignalModal";
 import { NotifySettingsPanel } from "./components/NotifySettingsPanel";
+import { DisclaimerModal } from "./components/DisclaimerModal";
 const NewsModal = lazy(() => import("./components/NewsModal").then((m) => ({ default: m.NewsModal })));
-const DisclaimerModal = lazy(() => import("./components/DisclaimerModal").then((m) => ({ default: m.DisclaimerModal })));
 const RankConfirmModal = lazy(() => import("./components/RankConfirmModal").then((m) => ({ default: m.RankConfirmModal })));
 const TrackerSettingsModal = lazy(() =>
   import("./components/TrackerSettingsModal").then((m) => ({ default: m.TrackerSettingsModal })),
@@ -381,7 +381,7 @@ export default function App() {
   const onNewsSaved = () => setNewsRefreshKey((k) => k + 1);
 
   const head = TITLES[tab];
-  const showDisclaimer = disclaimerReady && !disclaimerAccepted;
+  const showDisclaimer = disclaimerReady && !disclaimerAccepted && !loading;
 
   const acceptDisclaimer = () => {
     if (myId == null) return;
@@ -390,7 +390,13 @@ export default function App() {
   };
 
   return (
-    <div className="app">
+    <div className={`app${loading ? " app--booting" : ""}`}>
+      {loading && (
+        <div className="app-boot" role="status" aria-live="polite">
+          <p className="app-boot__title">Volnovoi Cult</p>
+          <p className="app-boot__meta">Загрузка…</p>
+        </div>
+      )}
       <header className="topbar">
         <div>
           <h1>{head.title}</h1>
@@ -550,10 +556,6 @@ export default function App() {
           onSaved={onNewsSaved}
         />
 
-        {showDisclaimer && <DisclaimerModal onAccept={acceptDisclaimer} />}
-        {feedDisclaimerOpen && !showDisclaimer && (
-          <DisclaimerModal variant="info" onClose={() => setFeedDisclaimerOpen(false)} />
-        )}
         {!showDisclaimer && rankPending && (
           <RankConfirmModal
             rank={rankPending}
@@ -572,6 +574,11 @@ export default function App() {
           }}
         />
       </Suspense>
+
+      {showDisclaimer && <DisclaimerModal onAccept={acceptDisclaimer} />}
+      {feedDisclaimerOpen && !showDisclaimer && (
+        <DisclaimerModal variant="info" onClose={() => setFeedDisclaimerOpen(false)} />
+      )}
     </div>
   );
 }
