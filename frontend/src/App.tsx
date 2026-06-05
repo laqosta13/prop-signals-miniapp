@@ -119,10 +119,13 @@ export default function App() {
   const [signals, setSignals] = useState<Signal[]>([]);
   const [traders, setTraders] = useState<Trader[]>([]);
   const [firedTraders, setFiredTraders] = useState<Trader[]>([]);
+  const [canPublishMainFeed, setCanPublishMainFeed] = useState(false);
+  const [canPublishCandidate, setCanPublishCandidate] = useState(false);
   const [cultCandidates, setCultCandidates] = useState<CultCandidate[]>([]);
   const [cultChannels, setCultChannels] = useState<CultChannel[]>([]);
   const [trackers, setTrackers] = useState<ChallengeDashboard[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [myId, setMyId] = useState<number | null>(null);
   const [subActive, setSubActive] = useState(false);
   const [canWriteReview, setCanWriteReview] = useState(false);
@@ -190,11 +193,14 @@ export default function App() {
     try {
       const me = await fetchMe();
       setIsAdmin(me.is_admin);
+      setIsSuperAdmin(me.is_super_admin);
+      setCanPublishMainFeed(me.can_publish_main_feed);
+      setCanPublishCandidate(me.can_publish_candidate);
       setMyId(me.telegram_user_id);
       setNotifyEnabled(me.notify_enabled);
       setNotifyNewsEnabled(me.notify_news_enabled);
       setNotifyPushActive(me.notify_push_active);
-      const fullAccess = me.subscription_active || me.is_admin;
+      const fullAccess = me.subscription_active || me.is_admin || me.can_publish_main_feed;
       fullAccessRef.current = fullAccess;
       setSubActive(me.subscription_active);
       setCanWriteReview(me.can_write_review);
@@ -213,18 +219,21 @@ export default function App() {
     try {
       const me = await fetchMe();
       setIsAdmin(me.is_admin);
+      setIsSuperAdmin(me.is_super_admin);
+      setCanPublishMainFeed(me.can_publish_main_feed);
+      setCanPublishCandidate(me.can_publish_candidate);
       setMyId(me.telegram_user_id);
       setNotifyEnabled(me.notify_enabled);
       setNotifyNewsEnabled(me.notify_news_enabled);
       setNotifyPushActive(me.notify_push_active);
       setError(null);
-      const fullAccess = me.subscription_active || me.is_admin;
+      const fullAccess = me.subscription_active || me.is_admin || me.can_publish_main_feed;
       fullAccessRef.current = fullAccess;
       setSubActive(me.subscription_active);
       setCanWriteReview(me.can_write_review);
       setReviewWriteBlockedReason(me.review_write_blocked_reason);
       setDaysUntilReview(me.days_until_review);
-      if (me.is_admin) {
+      if (me.can_publish_main_feed) {
         try {
           const pending = await fetchRankPending();
           setRankPending(pending.needs_confirm ? pending.rank : null);
@@ -418,7 +427,7 @@ export default function App() {
         </div>
         <div className="topbar__actions">
           <ThemeToggle />
-          {isAdmin && tab === "news" && (
+          {isSuperAdmin && tab === "news" && (
             <button type="button" className="fab-top" onClick={openNewNews} aria-label="Новая новость">
               +
             </button>
@@ -465,6 +474,7 @@ export default function App() {
             trackers={trackers}
             loading={loading}
             isAdmin={isAdmin}
+            canPublishMainFeed={canPublishMainFeed}
             myId={myId}
             subscriptionActive={subActive}
             refreshKey={feedRefreshKey}
@@ -492,6 +502,7 @@ export default function App() {
               traders={traders}
               firedTraders={firedTraders}
               cultCandidates={cultCandidates}
+              canPublishCandidate={canPublishCandidate}
               cultChannels={cultChannels}
               loading={
                 loading &&
@@ -502,13 +513,16 @@ export default function App() {
               }
               myId={myId}
               isAdmin={isAdmin}
+              isSuperAdmin={isSuperAdmin}
               onCultChannelsChange={() => void loadTop()}
               onCultCandidatesChange={() => void loadTop()}
+              onRosterChange={() => void loadTop()}
             />
           )}
           {tab === "reviews" && (
             <ReviewsTab
               isAdmin={isAdmin}
+              isSuperAdmin={isSuperAdmin}
               canWriteReview={canWriteReview}
               reviewWriteBlockedReason={reviewWriteBlockedReason}
               daysUntilReview={daysUntilReview}
@@ -516,7 +530,7 @@ export default function App() {
             />
           )}
           {tab === "news" && (
-            <NewsTab isAdmin={isAdmin} onEdit={openEditNews} refreshKey={newsRefreshKey} />
+            <NewsTab isSuperAdmin={isSuperAdmin} onEdit={openEditNews} refreshKey={newsRefreshKey} />
           )}
           {tab === "pay" && (
             <SubscriptionTab onPaid={() => void loadBootstrap()} refreshKey={payRefreshKey} />
@@ -524,7 +538,7 @@ export default function App() {
         </Suspense>
       </main>
 
-      {isAdmin && tab === "feed" && (
+      {canPublishMainFeed && tab === "feed" && (
         <button
           type="button"
           className="fab-bottom"

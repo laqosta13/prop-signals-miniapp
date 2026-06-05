@@ -2895,6 +2895,19 @@
   color: inherit;
 }
 
+.trader-roster-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+}
+
+.trader-roster-actions__btn--danger {
+  color: var(--danger, #e85d5d);
+}
+
 .cult-channel-admin {
   margin: 12px 0 0;
   padding: 12px;

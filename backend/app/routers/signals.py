@@ -4,7 +4,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPExcepti
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from app.deps import db_session, get_current_user, require_active_subscription, require_admin
+from app.deps import db_session, get_current_user, require_active_subscription, require_main_feed_publisher
 from app.signal_permissions import require_signal_engagement, require_signal_owner
 from app.engagement import purge_signal_engagement, record_view, toggle_like
 from app.media_storage import (
@@ -89,14 +89,11 @@ async def list_signals_preview(
 
 
 def _require_signal_form_market_access(user: TelegramUser, db: Session) -> None:
-    from app.cult_candidate_service import is_cult_candidate
-    from app.models import Subscriber
+    from app.trader_roster_service import can_publish_candidate_signals, is_main_feed_publisher
 
-    if user.is_admin:
+    if is_main_feed_publisher(db, user.telegram_user_id) or can_publish_candidate_signals(db, user.telegram_user_id):
         return
-    sub = db.get(Subscriber, user.telegram_user_id)
-    if sub is None or not is_cult_candidate(db, user.telegram_user_id):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="forbidden")
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="forbidden")
 
 
 @router.get("/market-symbols", response_model=MarketSymbolsRead)
@@ -149,7 +146,7 @@ async def create_signal(
     screenshot: UploadFile | None = File(None),
     video: UploadFile | None = File(None),
     db: Session = Depends(db_session),
-    admin: TelegramUser = Depends(require_admin),
+    admin: TelegramUser = Depends(require_main_feed_publisher),
 ) -> SignalRead:
     tb = admin_tracker_balance(db, admin.telegram_user_id)
     acct = admin_account_size(db, admin.telegram_user_id)
@@ -217,7 +214,7 @@ async def update_signal(
     remove_screenshot: bool = Form(False),
     remove_video: bool = Form(False),
     db: Session = Depends(db_session),
-    admin: TelegramUser = Depends(require_admin),
+    admin: TelegramUser = Depends(require_main_feed_publisher),
 ) -> SignalRead:
     row = db.get(Signal, signal_id)
     if row is None:
@@ -300,7 +297,7 @@ async def update_signal(
 async def delete_signal(
     signal_id: int,
     db: Session = Depends(db_session),
-    admin: TelegramUser = Depends(require_admin),
+    admin: TelegramUser = Depends(require_main_feed_publisher),
 ) -> None:
     row = db.get(Signal, signal_id)
     if row is None:
@@ -329,7 +326,7 @@ async def add_supplement(
     screenshot: UploadFile | None = File(None),
     video: UploadFile | None = File(None),
     db: Session = Depends(db_session),
-    admin: TelegramUser = Depends(require_admin),
+    admin: TelegramUser = Depends(require_main_feed_publisher),
 ) -> SignalRead:
     row = db.get(Signal, signal_id)
     if row is None:
@@ -370,7 +367,7 @@ async def close_market(
     signal_id: int,
     background_tasks: BackgroundTasks,
     db: Session = Depends(db_session),
-    admin: TelegramUser = Depends(require_admin),
+    admin: TelegramUser = Depends(require_main_feed_publisher),
 ) -> SignalRead:
     row = db.get(Signal, signal_id)
     if row is None:

@@ -19,6 +19,7 @@ from app.cult_subscription_billing import (
     record_cult_payment,
 )
 from app.deps import db_session, get_current_user
+from app.trader_roster_service import cult_subscription_admin_bypass
 from app.subscription_billing import usdt_pay_address
 from app.models import Subscriber
 from app.schemas import (
@@ -64,7 +65,9 @@ def cult_subscription_info(
         subscription_usd=CULT_SUBSCRIPTION_USD,
         subscription_days=CULT_SUBSCRIPTION_DAYS,
         cult_subscription_until=sub.cult_subscription_until,
-        cult_subscription_active=cult_subscription_active(sub, is_admin=user.is_admin),
+        cult_subscription_active=cult_subscription_active(
+            sub, is_admin=cult_subscription_admin_bypass(db, user.telegram_user_id)
+        ),
     )
 
 
@@ -87,7 +90,9 @@ def cult_subscription_pay(
         subscription_usd=CULT_SUBSCRIPTION_USD,
         subscription_days=CULT_SUBSCRIPTION_DAYS,
         cult_subscription_until=sub.cult_subscription_until,
-        cult_subscription_active=cult_subscription_active(sub, is_admin=user.is_admin),
+        cult_subscription_active=cult_subscription_active(
+            sub, is_admin=cult_subscription_admin_bypass(db, user.telegram_user_id)
+        ),
     )
 
 
@@ -109,7 +114,7 @@ def cult_candidate_me(
     db: Session = Depends(db_session),
     user: TelegramUser = Depends(get_current_user),
 ) -> CultCandidateMeRead:
-    return build_cult_candidate_me_read(db, _subscriber(db, user), is_admin=user.is_admin)
+    return build_cult_candidate_me_read(db, _subscriber(db, user))
 
 
 @router.post("/me", response_model=CultCandidateRead, status_code=status.HTTP_201_CREATED)
@@ -123,7 +128,7 @@ def become_cult_candidate(
         join_cult_candidate(
             db,
             sub,
-            is_admin=user.is_admin,
+            cult_admin_bypass=cult_subscription_admin_bypass(db, user.telegram_user_id),
             user=user,
             display_name=body.display_name,
         )
@@ -173,7 +178,7 @@ async def create_cult_candidate_signal(
 ) -> SignalRead:
     sub = _subscriber(db, user)
     try:
-        ensure_can_trade(db, sub, is_admin=user.is_admin)
+        ensure_can_trade(db, sub)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e)) from e
 

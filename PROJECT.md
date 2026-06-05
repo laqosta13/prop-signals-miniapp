@@ -37,7 +37,8 @@
 
 ## Роли
 
-- **Админ** — публикует сигналы, **редактирует/удаляет/дополняет только свои**, свой трекер, доступ без подписки
+- **Главный админ** (`TELEGRAM_SUPER_ADMIN_IDS` в env) — полный доступ: новости, CULT-каналы, ротация трейдеров (ТОП ↔ кандидаты ↔ уволенные), purge и т.д.
+- **Админ-трейдер** (`TELEGRAM_ADMIN_IDS`) — публикация и управление **своими** сигналами в **основную ленту**, **настройки своего трекера** (+ лента без подписки, трекер в ТОП). Переведённый в **кандидаты** — только сигналы по правилам кандидатов (подписка CULT + Bybit). Новости, CULT-каналы, purge — только главный админ. Без `TELEGRAM_SUPER_ADMIN_IDS` все из `TELEGRAM_ADMIN_IDS` — полный доступ (обратная совместимость).
 - **Подписчик** — активные сигналы при подписке (trial 3 дня) + уведомления в Telegram
 - **Без подписки** — win/lose в ленте, трекер, ТОП, лайки/просмотры на отработанных сигналах
 
@@ -245,13 +246,13 @@ DELETE /cult-channels/{id}      — отключить (require_admin)
 
 ## Правила редактирования / удаления / дополнения
 
-| Действие | Когда доступно |
-|---|---|
-| **Изменить / Удалить** | Только **свои** сигналы, до срабатывания входа |
-| **Дополнить сигнал** | Только **свои**, после входа — комментарий, скрин, видео |
-| **Закрыть по рынку** | Только **свои**, после входа (`signal_in_trade`) — ручное закрытие по текущей цене с бирж |
+| Действие | Кто | Когда |
+|---|---|---|
+| **Изменить / Удалить** | любой **админ** (`is_admin`) | **свои** сигналы, до срабатывания входа |
+| **Дополнить сигнал** | любой **админ** | **свои**, после входа — комментарий, скрин, видео |
+| **Закрыть по рынку** | любой **админ** | **свои**, после входа (`signal_in_trade`) |
 
-Backend: `require_signal_owner()` — 403 если не автор.
+Backend: `require_admin` + `require_signal_owner()` — 403 если не админ или не автор.
 
 Frontend: `frontend/src/utils/signalActions.ts`.
 
@@ -421,7 +422,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 | Способ | Как |
 |---|---|
 | Одноразово при деплое | маркеры `.purged_all_published_*` в `migrate.py` (актуально: `.purged_all_published_jun2026_v5`) |
-| API (без UI) | `POST /admin/purge-published` — `require_admin` |
+| API (без UI) | `POST /admin/purge-published` — `require_super_admin` |
 | Скрипт на сервере | `python backend/scripts/purge_published.py` |
 
 ---
@@ -431,7 +432,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 | Риск | Мера |
 |---|---|
 | Подделка пользователя | `X-Telegram-Init-Data` + `BOT_TOKEN` на проде (**обязательно**) |
-| Админ | Только ID из `TELEGRAM_ADMIN_IDS` |
+| Админ | ID из `TELEGRAM_ADMIN_IDS` или `TELEGRAM_SUPER_ADMIN_IDS`; мутации — по `is_super_admin` |
 | Dev bypass | Только без `BOT_TOKEN` локально — **никогда на проде** |
 | Секреты | Только env Amvera, не в Git (`.gitignore`) |
 | API Bybit пользователей | Шифрование Fernet; ключи **Trade** без Withdraw; testnet для тестов |
@@ -463,20 +464,24 @@ POST /signals/{id}/supplement    — require_admin + owner (multipart, XHR на 
 POST /signals/{id}/close-market  — require_admin + owner, после входа
 POST /signals/{id}/view|like     — engagement rules
 GET  /reviews | POST/PUT/DELETE /reviews
-GET  /news | POST/PUT/DELETE /news
+GET  /news | POST/PUT/DELETE /news — мутации: require_super_admin
 GET  /traders/leaderboard
+GET  /traders/fired-leaderboard
+GET  /traders/roster-demoted     — админы, переведённые в кандидаты
+PUT  /traders/{id}/roster        — require_super_admin: top | candidate | fired
+DELETE /traders/{id}/roster      — require_super_admin: сброс ручной ротации
 GET  /traders/{id}/rank          — id=0 → volnovoi
 GET  /traders/me/rank-pending | POST .../confirm | POST .../shield
 GET  /copy-trading/me | PUT /copy-trading/me | PATCH /copy-trading/me
 POST /copy-trading/me/test | POST /copy-trading/me/pay | DELETE /copy-trading/me
-GET  /cult-channels | POST /cult-channels | DELETE /cult-channels/{id}
+GET  /cult-channels | POST /cult-channels | DELETE /cult-channels/{id} — мутации: require_super_admin
 GET  /challenge/trackers
 GET  /challenge/my-tracker       — require_admin: balance, daily_loss_pct, daily_trades_count/limit
 GET  /challenge/rules
 PUT  /challenge/settings         — multipart: баланс с пропа / account_size, этап, скрин (require_admin)
 GET  /subscriptions/info | POST /subscriptions/pay | PUT /subscriptions/me
 POST /support/messages           — сообщение в группу поддержки (если настроена)
-POST /admin/purge-published      — require_admin, полная очистка ленты/новостей/отзывов
+POST /admin/purge-published      — require_super_admin, полная очистка ленты/новостей/отзывов
 ```
 
 ---
@@ -525,7 +530,8 @@ POST /admin/purge-published      — require_admin, полная очистка 
 ```env
 BOT_TOKEN=...
 TELEGRAM_BOT_USERNAME=PropDeskBot   # для реферальных startapp-ссылок
-TELEGRAM_ADMIN_IDS=123456789,...
+TELEGRAM_ADMIN_IDS=123456789,...   # трейдеры: публикация сигналов
+TELEGRAM_SUPER_ADMIN_IDS=987654321 # главный админ (полный доступ); если пусто — все админы с полным доступом
 TELEGRAM_SUPPORT_GROUP_ID=   # опционально; чат поддержки (-100…)
 TELEGRAM_SUPPORT_USERNAME=   # опционально; ссылка в UI
 DATABASE_URL=sqlite:////data/signals.db

@@ -35,7 +35,7 @@ def _signal_stake_expr():
 
 def active_admin_stake_used(db: Session, *, exclude_signal_id: int | None = None) -> float:
     """Сумма входа % по активным сигналам всех админов культа."""
-    admin_ids = tuple(settings.admin_id_set)
+    admin_ids = tuple(settings.all_admin_id_set)
     if not admin_ids:
         return 0.0
     q = select(func.coalesce(func.sum(_signal_stake_expr()), 0.0)).where(

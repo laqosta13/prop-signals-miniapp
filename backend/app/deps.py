@@ -3,7 +3,9 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
+from app.leaderboard_service import fired_trader_ids
 from app.schemas import TelegramUser
+from app.trader_roster_service import can_publish_candidate_signals, is_main_feed_publisher
 from app.signal_service import get_or_create_trader, register_subscriber
 from app.review_access import review_write_access
 from app.subscription_billing import (
@@ -24,7 +26,8 @@ def get_current_user(
         if user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Telegram init data")
         sub = register_subscriber(db, user.id, user.username, user.start_param)
-        is_admin = user.id in settings.admin_id_set
+        is_admin = settings.is_signal_admin_id(user.id) and user.id not in fired_trader_ids(db)
+        is_super_admin = settings.is_super_admin_id(user.id)
         if is_admin:
             get_or_create_trader(
                 db,
@@ -41,6 +44,7 @@ def get_current_user(
             sub,
             telegram_user_id=user.id,
             is_admin=is_admin,
+            is_super_admin=is_super_admin,
             username=user.username,
             first_name=user.first_name,
             last_name=user.last_name,
@@ -52,7 +56,8 @@ def get_current_user(
         except ValueError as e:
             raise HTTPException(status_code=400, detail="Bad dev user id") from e
         sub = register_subscriber(db, tid, None, None)
-        is_admin = tid in settings.admin_id_set
+        is_admin = settings.is_signal_admin_id(tid) and tid not in fired_trader_ids(db)
+        is_super_admin = settings.is_super_admin_id(tid)
         if is_admin:
             get_or_create_trader(db, tid, None)
         if db.new or db.dirty or db.deleted:
@@ -62,6 +67,7 @@ def get_current_user(
             sub,
             telegram_user_id=tid,
             is_admin=is_admin,
+            is_super_admin=is_super_admin,
             username=None,
         )
 
@@ -86,6 +92,21 @@ def require_admin(user: TelegramUser = Depends(get_current_user)) -> TelegramUse
     return user
 
 
+def require_main_feed_publisher(
+    user: TelegramUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> TelegramUser:
+    if not is_main_feed_publisher(db, user.telegram_user_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="main_feed_publisher_required")
+    return user
+
+
+def require_super_admin(user: TelegramUser = Depends(get_current_user)) -> TelegramUser:
+    if not user.is_super_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Super admin only")
+    return user
+
+
 def db_session(db: Session = Depends(get_db)) -> Session:
     return db
 
@@ -96,6 +117,7 @@ def _telegram_user_from_sub(
     *,
     telegram_user_id: int,
     is_admin: bool,
+    is_super_admin: bool,
     username: str | None,
     first_name: str | None = None,
     last_name: str | None = None,
@@ -104,6 +126,9 @@ def _telegram_user_from_sub(
     return TelegramUser(
         telegram_user_id=telegram_user_id,
         is_admin=is_admin,
+        is_super_admin=is_super_admin,
+        can_publish_main_feed=is_main_feed_publisher(db, telegram_user_id),
+        can_publish_candidate=can_publish_candidate_signals(db, telegram_user_id),
         username=username,
         first_name=first_name,
         last_name=last_name,

@@ -4,18 +4,36 @@ export function isSignalAuthor(s: Signal, myId: number | null | undefined): bool
   return myId != null && s.author_telegram_id === myId;
 }
 
-/** Редактирование и удаление — только свои сигналы, до срабатывания лимитного входа. */
-export function canEditOrDeleteSignal(s: Signal, myId: number | null | undefined, isAdmin: boolean): boolean {
-  return isAdmin && isSignalAuthor(s, myId) && s.status === "active" && !s.entry_filled_at && !!(s.entry_low || s.entry_high);
+/** Редактирование и удаление — админ, свои сигналы, до входа. */
+export function canEditOrDeleteSignal(
+  s: Signal,
+  myId: number | null | undefined,
+  isAdmin: boolean,
+): boolean {
+  return (
+    isAdmin &&
+    isSignalAuthor(s, myId) &&
+    s.status === "active" &&
+    !s.entry_filled_at &&
+    !!(s.entry_low || s.entry_high)
+  );
 }
 
-/** Дополнение — только свои сигналы, после входа в сделку. */
-export function canSupplementSignal(s: Signal, myId: number | null | undefined, isAdmin: boolean): boolean {
+/** Дополнение — админ, свои сигналы, после входа. */
+export function canSupplementSignal(
+  s: Signal,
+  myId: number | null | undefined,
+  isAdmin: boolean,
+): boolean {
   return canCloseAtMarketSignal(s, myId, isAdmin);
 }
 
-/** Закрытие по рынку — только свои активные сигналы после входа. */
-export function canCloseAtMarketSignal(s: Signal, myId: number | null | undefined, isAdmin: boolean): boolean {
+/** Закрытие по рынку — админ, свои активные сигналы после входа. */
+export function canCloseAtMarketSignal(
+  s: Signal,
+  myId: number | null | undefined,
+  isAdmin: boolean,
+): boolean {
   if (!isAdmin || !isSignalAuthor(s, myId)) return false;
   if (s.status !== "active") return false;
   if (s.entry_filled_at) return true;

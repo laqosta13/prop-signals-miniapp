@@ -404,6 +404,19 @@ def run_migrations(engine: Engine) -> None:
                 )
             )
 
+        if "trader_roster_overrides" not in inspect(engine).get_table_names():
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS trader_roster_overrides (
+                        telegram_id INTEGER PRIMARY KEY,
+                        section VARCHAR(16) NOT NULL,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
+            )
+
     _backfill_referral_codes(engine)
     _purge_test_data_once(engine)
     _purge_signals_reset_v3(engine)
@@ -442,7 +455,7 @@ def _recalc_closed_signal_pnl_v3(engine: Engine) -> None:
     from app.models import Signal, UserChallenge
     from app.trader_stats import rebuild_trader_stats_from_signals
 
-    ids = sorted(settings.admin_id_set)
+    ids = sorted(settings.all_admin_id_set)
     if not ids:
         marker.parent.mkdir(parents=True, exist_ok=True)
         marker.touch()
@@ -482,7 +495,7 @@ def _recalc_winrate_by_pnl_v1(engine: Engine) -> None:
     from app.database import SessionLocal
     from app.trader_stats import rebuild_trader_stats_from_signals
 
-    ids = sorted(settings.admin_id_set)
+    ids = sorted(settings.all_admin_id_set)
     if not ids:
         marker.parent.mkdir(parents=True, exist_ok=True)
         marker.touch()
@@ -513,7 +526,7 @@ def _recalc_closed_signal_pnl_v2(engine: Engine) -> None:
     from app.database import SessionLocal
     from app.trader_stats import rebuild_trader_stats_from_signals
 
-    ids = sorted(settings.admin_id_set)
+    ids = sorted(settings.all_admin_id_set)
     if not ids:
         marker.parent.mkdir(parents=True, exist_ok=True)
         marker.touch()
@@ -545,7 +558,7 @@ def _recalc_market_close_ratings_v1(engine: Engine) -> None:
     from app.database import SessionLocal
     from app.trader_stats import rebuild_trader_stats_from_signals
 
-    ids = sorted(settings.admin_id_set)
+    ids = sorted(settings.all_admin_id_set)
     if not ids:
         marker.parent.mkdir(parents=True, exist_ok=True)
         marker.touch()

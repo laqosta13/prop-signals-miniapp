@@ -116,7 +116,7 @@ def delete_review(
     row = db.get(Review, review_id)
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
-    if row.author_telegram_id != user.telegram_user_id and not user.is_admin:
+    if row.author_telegram_id != user.telegram_user_id and not user.is_super_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
     delete_media_files(row.image_path)
     db.delete(row)

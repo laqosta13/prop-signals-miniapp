@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     telegram_support_username: str = ""
     telegram_support_group_id: str = ""
     telegram_admin_ids: str = ""
+    """Главный админ: новости, CULT, purge. Остальные из TELEGRAM_ADMIN_IDS — сигналы и свой трекер."""
+    telegram_super_admin_ids: str = ""
     telegram_former_admin_ids: str = ""
     database_url: str = "sqlite:///./signals.db"
     cors_origins: str = "http://localhost:5173"
@@ -34,6 +36,27 @@ class Settings(BaseSettings):
         if not raw:
             return set()
         return {int(x.strip()) for x in raw.split(",") if x.strip().isdigit()}
+
+    @property
+    def super_admin_id_set(self) -> set[int]:
+        raw = self.telegram_super_admin_ids.strip()
+        if not raw:
+            return set()
+        return {int(x.strip()) for x in raw.split(",") if x.strip().isdigit()}
+
+    @property
+    def all_admin_id_set(self) -> set[int]:
+        return self.admin_id_set | self.super_admin_id_set
+
+    def is_super_admin_id(self, telegram_user_id: int) -> bool:
+        """Если супер-админ не задан — все TELEGRAM_ADMIN_IDS с полным доступом (как раньше)."""
+        super_ids = self.super_admin_id_set
+        if not super_ids:
+            return telegram_user_id in self.admin_id_set
+        return telegram_user_id in super_ids
+
+    def is_signal_admin_id(self, telegram_user_id: int) -> bool:
+        return telegram_user_id in self.all_admin_id_set
 
     @property
     def former_admin_id_set(self) -> set[int]:

@@ -110,7 +110,7 @@ def volnovoi_rank_read(weekly_pct: float) -> TraderRankRead:
 
 
 def build_volnovoi_read(db: Session) -> TraderRead | None:
-    admin_ids = sorted(settings.admin_id_set)
+    admin_ids = sorted(settings.all_admin_id_set)
     if not admin_ids:
         return None
 

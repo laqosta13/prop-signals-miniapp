@@ -127,7 +127,7 @@ def resolve_actor_label(db: Session, actor: TelegramUser) -> str:
 
 def subscriber_ids_for_notify(db: Session) -> list[int]:
     """Подписчики с notify_enabled и действующей подпиской (trial или платной)."""
-    admin_ids = settings.admin_id_set
+    admin_ids = settings.all_admin_id_set
     subs = db.scalars(select(Subscriber).where(Subscriber.notify_enabled.is_(True))).all()
     ids: list[int] = []
     for sub in subs:

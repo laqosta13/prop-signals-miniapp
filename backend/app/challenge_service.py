@@ -13,11 +13,11 @@ from app.trader_stats import signal_tracker_balance
 
 
 def admin_ids() -> list[int]:
-    return sorted(settings.admin_id_set)
+    return sorted(settings.all_admin_id_set)
 
 
 def get_or_create_challenge(db: Session, admin_id: int) -> UserChallenge:
-    if admin_id not in settings.admin_id_set:
+    if admin_id not in settings.all_admin_id_set:
         raise ValueError("not an admin")
     row = db.get(UserChallenge, admin_id)
     if row is None:
@@ -45,7 +45,7 @@ def admin_account_size(db: Session, admin_id: int) -> float:
 
 
 def ensure_tracker_for_new_signal(db: Session, signal: Signal) -> None:
-    if signal.author_telegram_id not in settings.admin_id_set:
+    if signal.author_telegram_id not in settings.all_admin_id_set:
         return
     ch = get_or_create_challenge(db, signal.author_telegram_id)
     tb = signal_tracker_balance(signal)
@@ -104,7 +104,7 @@ def rebuild_tracker_balances_from_signals(db: Session, admin_ids: list[int]) -> 
 
 
 def apply_signal_to_tracker(db: Session, signal: Signal) -> None:
-    if signal.author_telegram_id not in settings.admin_id_set or signal.realized_pnl is None:
+    if signal.author_telegram_id not in settings.all_admin_id_set or signal.realized_pnl is None:
         return
     ch = get_or_create_challenge(db, signal.author_telegram_id)
     ch.balance = round(ch.balance + signal.realized_pnl, 2)

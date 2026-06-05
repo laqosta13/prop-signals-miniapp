@@ -12,6 +12,14 @@ from app.schemas import TraderDayStat, TraderRead
 from app.serializers import trader_to_read
 from app.signal_service import get_or_create_trader
 from app.rank_service import ensure_rank_fields
+from app.trader_roster_service import (
+    ROSTER_CANDIDATE,
+    ROSTER_FIRED,
+    ROSTER_TOP,
+    demoted_admin_ids,
+    roster_overrides_map,
+    top_trader_ids,
+)
 from app.trader_stats import closed_signal_move_pct, closed_signal_pnl_usd
 from app.volnovoi_account import build_volnovoi_read
 
@@ -66,18 +74,24 @@ def _trader_has_two_minus_weeks(trader: Trader) -> bool:
 
 
 def fired_trader_ids(db: Session) -> list[int]:
-    """Уволенные: бывшие админы из env и админы с двумя минусовыми неделями подряд."""
-    active = settings.admin_id_set
+    """Уволенные: env, две минусовые недели подряд, ручная ротация главного админа."""
+    overrides = roster_overrides_map(db)
+    active = settings.all_admin_id_set
     fired: set[int] = {
         tid for tid in settings.former_admin_id_set if tid not in active and tid != 0
     }
-    if not active:
-        return sorted(fired)
+    if active:
+        traders = db.scalars(select(Trader).where(Trader.telegram_id.in_(active))).all()
+        for t in traders:
+            if _trader_has_two_minus_weeks(t):
+                fired.add(t.telegram_id)
 
-    traders = db.scalars(select(Trader).where(Trader.telegram_id.in_(active))).all()
-    for t in traders:
-        if _trader_has_two_minus_weeks(t):
-            fired.add(t.telegram_id)
+    for tid, section in overrides.items():
+        if section == ROSTER_FIRED:
+            fired.add(tid)
+        elif section in (ROSTER_TOP, ROSTER_CANDIDATE):
+            fired.discard(tid)
+
     return sorted(fired)
 
 
@@ -105,15 +119,22 @@ def _traders_leaderboard_rows(db: Session, ids: list[int]) -> list[TraderRead]:
 
 def build_leaderboard(db: Session) -> list[TraderRead]:
     fired = set(fired_trader_ids(db))
-    ids = sorted(aid for aid in settings.admin_id_set if aid not in fired)
-    if not ids:
-        return []
+    ids = top_trader_ids(db, fired=fired)
     result: list[TraderRead] = []
     volnovoi = build_volnovoi_read(db)
     if volnovoi is not None:
         result.append(volnovoi)
-    result.extend(_traders_leaderboard_rows(db, ids))
+    if ids:
+        result.extend(_traders_leaderboard_rows(db, ids))
     return result
+
+
+def build_roster_demoted_admins(db: Session) -> list[TraderRead]:
+    """Админы, переведённые главным админом в блок кандидатов."""
+    ids = demoted_admin_ids(db)
+    if not ids:
+        return []
+    return _traders_leaderboard_rows(db, ids)
 
 
 def build_fired_leaderboard(db: Session) -> list[TraderRead]:

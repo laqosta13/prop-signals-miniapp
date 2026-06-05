@@ -74,6 +74,9 @@ class ViewResponse(BaseModel):
 class TelegramUser(BaseModel):
     telegram_user_id: int
     is_admin: bool
+    is_super_admin: bool = False
+    can_publish_main_feed: bool = False
+    can_publish_candidate: bool = False
     username: str | None = None
     first_name: str | None = None
     last_name: str | None = None
@@ -199,6 +202,10 @@ class CultChannelRead(BaseModel):
 
 class CultChannelCreateBody(BaseModel):
     url: str = Field(min_length=4, max_length=256)
+
+
+class TraderRosterBody(BaseModel):
+    section: str = Field(pattern=r"^(top|candidate|fired)$")
 
 
 class CultCandidateActiveSignalRead(BaseModel):

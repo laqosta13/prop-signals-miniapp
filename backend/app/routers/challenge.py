@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Upload
 from sqlalchemy.orm import Session
 
 from app.challenge_service import apply_prop_balance_sync, build_dashboard, get_or_create_challenge, list_admin_trackers
-from app.deps import db_session, get_current_user, require_admin
+from app.deps import db_session, get_current_user, require_admin, require_main_feed_publisher
 from app.hashhedge_rules import rules_payload
 from app.media_storage import clear_tracker_screenshot_dir, delete_media_files, save_tracker_screenshot
 from app.schemas import ChallengeDashboard, TelegramUser
@@ -34,7 +34,7 @@ def trackers(
 def my_tracker(
     exclude_signal_id: int | None = Query(None, ge=1),
     db: Session = Depends(db_session),
-    admin: TelegramUser = Depends(require_admin),
+    admin: TelegramUser = Depends(require_main_feed_publisher),
 ) -> ChallengeDashboard:
     """Текущий трекер админа — для формы сигнала (баланс и размер счёта)."""
     ch = get_or_create_challenge(db, admin.telegram_user_id)

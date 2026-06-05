@@ -2,13 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.deps import db_session, get_current_user, require_admin
-from app.leaderboard_service import build_fired_leaderboard, build_leaderboard, fired_trader_ids
+from app.deps import db_session, get_current_user, require_admin, require_super_admin
+from app.leaderboard_service import build_fired_leaderboard, build_leaderboard, build_roster_demoted_admins, fired_trader_ids
 from app.models import Trader
 from app.rank_service import activate_shield, confirm_rank, ensure_rank_fields, needs_confirm_prompt
-from app.schemas import TelegramUser, TraderRankRead, TraderRead
+from app.schemas import TelegramUser, TraderRankRead, TraderRead, TraderRosterBody
 from app.serializers import trader_rank_read
 from app.signal_service import get_or_create_trader
+from app.cult_candidate_service import ensure_cult_candidate_for_demoted_admin
+from app.trader_roster_service import ROSTER_CANDIDATE, clear_roster_override, set_roster_override
 from app.volnovoi_account import build_volnovoi_read, is_volnovoi_account
 
 router = APIRouter(prefix="/traders", tags=["traders"])
@@ -34,6 +36,50 @@ def fired_leaderboard(
     result = build_fired_leaderboard(db)
     db.commit()
     return result
+
+
+@router.get("/roster-demoted", response_model=list[TraderRead])
+def roster_demoted_admins(
+    db: Session = Depends(db_session),
+    _admin: TelegramUser = Depends(get_current_user),
+) -> list[TraderRead]:
+    """Админы, переведённые в блок кандидатов (для вкладки ТОП)."""
+    result = build_roster_demoted_admins(db)
+    db.commit()
+    return result
+
+
+@router.put("/{telegram_id}/roster")
+def set_trader_roster(
+    telegram_id: int,
+    body: TraderRosterBody,
+    db: Session = Depends(db_session),
+    _admin: TelegramUser = Depends(require_super_admin),
+) -> dict[str, object]:
+    """Ротация трейдера: top / candidate / fired (главный админ)."""
+    try:
+        set_roster_override(db, telegram_id, body.section)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    get_or_create_trader(db, telegram_id, None)
+    if body.section == ROSTER_CANDIDATE:
+        ensure_cult_candidate_for_demoted_admin(db, telegram_id)
+    db.commit()
+    return {"ok": True, "telegram_id": telegram_id, "section": body.section}
+
+
+@router.delete("/{telegram_id}/roster", status_code=status.HTTP_204_NO_CONTENT)
+def reset_trader_roster(
+    telegram_id: int,
+    db: Session = Depends(db_session),
+    _admin: TelegramUser = Depends(require_super_admin),
+) -> None:
+    """Сброс ручной ротации — автоматические правила."""
+    try:
+        clear_roster_override(db, telegram_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    db.commit()
 
 
 @router.get("/me/rank-pending")
@@ -86,7 +132,7 @@ def trader_rank_profile(
         if row is None or row.trader_rank is None:
             raise HTTPException(status_code=404, detail="trader_not_found")
         return row.trader_rank
-    if telegram_id not in settings.admin_id_set and telegram_id not in fired_trader_ids(db):
+    if telegram_id not in settings.all_admin_id_set and telegram_id not in fired_trader_ids(db):
         raise HTTPException(status_code=404, detail="trader_not_found")
     trader = db.get(Trader, telegram_id)
     if trader is None:

@@ -16,6 +16,7 @@ import { FieldLabelWithPaste, appendPastedText } from "./FieldLabelWithPaste";
 
 type Props = {
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   canWriteReview: boolean;
   reviewWriteBlockedReason: string | null;
   daysUntilReview: number | null;
@@ -34,6 +35,7 @@ function writeBlockMessage(reason: string | null, days: number | null): string {
 
 export function ReviewsTab({
   isAdmin,
+  isSuperAdmin,
   canWriteReview,
   reviewWriteBlockedReason,
   daysUntilReview,
@@ -219,7 +221,7 @@ export function ReviewsTab({
       <ul className="review-list">
         {reviews.map((r) => {
           const profile = authorProfile(r.author_display_name, r.author_username);
-          const canDelete = r.is_mine || isAdmin;
+          const canDelete = r.is_mine || isSuperAdmin;
           const imgSrc = mediaUrl(r.image_url);
           return (
             <li key={r.id} className="review-card">

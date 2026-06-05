@@ -46,7 +46,7 @@ def fee_from_profit(profit_usd: float) -> float:
 
 
 def has_unpaid_copy_invoice(db: Session, telegram_user_id: int) -> bool:
-    if telegram_user_id in settings.admin_id_set:
+    if telegram_user_id in settings.all_admin_id_set:
         return False
     inv = db.scalar(
         select(CopyTradingInvoice)
@@ -62,7 +62,7 @@ def has_unpaid_copy_invoice(db: Session, telegram_user_id: int) -> bool:
 
 
 def copy_trading_allowed(db: Session, telegram_user_id: int) -> bool:
-    if telegram_user_id in settings.admin_id_set:
+    if telegram_user_id in settings.all_admin_id_set:
         return True
     return not has_unpaid_copy_invoice(db, telegram_user_id)
 
@@ -90,7 +90,7 @@ def ensure_baseline_on_connect(row: UserBybitSettings, current_equity: float | N
 
 def upsert_daily_invoice(db: Session, row: UserBybitSettings, current_equity: float | None) -> CopyTradingInvoice | None:
     """Раз в сутки: счёт 20% от неоплаченной прибыли с момента подключения."""
-    if row.telegram_user_id in settings.admin_id_set:
+    if row.telegram_user_id in settings.all_admin_id_set:
         return None
     if current_equity is None:
         return None

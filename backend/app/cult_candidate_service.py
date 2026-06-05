@@ -64,10 +64,14 @@ def is_cult_candidate(db: Session, telegram_id: int) -> bool:
     return row is not None and bool(row.enabled)
 
 
-def join_blockers(db: Session, sub: Subscriber, *, is_admin: bool) -> list[str]:
+def join_blockers(db: Session, sub: Subscriber, *, cult_admin_bypass: bool = False) -> list[str]:
+    from app.trader_roster_service import is_main_feed_publisher
+
+    if is_main_feed_publisher(db, sub.telegram_user_id):
+        return ["Админы в ТОП публикуют в основную ленту"]
     if is_cult_candidate(db, sub.telegram_user_id):
         return []
-    if not cult_subscription_active(sub, is_admin=is_admin):
+    if not cult_subscription_active(sub, is_admin=cult_admin_bypass):
         return ["Нужна подписка кандидата CULT ($20 / 30 дней)"]
     bybit = db.get(UserBybitSettings, sub.telegram_user_id)
     if bybit is None:
@@ -75,17 +79,46 @@ def join_blockers(db: Session, sub: Subscriber, *, is_admin: bool) -> list[str]:
     return []
 
 
+def ensure_cult_candidate_for_demoted_admin(db: Session, telegram_id: int) -> CultCandidate | None:
+    """При переводе админа в кандидаты — запись CULT для публикации по правилам кандидатов."""
+    from app.trader_roster_service import is_roster_demoted_admin
+
+    if not is_roster_demoted_admin(db, telegram_id):
+        return None
+    from app.signal_service import get_or_create_trader
+
+    trader = get_or_create_trader(db, telegram_id, None)
+    name = display_name_from_telegram(
+        first_name=trader.first_name,
+        last_name=trader.last_name,
+        username=trader.username,
+    )
+    existing = db.get(CultCandidate, telegram_id)
+    if existing:
+        existing.display_name = name
+        existing.enabled = True
+        return existing
+    row = CultCandidate(
+        telegram_user_id=telegram_id,
+        display_name=name,
+        joined_at=_now(),
+    )
+    db.add(row)
+    db.flush()
+    return row
+
+
 def join_cult_candidate(
     db: Session,
     sub: Subscriber,
     *,
-    is_admin: bool,
+    cult_admin_bypass: bool,
     user: TelegramUser,
     display_name: str | None = None,
 ) -> CultCandidate:
     from app.signal_service import get_or_create_trader
 
-    blockers = join_blockers(db, sub, is_admin=is_admin)
+    blockers = join_blockers(db, sub, cult_admin_bypass=cult_admin_bypass)
     if blockers:
         raise ValueError(blockers[0])
     if display_name and display_name.strip():
@@ -320,7 +353,15 @@ def _candidate_read(
 
 
 def build_cult_candidates_read(db: Session, *, viewer_id: int | None = None) -> list[CultCandidateRead]:
+    from app.trader_roster_service import ROSTER_FIRED, ROSTER_TOP, roster_overrides_map
+
+    overrides = roster_overrides_map(db)
     rows = list(db.scalars(select(CultCandidate).where(CultCandidate.enabled.is_(True))).all())
+    rows = [
+        r
+        for r in rows
+        if overrides.get(r.telegram_user_id) not in (ROSTER_TOP, ROSTER_FIRED)
+    ]
     if not rows:
         return []
     ids = [r.telegram_user_id for r in rows]
@@ -342,9 +383,12 @@ def build_cult_candidates_read(db: Session, *, viewer_id: int | None = None) -> 
     ]
 
 
-def build_cult_candidate_me_read(db: Session, sub: Subscriber, *, is_admin: bool) -> CultCandidateMeRead:
+def build_cult_candidate_me_read(db: Session, sub: Subscriber) -> CultCandidateMeRead:
+    from app.trader_roster_service import cult_subscription_admin_bypass
+
     row = db.get(CultCandidate, sub.telegram_user_id)
-    blockers = join_blockers(db, sub, is_admin=is_admin)
+    bypass = cult_subscription_admin_bypass(db, sub.telegram_user_id)
+    blockers = join_blockers(db, sub, cult_admin_bypass=bypass)
     bybit = db.get(UserBybitSettings, sub.telegram_user_id)
     return CultCandidateMeRead(
         is_candidate=row is not None and bool(row.enabled),
@@ -352,7 +396,7 @@ def build_cult_candidate_me_read(db: Session, sub: Subscriber, *, is_admin: bool
         can_join=len(blockers) == 0,
         blockers=blockers,
         bybit_configured=bybit is not None,
-        cult_subscription_active=cult_subscription_active(sub, is_admin=is_admin),
+        cult_subscription_active=cult_subscription_active(sub, is_admin=bypass),
         cult_subscription_until=sub.cult_subscription_until,
     )
 
@@ -364,11 +408,16 @@ def cult_candidate_account_size(db: Session, telegram_id: int) -> float:
     return copy_deposit_base_usd(bybit)
 
 
-def ensure_can_trade(db: Session, sub: Subscriber, *, is_admin: bool) -> CultCandidate:
+def ensure_can_trade(db: Session, sub: Subscriber) -> CultCandidate:
+    from app.trader_roster_service import cult_subscription_admin_bypass, is_main_feed_publisher
+
+    if is_main_feed_publisher(db, sub.telegram_user_id):
+        raise ValueError("Вы в ТОП — публикуйте сигналы в основную ленту")
     row = db.get(CultCandidate, sub.telegram_user_id)
     if row is None or not row.enabled:
         raise ValueError("Сначала станьте кандидатом в CULT")
-    blockers = join_blockers(db, sub, is_admin=is_admin)
+    bypass = cult_subscription_admin_bypass(db, sub.telegram_user_id)
+    blockers = join_blockers(db, sub, cult_admin_bypass=bypass)
     if blockers:
         raise ValueError(blockers[0])
     return row

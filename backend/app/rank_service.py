@@ -186,7 +186,7 @@ def activate_shield(trader: Trader) -> None:
 
 def process_monday_rollover(db: Session) -> int:
     """Понедельник 00:01 UTC: штраф за неподтверждение, иначе apply, сброс недели."""
-    admin_ids = settings.admin_id_set
+    admin_ids = settings.all_admin_id_set
     if not admin_ids:
         return 0
     now = _utc_now()

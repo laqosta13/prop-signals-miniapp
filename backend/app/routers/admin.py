@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.data_cleanup import purge_all_published_content
-from app.deps import db_session, require_admin
+from app.deps import db_session, require_super_admin
 from app.schemas import TelegramUser
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -10,7 +10,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 @router.post("/purge-published")
 def purge_published(
-    _admin: TelegramUser = Depends(require_admin),
+    _admin: TelegramUser = Depends(require_super_admin),
     db: Session = Depends(db_session),
 ) -> dict[str, object]:
     """Удалить все сигналы, новости и отзывы (подписки и платежи не трогаем)."""

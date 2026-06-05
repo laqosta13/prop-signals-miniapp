@@ -56,6 +56,9 @@ export type Signal = {
 export type Me = {
   telegram_user_id: number;
   is_admin: boolean;
+  is_super_admin: boolean;
+  can_publish_main_feed: boolean;
+  can_publish_candidate: boolean;
   username: string | null;
   notify_enabled: boolean;
   notify_news_enabled: boolean;
@@ -472,6 +475,21 @@ export const payCopyTradingFee = (invoice_id: number, tx_id: string) =>
 
 export const fetchLeaderboard = () => api<Trader[]>("/traders/leaderboard");
 export const fetchFiredLeaderboard = () => api<Trader[]>("/traders/fired-leaderboard");
+export const fetchRosterDemotedAdmins = () => api<Trader[]>("/traders/roster-demoted");
+
+export type TraderRosterSection = "top" | "candidate" | "fired";
+
+export const setTraderRoster = (telegramId: number, section: TraderRosterSection) =>
+  api<{ ok: boolean; telegram_id: number; section: TraderRosterSection }>(`/traders/${telegramId}/roster`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ section }),
+  });
+
+export async function resetTraderRoster(telegramId: number): Promise<void> {
+  const res = await fetch(`${base}/traders/${telegramId}/roster`, { method: "DELETE", headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseApiError(res));
+}
 export const fetchCultChannels = () => api<CultChannel[]>("/cult-channels");
 export const createCultChannel = (url: string) =>
   api<CultChannel>("/cult-channels", {

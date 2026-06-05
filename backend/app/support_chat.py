@@ -223,7 +223,7 @@ async def process_support_group_message(db: Session, message: dict) -> bool:
     if from_user.get("is_bot"):
         return False
 
-    admin_ids = settings.admin_id_set
+    admin_ids = settings.all_admin_id_set
     if admin_ids and int(from_user.get("id") or 0) not in admin_ids:
         logger.debug("support: ignore non-admin %s", from_user.get("id"))
         return False

@@ -12,7 +12,7 @@ from app.cult_channel_service import (
     normalize_channel_username,
     resolve_channel,
 )
-from app.deps import db_session, get_current_user, require_admin
+from app.deps import db_session, get_current_user, require_super_admin
 from app.models import CultChannel
 from app.schemas import CultChannelCreateBody, CultChannelRead, TelegramUser
 from app.telegram_bot_api import TelegramApiError
@@ -33,7 +33,7 @@ def list_cult_channels(
 async def create_cult_channel(
     body: CultChannelCreateBody,
     db: Session = Depends(db_session),
-    user: TelegramUser = Depends(require_admin),
+    user: TelegramUser = Depends(require_super_admin),
 ) -> CultChannelRead:
     url = body.url.strip()
     try:
@@ -71,7 +71,7 @@ async def create_cult_channel(
 def remove_cult_channel(
     channel_id: int,
     db: Session = Depends(db_session),
-    user: TelegramUser = Depends(require_admin),
+    user: TelegramUser = Depends(require_super_admin),
 ) -> None:
     _ = user
     try:

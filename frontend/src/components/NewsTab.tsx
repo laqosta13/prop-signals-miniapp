@@ -5,12 +5,12 @@ import { formatTime, mediaUrl } from "../utils";
 import { LinkPreviewCard } from "./LinkPreviewCard";
 
 type Props = {
-  isAdmin: boolean;
+  isSuperAdmin: boolean;
   onEdit: (post: NewsPost) => void;
   refreshKey?: number;
 };
 
-export function NewsTab({ isAdmin, onEdit, refreshKey = 0 }: Props) {
+export function NewsTab({ isSuperAdmin, onEdit, refreshKey = 0 }: Props) {
   const [posts, setPosts] = useState<NewsPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -61,7 +61,7 @@ export function NewsTab({ isAdmin, onEdit, refreshKey = 0 }: Props) {
                   {p.author_display_name ? ` · ${p.author_display_name}` : ""}
                 </p>
               </div>
-              {isAdmin && (
+              {isSuperAdmin && (
                 <div className="news-card__actions">
                   <button type="button" className="ghost-btn ghost-btn--sm" onClick={() => onEdit(p)}>
                     Изм.

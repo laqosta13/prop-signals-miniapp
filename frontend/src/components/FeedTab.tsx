@@ -10,6 +10,7 @@ type Props = {
   trackers: ChallengeDashboard[];
   loading: boolean;
   isAdmin: boolean;
+  canPublishMainFeed: boolean;
   myId: number | null;
   subscriptionActive: boolean;
   onChanged: () => void;
@@ -27,6 +28,7 @@ export function FeedTab({
   trackers,
   loading,
   isAdmin,
+  canPublishMainFeed,
   myId,
   subscriptionActive,
   onChanged,
@@ -40,8 +42,9 @@ export function FeedTab({
 }: Props) {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [closingId, setClosingId] = useState<number | null>(null);
-  const hasActiveAccess = canViewActiveSignals(subscriptionActive, isAdmin);
-  const visible = visibleFeedSignals(signals, subscriptionActive, isAdmin);
+  const feedTrader = isAdmin || canPublishMainFeed;
+  const hasActiveAccess = canViewActiveSignals(subscriptionActive, feedTrader);
+  const visible = visibleFeedSignals(signals, subscriptionActive, feedTrader);
   const handleDelete = async (id: number) => {
     if (!confirm("Удалить этот сигнал?")) return;
     setDeletingId(id);

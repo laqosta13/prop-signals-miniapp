@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Upload
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.deps import db_session, get_current_user, require_admin
+from app.deps import db_session, get_current_user, require_super_admin
 from app.link_preview import LinkPreview, fetch_link_preview, normalize_link_url
 from app.media_storage import delete_media_files, save_news_image, save_news_video
 from app.models import NewsPost
@@ -43,7 +43,7 @@ async def _parse_link_url(raw: str | None) -> LinkPreview | None:
 @router.get("/link-preview", response_model=NewsLinkPreview)
 async def link_preview(
     url: str = Query(..., min_length=4, max_length=512),
-    _admin: TelegramUser = Depends(require_admin),
+    _admin: TelegramUser = Depends(require_super_admin),
 ) -> NewsLinkPreview:
     normalized = normalize_link_url(url)
     if normalized is None:
@@ -76,7 +76,7 @@ async def create_news(
     image: UploadFile | None = File(None),
     video: UploadFile | None = File(None),
     db: Session = Depends(db_session),
-    admin: TelegramUser = Depends(require_admin),
+    admin: TelegramUser = Depends(require_super_admin),
 ) -> NewsRead:
     title_clean = title.strip()
     body_clean = body.strip()
@@ -116,7 +116,7 @@ async def update_news(
     remove_image: bool = Form(False),
     remove_video: bool = Form(False),
     db: Session = Depends(db_session),
-    admin: TelegramUser = Depends(require_admin),
+    admin: TelegramUser = Depends(require_super_admin),
 ) -> NewsRead:
     row = db.get(NewsPost, post_id)
     if row is None:
@@ -158,7 +158,7 @@ async def update_news(
 def delete_news(
     post_id: int,
     db: Session = Depends(db_session),
-    admin: TelegramUser = Depends(require_admin),
+    admin: TelegramUser = Depends(require_super_admin),
 ) -> None:
     row = db.get(NewsPost, post_id)
     if row is None:

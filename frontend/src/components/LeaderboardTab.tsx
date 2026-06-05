@@ -10,6 +10,7 @@ import { CultChannelCard } from "./CultChannelCard";
 import { RankBadge } from "./RankBadge";
 import { RankGuide } from "./RankGuide";
 import { TraderProfileModal } from "./TraderProfileModal";
+import { TraderRosterActions, type TraderRosterPlacement } from "./TraderRosterActions";
 import { VolnovoiCopyPanel } from "./VolnovoiCopyPanel";
 import { VolnovoiMarketingBadge } from "./VolnovoiMarketingBadge";
 import { authorProfile } from "../utils";
@@ -28,22 +29,31 @@ type Props = {
   traders: Trader[];
   firedTraders: Trader[];
   cultCandidates: CultCandidate[];
+  canPublishCandidate: boolean;
   cultChannels: CultChannel[];
   loading: boolean;
   myId: number | null;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   onCultChannelsChange: () => void;
   onCultCandidatesChange: () => void;
+  onRosterChange: () => void;
 };
 
 function TopTraderCard({
   trader,
   onOpen,
   fired = false,
+  isSuperAdmin = false,
+  rosterPlacement,
+  onRosterChange,
 }: {
   trader: Trader;
   onOpen: () => void;
   fired?: boolean;
+  isSuperAdmin?: boolean;
+  rosterPlacement?: TraderRosterPlacement;
+  onRosterChange?: () => void;
 }) {
   const aggregate = isVolnovoiTrader(trader);
 
@@ -98,6 +108,14 @@ function TopTraderCard({
         </button>
 
         {trader.daily_stats.length > 0 && <EquityCurve dailyStats={trader.daily_stats} />}
+
+        {isSuperAdmin && rosterPlacement && onRosterChange && !aggregate && (
+          <TraderRosterActions
+            telegramId={trader.telegram_id}
+            placement={rosterPlacement}
+            onChanged={onRosterChange}
+          />
+        )}
       </div>
     </li>
   );
@@ -107,12 +125,15 @@ export function LeaderboardTab({
   traders,
   firedTraders,
   cultCandidates,
+  canPublishCandidate,
   cultChannels,
   loading,
   myId,
   isAdmin,
+  isSuperAdmin,
   onCultChannelsChange,
   onCultCandidatesChange,
+  onRosterChange,
 }: Props) {
   const [profileTrader, setProfileTrader] = useState<Trader | null>(null);
   const [signalModalOpen, setSignalModalOpen] = useState(false);
@@ -193,6 +214,9 @@ export function LeaderboardTab({
                   key={trader.telegram_id}
                   trader={trader}
                   onOpen={() => setProfileTrader(trader)}
+                  isSuperAdmin={isSuperAdmin}
+                  rosterPlacement="top"
+                  onRosterChange={onRosterChange}
                 />
               ))}
             </ol>
@@ -212,8 +236,12 @@ export function LeaderboardTab({
                 <CultCandidateCard
                   key={candidate.telegram_user_id}
                   candidate={candidate}
-                  onTrade={candidate.is_me ? () => setSignalModalOpen(true) : undefined}
+                  onTrade={
+                    candidate.is_me && canPublishCandidate ? () => setSignalModalOpen(true) : undefined
+                  }
                   onOpenClosedTrade={openClosedTrade}
+                  isSuperAdmin={isSuperAdmin}
+                  onRosterChange={onRosterChange}
                 />
               ))}
             </ol>
@@ -228,7 +256,7 @@ export function LeaderboardTab({
           {userCandidates.length === 0 && channelCandidates.length === 0 && !isAdmin && (
             <p className="meta">{TOP_CANDIDATES_EMPTY}</p>
           )}
-          {isAdmin && <CultChannelAdminPanel channels={cultChannels} onChange={onCultChannelsChange} />}
+          {isSuperAdmin && <CultChannelAdminPanel channels={cultChannels} onChange={onCultChannelsChange} />}
         </section>
       )}
 
@@ -259,6 +287,9 @@ export function LeaderboardTab({
                 trader={trader}
                 fired
                 onOpen={() => setProfileTrader(trader)}
+                isSuperAdmin={isSuperAdmin}
+                rosterPlacement="fired"
+                onRosterChange={onRosterChange}
               />
             ))}
           </ol>

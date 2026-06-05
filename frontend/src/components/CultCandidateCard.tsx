@@ -2,14 +2,23 @@ import type { CultCandidate, CultCandidateClosedSignal } from "../api";
 import { Avatar } from "./Avatar";
 import { CultCandidateClosedTrades } from "./CultCandidateClosedTrades";
 import { EquityCurve } from "./EquityCurve";
+import { TraderRosterActions } from "./TraderRosterActions";
 
 type Props = {
   candidate: CultCandidate;
   onTrade?: () => void;
   onOpenClosedTrade?: (trade: CultCandidateClosedSignal) => void;
+  isSuperAdmin?: boolean;
+  onRosterChange?: () => void;
 };
 
-export function CultCandidateCard({ candidate, onTrade, onOpenClosedTrade }: Props) {
+export function CultCandidateCard({
+  candidate,
+  onTrade,
+  onOpenClosedTrade,
+  isSuperAdmin = false,
+  onRosterChange,
+}: Props) {
   const dirLabel = (d: string) => (d.toLowerCase() === "long" ? "LONG" : "SHORT");
 
   return (
@@ -64,6 +73,14 @@ export function CultCandidateCard({ candidate, onTrade, onOpenClosedTrade }: Pro
           <button type="button" className="btn-primary cult-candidate-trade-btn" onClick={onTrade}>
             + Сделка
           </button>
+        )}
+
+        {isSuperAdmin && onRosterChange && (
+          <TraderRosterActions
+            telegramId={candidate.telegram_user_id}
+            placement="candidate"
+            onChanged={onRosterChange}
+          />
         )}
       </div>
     </li>

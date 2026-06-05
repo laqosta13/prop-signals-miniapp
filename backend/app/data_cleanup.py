@@ -93,7 +93,7 @@ def _reset_trader_leaderboard(db: Session, *, reset_ranks: bool = False) -> None
 
 
 def _reset_admin_trackers(db: Session) -> None:
-    admin_ids = settings.admin_id_set
+    admin_ids = settings.all_admin_id_set
     for ch in list(db.scalars(select(UserChallenge))):
         if ch.telegram_user_id not in admin_ids:
             db.delete(ch)

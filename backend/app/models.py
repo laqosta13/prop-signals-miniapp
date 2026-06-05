@@ -160,6 +160,16 @@ class Trader(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
+class TraderRosterOverride(Base):
+    """Ручная ротация трейдеров главным админом: top / candidate / fired."""
+
+    __tablename__ = "trader_roster_overrides"
+
+    telegram_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    section: Mapped[str] = mapped_column(String(16), nullable=False)  # top | candidate | fired
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
 class CultCandidate(Base):
     """Пользователь-кандидат в CULT: свои сигналы и сделки на Bybit."""
 
