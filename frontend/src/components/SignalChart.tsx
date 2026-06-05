@@ -368,6 +368,7 @@ function closeBadgeLabel(
   exitPrice: number | null,
 ): string {
   const name = base ?? "Закрыт";
+  if (reason === "market") return name;
   if (entryRef == null || exitPrice == null || !Number.isFinite(exitPrice)) return name;
   const pct = levelMovePctFromEntry(entryRef, direction, exitPrice);
   return `${name} ${formatSignedMovePct(pct)}`;
@@ -917,7 +918,8 @@ export function SignalChart({
       : livePrice != null && chartEntryRef != null
         ? formatSignedMovePct(levelMovePctFromEntry(chartEntryRef, direction, livePrice))
         : null;
-  const showTrailEndBadge = !isLiveEntryTrail && frozenClosed && !!trailEndBadgeLabel;
+  const showTrailEndBadge =
+    !isLiveEntryTrail && frozenClosed && closeOverlay?.reason === "market" && !!trailEndBadgeLabel;
 
   return (
     <section
