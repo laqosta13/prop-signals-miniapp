@@ -420,6 +420,7 @@ export default function App() {
   ]
     .filter(Boolean)
     .join(", ");
+  const splitFeedStats = inMarketSignalCount > 0 && awaitingEntrySignalCount > 0;
   const showDisclaimer = disclaimerReady && !disclaimerAccepted && !loading;
 
   const acceptDisclaimer = () => {
@@ -444,27 +445,47 @@ export default function App() {
               aria-label={feedStatsLabel ? `${PRODUCT_TAGLINE}, ${feedStatsLabel}` : PRODUCT_TAGLINE}
             >
               <span className="topbar__marketplace-kicker">Marketplace</span>
-              <span className="topbar__marketplace-body">
-                <span className="topbar__marketplace-row">
-                  <span className="topbar__marketplace-word">крипто-</span>
-                  {inMarketSignalCount > 0 && (
-                    <span className="topbar__marketplace-live" aria-hidden>
-                      <span className="topbar__marketplace-count">{inMarketSignalCount}</span>
-                      <span className="topbar__marketplace-live-label">в рынке</span>
-                    </span>
-                  )}
-                </span>
-                <span className="topbar__marketplace-row">
-                  <span className="topbar__marketplace-word">сделок</span>
-                  {awaitingEntrySignalCount > 0 && (
-                    <span className="topbar__marketplace-live topbar__marketplace-live--awaiting" aria-hidden>
-                      <span className="topbar__marketplace-count topbar__marketplace-count--awaiting">
-                        {awaitingEntrySignalCount}
+              <span
+                className={`topbar__marketplace-body${splitFeedStats ? "" : " topbar__marketplace-body--single"}`}
+              >
+                {splitFeedStats ? (
+                  <>
+                    <span className="topbar__marketplace-row">
+                      <span className="topbar__marketplace-word">крипто-</span>
+                      <span className="topbar__marketplace-live" aria-hidden>
+                        <span className="topbar__marketplace-count">{inMarketSignalCount}</span>
+                        <span className="topbar__marketplace-live-label">в рынке</span>
                       </span>
-                      <span className="topbar__marketplace-live-label">ожидание входа</span>
                     </span>
-                  )}
-                </span>
+                    <span className="topbar__marketplace-row">
+                      <span className="topbar__marketplace-word">сделок</span>
+                      <span className="topbar__marketplace-live topbar__marketplace-live--awaiting" aria-hidden>
+                        <span className="topbar__marketplace-count topbar__marketplace-count--awaiting">
+                          {awaitingEntrySignalCount}
+                        </span>
+                        <span className="topbar__marketplace-live-label">ожидание входа</span>
+                      </span>
+                    </span>
+                  </>
+                ) : (
+                  <span className="topbar__marketplace-row">
+                    <span className="topbar__marketplace-word">крипто-сделок</span>
+                    {inMarketSignalCount > 0 && (
+                      <span className="topbar__marketplace-live" aria-hidden>
+                        <span className="topbar__marketplace-count">{inMarketSignalCount}</span>
+                        <span className="topbar__marketplace-live-label">в рынке</span>
+                      </span>
+                    )}
+                    {awaitingEntrySignalCount > 0 && (
+                      <span className="topbar__marketplace-live topbar__marketplace-live--awaiting" aria-hidden>
+                        <span className="topbar__marketplace-count topbar__marketplace-count--awaiting">
+                          {awaitingEntrySignalCount}
+                        </span>
+                        <span className="topbar__marketplace-live-label">ожидание входа</span>
+                      </span>
+                    )}
+                  </span>
+                )}
               </span>
             </p>
           ) : (

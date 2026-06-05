@@ -117,6 +117,10 @@
   min-width: 0;
 }
 
+.topbar__marketplace-body--single .topbar__marketplace-word {
+  white-space: nowrap;
+}
+
 .topbar__marketplace-row {
   display: flex;
   align-items: baseline;
