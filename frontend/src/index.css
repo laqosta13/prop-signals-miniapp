@@ -1745,6 +1745,52 @@
   line-height: 1.2;
 }
 
+.signal-chart__trail-dot {
+  position: absolute;
+  z-index: 4;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.signal-chart__trail-dot--entry {
+  background: #3dff8a;
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+}
+
+.signal-chart__trail-dot--up {
+  background: #3dff8a;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+}
+
+.signal-chart__trail-dot--down {
+  background: #ff6b6b;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+}
+
+.signal-chart__trail-dot--flat {
+  background: #8a8a93;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+}
+
+.signal-chart__trail-dot--stop {
+  background: #ff6b6b;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+}
+
+.signal-chart__trail-dot--target {
+  background: #e0afff;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+}
+
+.signal-chart__trail-dot--market {
+  background: #ffd166;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+}
+
 .signal-chart__trail-badge--entry {
   transform: translate(-50%, -50%);
 }

@@ -1,4 +1,5 @@
 import type { CultCandidate, CultCandidateClosedSignal } from "../api";
+import { authorProfile } from "../utils";
 import { Avatar } from "./Avatar";
 import { CultCandidateClosedTrades } from "./CultCandidateClosedTrades";
 import { EquityCurve } from "./EquityCurve";
@@ -34,9 +35,10 @@ export function CultCandidateCard({
           />
           <div className="top-body">
             <div className="top-name-row">
-              <p className="top-name">{candidate.display_name}</p>
+              <p className="top-name">
+                {authorProfile(candidate.display_name, candidate.username).title}
+              </p>
             </div>
-            {candidate.username && <p className="top-aggregate-hint">@{candidate.username}</p>}
             <p className={`top-score ${candidate.rating_percent >= 0 ? "up" : "down"}`}>
               {candidate.rating_percent >= 0 ? "+" : ""}
               {candidate.rating_percent.toFixed(2)}%

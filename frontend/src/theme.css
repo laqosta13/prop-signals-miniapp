@@ -590,6 +590,24 @@ body {
   stroke: rgba(217, 119, 6, 0.85);
 }
 
+[data-theme="light"] .signal-chart__trail-dot--entry,
+[data-theme="light"] .signal-chart__trail-dot--up {
+  background: #059669;
+}
+
+[data-theme="light"] .signal-chart__trail-dot--down,
+[data-theme="light"] .signal-chart__trail-dot--stop {
+  background: #dc2626;
+}
+
+[data-theme="light"] .signal-chart__trail-dot--target {
+  background: #7c3aed;
+}
+
+[data-theme="light"] .signal-chart__trail-dot--market {
+  background: #d97706;
+}
+
 [data-theme="light"] .signal-chart__live-dot--entry {
   fill: #059669;
 }

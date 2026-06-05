@@ -198,12 +198,12 @@ function applyLevelLines(
       lineWidth: 1,
       lineStyle: LineStyle.Solid,
       axisLabelVisible: true,
-      title: chartLevelLineTitle("Стоп", opts.entryRef, dir, stop),
+      title: chartLevelLineTitle("SL%", opts.entryRef, dir, stop),
     });
   }
 
   targets.forEach((tp, i) => {
-    const base = targets.length > 1 ? `Цель ${i + 1}` : "Цель";
+    const base = targets.length > 1 ? `TP% ${i + 1}` : "TP%";
     series.createPriceLine({
       price: tp,
       color: opts.palette.target,
@@ -904,25 +904,41 @@ export function SignalChart({
             />
           </svg>
         )}
-        {liveTrail && (
-          <div
-            className="signal-chart__trail-badge signal-chart__trail-badge--entry signal-chart__marker-badge--entry"
-            style={{ left: `${liveTrail.x1}px`, top: `${liveTrail.y1}px` }}
-          >
-            Вход
-          </div>
-        )}
-        {liveTrail && trailEndBadgeLabel && (
-          <div
-            className={`signal-chart__trail-badge signal-chart__trail-badge--end signal-chart__marker-badge--${trailEndClass(
-              liveTrail,
-              frozen,
-            )}`}
-            style={{ left: `${liveTrail.x2}px`, top: `${liveTrail.y2}px` }}
-          >
-            {trailEndBadgeLabel}
-          </div>
-        )}
+        {liveTrail &&
+          (isLiveEntryTrail ? (
+            <div
+              className="signal-chart__trail-dot signal-chart__trail-dot--entry"
+              style={{ left: `${liveTrail.x1}px`, top: `${liveTrail.y1}px` }}
+              aria-hidden
+            />
+          ) : (
+            <div
+              className="signal-chart__trail-badge signal-chart__trail-badge--entry signal-chart__marker-badge--entry"
+              style={{ left: `${liveTrail.x1}px`, top: `${liveTrail.y1}px` }}
+            >
+              Вход
+            </div>
+          ))}
+        {liveTrail &&
+          (isLiveEntryTrail ? (
+            <div
+              className={`signal-chart__trail-dot signal-chart__trail-dot--${trailEndClass(liveTrail, frozen)}`}
+              style={{ left: `${liveTrail.x2}px`, top: `${liveTrail.y2}px` }}
+              aria-hidden
+            />
+          ) : (
+            trailEndBadgeLabel && (
+              <div
+                className={`signal-chart__trail-badge signal-chart__trail-badge--end signal-chart__marker-badge--${trailEndClass(
+                  liveTrail,
+                  frozen,
+                )}`}
+                style={{ left: `${liveTrail.x2}px`, top: `${liveTrail.y2}px` }}
+              >
+                {trailEndBadgeLabel}
+              </div>
+            )
+          ))}
         {isLiveEntryTrail &&
           liveTrail &&
           pnlParticles.map((particle) => (
@@ -956,8 +972,8 @@ export function SignalChart({
         <span className="signal-chart__legend-item entry">
           {awaitingEntryLegend ? "Лимитка" : "Вход"}
         </span>
-        <span className="signal-chart__legend-item stop">Стоп</span>
-        <span className="signal-chart__legend-item target">Цель</span>
+        <span className="signal-chart__legend-item stop">SL%</span>
+        <span className="signal-chart__legend-item target">TP%</span>
         {closeOverlay && (
           <span className={`signal-chart__legend-item close close--${closeOverlay.reason}`}>{closeOverlay.label}</span>
         )}
