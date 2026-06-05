@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.hashhedge_rules import rules_for_stage
 from app.trader_roster_service import is_main_feed_publisher, main_feed_publisher_ids
-from app.media_storage import public_url
+from app.media_storage import clear_tracker_screenshot_dir, delete_media_files, public_url
 from app.serializers import trader_display_name, trader_login
 from app.models import Signal, Trader, UserChallenge
 from app.tracker_metrics import compute_tracker_stats, msk_day_key
@@ -36,6 +36,17 @@ def get_challenge(db: Session, admin_id: int) -> UserChallenge | None:
     if not can_have_tracker(db, admin_id):
         return None
     return db.get(UserChallenge, admin_id)
+
+
+def delete_trader_tracker(db: Session, telegram_id: int) -> bool:
+    """Удалить трекер Hash Hedge (при увольнении трейдера)."""
+    ch = db.get(UserChallenge, telegram_id)
+    if ch is None:
+        return False
+    delete_media_files(ch.prop_screenshot_path)
+    clear_tracker_screenshot_dir(telegram_id)
+    db.delete(ch)
+    return True
 
 
 def create_challenge(db: Session, admin_id: int) -> UserChallenge:

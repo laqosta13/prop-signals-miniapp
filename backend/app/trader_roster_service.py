@@ -31,6 +31,10 @@ def set_roster_override(db: Session, telegram_id: int, section: str) -> None:
         db.add(TraderRosterOverride(telegram_id=telegram_id, section=section))
     else:
         row.section = section
+    if section == ROSTER_FIRED:
+        from app.challenge_service import delete_trader_tracker
+
+        delete_trader_tracker(db, telegram_id)
 
 
 def clear_roster_override(db: Session, telegram_id: int) -> bool:
