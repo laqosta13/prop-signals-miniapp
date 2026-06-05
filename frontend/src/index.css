@@ -124,8 +124,8 @@
 .topbar__marketplace-row {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: flex-start;
+  gap: 6px;
   min-width: 0;
 }
 

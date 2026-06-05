@@ -831,11 +831,14 @@ export function SignalChart({
 
   useEffect(() => {
     const series = seriesRef.current;
-    if (!series) return;
+    if (!series || !loadedRef.current) return;
 
-    series.applyOptions({ lastValueVisible: !isLiveEntryTrail });
+    const showAxisLive = isLiveEntryTrail && livePrice != null;
+    const showAxisExit = frozen && !!closedAt && closeExitPriceRef.current != null;
 
-    if (!isLiveEntryTrail || livePrice == null) {
+    series.applyOptions({ lastValueVisible: !showAxisLive && !showAxisExit });
+
+    if (!showAxisLive && !showAxisExit) {
       if (livePriceLineRef.current) {
         series.removePriceLine(livePriceLineRef.current);
         livePriceLineRef.current = null;
@@ -843,14 +846,17 @@ export function SignalChart({
       return;
     }
 
+    const axisPrice = showAxisLive ? livePrice! : closeExitPriceRef.current!;
+    if (!Number.isFinite(axisPrice)) return;
+
     const entryRef = entryRefPriceRef.current;
-    const profit = entryRef != null ? isLivePriceInProfit(direction, entryRef, livePrice) : null;
+    const profit = entryRef != null ? isLivePriceInProfit(direction, entryRef, axisPrice) : null;
     const color = profit === true ? "#3dff8a" : profit === false ? "#ff6b6b" : "#aab4c7";
-    const title = chartLevelLineTitle(CHART_LIVE_AXIS_PREFIX, entryRef, direction, livePrice);
+    const title = chartLevelLineTitle(CHART_LIVE_AXIS_PREFIX, entryRef, direction, axisPrice);
 
     if (!livePriceLineRef.current) {
       livePriceLineRef.current = series.createPriceLine({
-        price: livePrice,
+        price: axisPrice,
         color,
         lineWidth: 1,
         lineStyle: LineStyle.Dashed,
@@ -861,13 +867,13 @@ export function SignalChart({
       });
     } else {
       livePriceLineRef.current.applyOptions({
-        price: livePrice,
+        price: axisPrice,
         color,
         axisLabelColor: color,
         title,
       });
     }
-  }, [isLiveEntryTrail, livePrice, direction]);
+  }, [isLiveEntryTrail, livePrice, direction, frozen, closedAt, loading]);
 
   useEffect(() => {
     if (!visible || !showEntryTrail) return;
@@ -904,12 +910,14 @@ export function SignalChart({
     !entryFilledAt && (lvLegend.entryLow != null || lvLegend.entryHigh != null);
 
   const chartEntryRef = chartEntryReference(lvLegend, entryPrice);
+  const frozenClosed = frozen && !!closedAt;
   const trailEndBadgeLabel =
     frozen && closeOverlay
       ? closeOverlay.label
       : livePrice != null && chartEntryRef != null
         ? formatSignedMovePct(levelMovePctFromEntry(chartEntryRef, direction, livePrice))
         : null;
+  const showTrailEndBadge = !isLiveEntryTrail && frozenClosed && !!trailEndBadgeLabel;
 
   return (
     <section
@@ -952,40 +960,30 @@ export function SignalChart({
             />
           </svg>
         )}
+        {liveTrail && (
+          <div
+            className="signal-chart__trail-dot signal-chart__trail-dot--entry"
+            style={{ left: `${liveTrail.x1}px`, top: `${liveTrail.y1}px` }}
+            aria-hidden
+          />
+        )}
         {liveTrail &&
-          (isLiveEntryTrail ? (
+          (showTrailEndBadge ? (
             <div
-              className="signal-chart__trail-dot signal-chart__trail-dot--entry"
-              style={{ left: `${liveTrail.x1}px`, top: `${liveTrail.y1}px` }}
-              aria-hidden
-            />
-          ) : (
-            <div
-              className="signal-chart__trail-badge signal-chart__trail-badge--entry signal-chart__marker-badge--entry"
-              style={{ left: `${liveTrail.x1}px`, top: `${liveTrail.y1}px` }}
+              className={`signal-chart__trail-badge signal-chart__trail-badge--end signal-chart__marker-badge--${trailEndClass(
+                liveTrail,
+                frozen,
+              )}`}
+              style={{ left: `${liveTrail.x2}px`, top: `${liveTrail.y2}px` }}
             >
-              Вход
+              {trailEndBadgeLabel}
             </div>
-          ))}
-        {liveTrail &&
-          (isLiveEntryTrail ? (
+          ) : (
             <div
               className={`signal-chart__trail-dot signal-chart__trail-dot--${trailEndClass(liveTrail, frozen)}`}
               style={{ left: `${liveTrail.x2}px`, top: `${liveTrail.y2}px` }}
               aria-hidden
             />
-          ) : (
-            trailEndBadgeLabel && (
-              <div
-                className={`signal-chart__trail-badge signal-chart__trail-badge--end signal-chart__marker-badge--${trailEndClass(
-                  liveTrail,
-                  frozen,
-                )}`}
-                style={{ left: `${liveTrail.x2}px`, top: `${liveTrail.y2}px` }}
-              >
-                {trailEndBadgeLabel}
-              </div>
-            )
           ))}
         {isLiveEntryTrail &&
           liveTrail &&
