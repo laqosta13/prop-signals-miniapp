@@ -25,7 +25,12 @@ from app.price_service import (
     filter_bybit_linear_symbols,
     normalize_symbol,
 )
-from app.challenge_service import admin_account_size, admin_tracker_balance, ensure_tracker_for_new_signal
+from app.challenge_service import (
+    admin_account_size,
+    admin_tracker_balance,
+    ensure_tracker_for_new_signal,
+    get_challenge,
+)
 from app.daily_stop_limit import validate_signal_daily_stop, validate_signal_daily_trades
 from app.signal_stake_pool import validate_signal_leverage, validate_signal_stake_pool
 from app.signal_service import (
@@ -148,6 +153,11 @@ async def create_signal(
     db: Session = Depends(db_session),
     admin: TelegramUser = Depends(require_main_feed_publisher),
 ) -> SignalRead:
+    if get_challenge(db, admin.telegram_user_id) is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="tracker_not_configured",
+        )
     tb = admin_tracker_balance(db, admin.telegram_user_id)
     acct = admin_account_size(db, admin.telegram_user_id)
     validate_signal_daily_trades(db, admin.telegram_user_id)

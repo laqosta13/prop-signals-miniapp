@@ -363,7 +363,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 ## Telegram-бот и уведомления
 
-**Доставка:** `telegram_notify.py` → `sendMessage` / `sendPhoto` подписчикам с `notify_enabled` и активной подпиской (`signal_service.subscriber_ids_for_notify`). Формат push — **блочный HTML**: заголовок (⚡️/✏️/…), `blockquote` с **#N · символ · LONG/SHORT**, секции *Уровни* / *Позиция* / *Трейдер*; снимок рынка при посте — только если **нет** лимитной зоны.
+**Доставка:** `telegram_notify.py` → `sendMessage` / `sendPhoto` подписчикам с `notify_enabled` и активной подпиской (`signal_service.subscriber_ids_for_notify`). Формат push — **блочный HTML**: заголовок (⚡️/✏️/…), `blockquote` с **#N · символ · LONG/SHORT**, блок **Уровни** (вход/стоп/цель/рынок при посте) — отдельный `blockquote` с **жирными** ценами; далее *Позиция* / *Трейдер*; WIN/LOSE — *Результат* в `blockquote`.
 
 **Приём обновлений бота:** **long polling** (`telegram_updates.py`: `delete_webhook` при старте, `getUpdates`, offset в `/data/media/telegram_update_offset.txt`) — **не** зависит от webhook Amvera. В том же цикле: `channel_post` (CULT-каналы), `/start` и рефералы (`bot_welcome.py`), сообщения в группу поддержки (`support_chat.py`).
 

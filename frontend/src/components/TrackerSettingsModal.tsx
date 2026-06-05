@@ -4,12 +4,14 @@ import { updateChallengeSettings, type ChallengeDashboard } from "../api";
 import { mediaUrl } from "../utils";
 
 type Props = {
+  open: boolean;
   tracker: ChallengeDashboard | null;
+  createMode?: boolean;
   onClose: () => void;
   onSaved: (updated: ChallengeDashboard) => void;
 };
 
-export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
+export function TrackerSettingsModal({ open, tracker, createMode = false, onClose, onSaved }: Props) {
   const [accountSize, setAccountSize] = useState("10000");
   const [stage, setStage] = useState("1");
   const [balance, setBalance] = useState("10000");
@@ -20,7 +22,19 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!tracker) return;
+    if (!open) return;
+    if (createMode || !tracker) {
+      setAccountSize("10000");
+      setStage("1");
+      setBalance("10000");
+      setScreenshot(null);
+      setPreview((prev) => {
+        if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setError(null);
+      return;
+    }
     setAccountSize(String(Math.round(tracker.account_size)));
     setStage(String(tracker.stage));
     setBalance(String(Math.round(tracker.balance * 100) / 100));
@@ -30,15 +44,16 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
       return tracker.prop_screenshot_url ? mediaUrl(tracker.prop_screenshot_url) : null;
     });
     setError(null);
-  }, [tracker]);
+  }, [open, createMode, tracker]);
 
-  if (!tracker) return null;
+  if (!open) return null;
 
   const onPickScreenshot = (file: File | null) => {
     setScreenshot(file);
     setPreview((prev) => {
       if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-      return file ? URL.createObjectURL(file) : tracker.prop_screenshot_url ? mediaUrl(tracker.prop_screenshot_url) : null;
+      if (file) return URL.createObjectURL(file);
+      return tracker?.prop_screenshot_url ? mediaUrl(tracker.prop_screenshot_url) : null;
     });
   };
 
@@ -69,7 +84,7 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
       <form className="modal modal--tracker-settings" onClick={(e) => e.stopPropagation()} onSubmit={(e) => void submit(e)}>
         <header className="modal__head">
           <div>
-            <h2>Настройки трекера</h2>
+            <h2>{createMode ? "Добавить трекер" : "Настройки трекера"}</h2>
             <p>Hash Hedge · сверка с пропом</p>
           </div>
           <button type="button" className="icon-btn" onClick={onClose}>
@@ -78,7 +93,9 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
         </header>
 
         <p className="meta tracker-settings-note">
-          Баланс с пропа обновляет основной баланс и процент прогресса. Старт и цель не меняются.
+          {createMode
+            ? "Укажите баланс с пропа и этап — после сохранения трекер появится в списке."
+            : "Баланс с пропа обновляет основной баланс и процент прогресса. Старт и цель не меняются."}
         </p>
 
         <label className="field-label">Размер счёта ($)</label>
@@ -124,7 +141,7 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
             onChange={(e) => onPickScreenshot(e.target.files?.[0] ?? null)}
           />
           <button type="button" className="signal-media-picker__btn" onClick={() => fileInputRef.current?.click()}>
-            Заменить скрин
+            {preview ? "Заменить скрин" : "Добавить скрин"}
           </button>
         </div>
         <p className="meta">Один актуальный скрин — новый заменяет предыдущий.</p>
@@ -132,7 +149,7 @@ export function TrackerSettingsModal({ tracker, onClose, onSaved }: Props) {
         {error && <p className="err">{error}</p>}
 
         <button type="submit" className="submit-btn" disabled={submitting}>
-          {submitting ? "Сохранение…" : "Сохранить"}
+          {submitting ? "Сохранение…" : createMode ? "Создать трекер" : "Сохранить"}
         </button>
       </form>
     </div>

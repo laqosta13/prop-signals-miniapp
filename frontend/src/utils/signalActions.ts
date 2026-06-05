@@ -40,6 +40,12 @@ export function canCloseAtMarketSignal(
   return !s.entry_low && !s.entry_high;
 }
 
+/** Активный сигнал с открытой позицией (вход сработал или маркет без зоны). */
+export function isSignalInMarket(s: Signal): boolean {
+  if (s.status !== "active") return false;
+  return !!(s.entry_filled_at || (!s.entry_low && !s.entry_high));
+}
+
 /** Подписка или админ — доступ к активным сигналам и лайкам/просмотрам. */
 export function canViewActiveSignals(subscriptionActive: boolean, isAdmin: boolean): boolean {
   return subscriptionActive || isAdmin;

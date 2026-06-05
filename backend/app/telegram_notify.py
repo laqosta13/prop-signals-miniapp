@@ -78,12 +78,26 @@ def _row(label: str, value: str) -> str:
     return f"\n▸ {_esc(label)}  {value}"
 
 
+def _highlight_block(title: str, body: str) -> str:
+    """Визуально выделенный блок (как шапка сигнала) — для цен и итогов."""
+    return f"\n<blockquote><i>{_esc(title)}</i>{body}</blockquote>"
+
+
+def _bold_price(value: str) -> str:
+    if not value or value == "—":
+        return "—"
+    return f"<b>{value}</b>"
+
+
 def _levels_block(signal: Signal) -> str:
-    body = _section("Уровни")
-    body += _row("Вход", _entry_label(signal.entry_low, signal.entry_high))
-    body += _row("Стоп", _esc(signal.stop_loss))
-    body += _row("Цель", _format_take_profits(signal.take_profits))
-    return body
+    body = _row("Вход", _bold_price(_entry_label(signal.entry_low, signal.entry_high)))
+    body += _row("Стоп", _bold_price(_esc(signal.stop_loss) if signal.stop_loss else "—"))
+    body += _row("Цель", _bold_price(_format_take_profits(signal.take_profits)))
+    if signal.published_market_price is not None and not entry_zone_defined(signal.entry_low, signal.entry_high):
+        src = _market_source_label(signal.published_market_source)
+        src_part = f" · <i>{_esc(src)}</i>" if src else ""
+        body += _row("При посте", f"{_bold_price(_val(f'{signal.published_market_price:g}'))}{src_part}")
+    return _highlight_block("Уровни", body)
 
 
 def _position_block(signal: Signal) -> str:
@@ -99,19 +113,6 @@ def _position_block(signal: Signal) -> str:
 
 def _author_block(signal: Signal) -> str:
     return _section("Трейдер") + _row("Автор", f"<b>{_esc(_signal_author_label(signal))}</b>")
-
-
-def _market_snapshot_line(signal: Signal) -> str:
-    if signal.published_market_price is None:
-        return ""
-    if entry_zone_defined(signal.entry_low, signal.entry_high):
-        return ""
-    src = _market_source_label(signal.published_market_source)
-    src_part = f" · <i>{_esc(src)}</i>" if src else ""
-    return (
-        _section("Рынок")
-        + _row("При посте", f"{_val(f'{signal.published_market_price:g}')}{src_part}")
-    )
 
 
 @dataclass
@@ -232,12 +233,7 @@ def _market_source_label(source: str | None) -> str:
 
 
 def _signal_body(signal: Signal) -> str:
-    return (
-        _levels_block(signal)
-        + _position_block(signal)
-        + _market_snapshot_line(signal)
-        + _author_block(signal)
-    )
+    return _levels_block(signal) + _position_block(signal) + _author_block(signal)
 
 
 def _plain_fallback(text: str) -> str:
@@ -333,12 +329,12 @@ def format_updated_signal_message(signal: Signal, changes: list[str], *, actor_l
         sign = "+" if ret >= 0 else ""
         lev = signal_leverage(signal)
         lev_note = f" · <b>{lev}x</b>" if lev > 1 else ""
-        body += (
-            _section("Итог")
-            + _row("Движение", _val(f"{sign}{ret:.2f}%"))
-            + _row("P/L", _val(f"{pnl:+.0f}$") + lev_note)
-            + _row("Счёт", _val(f"${signal_pnl_base_usd(signal):,.0f}"))
+        result_body = (
+            _row("Движение", _bold_price(_val(f"{sign}{ret:.2f}%")))
+            + _row("P/L", _bold_price(_val(f"{pnl:+.0f}$")) + lev_note)
+            + _row("Счёт", _bold_price(_val(f"${signal_pnl_base_usd(signal):,.0f}")))
         )
+        body += _highlight_block("Итог", result_body)
     return body
 
 
@@ -365,13 +361,15 @@ def format_closed_signal_message(signal: Signal, *, market_close: bool = False) 
     else:
         emoji = "🏆" if signal.status == "win" else "💥"
         label = "WIN" if signal.status == "win" else "LOSE"
+    result_body = (
+        _row("Движение", _bold_price(_val(f"{sign}{ret:.2f}%")))
+        + _row("P/L трекера", _bold_price(_val(f"{pnl:+.0f}$")) + lev_note)
+        + _row("Счёт", _bold_price(_val(f"${signal_pnl_base_usd(signal):,.0f}")))
+    )
     return (
         f"{emoji} <b>{label}</b>"
         f"{_signal_headline(signal)}"
-        + _section("Результат")
-        + _row("Движение", _val(f"{sign}{ret:.2f}%"))
-        + _row("P/L трекера", _val(f"{pnl:+.0f}$") + lev_note)
-        + _row("Счёт", _val(f"${signal_pnl_base_usd(signal):,.0f}"))
+        + _highlight_block("Результат", result_body)
         + _author_block(signal)
     )
 

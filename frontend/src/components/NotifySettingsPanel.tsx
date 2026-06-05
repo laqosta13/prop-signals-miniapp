@@ -1,3 +1,5 @@
+import { ThemeToggle } from "./ThemeToggle";
+
 type Props = {
   enabled: boolean;
   onToggle: () => void;
@@ -11,6 +13,7 @@ export function NotifySettingsPanel({ enabled, onToggle }: Props) {
         <span className="notify-row__track" aria-hidden />
         <span className="notify-row__label">Уведомления в Telegram</span>
       </label>
+      <ThemeToggle />
     </div>
   );
 }

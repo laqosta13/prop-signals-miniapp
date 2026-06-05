@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.hashhedge_rules import rules_for_stage
+from app.trader_roster_service import is_main_feed_publisher, main_feed_publisher_ids
 from app.media_storage import public_url
 from app.serializers import trader_display_name, trader_login
 from app.models import Signal, Trader, UserChallenge
@@ -16,38 +17,73 @@ def admin_ids() -> list[int]:
     return sorted(settings.all_admin_id_set)
 
 
+def can_have_tracker(db: Session, telegram_id: int) -> bool:
+    return is_main_feed_publisher(db, telegram_id)
+
+
+def _new_challenge_row(admin_id: int) -> UserChallenge:
+    return UserChallenge(
+        telegram_user_id=admin_id,
+        account_size=10_000.0,
+        stage=1,
+        balance=10_000.0,
+        day_start_balance=10_000.0,
+        trading_days=0,
+    )
+
+
+def get_challenge(db: Session, admin_id: int) -> UserChallenge | None:
+    if not can_have_tracker(db, admin_id):
+        return None
+    return db.get(UserChallenge, admin_id)
+
+
+def create_challenge(db: Session, admin_id: int) -> UserChallenge:
+    if not can_have_tracker(db, admin_id):
+        raise ValueError("not a tracker owner")
+    row = db.get(UserChallenge, admin_id)
+    if row is not None:
+        return row
+    row = _new_challenge_row(admin_id)
+    db.add(row)
+    db.flush()
+    return row
+
+
 def get_or_create_challenge(db: Session, admin_id: int) -> UserChallenge:
-    if admin_id not in settings.all_admin_id_set:
+    """Env-админы — автосоздание; трейдеры из ТОП (ростер) — только после явной настройки."""
+    if not can_have_tracker(db, admin_id):
         raise ValueError("not an admin")
     row = db.get(UserChallenge, admin_id)
     if row is None:
-        row = UserChallenge(
-            telegram_user_id=admin_id,
-            account_size=10_000.0,
-            stage=1,
-            balance=10_000.0,
-            day_start_balance=10_000.0,
-            trading_days=0,
-        )
+        if admin_id not in settings.all_admin_id_set:
+            raise ValueError("tracker_not_configured")
+        row = _new_challenge_row(admin_id)
         db.add(row)
         db.flush()
     return row
 
 
 def admin_tracker_balance(db: Session, admin_id: int) -> float:
-    """Текущий баланс трекера админа на момент публикации сигнала."""
-    return get_or_create_challenge(db, admin_id).balance
+    """Текущий баланс трекера на момент публикации сигнала."""
+    ch = get_challenge(db, admin_id)
+    if ch is None:
+        raise ValueError("tracker_not_configured")
+    return ch.balance
 
 
 def admin_account_size(db: Session, admin_id: int) -> float:
     """Размер счёта Hash Hedge — база для номинала позиции и P/L."""
-    return get_or_create_challenge(db, admin_id).account_size
+    ch = get_challenge(db, admin_id)
+    if ch is None:
+        raise ValueError("tracker_not_configured")
+    return ch.account_size
 
 
 def ensure_tracker_for_new_signal(db: Session, signal: Signal) -> None:
-    if signal.author_telegram_id not in settings.all_admin_id_set:
+    ch = get_challenge(db, signal.author_telegram_id)
+    if ch is None:
         return
-    ch = get_or_create_challenge(db, signal.author_telegram_id)
     tb = signal_tracker_balance(signal)
     prior = db.scalar(
         select(func.count())
@@ -104,9 +140,11 @@ def rebuild_tracker_balances_from_signals(db: Session, admin_ids: list[int]) -> 
 
 
 def apply_signal_to_tracker(db: Session, signal: Signal) -> None:
-    if signal.author_telegram_id not in settings.all_admin_id_set or signal.realized_pnl is None:
+    if signal.realized_pnl is None:
         return
-    ch = get_or_create_challenge(db, signal.author_telegram_id)
+    ch = get_challenge(db, signal.author_telegram_id)
+    if ch is None:
+        return
     ch.balance = round(ch.balance + signal.realized_pnl, 2)
     _sync_trading_days(db, ch)
 
@@ -209,7 +247,7 @@ def build_dashboard(
 
 
 def list_admin_trackers(db: Session) -> list:
-    ids = admin_ids()
+    ids = sorted(main_feed_publisher_ids(db))
     if not ids:
         return []
     traders = {t.telegram_id: t for t in db.scalars(select(Trader).where(Trader.telegram_id.in_(ids)))}
@@ -217,8 +255,17 @@ def list_admin_trackers(db: Session) -> list:
 
     out = []
     for aid in ids:
+        ch = db.get(UserChallenge, aid)
+        if ch is None:
+            continue
         tr = traders.get(aid)
-        tr = get_or_create_trader(db, aid, tr.username if tr else None, first_name=tr.first_name if tr else None, last_name=tr.last_name if tr else None)
-        out.append(build_dashboard(db, get_or_create_challenge(db, aid), tr))
+        tr = get_or_create_trader(
+            db,
+            aid,
+            tr.username if tr else None,
+            first_name=tr.first_name if tr else None,
+            last_name=tr.last_name if tr else None,
+        )
+        out.append(build_dashboard(db, ch, tr))
     out.sort(key=lambda d: d.balance - d.account_size, reverse=True)
     return out

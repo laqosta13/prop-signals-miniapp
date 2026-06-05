@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ColorType,
   CrosshairMode,
@@ -31,10 +31,13 @@ import {
   type ChartInterval,
   type CloseReason,
 } from "../utils/signalChartLevels";
+import { fetchBybitLastPrice } from "../utils/bybitPrice";
 import { chartPaletteFor, type ChartPalette } from "../utils/chartTheme";
 import { getStoredTheme, subscribeTheme, type Theme } from "../utils/theme";
 
 const CHART_POLL_MS = 30_000;
+const CHART_LIVE_PRICE_MS = 10_000;
+const CHART_PNL_PARTICLE_MS = 850;
 const CHART_KLINE_LIMIT = 1000;
 const CHART_VISIBLE_BARS = 220;
 /** Плашки в одной колонке, если линии входа и закрытия близко (быстрое закрытие). */
@@ -95,6 +98,49 @@ async function fetchBybitKlines(
 
 const ENTRY_ZONE_PRICE_EPS = 1e-8;
 
+type LiveTrailSide = "up" | "down" | "flat";
+
+type LiveTrail = {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  side: LiveTrailSide;
+};
+
+type PnlParticle = {
+  id: number;
+  sign: "+" | "-";
+  drift: number;
+};
+
+function isLivePriceInProfit(
+  direction: "long" | "short",
+  entryRef: number,
+  livePrice: number,
+): boolean | null {
+  const eps = Math.max(entryRef * 1e-8, 1e-12);
+  if (Math.abs(livePrice - entryRef) <= eps) return null;
+  return direction === "long" ? livePrice > entryRef : livePrice < entryRef;
+}
+
+function resolveLiveTimeX(
+  chart: IChartApi,
+  entryTime: UTCTimestamp,
+  lastCandleTime: UTCTimestamp | null,
+): number | null {
+  const nowSec = Math.floor(Date.now() / 1000) as UTCTimestamp;
+  const times: UTCTimestamp[] = [nowSec];
+  if (lastCandleTime != null) times.push(lastCandleTime);
+  times.push(entryTime);
+  for (const t of times) {
+    const x = chart.timeScale().timeToCoordinate(t);
+    if (x != null && Number.isFinite(x)) return x;
+  }
+  const w = chart.timeScale().width();
+  return w != null && Number.isFinite(w) ? Math.max(0, w - 6) : null;
+}
+
 type LevelLineOpts = {
   direction: "long" | "short";
   entryRef: number | null;
@@ -149,7 +195,7 @@ function applyLevelLines(
     series.createPriceLine({
       price: stop,
       color: opts.palette.stop,
-      lineWidth: 2,
+      lineWidth: 1,
       lineStyle: LineStyle.Solid,
       axisLabelVisible: true,
       title: chartLevelLineTitle("Стоп", opts.entryRef, dir, stop),
@@ -161,7 +207,7 @@ function applyLevelLines(
     series.createPriceLine({
       price: tp,
       color: opts.palette.target,
-      lineWidth: 2,
+      lineWidth: 1,
       lineStyle: LineStyle.Solid,
       axisLabelVisible: true,
       title: chartLevelLineTitle(base, opts.entryRef, dir, tp),
@@ -331,20 +377,31 @@ export function SignalChart({
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const entryCandleTimeRef = useRef<UTCTimestamp | null>(null);
   const closeCandleTimeRef = useRef<UTCTimestamp | null>(null);
+  const lastCandleTimeRef = useRef<UTCTimestamp | null>(null);
+  const entryRefPriceRef = useRef<number | null>(null);
   const pinnedEntryRef = useRef<{ fillAt: string; time: UTCTimestamp } | null>(null);
   const pinnedCloseRef = useRef<{ closedAt: string; time: UTCTimestamp } | null>(null);
   const loadedRef = useRef(false);
-  const [interval, setInterval] = useState<ChartInterval>("5");
+  const livePriceRef = useRef<number | null>(null);
+  const [interval, setInterval] = useState<ChartInterval>("1");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
   const [entryLineLeft, setEntryLineLeft] = useState<number | null>(null);
   const [closeLineLeft, setCloseLineLeft] = useState<number | null>(null);
   const [closeOverlay, setCloseOverlay] = useState<{ label: string; reason: CloseReason } | null>(null);
+  const [livePrice, setLivePrice] = useState<number | null>(null);
+  const [liveTrail, setLiveTrail] = useState<LiveTrail | null>(null);
+  const [pnlParticles, setPnlParticles] = useState<PnlParticle[]>([]);
   const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
   const palette = chartPaletteFor(theme);
+  const showLiveTrail = !frozen && status === "active" && !!entryFilledAt;
 
   useEffect(() => subscribeTheme(() => setTheme(getStoredTheme())), []);
+
+  useEffect(() => {
+    livePriceRef.current = livePrice;
+  }, [livePrice]);
 
   const pair = bybitSymbol(symbol);
   const tvLink = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tradingViewSymbol(symbol))}`;
@@ -412,9 +469,48 @@ export function SignalChart({
     series.setMarkers(buildChartMarkers(entryTime, closeTime, closeReasonColor(reason)));
   };
 
+  const syncLiveTrail = useCallback(
+    (price: number | null) => {
+      if (!showLiveTrail) {
+        setLiveTrail(null);
+        return;
+      }
+      const chart = chartApi.current;
+      const series = seriesRef.current;
+      const entryTime = entryCandleTimeRef.current;
+      const entryRef = entryRefPriceRef.current;
+      if (!chart || !series || entryTime == null || entryRef == null || price == null) {
+        setLiveTrail(null);
+        return;
+      }
+      const x1 = chart.timeScale().timeToCoordinate(entryTime);
+      const y1 = series.priceToCoordinate(entryRef);
+      const x2 = resolveLiveTimeX(chart, entryTime, lastCandleTimeRef.current);
+      const y2 = series.priceToCoordinate(price);
+      const profit = isLivePriceInProfit(direction, entryRef, price);
+      if (
+        x1 == null ||
+        y1 == null ||
+        x2 == null ||
+        y2 == null ||
+        !Number.isFinite(x1) ||
+        !Number.isFinite(y1) ||
+        !Number.isFinite(x2) ||
+        !Number.isFinite(y2)
+      ) {
+        setLiveTrail(null);
+        return;
+      }
+      const side: LiveTrailSide = profit == null ? "flat" : profit ? "up" : "down";
+      setLiveTrail({ x1, y1, x2, y2, side });
+    },
+    [direction, showLiveTrail],
+  );
+
   const syncOverlayLines = (chart: IChartApi) => {
     setEntryLineLeft(syncLineLeft(chart, entryCandleTimeRef.current));
     setCloseLineLeft(syncLineLeft(chart, closeCandleTimeRef.current));
+    syncLiveTrail(livePriceRef.current);
   };
 
   useEffect(() => {
@@ -426,6 +522,11 @@ export function SignalChart({
     setEntryLineLeft(null);
     setCloseLineLeft(null);
     setCloseOverlay(null);
+    setLivePrice(null);
+    setLiveTrail(null);
+    setPnlParticles([]);
+    lastCandleTimeRef.current = null;
+    entryRefPriceRef.current = null;
   }, [symbol, frozen, interval, entryFilledAt, createdAt, closedAt, closeReason, closedExitPrice, status]);
 
   useEffect(() => {
@@ -492,6 +593,9 @@ export function SignalChart({
       setEntryLineLeft(null);
       setCloseLineLeft(null);
       setCloseOverlay(null);
+      setLivePrice(null);
+      setLiveTrail(null);
+      setPnlParticles([]);
       loadedRef.current = false;
     };
   }, [visible, theme]);
@@ -499,7 +603,7 @@ export function SignalChart({
   useEffect(() => {
     if (!visible || !pair || !chartApi.current) return;
 
-    const bybitIv = CHART_INTERVALS.find((x) => x.id === interval)?.bybit ?? "5";
+    const bybitIv = CHART_INTERVALS.find((x) => x.id === interval)?.bybit ?? "1";
     const ac = new AbortController();
     setLoading(true);
     setErr(null);
@@ -532,11 +636,18 @@ export function SignalChart({
         });
         seriesRef.current = series;
         series.setData(data);
+        entryRefPriceRef.current = entryRef;
+        lastCandleTimeRef.current = data.length ? data[data.length - 1].time : null;
         applyLevelLines(series, lv, { direction, entryRef, awaitingEntry, palette });
         paintChartMarkers(series, data, candleSec, lv, entryRef);
         applyFeedVisibleRange(chart, data, entryCandleTimeRef.current, closeCandleTimeRef.current, createdAt);
         series.priceScale().applyOptions({ autoScale: true });
         chart.priceScale("right").applyOptions({ autoScale: true });
+        if (showLiveTrail && data.length) {
+          const lastClose = data[data.length - 1].close;
+          setLivePrice(lastClose);
+          syncLiveTrail(lastClose);
+        }
         syncOverlayLines(chart);
         loadedRef.current = true;
       })
@@ -577,7 +688,7 @@ export function SignalChart({
   useEffect(() => {
     if (!visible || !pair || frozen || !entryFilledAt) return;
 
-    const bybitIv = CHART_INTERVALS.find((x) => x.id === interval)?.bybit ?? "5";
+    const bybitIv = CHART_INTERVALS.find((x) => x.id === interval)?.bybit ?? "1";
     const candleSec = Math.max(60, Number(bybitIv) * 60);
     const lv = levelsFromSignal(entryLow, entryHigh, stopLoss, takeProfits);
     const entryRef = chartEntryReference(lv, entryPrice);
@@ -594,6 +705,7 @@ export function SignalChart({
           if (!chartNow || !seriesNow) return;
           const data = clipCandlesForSignal(candles, createdAt, closedAt, candleSec, false);
           seriesNow.setData(data);
+          lastCandleTimeRef.current = data.length ? data[data.length - 1].time : null;
           paintChartMarkers(seriesNow, data, candleSec, lv, entryRef);
           applyFeedVisibleRange(
             chartNow,
@@ -604,6 +716,11 @@ export function SignalChart({
           );
           seriesNow.priceScale().applyOptions({ autoScale: true });
           chartNow.priceScale("right").applyOptions({ autoScale: true });
+          if (data.length) {
+            const price = livePriceRef.current ?? data[data.length - 1].close;
+            setLivePrice(price);
+            syncLiveTrail(price);
+          }
           syncOverlayLines(chartNow);
         })
         .catch(() => {
@@ -614,6 +731,49 @@ export function SignalChart({
     const id = window.setInterval(refreshCandles, CHART_POLL_MS);
     return () => window.clearInterval(id);
   }, [visible, pair, interval, frozen, entryFilledAt, entryPrice, entryLow, entryHigh, stopLoss, takeProfits, createdAt, closedAt]);
+
+  useEffect(() => {
+    if (!visible || !pair || !showLiveTrail) {
+      setLivePrice(null);
+      setLiveTrail(null);
+      setPnlParticles([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const tick = async () => {
+      const price = await fetchBybitLastPrice(symbol);
+      if (cancelled) return;
+      const next = price ?? livePriceRef.current;
+      if (next == null) return;
+      setLivePrice(next);
+      syncLiveTrail(next);
+    };
+
+    void tick();
+    const id = window.setInterval(() => void tick(), CHART_LIVE_PRICE_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [visible, pair, symbol, showLiveTrail, syncLiveTrail]);
+
+  useEffect(() => {
+    if (!showLiveTrail || !liveTrail || liveTrail.side === "flat") return;
+    const sign: "+" | "-" = liveTrail.side === "up" ? "+" : "-";
+    const id = window.setInterval(() => {
+      const now = Date.now();
+      setPnlParticles((prev) => {
+        const fresh = prev.filter((p) => now - p.id < 1_500);
+        return [
+          ...fresh.slice(-5),
+          { id: now, sign, drift: (Math.random() - 0.5) * 24 },
+        ];
+      });
+    }, CHART_PNL_PARTICLE_MS);
+    return () => window.clearInterval(id);
+  }, [showLiveTrail, liveTrail?.side]);
 
   if (!pair) return null;
 
@@ -662,6 +822,38 @@ export function SignalChart({
         {loading && <p className="signal-chart__loading meta">Загрузка графика…</p>}
         {err && <p className="signal-chart__err err">{err}</p>}
         <div ref={chartRef} className="signal-chart__canvas" />
+        {liveTrail && (
+          <svg className="signal-chart__live-svg" aria-hidden>
+            <line
+              className={`signal-chart__live-line signal-chart__live-line--${liveTrail.side}`}
+              x1={liveTrail.x1}
+              y1={liveTrail.y1}
+              x2={liveTrail.x2}
+              y2={liveTrail.y2}
+            />
+            <circle
+              className={`signal-chart__live-dot signal-chart__live-dot--${liveTrail.side}`}
+              cx={liveTrail.x2}
+              cy={liveTrail.y2}
+              r={4}
+            />
+          </svg>
+        )}
+        {liveTrail &&
+          pnlParticles.map((particle) => (
+            <span
+              key={particle.id}
+              className={`signal-chart__pnl-particle signal-chart__pnl-particle--${
+                particle.sign === "+" ? "up" : "down"
+              }`}
+              style={{
+                left: `${liveTrail.x1 + particle.drift}px`,
+                top: `${liveTrail.y1}px`,
+              }}
+            >
+              {particle.sign}$
+            </span>
+          ))}
         {entryLineLeft != null && entryFilledAt && (
           <div
             className="signal-chart__marker-line signal-chart__marker-line--entry"

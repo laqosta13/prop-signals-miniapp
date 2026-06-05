@@ -110,6 +110,12 @@
   color: var(--purple);
 }
 
+.topbar__marketplace-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
 .topbar__marketplace-main {
   font-size: 1.2rem;
   font-weight: 900;
@@ -118,6 +124,27 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+.topbar__marketplace-live {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.topbar__marketplace-count {
+  font-size: 1.05rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+}
+
+.topbar__marketplace-live-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
 }
 
 .topbar--feed .topbar__actions {
@@ -435,11 +462,20 @@
   }
 }
 
+.notify-settings {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 16px 10px;
+}
+
 .notify-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 0 16px 10px;
+  min-width: 0;
+  flex: 1;
   cursor: pointer;
   user-select: none;
 }
@@ -1153,6 +1189,44 @@
   display: block;
 }
 
+.tracker-block--add {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 4px;
+}
+
+.tracker-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 18px 16px;
+  border: 1px dashed var(--border-subtle, rgba(255, 255, 255, 0.16));
+  border-radius: 14px;
+  background: var(--surface-2, rgba(255, 255, 255, 0.04));
+  color: var(--text, #e8eaef);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tracker-add-btn:active {
+  opacity: 0.85;
+}
+
+.tracker-add-btn__plus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent, #7c5cff);
+  color: #fff;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
 .tracker-empty {
   margin-top: 8px;
 }
@@ -1472,6 +1546,93 @@
   z-index: 0;
   width: 100%;
   height: 268px;
+}
+
+.signal-chart__live-svg {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 268px;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.signal-chart__live-line {
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  stroke-linecap: round;
+}
+
+.signal-chart__live-line--up {
+  stroke: rgba(61, 255, 138, 0.82);
+}
+
+.signal-chart__live-line--down {
+  stroke: rgba(255, 107, 107, 0.82);
+}
+
+.signal-chart__live-line--flat {
+  stroke: rgba(138, 138, 147, 0.65);
+}
+
+.signal-chart__live-dot {
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-width: 1;
+}
+
+.signal-chart__live-dot--up {
+  fill: #3dff8a;
+}
+
+.signal-chart__live-dot--down {
+  fill: #ff6b6b;
+}
+
+.signal-chart__live-dot--flat {
+  fill: #8a8a93;
+}
+
+.signal-chart__pnl-particle {
+  position: absolute;
+  z-index: 3;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  pointer-events: none;
+  animation: signal-chart-pnl-pop 1.35s ease-out forwards;
+  transform: translate(-50%, -50%);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
+}
+
+.signal-chart__pnl-particle--up {
+  color: #3dff8a;
+}
+
+.signal-chart__pnl-particle--down {
+  color: #ff6b6b;
+}
+
+@keyframes signal-chart-pnl-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.55);
+  }
+  18% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% - 26px)) scale(0.9);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signal-chart__pnl-particle {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 .signal-chart__marker-line {

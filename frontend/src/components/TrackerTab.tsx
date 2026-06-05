@@ -10,11 +10,12 @@ type Props = {
   trackers: ChallengeDashboard[];
   signals: Signal[];
   myId: number | null;
-  isAdmin: boolean;
+  canPublishMainFeed: boolean;
   onSettings: (tracker: ChallengeDashboard) => void;
+  onCreateTracker: () => void;
 };
 
-export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Props) {
+export function TrackerTab({ trackers, signals, myId, canPublishMainFeed, onSettings, onCreateTracker }: Props) {
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [tradesOpen, setTradesOpen] = useState<Record<number, boolean>>({});
 
@@ -69,8 +70,19 @@ export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Pro
         </p>
       </section>
 
-      {!trackers.length && (
-        <p className="meta tracker-empty">Трекеры админов появятся после настройки TELEGRAM_ADMIN_IDS.</p>
+      {canPublishMainFeed && myId != null && !trackers.some((t) => t.owner_telegram_id === myId) && (
+        <section className="tracker-block tracker-block--add">
+          <button type="button" className="tracker-add-btn" onClick={onCreateTracker}>
+            <span className="tracker-add-btn__plus" aria-hidden>
+              +
+            </span>
+            <span className="tracker-add-btn__text">Добавить трекер Hash Hedge</span>
+          </button>
+        </section>
+      )}
+
+      {!trackers.length && !canPublishMainFeed && (
+        <p className="meta tracker-empty">Трекеры трейдеров появятся после настройки.</p>
       )}
 
       {trackers.map((d) => {
@@ -83,7 +95,7 @@ export function TrackerTab({ trackers, signals, myId, isAdmin, onSettings }: Pro
         const recent = signals
           .filter((s) => s.author_telegram_id === d.owner_telegram_id && s.status !== "active")
           .slice(0, 5);
-        const canEdit = isAdmin && myId === d.owner_telegram_id;
+        const canEdit = canPublishMainFeed && myId === d.owner_telegram_id;
         const minDaysLabel = d.min_trading_days_unlimited ? "∞" : String(d.min_trading_days);
         const tradesExpanded = !!tradesOpen[d.owner_telegram_id];
 

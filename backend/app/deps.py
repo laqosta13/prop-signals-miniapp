@@ -28,7 +28,8 @@ def get_current_user(
         sub = register_subscriber(db, user.id, user.username, user.start_param)
         is_admin = settings.is_signal_admin_id(user.id) and user.id not in fired_trader_ids(db)
         is_super_admin = settings.is_super_admin_id(user.id)
-        if is_admin:
+        can_main_feed = is_main_feed_publisher(db, user.id)
+        if is_admin or can_main_feed:
             get_or_create_trader(
                 db,
                 user.id,
@@ -58,7 +59,8 @@ def get_current_user(
         sub = register_subscriber(db, tid, None, None)
         is_admin = settings.is_signal_admin_id(tid) and tid not in fired_trader_ids(db)
         is_super_admin = settings.is_super_admin_id(tid)
-        if is_admin:
+        can_main_feed = is_main_feed_publisher(db, tid)
+        if is_admin or can_main_feed:
             get_or_create_trader(db, tid, None)
         if db.new or db.dirty or db.deleted:
             db.commit()

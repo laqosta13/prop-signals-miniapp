@@ -1,8 +1,16 @@
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
-from app.challenge_service import apply_prop_balance_sync, build_dashboard, get_or_create_challenge, list_admin_trackers
-from app.deps import db_session, get_current_user, require_admin, require_main_feed_publisher
+from app.challenge_service import (
+    apply_prop_balance_sync,
+    build_dashboard,
+    create_challenge,
+    get_challenge,
+    get_or_create_challenge,
+    list_admin_trackers,
+)
+from app.signal_service import get_or_create_trader
+from app.deps import db_session, get_current_user, require_main_feed_publisher
 from app.hashhedge_rules import rules_payload
 from app.media_storage import clear_tracker_screenshot_dir, delete_media_files, save_tracker_screenshot
 from app.schemas import ChallengeDashboard, TelegramUser
@@ -36,8 +44,10 @@ def my_tracker(
     db: Session = Depends(db_session),
     admin: TelegramUser = Depends(require_main_feed_publisher),
 ) -> ChallengeDashboard:
-    """Текущий трекер админа — для формы сигнала (баланс и размер счёта)."""
-    ch = get_or_create_challenge(db, admin.telegram_user_id)
+    """Текущий трекер — для формы сигнала (баланс и размер счёта)."""
+    ch = get_challenge(db, admin.telegram_user_id)
+    if ch is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="tracker_not_configured")
     db.commit()
     return build_dashboard(db, ch, exclude_signal_id=exclude_signal_id)
 
@@ -50,10 +60,13 @@ async def update_settings(
     remove_screenshot: str | None = Form(None),
     screenshot: UploadFile | None = File(None),
     db: Session = Depends(db_session),
-    admin: TelegramUser = Depends(require_admin),
+    admin: TelegramUser = Depends(require_main_feed_publisher),
 ) -> ChallengeDashboard:
     """Настройки трекера: баланс с пропа меняет balance; старт (account_size) и торговые дни сохраняются."""
-    ch = get_or_create_challenge(db, admin.telegram_user_id)
+    get_or_create_trader(db, admin.telegram_user_id, admin.username)
+    ch = get_challenge(db, admin.telegram_user_id)
+    if ch is None:
+        ch = create_challenge(db, admin.telegram_user_id)
 
     if stage is not None and stage.strip():
         stage_n = int(stage)

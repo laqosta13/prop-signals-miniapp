@@ -168,6 +168,11 @@ export function LeaderboardTab({
     () => [...cultCandidates].sort((a, b) => b.rating_percent - a.rating_percent),
     [cultCandidates],
   );
+  const myCandidate = useMemo(() => userCandidates.find((c) => c.is_me), [userCandidates]);
+  const otherUserCandidates = useMemo(
+    () => userCandidates.filter((c) => !c.is_me),
+    [userCandidates],
+  );
   const channelCandidates = useMemo(
     () => [...cultChannels].sort((a, b) => b.rating_percent - a.rating_percent),
     [cultChannels],
@@ -230,15 +235,22 @@ export function LeaderboardTab({
           {myId != null && (
             <CultCandidateJoinPanel onJoined={onCultCandidatesChange} />
           )}
-          {userCandidates.length > 0 && (
+          {(myCandidate || otherUserCandidates.length > 0) && (
             <ol className="top-list top-list--user-candidates">
-              {userCandidates.map((candidate) => (
+              {myCandidate && (
+                <CultCandidateCard
+                  key={`me-${myCandidate.telegram_user_id}`}
+                  candidate={myCandidate}
+                  onTrade={canPublishCandidate ? () => setSignalModalOpen(true) : undefined}
+                  onOpenClosedTrade={openClosedTrade}
+                  isSuperAdmin={isSuperAdmin}
+                  onRosterChange={onRosterChange}
+                />
+              )}
+              {otherUserCandidates.map((candidate) => (
                 <CultCandidateCard
                   key={candidate.telegram_user_id}
                   candidate={candidate}
-                  onTrade={
-                    candidate.is_me && canPublishCandidate ? () => setSignalModalOpen(true) : undefined
-                  }
                   onOpenClosedTrade={openClosedTrade}
                   isSuperAdmin={isSuperAdmin}
                   onRosterChange={onRosterChange}

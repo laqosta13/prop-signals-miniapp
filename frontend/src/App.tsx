@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, lazy, Suspense } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import WebApp from "@twa-dev/sdk";
 import {
   fetchChallengeTrackers,
@@ -22,6 +22,7 @@ import {
 import { FeedTab } from "./components/FeedTab";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { mergeFeedSignals } from "./utils/mergeFeedSignals";
+import { isSignalInMarket } from "./utils/signalActions";
 import { PRODUCT_TAGLINE, TAB_SUBTITLES } from "./data/appCopy";
 import { hasAcceptedDisclaimer, markDisclaimerAccepted } from "./utils/disclaimerStorage";
 
@@ -151,6 +152,7 @@ export default function App() {
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const [feedDisclaimerOpen, setFeedDisclaimerOpen] = useState(false);
   const [trackerSettings, setTrackerSettings] = useState<ChallengeDashboard | null>(null);
+  const [trackerSettingsOpen, setTrackerSettingsOpen] = useState(false);
 
   const fullAccessRef = useRef(false);
   const trackersFetchedRef = useRef(false);
@@ -358,8 +360,17 @@ export default function App() {
     return () => clearInterval(id);
   }, [loading, tab, refreshSignalsOnly]);
 
+  const hasMyTracker =
+    myId != null && trackers.some((t) => t.owner_telegram_id === myId);
+
   const openSettings = (tracker: ChallengeDashboard) => {
     setTrackerSettings(tracker);
+    setTrackerSettingsOpen(true);
+  };
+
+  const openCreateTracker = () => {
+    setTrackerSettings(null);
+    setTrackerSettingsOpen(true);
   };
 
   const toggleSignalNotify = async () => {
@@ -395,6 +406,10 @@ export default function App() {
   const onNewsSaved = () => setNewsRefreshKey((k) => k + 1);
 
   const head = TITLES[tab];
+  const inMarketSignalCount = useMemo(
+    () => signals.filter(isSignalInMarket).length,
+    [signals],
+  );
   const showDisclaimer = disclaimerReady && !disclaimerAccepted && !loading;
 
   const acceptDisclaimer = () => {
@@ -414,9 +429,15 @@ export default function App() {
       <header className={`topbar${tab === "feed" ? " topbar--feed" : ""}`}>
         <div className="topbar__titles">
           {tab === "feed" ? (
-            <p className="topbar__marketplace" aria-label={PRODUCT_TAGLINE}>
+            <p className="topbar__marketplace" aria-label={`${PRODUCT_TAGLINE}, ${inMarketSignalCount} в рынке`}>
               <span className="topbar__marketplace-kicker">Marketplace</span>
-              <span className="topbar__marketplace-main">крипто-сделок</span>
+              <span className="topbar__marketplace-line">
+                <span className="topbar__marketplace-main">крипто-сделок</span>
+                <span className="topbar__marketplace-live" aria-hidden>
+                  <span className="topbar__marketplace-count">{inMarketSignalCount}</span>
+                  <span className="topbar__marketplace-live-label">в рынке</span>
+                </span>
+              </span>
             </p>
           ) : (
             <>
@@ -426,7 +447,7 @@ export default function App() {
           )}
         </div>
         <div className="topbar__actions">
-          <ThemeToggle />
+          {tab !== "feed" && tab !== "news" && <ThemeToggle />}
           {isSuperAdmin && tab === "news" && (
             <button type="button" className="fab-top" onClick={openNewNews} aria-label="Новая новость">
               +
@@ -493,8 +514,9 @@ export default function App() {
               trackers={trackers}
               signals={signals}
               myId={myId}
-              isAdmin={isAdmin}
+              canPublishMainFeed={canPublishMainFeed}
               onSettings={openSettings}
+              onCreateTracker={openCreateTracker}
             />
           )}
           {tab === "top" && (
@@ -538,7 +560,7 @@ export default function App() {
         </Suspense>
       </main>
 
-      {canPublishMainFeed && tab === "feed" && (
+      {canPublishMainFeed && hasMyTracker && tab === "feed" && (
         <button
           type="button"
           className="fab-bottom"
@@ -595,8 +617,10 @@ export default function App() {
         )}
 
         <TrackerSettingsModal
+          open={trackerSettingsOpen}
           tracker={trackerSettings}
-          onClose={() => setTrackerSettings(null)}
+          createMode={trackerSettings === null}
+          onClose={() => setTrackerSettingsOpen(false)}
           onSaved={() => {
             void loadTrackers();
           }}
