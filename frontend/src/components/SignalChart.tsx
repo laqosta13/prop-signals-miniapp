@@ -868,6 +868,14 @@ export function SignalChart({
       ? (entryLineLeft + closeLineLeft) / 2
       : null;
 
+  const chartEntryRef = chartEntryReference(lvLegend, entryPrice);
+  const trailEndBadgeLabel =
+    frozen && closeOverlay
+      ? closeOverlay.label
+      : livePrice != null && chartEntryRef != null
+        ? formatSignedMovePct(levelMovePctFromEntry(chartEntryRef, direction, livePrice))
+        : null;
+
   return (
     <section
       ref={wrapRef}
@@ -907,19 +915,26 @@ export function SignalChart({
               x2={liveTrail.x2}
               y2={liveTrail.y2}
             />
-            <circle
-              className="signal-chart__live-dot signal-chart__live-dot--entry"
-              cx={liveTrail.x1}
-              cy={liveTrail.y1}
-              r={4}
-            />
-            <circle
-              className={`signal-chart__live-dot signal-chart__live-dot--${trailEndClass(liveTrail, frozen)}`}
-              cx={liveTrail.x2}
-              cy={liveTrail.y2}
-              r={4}
-            />
           </svg>
+        )}
+        {liveTrail && (
+          <div
+            className="signal-chart__trail-badge signal-chart__trail-badge--entry signal-chart__marker-badge--entry"
+            style={{ left: `${liveTrail.x1}px`, top: `${liveTrail.y1}px` }}
+          >
+            Вход
+          </div>
+        )}
+        {liveTrail && trailEndBadgeLabel && (
+          <div
+            className={`signal-chart__trail-badge signal-chart__trail-badge--end signal-chart__marker-badge--${trailEndClass(
+              liveTrail,
+              frozen,
+            )}`}
+            style={{ left: `${liveTrail.x2}px`, top: `${liveTrail.y2}px` }}
+          >
+            {trailEndBadgeLabel}
+          </div>
         )}
         {isLiveEntryTrail &&
           liveTrail &&
@@ -962,7 +977,7 @@ export function SignalChart({
             </div>
           </div>
         )}
-        {!markerBadgeCluster && entryLineLeft != null && entryFilledAt && (
+        {!markerBadgeCluster && entryLineLeft != null && entryFilledAt && !liveTrail && (
           <div
             className="signal-chart__marker-badge signal-chart__marker-badge--entry"
             style={{ left: `${entryLineLeft}px` }}
@@ -970,7 +985,7 @@ export function SignalChart({
             Вход
           </div>
         )}
-        {!markerBadgeCluster && closeLineLeft != null && closeOverlay && (
+        {!markerBadgeCluster && closeLineLeft != null && closeOverlay && !liveTrail && (
           <div
             className={`signal-chart__marker-badge signal-chart__marker-badge--${closeOverlay.reason}`}
             style={{ left: `${closeLineLeft}px` }}

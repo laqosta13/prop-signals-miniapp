@@ -1729,6 +1729,31 @@
   );
 }
 
+.signal-chart__trail-badge {
+  position: absolute;
+  z-index: 4;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  line-height: 1.2;
+}
+
+.signal-chart__trail-badge--entry {
+  transform: translate(-50%, -50%);
+}
+
+.signal-chart__trail-badge--end {
+  transform: translate(calc(-100% - 8px), -50%);
+  text-transform: uppercase;
+}
+
 .signal-chart__marker-badge {
   position: absolute;
   top: 6px;
@@ -1765,6 +1790,21 @@
 .signal-chart__marker-badge--market {
   color: var(--chart-badge-market-text);
   background: var(--chart-badge-market-bg);
+}
+
+.signal-chart__marker-badge--up {
+  color: var(--chart-badge-entry-text);
+  background: var(--chart-badge-entry-bg);
+}
+
+.signal-chart__marker-badge--down {
+  color: var(--chart-badge-stop-text);
+  background: var(--chart-badge-stop-bg);
+}
+
+.signal-chart__marker-badge--flat {
+  color: var(--muted);
+  background: rgba(138, 138, 147, 0.2);
 }
 
 .signal-chart__marker-cluster {
