@@ -285,6 +285,13 @@ body {
 
 /* ── Theme toggle ────────────────────────────────────────── */
 
+:root {
+  --app-toggle-w: 54px;
+  --app-toggle-h: 28px;
+  --app-toggle-pad: 3px;
+  --app-toggle-thumb: 22px;
+}
+
 .theme-toggle {
   padding: 0;
   border: none;
@@ -297,9 +304,10 @@ body {
   position: relative;
   display: flex;
   align-items: center;
-  width: 66px;
-  height: 28px;
-  padding: 3px;
+  width: var(--app-toggle-w);
+  height: var(--app-toggle-h);
+  padding: var(--app-toggle-pad);
+  box-sizing: border-box;
   border-radius: 999px;
   background: var(--icon-btn-bg);
   border: 1px solid var(--icon-btn-border);
@@ -341,8 +349,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 22px;
+  width: var(--app-toggle-thumb);
+  height: var(--app-toggle-thumb);
   border-radius: 999px;
   background: var(--surface-solid);
   color: var(--accent);
@@ -354,7 +362,7 @@ body {
 }
 
 .theme-toggle__track--light .theme-toggle__thumb {
-  transform: translateX(30px);
+  transform: translateX(calc(var(--app-toggle-w) - var(--app-toggle-pad) * 2 - var(--app-toggle-thumb)));
   color: #f59e0b;
 }
 
@@ -363,7 +371,7 @@ body {
 }
 
 .theme-toggle__track--light:active .theme-toggle__thumb {
-  transform: translateX(30px) scale(0.94);
+  transform: translateX(calc(var(--app-toggle-w) - var(--app-toggle-pad) * 2 - var(--app-toggle-thumb))) scale(0.94);
 }
 
 /* ── Shared buttons ──────────────────────────────────────── */
@@ -545,7 +553,7 @@ body {
   color: #6d28d9;
 }
 
-[data-theme="light"] .topbar__marketplace-main {
+[data-theme="light"] .topbar__marketplace-word {
   background: linear-gradient(105deg, #0f172a 0%, #6d28d9 45%, #047857 100%);
   -webkit-background-clip: text;
   background-clip: text;

@@ -5,6 +5,7 @@ import {
   LineStyle,
   createChart,
   type IChartApi,
+  type IPriceLine,
   type ISeriesApi,
   type SeriesMarker,
   type UTCTimestamp,
@@ -42,7 +43,8 @@ const CHART_PNL_PARTICLE_MS = 850;
 const CHART_KLINE_LIMIT = 1000;
 const CHART_VISIBLE_BARS = 220;
 const CHART_HISTORY_BEFORE_MS = 36 * 60 * 60 * 1000;
-const CHART_RIGHT_OFFSET_BARS = 24;
+const CHART_RIGHT_OFFSET_BARS = 40;
+const CHART_LIVE_AXIS_PREFIX = "  ";
 
 type Props = {
   symbol: string;
@@ -401,8 +403,9 @@ export function SignalChart({
   const pinnedCloseRef = useRef<{ closedAt: string; time: UTCTimestamp } | null>(null);
   const loadedRef = useRef(false);
   const livePriceRef = useRef<number | null>(null);
+  const livePriceLineRef = useRef<IPriceLine | null>(null);
   const syncOverlayLinesRef = useRef<(chart: IChartApi) => void>(() => {});
-  const [interval, setInterval] = useState<ChartInterval>("1");
+  const [interval, setInterval] = useState<ChartInterval>("5");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
@@ -615,6 +618,7 @@ export function SignalChart({
         borderVisible: false,
         autoScale: true,
         entireTextOnly: false,
+        minimumWidth: 92,
         scaleMargins: { top: 0.1, bottom: 0.1 },
       },
       timeScale: {
@@ -652,6 +656,7 @@ export function SignalChart({
       setEntryLineLeft(null);
       setCloseLineLeft(null);
       setCloseOverlay(null);
+      livePriceLineRef.current = null;
       setLivePrice(null);
       setLiveTrail(null);
       setPnlParticles([]);
@@ -662,7 +667,7 @@ export function SignalChart({
   useEffect(() => {
     if (!visible || !pair || !chartApi.current) return;
 
-    const bybitIv = CHART_INTERVALS.find((x) => x.id === interval)?.bybit ?? "1";
+    const bybitIv = CHART_INTERVALS.find((x) => x.id === interval)?.bybit ?? "5";
     const ac = new AbortController();
     setLoading(true);
     setErr(null);
@@ -692,7 +697,9 @@ export function SignalChart({
           wickDownColor: palette.wickDown,
           priceFormat: chartPriceFormatOptions(scalePrices),
           autoscaleInfoProvider: createLevelAutoscaleProvider(scalePrices),
+          lastValueVisible: !isLiveEntryTrail,
         });
+        livePriceLineRef.current = null;
         seriesRef.current = series;
         series.setData(data);
         entryRefPriceRef.current = entryRef;
@@ -749,7 +756,7 @@ export function SignalChart({
   useEffect(() => {
     if (!visible || !pair || frozen || !entryFilledAt) return;
 
-    const bybitIv = CHART_INTERVALS.find((x) => x.id === interval)?.bybit ?? "1";
+    const bybitIv = CHART_INTERVALS.find((x) => x.id === interval)?.bybit ?? "5";
     const candleSec = Math.max(60, Number(bybitIv) * 60);
     const lv = levelsFromSignal(entryLow, entryHigh, stopLoss, takeProfits);
     const entryRef = chartEntryReference(lv, entryPrice);
@@ -821,6 +828,46 @@ export function SignalChart({
       window.clearInterval(id);
     };
   }, [visible, pair, symbol, isLiveEntryTrail, showEntryTrail, syncEntryTrail]);
+
+  useEffect(() => {
+    const series = seriesRef.current;
+    if (!series) return;
+
+    series.applyOptions({ lastValueVisible: !isLiveEntryTrail });
+
+    if (!isLiveEntryTrail || livePrice == null) {
+      if (livePriceLineRef.current) {
+        series.removePriceLine(livePriceLineRef.current);
+        livePriceLineRef.current = null;
+      }
+      return;
+    }
+
+    const entryRef = entryRefPriceRef.current;
+    const profit = entryRef != null ? isLivePriceInProfit(direction, entryRef, livePrice) : null;
+    const color = profit === true ? "#3dff8a" : profit === false ? "#ff6b6b" : "#aab4c7";
+    const title = chartLevelLineTitle(CHART_LIVE_AXIS_PREFIX, entryRef, direction, livePrice);
+
+    if (!livePriceLineRef.current) {
+      livePriceLineRef.current = series.createPriceLine({
+        price: livePrice,
+        color,
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        lineVisible: false,
+        axisLabelVisible: true,
+        axisLabelColor: color,
+        title,
+      });
+    } else {
+      livePriceLineRef.current.applyOptions({
+        price: livePrice,
+        color,
+        axisLabelColor: color,
+        title,
+      });
+    }
+  }, [isLiveEntryTrail, livePrice, direction]);
 
   useEffect(() => {
     if (!visible || !showEntryTrail) return;

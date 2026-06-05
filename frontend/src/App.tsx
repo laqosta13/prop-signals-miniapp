@@ -444,26 +444,27 @@ export default function App() {
               aria-label={feedStatsLabel ? `${PRODUCT_TAGLINE}, ${feedStatsLabel}` : PRODUCT_TAGLINE}
             >
               <span className="topbar__marketplace-kicker">Marketplace</span>
-              <span className="topbar__marketplace-line">
-                <span className="topbar__marketplace-main">крипто-сделок</span>
-                {(inMarketSignalCount > 0 || awaitingEntrySignalCount > 0) && (
-                  <span className="topbar__marketplace-stats" aria-hidden>
-                    {inMarketSignalCount > 0 && (
-                      <span className="topbar__marketplace-live">
-                        <span className="topbar__marketplace-count">{inMarketSignalCount}</span>
-                        <span className="topbar__marketplace-live-label">в рынке</span>
+              <span className="topbar__marketplace-body">
+                <span className="topbar__marketplace-row">
+                  <span className="topbar__marketplace-word">крипто-</span>
+                  {inMarketSignalCount > 0 && (
+                    <span className="topbar__marketplace-live" aria-hidden>
+                      <span className="topbar__marketplace-count">{inMarketSignalCount}</span>
+                      <span className="topbar__marketplace-live-label">в рынке</span>
+                    </span>
+                  )}
+                </span>
+                <span className="topbar__marketplace-row">
+                  <span className="topbar__marketplace-word">сделок</span>
+                  {awaitingEntrySignalCount > 0 && (
+                    <span className="topbar__marketplace-live topbar__marketplace-live--awaiting" aria-hidden>
+                      <span className="topbar__marketplace-count topbar__marketplace-count--awaiting">
+                        {awaitingEntrySignalCount}
                       </span>
-                    )}
-                    {awaitingEntrySignalCount > 0 && (
-                      <span className="topbar__marketplace-live topbar__marketplace-live--awaiting">
-                        <span className="topbar__marketplace-count topbar__marketplace-count--awaiting">
-                          {awaitingEntrySignalCount}
-                        </span>
-                        <span className="topbar__marketplace-live-label">ожидание входа</span>
-                      </span>
-                    )}
-                  </span>
-                )}
+                      <span className="topbar__marketplace-live-label">ожидание входа</span>
+                    </span>
+                  )}
+                </span>
               </span>
             </p>
           ) : (
