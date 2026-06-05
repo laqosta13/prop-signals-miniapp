@@ -253,8 +253,8 @@ export function chartCloseExitPrice(
 }
 
 export function closeReasonLabel(reason: CloseReason | null): string | null {
-  if (reason === "stop") return "SL%";
-  if (reason === "target") return "TP%";
+  if (reason === "stop") return "SL";
+  if (reason === "target") return "TP";
   if (reason === "market") return "По рынку";
   return null;
 }

@@ -198,12 +198,12 @@ function applyLevelLines(
       lineWidth: 1,
       lineStyle: LineStyle.Solid,
       axisLabelVisible: true,
-      title: chartLevelLineTitle("SL%", opts.entryRef, dir, stop),
+      title: chartLevelLineTitle("SL", opts.entryRef, dir, stop),
     });
   }
 
   targets.forEach((tp, i) => {
-    const base = targets.length > 1 ? `TP% ${i + 1}` : "TP%";
+    const base = targets.length > 1 ? `TP ${i + 1}` : "TP";
     series.createPriceLine({
       price: tp,
       color: opts.palette.target,
@@ -604,6 +604,7 @@ export function SignalChart({
       layout: {
         background: { type: ColorType.Solid, color: colors.background },
         textColor: colors.text,
+        fontSize: 10,
       },
       grid: {
         vertLines: { visible: false },
@@ -972,8 +973,8 @@ export function SignalChart({
         <span className="signal-chart__legend-item entry">
           {awaitingEntryLegend ? "Лимитка" : "Вход"}
         </span>
-        <span className="signal-chart__legend-item stop">SL%</span>
-        <span className="signal-chart__legend-item target">TP%</span>
+        <span className="signal-chart__legend-item stop">SL</span>
+        <span className="signal-chart__legend-item target">TP</span>
         {closeOverlay && (
           <span className={`signal-chart__legend-item close close--${closeOverlay.reason}`}>{closeOverlay.label}</span>
         )}
