@@ -41,8 +41,6 @@ const CHART_LIVE_PRICE_MS = 10_000;
 const CHART_PNL_PARTICLE_MS = 850;
 const CHART_KLINE_LIMIT = 1000;
 const CHART_VISIBLE_BARS = 220;
-/** Плашки в одной колонке, если линии входа и закрытия близко (быстрое закрытие). */
-const MARKER_BADGE_CLUSTER_PX = 100;
 const CHART_HISTORY_BEFORE_MS = 36 * 60 * 60 * 1000;
 const CHART_RIGHT_OFFSET_BARS = 24;
 
@@ -857,17 +855,6 @@ export function SignalChart({
   const awaitingEntryLegend =
     !entryFilledAt && (lvLegend.entryLow != null || lvLegend.entryHigh != null);
 
-  const markerBadgeCluster =
-    entryLineLeft != null &&
-    closeLineLeft != null &&
-    entryFilledAt &&
-    closeOverlay != null &&
-    Math.abs(entryLineLeft - closeLineLeft) < MARKER_BADGE_CLUSTER_PX;
-  const markerClusterLeft =
-    markerBadgeCluster && entryLineLeft != null && closeLineLeft != null
-      ? (entryLineLeft + closeLineLeft) / 2
-      : null;
-
   const chartEntryRef = chartEntryReference(lvLegend, entryPrice);
   const trailEndBadgeLabel =
     frozen && closeOverlay
@@ -963,35 +950,6 @@ export function SignalChart({
             className={`signal-chart__marker-line signal-chart__marker-line--${closeOverlay.reason}`}
             style={{ left: `${closeLineLeft}px` }}
           />
-        )}
-        {markerBadgeCluster && markerClusterLeft != null && closeOverlay && (
-          <div
-            className="signal-chart__marker-cluster"
-            style={{ left: `${markerClusterLeft}px` }}
-          >
-            <div className="signal-chart__marker-badge signal-chart__marker-badge--entry">Вход</div>
-            <div
-              className={`signal-chart__marker-badge signal-chart__marker-badge--${closeOverlay.reason}`}
-            >
-              {closeOverlay.label}
-            </div>
-          </div>
-        )}
-        {!markerBadgeCluster && entryLineLeft != null && entryFilledAt && !liveTrail && (
-          <div
-            className="signal-chart__marker-badge signal-chart__marker-badge--entry"
-            style={{ left: `${entryLineLeft}px` }}
-          >
-            Вход
-          </div>
-        )}
-        {!markerBadgeCluster && closeLineLeft != null && closeOverlay && !liveTrail && (
-          <div
-            className={`signal-chart__marker-badge signal-chart__marker-badge--${closeOverlay.reason}`}
-            style={{ left: `${closeLineLeft}px` }}
-          >
-            {closeOverlay.label}
-          </div>
         )}
       </div>
       <div className="signal-chart__legend">
