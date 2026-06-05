@@ -3594,6 +3594,17 @@
   font-weight: 700;
 }
 
+.cult-candidate-join__blockers {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.1);
+  color: #fbbf24;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
 .cult-candidate-join__pay {
   width: 100%;
   margin-bottom: 12px;

@@ -27,11 +27,23 @@ export function CultCandidateJoinPanel({ onJoined }: Props) {
     reload();
   }, []);
 
-  if (!me || me.is_candidate) return null;
+  if (!me || me.is_candidate || me.main_feed_publisher) return null;
+
+  const openModal = () => {
+    reload();
+    setErr(null);
+    setOpen(true);
+  };
 
   const onJoin = () => {
+    if (!me.can_join) {
+      setErr(me.blockers[0] ?? "Сначала выполните шаги выше");
+      WebApp.HapticFeedback.notificationOccurred("error");
+      return;
+    }
     if (tgName.length < 2) {
       setErr("В профиле Telegram нужны имя или username (от 2 символов)");
+      WebApp.HapticFeedback.notificationOccurred("error");
       return;
     }
     void (async () => {
@@ -52,7 +64,7 @@ export function CultCandidateJoinPanel({ onJoined }: Props) {
 
   return (
     <div className="cult-candidate-join">
-      <button type="button" className="cult-candidate-join__cta" onClick={() => setOpen(true)}>
+      <button type="button" className="cult-candidate-join__cta" onClick={openModal}>
         <span className="cult-candidate-join__plus" aria-hidden>
           +
         </span>
@@ -89,14 +101,16 @@ export function CultCandidateJoinPanel({ onJoined }: Props) {
                 <>Добавьте имя или @username в профиле Telegram</>
               )}
             </p>
-            {me.blockers.length > 0 && !me.can_join && (
-              <p className="meta cult-candidate-join__blockers">{me.blockers.join(" · ")}</p>
+            {!me.can_join && me.blockers.length > 0 && (
+              <p className="cult-candidate-join__blockers" role="status">
+                {me.blockers.join(" · ")}
+              </p>
             )}
             {err && <p className="err">{err}</p>}
             <button
               type="button"
-              className="btn-primary"
-              disabled={busy || !me.can_join || tgName.length < 2}
+              className={`btn-primary${me.can_join && tgName.length >= 2 ? "" : " btn-primary--muted"}`}
+              disabled={busy}
               onClick={onJoin}
             >
               Вступить

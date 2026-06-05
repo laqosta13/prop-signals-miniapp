@@ -217,6 +217,7 @@ export type CultCandidateMe = {
   display_name: string | null;
   can_join: boolean;
   blockers: string[];
+  main_feed_publisher: boolean;
   bybit_configured: boolean;
   cult_subscription_active: boolean;
   cult_subscription_until: string | null;

@@ -262,6 +262,7 @@ class CultCandidateMeRead(BaseModel):
     display_name: str | None = None
     can_join: bool
     blockers: list[str] = []
+    main_feed_publisher: bool = False
     bybit_configured: bool = False
     cult_subscription_active: bool = False
     cult_subscription_until: datetime | None = None

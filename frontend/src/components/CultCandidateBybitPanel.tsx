@@ -98,10 +98,16 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
   };
 
   const onTest = async () => {
+    const hasKey = !!apiKey.trim();
+    const hasSecret = !!apiSecret.trim();
+    if (hasKey !== hasSecret) {
+      setErr("Для смены ключей введите API Key и Secret вместе");
+      return;
+    }
     setBusy(true);
     setErr(null);
     try {
-      if (apiKey.trim() && apiSecret.trim()) {
+      if (hasKey && hasSecret) {
         await saveCopyTradingSettings({
           api_key: apiKey.trim(),
           api_secret: apiSecret.trim(),

@@ -403,6 +403,10 @@ body {
   cursor: default;
 }
 
+.btn-primary--muted {
+  opacity: 0.72;
+}
+
 .btn-ghost {
   display: inline-flex;
   align-items: center;

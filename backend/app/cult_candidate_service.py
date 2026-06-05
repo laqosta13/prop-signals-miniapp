@@ -384,7 +384,7 @@ def build_cult_candidates_read(db: Session, *, viewer_id: int | None = None) -> 
 
 
 def build_cult_candidate_me_read(db: Session, sub: Subscriber) -> CultCandidateMeRead:
-    from app.trader_roster_service import cult_subscription_admin_bypass
+    from app.trader_roster_service import cult_subscription_admin_bypass, is_main_feed_publisher
 
     row = db.get(CultCandidate, sub.telegram_user_id)
     bypass = cult_subscription_admin_bypass(db, sub.telegram_user_id)
@@ -395,6 +395,7 @@ def build_cult_candidate_me_read(db: Session, sub: Subscriber) -> CultCandidateM
         display_name=row.display_name if row else None,
         can_join=len(blockers) == 0,
         blockers=blockers,
+        main_feed_publisher=is_main_feed_publisher(db, sub.telegram_user_id),
         bybit_configured=bybit is not None,
         cult_subscription_active=cult_subscription_active(sub, is_admin=bypass),
         cult_subscription_until=sub.cult_subscription_until,

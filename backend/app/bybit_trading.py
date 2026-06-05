@@ -19,6 +19,22 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 _RECV_WINDOW = "5000"
+
+
+def _query_string(params: dict[str, Any] | None) -> str:
+    if not params:
+        return ""
+    return "&".join(f"{k}={v}" for k, v in sorted(params.items(), key=lambda item: item[0]))
+
+
+def _friendly_bybit_error(path: str, msg: str) -> str:
+    lower = msg.lower()
+    if "error sign" in lower or "signature" in lower:
+        return (
+            f"Bybit {path}: неверная подпись — проверьте API Secret. "
+            "Введите заново API Key и Secret с bybit.com и нажмите «Сохранить»."
+        )
+    return f"Bybit {path}: {msg}"
 _INSTRUMENT_CACHE: dict[str, dict[str, float | str]] = {}
 _httpx_client: httpx.AsyncClient | None = None
 
@@ -61,6 +77,7 @@ def _auth_headers(creds: BybitCredentials, payload: str) -> dict[str, str]:
     return {
         "X-BAPI-API-KEY": creds.api_key,
         "X-BAPI-SIGN": _sign(creds, prehash),
+        "X-BAPI-SIGN-TYPE": "2",
         "X-BAPI-TIMESTAMP": ts,
         "X-BAPI-RECV-WINDOW": _RECV_WINDOW,
         "Content-Type": "application/json",
@@ -97,9 +114,10 @@ async def _request(
 ) -> dict[str, Any]:
     url = f"{creds.api_base}{path}"
     if method == "GET":
-        query = "&".join(f"{k}={v}" for k, v in (params or {}).items())
+        query = _query_string(params)
         headers = _auth_headers(creds, query)
-        r = await _client().get(url, params=params, headers=headers)
+        request_url = f"{url}?{query}" if query else url
+        r = await _client().get(request_url, headers=headers)
     else:
         payload = json.dumps(body or {}, separators=(",", ":"))
         headers = _auth_headers(creds, payload)
@@ -118,7 +136,7 @@ async def _request(
         raise RuntimeError(f"Bybit {path}: неожиданный ответ (HTTP {r.status_code})") from e
     if r.status_code != 200 or data.get("retCode") != 0:
         msg = data.get("retMsg") or f"HTTP {r.status_code}"
-        raise RuntimeError(f"Bybit {path}: {msg}")
+        raise RuntimeError(_friendly_bybit_error(path, str(msg)))
     return data.get("result") or {}
 
 
