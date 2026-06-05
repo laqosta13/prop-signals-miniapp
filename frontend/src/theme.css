@@ -555,6 +555,10 @@ body {
   color: #6d28d9;
 }
 
+[data-theme="light"] .topbar__marketplace-count--awaiting {
+  color: #7c3aed;
+}
+
 [data-theme="light"] .topbar__marketplace-live-label {
   color: var(--text-secondary);
 }
@@ -572,6 +576,10 @@ body {
 
 [data-theme="light"] .signal-chart__live-line--down {
   stroke: rgba(220, 38, 38, 0.85);
+}
+
+[data-theme="light"] .signal-chart__live-dot--entry {
+  fill: #059669;
 }
 
 [data-theme="light"] .signal-chart__live-dot--up {

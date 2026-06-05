@@ -22,7 +22,7 @@ import {
 import { FeedTab } from "./components/FeedTab";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { mergeFeedSignals } from "./utils/mergeFeedSignals";
-import { isSignalInMarket } from "./utils/signalActions";
+import { isSignalAwaitingEntry, isSignalInMarket } from "./utils/signalActions";
 import { PRODUCT_TAGLINE, TAB_SUBTITLES } from "./data/appCopy";
 import { hasAcceptedDisclaimer, markDisclaimerAccepted } from "./utils/disclaimerStorage";
 
@@ -410,6 +410,16 @@ export default function App() {
     () => signals.filter(isSignalInMarket).length,
     [signals],
   );
+  const awaitingEntrySignalCount = useMemo(
+    () => signals.filter(isSignalAwaitingEntry).length,
+    [signals],
+  );
+  const feedStatsLabel = [
+    inMarketSignalCount > 0 ? `${inMarketSignalCount} в рынке` : null,
+    awaitingEntrySignalCount > 0 ? `${awaitingEntrySignalCount} ожидание входа` : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
   const showDisclaimer = disclaimerReady && !disclaimerAccepted && !loading;
 
   const acceptDisclaimer = () => {
@@ -429,14 +439,31 @@ export default function App() {
       <header className={`topbar${tab === "feed" ? " topbar--feed" : ""}`}>
         <div className="topbar__titles">
           {tab === "feed" ? (
-            <p className="topbar__marketplace" aria-label={`${PRODUCT_TAGLINE}, ${inMarketSignalCount} в рынке`}>
+            <p
+              className="topbar__marketplace"
+              aria-label={feedStatsLabel ? `${PRODUCT_TAGLINE}, ${feedStatsLabel}` : PRODUCT_TAGLINE}
+            >
               <span className="topbar__marketplace-kicker">Marketplace</span>
               <span className="topbar__marketplace-line">
                 <span className="topbar__marketplace-main">крипто-сделок</span>
-                <span className="topbar__marketplace-live" aria-hidden>
-                  <span className="topbar__marketplace-count">{inMarketSignalCount}</span>
-                  <span className="topbar__marketplace-live-label">в рынке</span>
-                </span>
+                {(inMarketSignalCount > 0 || awaitingEntrySignalCount > 0) && (
+                  <span className="topbar__marketplace-stats" aria-hidden>
+                    {inMarketSignalCount > 0 && (
+                      <span className="topbar__marketplace-live">
+                        <span className="topbar__marketplace-count">{inMarketSignalCount}</span>
+                        <span className="topbar__marketplace-live-label">в рынке</span>
+                      </span>
+                    )}
+                    {awaitingEntrySignalCount > 0 && (
+                      <span className="topbar__marketplace-live topbar__marketplace-live--awaiting">
+                        <span className="topbar__marketplace-count topbar__marketplace-count--awaiting">
+                          {awaitingEntrySignalCount}
+                        </span>
+                        <span className="topbar__marketplace-live-label">ожидание входа</span>
+                      </span>
+                    )}
+                  </span>
+                )}
               </span>
             </p>
           ) : (

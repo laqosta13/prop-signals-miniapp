@@ -46,6 +46,13 @@ export function isSignalInMarket(s: Signal): boolean {
   return !!(s.entry_filled_at || (!s.entry_low && !s.entry_high));
 }
 
+/** Активный сигнал с лимиткой, вход ещё не сработал. */
+export function isSignalAwaitingEntry(s: Signal): boolean {
+  if (s.status !== "active") return false;
+  if (isSignalInMarket(s)) return false;
+  return !!(s.entry_low || s.entry_high);
+}
+
 /** Подписка или админ — доступ к активным сигналам и лайкам/просмотрам. */
 export function canViewActiveSignals(subscriptionActive: boolean, isAdmin: boolean): boolean {
   return subscriptionActive || isAdmin;

@@ -254,9 +254,10 @@ function buildChartMarkers(
   entryTime: UTCTimestamp | null,
   closeTime: UTCTimestamp | null,
   closeColor: string,
+  showEntryMarker = true,
 ): SeriesMarker<UTCTimestamp>[] {
   const markers: SeriesMarker<UTCTimestamp>[] = [];
-  if (entryTime != null) {
+  if (showEntryMarker && entryTime != null) {
     markers.push({
       time: entryTime,
       position: "inBar",
@@ -383,6 +384,7 @@ export function SignalChart({
   const pinnedCloseRef = useRef<{ closedAt: string; time: UTCTimestamp } | null>(null);
   const loadedRef = useRef(false);
   const livePriceRef = useRef<number | null>(null);
+  const syncOverlayLinesRef = useRef<(chart: IChartApi) => void>(() => {});
   const [interval, setInterval] = useState<ChartInterval>("1");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -466,7 +468,8 @@ export function SignalChart({
       setCloseOverlay(null);
     }
 
-    series.setMarkers(buildChartMarkers(entryTime, closeTime, closeReasonColor(reason)));
+    const showEntryMarker = frozen || !entryFilledAt;
+    series.setMarkers(buildChartMarkers(entryTime, closeTime, closeReasonColor(reason), showEntryMarker));
   };
 
   const syncLiveTrail = useCallback(
@@ -507,11 +510,18 @@ export function SignalChart({
     [direction, showLiveTrail],
   );
 
-  const syncOverlayLines = (chart: IChartApi) => {
-    setEntryLineLeft(syncLineLeft(chart, entryCandleTimeRef.current));
-    setCloseLineLeft(syncLineLeft(chart, closeCandleTimeRef.current));
-    syncLiveTrail(livePriceRef.current);
-  };
+  const syncOverlayLines = useCallback(
+    (chart: IChartApi) => {
+      setEntryLineLeft(syncLineLeft(chart, entryCandleTimeRef.current));
+      setCloseLineLeft(syncLineLeft(chart, closeCandleTimeRef.current));
+      syncLiveTrail(livePriceRef.current);
+    },
+    [syncLiveTrail],
+  );
+
+  useEffect(() => {
+    syncOverlayLinesRef.current = syncOverlayLines;
+  }, [syncOverlayLines]);
 
   useEffect(() => {
     loadedRef.current = false;
@@ -570,8 +580,9 @@ export function SignalChart({
       height: 268,
     });
     chartApi.current = chart;
-    const updateOverlayLines = () => syncOverlayLines(chart);
+    const updateOverlayLines = () => syncOverlayLinesRef.current(chart);
     chart.timeScale().subscribeVisibleTimeRangeChange(updateOverlayLines);
+    chart.timeScale().subscribeVisibleLogicalRangeChange(updateOverlayLines);
     const ro = new ResizeObserver(() => {
       if (chartRef.current) {
         chart.applyOptions({ width: chartRef.current.clientWidth });
@@ -582,6 +593,7 @@ export function SignalChart({
 
     return () => {
       chart.timeScale().unsubscribeVisibleTimeRangeChange(updateOverlayLines);
+      chart.timeScale().unsubscribeVisibleLogicalRangeChange(updateOverlayLines);
       ro.disconnect();
       chart.remove();
       chartApi.current = null;
@@ -760,6 +772,18 @@ export function SignalChart({
   }, [visible, pair, symbol, showLiveTrail, syncLiveTrail]);
 
   useEffect(() => {
+    if (!visible || !showLiveTrail) return;
+    let raf = 0;
+    const tick = () => {
+      const chart = chartApi.current;
+      if (chart) syncOverlayLinesRef.current(chart);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [visible, showLiveTrail]);
+
+  useEffect(() => {
     if (!showLiveTrail || !liveTrail || liveTrail.side === "flat") return;
     const sign: "+" | "-" = liveTrail.side === "up" ? "+" : "-";
     const id = window.setInterval(() => {
@@ -832,6 +856,12 @@ export function SignalChart({
               y2={liveTrail.y2}
             />
             <circle
+              className="signal-chart__live-dot signal-chart__live-dot--entry"
+              cx={liveTrail.x1}
+              cy={liveTrail.y1}
+              r={4}
+            />
+            <circle
               className={`signal-chart__live-dot signal-chart__live-dot--${liveTrail.side}`}
               cx={liveTrail.x2}
               cy={liveTrail.y2}
@@ -847,8 +877,8 @@ export function SignalChart({
                 particle.sign === "+" ? "up" : "down"
               }`}
               style={{
-                left: `${liveTrail.x1 + particle.drift}px`,
-                top: `${liveTrail.y1}px`,
+                left: `${liveTrail.x2 + particle.drift}px`,
+                top: `${liveTrail.y2}px`,
               }}
             >
               {particle.sign}$

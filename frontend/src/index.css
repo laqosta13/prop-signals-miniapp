@@ -126,6 +126,13 @@
   color: transparent;
 }
 
+.topbar__marketplace-stats {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .topbar__marketplace-live {
   display: flex;
   align-items: baseline;
@@ -145,6 +152,14 @@
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--text-secondary);
+}
+
+.topbar__marketplace-count--awaiting {
+  color: var(--purple);
+}
+
+.topbar__marketplace-live--awaiting .topbar__marketplace-live-label {
+  color: var(--muted);
 }
 
 .topbar--feed .topbar__actions {
@@ -1591,6 +1606,11 @@
 
 .signal-chart__live-dot--flat {
   fill: #8a8a93;
+}
+
+.signal-chart__live-dot--entry {
+  fill: #3dff8a;
+  stroke: rgba(255, 255, 255, 0.45);
 }
 
 .signal-chart__pnl-particle {
