@@ -237,6 +237,21 @@ export function resolveCloseReason(
   return null;
 }
 
+/** Цена закрытия на графике: стоп/цель — ровно по уровню, рынок — фактическая. */
+export function chartCloseExitPrice(
+  levels: Pick<SignalChartLevels, "stop" | "targets">,
+  reason: CloseReason | null,
+  direction: "long" | "short",
+  closedExitPrice?: number | null,
+): number | null {
+  if (reason === "stop" && levels.stop != null) return levels.stop;
+  if (reason === "target" && levels.targets.length) {
+    return direction === "short" ? Math.max(...levels.targets) : Math.min(...levels.targets);
+  }
+  if (closedExitPrice != null && Number.isFinite(closedExitPrice)) return closedExitPrice;
+  return null;
+}
+
 export function closeReasonLabel(reason: CloseReason | null): string | null {
   if (reason === "stop") return "Стоп";
   if (reason === "target") return "Цель";

@@ -1591,6 +1591,18 @@
   stroke: rgba(138, 138, 147, 0.65);
 }
 
+.signal-chart__live-line--stop {
+  stroke: rgba(255, 107, 107, 0.82);
+}
+
+.signal-chart__live-line--target {
+  stroke: rgba(224, 175, 255, 0.82);
+}
+
+.signal-chart__live-line--market {
+  stroke: rgba(255, 209, 102, 0.82);
+}
+
 .signal-chart__live-dot {
   stroke: rgba(255, 255, 255, 0.35);
   stroke-width: 1;
@@ -1611,6 +1623,18 @@
 .signal-chart__live-dot--entry {
   fill: #3dff8a;
   stroke: rgba(255, 255, 255, 0.45);
+}
+
+.signal-chart__live-dot--stop {
+  fill: #ff6b6b;
+}
+
+.signal-chart__live-dot--target {
+  fill: #e0afff;
+}
+
+.signal-chart__live-dot--market {
+  fill: #ffd166;
 }
 
 .signal-chart__pnl-particle {

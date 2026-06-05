@@ -578,6 +578,18 @@ body {
   stroke: rgba(220, 38, 38, 0.85);
 }
 
+[data-theme="light"] .signal-chart__live-line--stop {
+  stroke: rgba(220, 38, 38, 0.85);
+}
+
+[data-theme="light"] .signal-chart__live-line--target {
+  stroke: rgba(124, 58, 237, 0.85);
+}
+
+[data-theme="light"] .signal-chart__live-line--market {
+  stroke: rgba(217, 119, 6, 0.85);
+}
+
 [data-theme="light"] .signal-chart__live-dot--entry {
   fill: #059669;
 }
@@ -588,6 +600,18 @@ body {
 
 [data-theme="light"] .signal-chart__live-dot--down {
   fill: #dc2626;
+}
+
+[data-theme="light"] .signal-chart__live-dot--stop {
+  fill: #dc2626;
+}
+
+[data-theme="light"] .signal-chart__live-dot--target {
+  fill: #7c3aed;
+}
+
+[data-theme="light"] .signal-chart__live-dot--market {
+  fill: #d97706;
 }
 
 [data-theme="light"] .signal-chart__pnl-particle--up {

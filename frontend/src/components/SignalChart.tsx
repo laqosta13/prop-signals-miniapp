@@ -17,6 +17,7 @@ import {
   closeReasonColor,
   closeReasonLabel,
   entryCandleTimeForFill,
+  chartCloseExitPrice,
   chartEntryReference,
   chartLevelLineTitle,
   chartLevelPrices,
@@ -106,6 +107,7 @@ type LiveTrail = {
   x2: number;
   y2: number;
   side: LiveTrailSide;
+  closeReason: CloseReason | null;
 };
 
 type PnlParticle = {
@@ -255,6 +257,7 @@ function buildChartMarkers(
   closeTime: UTCTimestamp | null,
   closeColor: string,
   showEntryMarker = true,
+  showCloseMarker = true,
 ): SeriesMarker<UTCTimestamp>[] {
   const markers: SeriesMarker<UTCTimestamp>[] = [];
   if (showEntryMarker && entryTime != null) {
@@ -265,7 +268,7 @@ function buildChartMarkers(
       shape: "circle",
     });
   }
-  if (closeTime != null) {
+  if (showCloseMarker && closeTime != null) {
     markers.push({
       time: closeTime,
       position: "inBar",
@@ -274,6 +277,20 @@ function buildChartMarkers(
     });
   }
   return markers.sort((a, b) => Number(a.time) - Number(b.time));
+}
+
+function closedTrailSide(
+  reason: CloseReason | null,
+  signalStatus: string,
+): LiveTrailSide {
+  if (reason === "target" || signalStatus === "win") return "up";
+  if (reason === "stop" || signalStatus === "lose") return "down";
+  return "flat";
+}
+
+function trailEndClass(trail: LiveTrail, frozen: boolean): string {
+  if (frozen && trail.closeReason) return trail.closeReason;
+  return trail.side;
 }
 
 function syncLineLeft(chart: IChartApi, time: UTCTimestamp | null): number | null {
@@ -380,6 +397,8 @@ export function SignalChart({
   const closeCandleTimeRef = useRef<UTCTimestamp | null>(null);
   const lastCandleTimeRef = useRef<UTCTimestamp | null>(null);
   const entryRefPriceRef = useRef<number | null>(null);
+  const closeExitPriceRef = useRef<number | null>(null);
+  const closeReasonRef = useRef<CloseReason | null>(null);
   const pinnedEntryRef = useRef<{ fillAt: string; time: UTCTimestamp } | null>(null);
   const pinnedCloseRef = useRef<{ closedAt: string; time: UTCTimestamp } | null>(null);
   const loadedRef = useRef(false);
@@ -397,7 +416,8 @@ export function SignalChart({
   const [pnlParticles, setPnlParticles] = useState<PnlParticle[]>([]);
   const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
   const palette = chartPaletteFor(theme);
-  const showLiveTrail = !frozen && status === "active" && !!entryFilledAt;
+  const isLiveEntryTrail = !frozen && status === "active" && !!entryFilledAt;
+  const showEntryTrail = !!entryFilledAt && (isLiveEntryTrail || (frozen && !!closedAt));
 
   useEffect(() => subscribeTheme(() => setTheme(getStoredTheme())), []);
 
@@ -443,16 +463,9 @@ export function SignalChart({
     const label = closeReasonLabel(reason);
     const closeTime = frozen && closedAt ? resolvePinnedCloseTime(candles, candleSec) : null;
     closeCandleTimeRef.current = closeTime;
-    const exitPx =
-      closedExitPrice != null && Number.isFinite(closedExitPrice)
-        ? closedExitPrice
-        : reason === "stop" && levels.stop != null
-          ? levels.stop
-          : reason === "target" && levels.targets.length
-            ? direction === "short"
-              ? Math.max(...levels.targets)
-              : Math.min(...levels.targets)
-            : null;
+    const exitPx = chartCloseExitPrice(levels, reason, direction, closedExitPrice);
+    closeExitPriceRef.current = exitPx;
+    closeReasonRef.current = reason;
 
     if (reason && label) {
       setCloseOverlay({
@@ -468,13 +481,22 @@ export function SignalChart({
       setCloseOverlay(null);
     }
 
-    const showEntryMarker = frozen || !entryFilledAt;
-    series.setMarkers(buildChartMarkers(entryTime, closeTime, closeReasonColor(reason), showEntryMarker));
+    const showEntryMarker = !entryFilledAt;
+    const showCloseMarker = !(frozen && exitPx != null);
+    series.setMarkers(
+      buildChartMarkers(
+        entryTime,
+        closeTime,
+        closeReasonColor(reason),
+        showEntryMarker,
+        showCloseMarker,
+      ),
+    );
   };
 
-  const syncLiveTrail = useCallback(
+  const syncEntryTrail = useCallback(
     (price: number | null) => {
-      if (!showLiveTrail) {
+      if (!showEntryTrail) {
         setLiveTrail(null);
         return;
       }
@@ -482,15 +504,40 @@ export function SignalChart({
       const series = seriesRef.current;
       const entryTime = entryCandleTimeRef.current;
       const entryRef = entryRefPriceRef.current;
-      if (!chart || !series || entryTime == null || entryRef == null || price == null) {
+      if (!chart || !series || entryTime == null || entryRef == null) {
         setLiveTrail(null);
         return;
       }
+
+      let x2: number | null;
+      let endPrice: number | null;
+      let side: LiveTrailSide;
+      let trailCloseReason: CloseReason | null = null;
+
+      if (frozen && closedAt) {
+        const closeTime = closeCandleTimeRef.current;
+        endPrice = closeExitPriceRef.current;
+        trailCloseReason = closeReasonRef.current;
+        if (closeTime == null || endPrice == null) {
+          setLiveTrail(null);
+          return;
+        }
+        x2 = chart.timeScale().timeToCoordinate(closeTime);
+        side = closedTrailSide(trailCloseReason, status);
+      } else {
+        if (price == null) {
+          setLiveTrail(null);
+          return;
+        }
+        x2 = resolveLiveTimeX(chart, entryTime, lastCandleTimeRef.current);
+        endPrice = price;
+        const profit = isLivePriceInProfit(direction, entryRef, price);
+        side = profit == null ? "flat" : profit ? "up" : "down";
+      }
+
       const x1 = chart.timeScale().timeToCoordinate(entryTime);
       const y1 = series.priceToCoordinate(entryRef);
-      const x2 = resolveLiveTimeX(chart, entryTime, lastCandleTimeRef.current);
-      const y2 = series.priceToCoordinate(price);
-      const profit = isLivePriceInProfit(direction, entryRef, price);
+      const y2 = series.priceToCoordinate(endPrice);
       if (
         x1 == null ||
         y1 == null ||
@@ -504,19 +551,18 @@ export function SignalChart({
         setLiveTrail(null);
         return;
       }
-      const side: LiveTrailSide = profit == null ? "flat" : profit ? "up" : "down";
-      setLiveTrail({ x1, y1, x2, y2, side });
+      setLiveTrail({ x1, y1, x2, y2, side, closeReason: trailCloseReason });
     },
-    [direction, showLiveTrail],
+    [direction, showEntryTrail, frozen, closedAt, status],
   );
 
   const syncOverlayLines = useCallback(
     (chart: IChartApi) => {
       setEntryLineLeft(syncLineLeft(chart, entryCandleTimeRef.current));
       setCloseLineLeft(syncLineLeft(chart, closeCandleTimeRef.current));
-      syncLiveTrail(livePriceRef.current);
+      syncEntryTrail(livePriceRef.current);
     },
-    [syncLiveTrail],
+    [syncEntryTrail],
   );
 
   useEffect(() => {
@@ -537,6 +583,8 @@ export function SignalChart({
     setPnlParticles([]);
     lastCandleTimeRef.current = null;
     entryRefPriceRef.current = null;
+    closeExitPriceRef.current = null;
+    closeReasonRef.current = null;
   }, [symbol, frozen, interval, entryFilledAt, createdAt, closedAt, closeReason, closedExitPrice, status]);
 
   useEffect(() => {
@@ -655,10 +703,12 @@ export function SignalChart({
         applyFeedVisibleRange(chart, data, entryCandleTimeRef.current, closeCandleTimeRef.current, createdAt);
         series.priceScale().applyOptions({ autoScale: true });
         chart.priceScale("right").applyOptions({ autoScale: true });
-        if (showLiveTrail && data.length) {
+        if (isLiveEntryTrail && data.length) {
           const lastClose = data[data.length - 1].close;
           setLivePrice(lastClose);
-          syncLiveTrail(lastClose);
+          syncEntryTrail(lastClose);
+        } else if (showEntryTrail) {
+          syncEntryTrail(null);
         }
         syncOverlayLines(chart);
         loadedRef.current = true;
@@ -731,7 +781,7 @@ export function SignalChart({
           if (data.length) {
             const price = livePriceRef.current ?? data[data.length - 1].close;
             setLivePrice(price);
-            syncLiveTrail(price);
+            syncEntryTrail(price);
           }
           syncOverlayLines(chartNow);
         })
@@ -745,9 +795,11 @@ export function SignalChart({
   }, [visible, pair, interval, frozen, entryFilledAt, entryPrice, entryLow, entryHigh, stopLoss, takeProfits, createdAt, closedAt]);
 
   useEffect(() => {
-    if (!visible || !pair || !showLiveTrail) {
+    if (!visible || !pair || !isLiveEntryTrail) {
+      if (!showEntryTrail) {
+        setLiveTrail(null);
+      }
       setLivePrice(null);
-      setLiveTrail(null);
       setPnlParticles([]);
       return;
     }
@@ -760,7 +812,7 @@ export function SignalChart({
       const next = price ?? livePriceRef.current;
       if (next == null) return;
       setLivePrice(next);
-      syncLiveTrail(next);
+      syncEntryTrail(next);
     };
 
     void tick();
@@ -769,10 +821,10 @@ export function SignalChart({
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [visible, pair, symbol, showLiveTrail, syncLiveTrail]);
+  }, [visible, pair, symbol, isLiveEntryTrail, showEntryTrail, syncEntryTrail]);
 
   useEffect(() => {
-    if (!visible || !showLiveTrail) return;
+    if (!visible || !showEntryTrail) return;
     let raf = 0;
     const tick = () => {
       const chart = chartApi.current;
@@ -781,10 +833,10 @@ export function SignalChart({
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [visible, showLiveTrail]);
+  }, [visible, showEntryTrail]);
 
   useEffect(() => {
-    if (!showLiveTrail || !liveTrail || liveTrail.side === "flat") return;
+    if (!isLiveEntryTrail || !liveTrail || liveTrail.side === "flat") return;
     const sign: "+" | "-" = liveTrail.side === "up" ? "+" : "-";
     const id = window.setInterval(() => {
       const now = Date.now();
@@ -797,7 +849,7 @@ export function SignalChart({
       });
     }, CHART_PNL_PARTICLE_MS);
     return () => window.clearInterval(id);
-  }, [showLiveTrail, liveTrail?.side]);
+  }, [isLiveEntryTrail, liveTrail?.side]);
 
   if (!pair) return null;
 
@@ -849,7 +901,7 @@ export function SignalChart({
         {liveTrail && (
           <svg className="signal-chart__live-svg" aria-hidden>
             <line
-              className={`signal-chart__live-line signal-chart__live-line--${liveTrail.side}`}
+              className={`signal-chart__live-line signal-chart__live-line--${trailEndClass(liveTrail, frozen)}`}
               x1={liveTrail.x1}
               y1={liveTrail.y1}
               x2={liveTrail.x2}
@@ -862,14 +914,15 @@ export function SignalChart({
               r={4}
             />
             <circle
-              className={`signal-chart__live-dot signal-chart__live-dot--${liveTrail.side}`}
+              className={`signal-chart__live-dot signal-chart__live-dot--${trailEndClass(liveTrail, frozen)}`}
               cx={liveTrail.x2}
               cy={liveTrail.y2}
               r={4}
             />
           </svg>
         )}
-        {liveTrail &&
+        {isLiveEntryTrail &&
+          liveTrail &&
           pnlParticles.map((particle) => (
             <span
               key={particle.id}
