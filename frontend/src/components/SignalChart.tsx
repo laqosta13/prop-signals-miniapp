@@ -418,7 +418,13 @@ export function SignalChart({
   const [pnlParticles, setPnlParticles] = useState<PnlParticle[]>([]);
   const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
   const palette = chartPaletteFor(theme);
+  const isAwaitingLimitEntry =
+    !frozen &&
+    status === "active" &&
+    !entryFilledAt &&
+    (entryLow != null || entryHigh != null);
   const isLiveEntryTrail = !frozen && status === "active" && !!entryFilledAt;
+  const showLivePrice = isLiveEntryTrail || isAwaitingLimitEntry;
   const showEntryTrail = !!entryFilledAt && (isLiveEntryTrail || (frozen && !!closedAt));
 
   useEffect(() => subscribeTheme(() => setTheme(getStoredTheme())), []);
@@ -698,7 +704,7 @@ export function SignalChart({
           wickDownColor: palette.wickDown,
           priceFormat: chartPriceFormatOptions(scalePrices),
           autoscaleInfoProvider: createLevelAutoscaleProvider(scalePrices),
-          lastValueVisible: !isLiveEntryTrail,
+          lastValueVisible: !showLivePrice,
         });
         livePriceLineRef.current = null;
         seriesRef.current = series;
@@ -802,7 +808,7 @@ export function SignalChart({
   }, [visible, pair, interval, frozen, entryFilledAt, entryPrice, entryLow, entryHigh, stopLoss, takeProfits, createdAt, closedAt]);
 
   useEffect(() => {
-    if (!visible || !pair || !isLiveEntryTrail) {
+    if (!visible || !pair || !showLivePrice) {
       if (!showEntryTrail) {
         setLiveTrail(null);
       }
@@ -819,7 +825,9 @@ export function SignalChart({
       const next = price ?? livePriceRef.current;
       if (next == null) return;
       setLivePrice(next);
-      syncEntryTrail(next);
+      if (isLiveEntryTrail) {
+        syncEntryTrail(next);
+      }
     };
 
     void tick();
@@ -828,13 +836,13 @@ export function SignalChart({
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [visible, pair, symbol, isLiveEntryTrail, showEntryTrail, syncEntryTrail]);
+  }, [visible, pair, symbol, showLivePrice, isLiveEntryTrail, showEntryTrail, syncEntryTrail]);
 
   useEffect(() => {
     const series = seriesRef.current;
     if (!series || !loadedRef.current) return;
 
-    const showAxisLive = isLiveEntryTrail && livePrice != null;
+    const showAxisLive = showLivePrice && livePrice != null;
     const showAxisExit =
       frozen &&
       !!closedAt &&

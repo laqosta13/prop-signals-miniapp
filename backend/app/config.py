@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     default_signal_points_percent: float = 1.0
     max_signal_points_percent: float = 10.0
     price_check_interval_seconds: int = 60
+    """Интервал монитора для сигналов в рынке (стоп/цель)."""
+    price_entry_check_interval_seconds: int = 5
+    """Интервал проверки лимитного входа (ожидание entry_filled_at)."""
     price_http_timeout_seconds: float = 10.0
     mini_app_url: str = ""
     media_root: str = "./media"

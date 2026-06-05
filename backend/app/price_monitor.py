@@ -26,9 +26,14 @@ from app.signal_utils import entry_zone_defined, monitor_exit_price
 logger = logging.getLogger(__name__)
 
 
-async def check_active_signals_once() -> int:
-    """Закрытие сигналов и отметка входа. Возвращает число закрытий."""
+def _signal_awaits_entry(signal: Signal | CultChannelSignal) -> bool:
+    return signal.entry_filled_at is None and entry_zone_defined(signal.entry_low, signal.entry_high)
+
+
+async def check_active_signals_once() -> tuple[int, bool]:
+    """Закрытие сигналов и отметка входа. Возвращает (число закрытий, есть ли ожидание лимитки)."""
     closed = 0
+    awaits_entry = False
     clear_price_cache()
     db = SessionLocal()
     try:
@@ -56,7 +61,12 @@ async def check_active_signals_once() -> int:
             | {normalize_symbol(s.symbol) for s in cult_active}
         )
         if not symbols:
-            return 0
+            return 0, False
+
+        awaits_entry = any(
+            _signal_awaits_entry(s)
+            for s in (*admin_active, *cult_trader_active, *cult_active)
+        )
 
         quote_lists = await asyncio.gather(*(fetch_market_quotes(sym) for sym in symbols))
         quotes_by_symbol = dict(zip(symbols, quote_lists, strict=True))
@@ -199,15 +209,22 @@ async def check_active_signals_once() -> int:
         db.rollback()
     finally:
         db.close()
-    return closed
+    return closed, awaits_entry
 
 
 async def price_monitor_loop() -> None:
-    interval = settings.price_check_interval_seconds
-    logger.info("Price monitor started, interval=%ss", interval)
+    slow = settings.price_check_interval_seconds
+    fast = settings.price_entry_check_interval_seconds
+    logger.info(
+        "Price monitor started, entry_interval=%ss, in_market_interval=%ss",
+        fast,
+        slow,
+    )
     while True:
+        interval = fast
         try:
-            n = await check_active_signals_once()
+            n, awaits_entry = await check_active_signals_once()
+            interval = fast if awaits_entry else slow
             if n:
                 logger.info("Closed %s signal(s)", n)
         except Exception as e:
