@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import type { FormEvent } from "react";
 import type { SupportInfo, SupportMessage } from "../api";
 import {
-  SUPPORT_CHAT_HINT,
   SUPPORT_INPUT_PLACEHOLDER,
   SUPPORT_LEAD,
   SUPPORT_SEND_LABEL,
@@ -78,7 +77,6 @@ export function SupportModal({
         {!infoError && chatEnabled && (
           <>
             <p className="support-sheet__lead">{SUPPORT_LEAD}</p>
-            <p className="meta support-sheet__hint">{SUPPORT_CHAT_HINT}</p>
             <div ref={listRef} className="support-chat__list" aria-live="polite">
               {chatLoading && messages.length === 0 && <p className="meta">Загрузка сообщений…</p>}
               {!chatLoading && messages.length === 0 && (

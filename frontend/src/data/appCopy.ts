@@ -79,8 +79,6 @@ export const DISCLAIMER_ACCEPT_LABEL = "Принимаю";
 
 export const SUPPORT_TITLE = "Поддержка";
 export const SUPPORT_LEAD = "Вопрос — ответ в этом чате.";
-export const SUPPORT_CHAT_HINT =
-  "Админ отвечает в группе (reply на ваше сообщение). Копия — в Telegram.";
 export const SUPPORT_UNAVAILABLE =
   "Чат выключен. На сервере: BOT_TOKEN и TELEGRAM_SUPPORT_GROUP_ID.";
 export const SUPPORT_INPUT_PLACEHOLDER = "Сообщение…";
