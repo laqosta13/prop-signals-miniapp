@@ -13,11 +13,14 @@ import { copyToClipboard, formatUsd, selectFieldText } from "../utils";
 import { PaymentMemoRow } from "./PaymentMemoRow";
 import { PasteButton } from "./PasteButton";
 import {
+  BYBIT_DISCONNECT_COOLDOWN_CONFIRM,
   VOLNOVOI_COPY_DESC,
   VOLNOVOI_COPY_HINT_API,
   VOLNOVOI_COPY_HINT_BILLING,
   VOLNOVOI_COPY_TITLE,
 } from "../data/appCopy";
+import { copyReconnectBlocked } from "../utils/copyReconnect";
+import { CopyReconnectNotice } from "./CopyReconnectNotice";
 import { BybitLogo } from "./BrandLogos";
 import { PartnerLinks } from "./PartnerLinks";
 import { RiskPercentSlider } from "./RiskPercentSlider";
@@ -147,12 +150,11 @@ export function VolnovoiCopyPanel() {
   };
 
   const onDisconnect = async () => {
-    if (!confirm("Отключить API и остановить копирование?")) return;
+    if (!confirm(BYBIT_DISCONNECT_COOLDOWN_CONFIRM)) return;
     setBusy(true);
     setErr(null);
     try {
-      await deleteCopyTradingSettings();
-      setStatus(EMPTY_STATUS);
+      setStatus(await deleteCopyTradingSettings());
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Ошибка");
     } finally {
@@ -178,6 +180,8 @@ export function VolnovoiCopyPanel() {
 
   const pending = status?.pending_invoice;
   const blocked = status?.configured && !status.copy_allowed && pending;
+  const reconnectBlocked =
+    !status?.configured && copyReconnectBlocked(status?.reconnect_allowed_after);
 
   return (
     <div className="volnovoi-copy" onClick={(e) => e.stopPropagation()}>
@@ -274,6 +278,8 @@ export function VolnovoiCopyPanel() {
                 </p>
               )}
 
+              <CopyReconnectNotice reconnectAllowedAfter={status?.reconnect_allowed_after} />
+
               <div className="volnovoi-copy__form">
                 <label className="volnovoi-copy__field">
                   <span className="field-label">API Key</span>
@@ -326,10 +332,20 @@ export function VolnovoiCopyPanel() {
               {status?.balance_error && <p className="meta volnovoi-copy__err">{status.balance_error}</p>}
 
               <div className="volnovoi-copy__actions">
-                <button type="button" className="btn-primary" disabled={busy} onClick={() => void onSave()}>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  disabled={busy || reconnectBlocked}
+                  onClick={() => void onSave()}
+                >
                   Сохранить
                 </button>
-                <button type="button" className="btn-ghost" disabled={busy} onClick={() => void onTest()}>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  disabled={busy || reconnectBlocked}
+                  onClick={() => void onTest()}
+                >
                   Проверить
                 </button>
                 {status?.configured && (

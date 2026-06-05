@@ -8,8 +8,10 @@ import {
   saveCopyTradingSettings,
   testCopyTradingConnection,
 } from "../api";
-import { CULT_BYBIT_DESC } from "../data/appCopy";
+import { BYBIT_DISCONNECT_COOLDOWN_CONFIRM, CULT_BYBIT_DESC } from "../data/appCopy";
 import { formatUsd } from "../utils";
+import { copyReconnectBlocked } from "../utils/copyReconnect";
+import { CopyReconnectNotice } from "./CopyReconnectNotice";
 import { BybitLogo } from "./BrandLogos";
 import { PartnerLinks } from "./PartnerLinks";
 import { RiskPercentSlider } from "./RiskPercentSlider";
@@ -20,6 +22,7 @@ const EMPTY_STATUS: CopyTradingStatus = {
   account_balance_usd: 10000,
   stake_percent: 10,
   usdt_ton_address: "",
+  payment_memo: "",
   fee_percent: 20,
   profit_usd: 0,
   unbilled_profit_usd: 0,
@@ -129,12 +132,11 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
   };
 
   const onDisconnect = async () => {
-    if (!confirm("Отключить API Bybit? Новые сделки кандидата не откроются.")) return;
+    if (!confirm(BYBIT_DISCONNECT_COOLDOWN_CONFIRM)) return;
     setBusy(true);
     setErr(null);
     try {
-      await deleteCopyTradingSettings();
-      setStatus(EMPTY_STATUS);
+      setStatus(await deleteCopyTradingSettings());
       onConfigured?.();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Ошибка");
@@ -142,6 +144,9 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
       setBusy(false);
     }
   };
+
+  const reconnectBlocked =
+    !status?.configured && copyReconnectBlocked(status?.reconnect_allowed_after);
 
   return (
     <div className="volnovoi-copy cult-candidate-bybit" onClick={(e) => e.stopPropagation()}>
@@ -183,6 +188,8 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
                 </div>
               )}
 
+              <CopyReconnectNotice reconnectAllowedAfter={status?.reconnect_allowed_after} />
+
               <div className="volnovoi-copy__form">
                 <label className="volnovoi-copy__field">
                   <span className="field-label">API Key</span>
@@ -190,6 +197,7 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
                     type="password"
                     autoComplete="off"
                     placeholder={status?.configured ? "Новый ключ" : "Bybit API Key"}
+                    disabled={reconnectBlocked}
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                   />
@@ -202,6 +210,7 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
                     placeholder={status?.configured ? "Новый secret" : "Bybit API Secret"}
                     value={apiSecret}
                     onChange={(e) => setApiSecret(e.target.value)}
+                    disabled={reconnectBlocked}
                   />
                 </label>
 
@@ -234,10 +243,20 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
               {status?.balance_error && <p className="meta volnovoi-copy__err">{status.balance_error}</p>}
 
               <div className="volnovoi-copy__actions">
-                <button type="button" className="btn-primary" disabled={busy} onClick={() => void onSave()}>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  disabled={busy || reconnectBlocked}
+                  onClick={() => void onSave()}
+                >
                   Сохранить
                 </button>
-                <button type="button" className="btn-ghost" disabled={busy} onClick={() => void onTest()}>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  disabled={busy || reconnectBlocked}
+                  onClick={() => void onTest()}
+                >
                   Проверить
                 </button>
                 {status?.configured && (

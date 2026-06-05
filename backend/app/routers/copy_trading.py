@@ -8,10 +8,14 @@ from sqlalchemy.orm import Session
 
 from app.bybit_trading import BybitCredentials, get_wallet_usdt_balance
 from app.copy_billing import (
+    assert_copy_reconnect_allowed,
     billing_snapshot,
+    clear_copy_reconnect_state,
     copy_trading_allowed,
     ensure_baseline_on_connect,
+    preserve_copy_billing_on_disconnect,
     record_copy_fee_payment,
+    restore_preserved_copy_billing,
     upsert_daily_invoice,
 )
 from app.credentials_crypto import decrypt_secret, encrypt_secret
@@ -49,6 +53,7 @@ class CopyTradingStatusRead(BaseModel):
     unbilled_profit_usd: float = 0.0
     copy_allowed: bool = True
     pending_invoice: CopyInvoiceRead | None = None
+    reconnect_allowed_after: str | None = None
 
 
 class CopyTradingSaveBody(BaseModel):
@@ -113,7 +118,7 @@ def _build_status(
     balance: float | None = None,
     balance_error: str | None = None,
 ) -> CopyTradingStatusRead:
-    snap = billing_snapshot(db, row, current_equity=balance)
+    snap = billing_snapshot(db, row, telegram_user_id=telegram_user_id, current_equity=balance)
     pending = snap.get("pending_invoice")
     pending_read = CopyInvoiceRead(**pending) if isinstance(pending, dict) else None
     memo = _payment_memo(db, telegram_user_id)
@@ -129,8 +134,9 @@ def _build_status(
             current_equity_usd=None,
             profit_usd=0.0,
             unbilled_profit_usd=0.0,
-            copy_allowed=True,
-            pending_invoice=None,
+            copy_allowed=bool(snap["copy_allowed"]),
+            pending_invoice=pending_read,
+            reconnect_allowed_after=snap.get("reconnect_allowed_after") if isinstance(snap.get("reconnect_allowed_after"), str) else None,
         )
 
     return CopyTradingStatusRead(
@@ -151,6 +157,7 @@ def _build_status(
         unbilled_profit_usd=float(snap["unbilled_profit_usd"]),
         copy_allowed=bool(snap["copy_allowed"]),
         pending_invoice=pending_read,
+        reconnect_allowed_after=snap.get("reconnect_allowed_after") if isinstance(snap.get("reconnect_allowed_after"), str) else None,
     )
 
 
@@ -176,9 +183,17 @@ async def save_my_copy_trading(
     user: TelegramUser = Depends(get_current_user),
     db: Session = Depends(db_session),
 ) -> CopyTradingStatusRead:
+    sub = db.get(Subscriber, user.telegram_user_id)
+    if sub is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="not_registered")
+
     row = db.get(UserBybitSettings, user.telegram_user_id)
     is_new = row is None
-    if row is None:
+    if is_new:
+        try:
+            assert_copy_reconnect_allowed(sub)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
         row = UserBybitSettings(
             telegram_user_id=user.telegram_user_id,
             api_key_encrypted=encrypt_secret(body.api_key.strip()),
@@ -198,7 +213,11 @@ async def save_my_copy_trading(
     _sync_deposit_from_balance(row, balance)
     if balance is None and body.account_balance_usd is not None:
         row.account_balance_usd = round(body.account_balance_usd, 2)
-    if is_new or row.equity_baseline_usd is None:
+    if is_new:
+        if not restore_preserved_copy_billing(sub, row):
+            ensure_baseline_on_connect(row, balance)
+        clear_copy_reconnect_state(sub)
+    elif row.equity_baseline_usd is None:
         ensure_baseline_on_connect(row, balance)
     upsert_daily_invoice(db, row, balance)
     db.commit()
@@ -229,16 +248,22 @@ async def patch_my_copy_trading(
     return _build_status(db, row, telegram_user_id=user.telegram_user_id, balance=balance, balance_error=balance_error)
 
 
-@router.delete("/me")
-def delete_my_copy_trading(
+@router.delete("/me", response_model=CopyTradingStatusRead)
+async def delete_my_copy_trading(
     user: TelegramUser = Depends(get_current_user),
     db: Session = Depends(db_session),
-) -> dict[str, bool]:
+) -> CopyTradingStatusRead:
     row = db.get(UserBybitSettings, user.telegram_user_id)
-    if row is not None:
+    sub = db.get(Subscriber, user.telegram_user_id)
+    if row is not None and sub is not None:
+        balance, _ = await _fetch_balance(row)
+        if balance is not None:
+            row.last_equity_usd = round(balance, 2)
+        upsert_daily_invoice(db, row, balance)
+        preserve_copy_billing_on_disconnect(sub, row, current_equity=balance)
         db.delete(row)
         db.commit()
-    return {"ok": True}
+    return _build_status(db, None, telegram_user_id=user.telegram_user_id)
 
 
 @router.post("/me/test", response_model=CopyTradingStatusRead)

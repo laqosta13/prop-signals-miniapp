@@ -428,6 +428,7 @@ export type CopyTradingStatus = {
   unbilled_profit_usd: number;
   copy_allowed: boolean;
   pending_invoice?: CopyTradingInvoice | null;
+  reconnect_allowed_after?: string | null;
 };
 
 export type CopyTradingSaveBody = {
@@ -462,10 +463,8 @@ export const patchCopyTradingSettings = (body: CopyTradingPatchBody) =>
 export const testCopyTradingConnection = () =>
   api<CopyTradingStatus>("/copy-trading/me/test", { method: "POST" });
 
-export async function deleteCopyTradingSettings(): Promise<void> {
-  const res = await fetch(`${base}/copy-trading/me`, { method: "DELETE", headers: authHeaders() });
-  if (!res.ok) throw new Error(await parseApiError(res));
-}
+export const deleteCopyTradingSettings = () =>
+  api<CopyTradingStatus>("/copy-trading/me", { method: "DELETE" });
 
 export const payCopyTradingFee = (invoice_id: number, tx_id: string) =>
   api<CopyTradingStatus>("/copy-trading/me/pay", {

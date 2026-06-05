@@ -92,6 +92,14 @@ def run_migrations(engine: Engine) -> None:
                 conn.execute(
                     text("CREATE UNIQUE INDEX IF NOT EXISTS ix_subscribers_payment_memo ON subscribers (payment_memo)")
                 )
+            if not _has_column(engine, "subscribers", "copy_reconnect_after"):
+                conn.execute(text("ALTER TABLE subscribers ADD COLUMN copy_reconnect_after DATETIME"))
+            if not _has_column(engine, "subscribers", "copy_preserved_baseline_usd"):
+                conn.execute(text("ALTER TABLE subscribers ADD COLUMN copy_preserved_baseline_usd REAL"))
+            if not _has_column(engine, "subscribers", "copy_preserved_billed_profit_usd"):
+                conn.execute(text("ALTER TABLE subscribers ADD COLUMN copy_preserved_billed_profit_usd REAL"))
+            if not _has_column(engine, "subscribers", "copy_preserved_last_equity_usd"):
+                conn.execute(text("ALTER TABLE subscribers ADD COLUMN copy_preserved_last_equity_usd REAL"))
             if not _has_column(engine, "subscribers", "referred_by_telegram_id"):
                 conn.execute(text("ALTER TABLE subscribers ADD COLUMN referred_by_telegram_id INTEGER"))
             if not _has_column(engine, "subscribers", "notify_news_enabled"):

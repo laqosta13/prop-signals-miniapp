@@ -240,6 +240,10 @@ class Subscriber(Base):
     cult_subscription_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     referral_code: Mapped[str | None] = mapped_column(String(16), nullable=True, unique=True)
     payment_memo: Mapped[str | None] = mapped_column(String(16), nullable=True, unique=True)
+    copy_reconnect_after: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    copy_preserved_baseline_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
+    copy_preserved_billed_profit_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
+    copy_preserved_last_equity_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
     referred_by_telegram_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

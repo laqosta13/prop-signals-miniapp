@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timezone
+from datetime import date, datetime, time, timedelta, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 
 COPY_FEE_PERCENT = 20.0
 MIN_FEE_USD = 0.01
+COPY_RECONNECT_COOLDOWN_HOURS = 24
+COPY_BILLING_SAFE_UTC_HOUR = 2
 
 
 def _now() -> datetime:
@@ -25,6 +27,80 @@ def _now() -> datetime:
 
 def _today() -> date:
     return _now().date()
+
+
+def _as_utc(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def compute_reconnect_allowed_after(disconnected_at: datetime) -> datetime:
+    """Повторное подключение — не раньше 24 ч и ночного выставления счёта (UTC)."""
+    utc = _as_utc(disconnected_at)
+    after_cooldown = utc + timedelta(hours=COPY_RECONNECT_COOLDOWN_HOURS)
+    next_billing_safe = datetime.combine(
+        utc.date() + timedelta(days=1),
+        time(COPY_BILLING_SAFE_UTC_HOUR, 0),
+        tzinfo=timezone.utc,
+    )
+    return max(after_cooldown, next_billing_safe)
+
+
+def reconnect_blocked_until(sub: Subscriber | None) -> datetime | None:
+    if sub is None or sub.copy_reconnect_after is None:
+        return None
+    until = _as_utc(sub.copy_reconnect_after)
+    return until if until > _now() else None
+
+
+def reconnect_wait_message(until: datetime) -> str:
+    msk = until.astimezone(timezone(timedelta(hours=3)))
+    label = msk.strftime("%d.%m.%Y %H:%M")
+    return (
+        f"Повторное подключение API будет доступно после {label} МСК "
+        f"(не раньше 24 ч и ночного выставления счёта)"
+    )
+
+
+def assert_copy_reconnect_allowed(sub: Subscriber) -> None:
+    until = reconnect_blocked_until(sub)
+    if until is not None:
+        raise ValueError(reconnect_wait_message(until))
+
+
+def preserve_copy_billing_on_disconnect(
+    sub: Subscriber,
+    row: UserBybitSettings,
+    *,
+    current_equity: float | None,
+) -> None:
+    sub.copy_preserved_baseline_usd = row.equity_baseline_usd
+    sub.copy_preserved_billed_profit_usd = float(row.billed_profit_usd or 0)
+    if current_equity is not None:
+        sub.copy_preserved_last_equity_usd = round(float(current_equity), 2)
+    elif row.last_equity_usd is not None:
+        sub.copy_preserved_last_equity_usd = float(row.last_equity_usd)
+    sub.copy_reconnect_after = compute_reconnect_allowed_after(_now())
+
+
+def restore_preserved_copy_billing(sub: Subscriber, row: UserBybitSettings) -> bool:
+    if sub.copy_preserved_baseline_usd is None:
+        return False
+    row.equity_baseline_usd = float(sub.copy_preserved_baseline_usd)
+    row.billed_profit_usd = float(sub.copy_preserved_billed_profit_usd or 0)
+    if sub.copy_preserved_last_equity_usd is not None:
+        row.last_equity_usd = float(sub.copy_preserved_last_equity_usd)
+    if row.connected_at is None:
+        row.connected_at = _now()
+    return True
+
+
+def clear_copy_reconnect_state(sub: Subscriber) -> None:
+    sub.copy_reconnect_after = None
+    sub.copy_preserved_baseline_usd = None
+    sub.copy_preserved_billed_profit_usd = None
+    sub.copy_preserved_last_equity_usd = None
 
 
 def profit_since_connect(current_equity: float | None, row: UserBybitSettings) -> float:
@@ -175,9 +251,27 @@ def billing_snapshot(
     db: Session,
     row: UserBybitSettings | None,
     *,
+    telegram_user_id: int | None = None,
     current_equity: float | None = None,
 ) -> dict[str, object]:
+    reconnect_after: datetime | None = None
+    if telegram_user_id is not None:
+        sub = db.get(Subscriber, telegram_user_id)
+        reconnect_after = reconnect_blocked_until(sub)
+
     if row is None:
+        allowed = copy_trading_allowed(db, telegram_user_id) if telegram_user_id is not None else True
+        pending_data = None
+        if telegram_user_id is not None:
+            inv = pending_invoice(db, telegram_user_id)
+            if inv is not None and inv.status == "pending" and inv.fee_usd >= MIN_FEE_USD:
+                pending_data = {
+                    "id": inv.id,
+                    "period_date": inv.period_date.isoformat(),
+                    "profit_usd": inv.profit_usd,
+                    "fee_usd": inv.fee_usd,
+                    "created_at": inv.created_at.isoformat() if inv.created_at else None,
+                }
         return {
             "usdt_ton_address": usdt_pay_address(),
             "fee_percent": COPY_FEE_PERCENT,
@@ -186,8 +280,9 @@ def billing_snapshot(
             "current_equity_usd": None,
             "profit_usd": 0.0,
             "unbilled_profit_usd": 0.0,
-            "copy_allowed": True,
-            "pending_invoice": None,
+            "copy_allowed": allowed,
+            "pending_invoice": pending_data,
+            "reconnect_allowed_after": reconnect_after.isoformat() if reconnect_after else None,
         }
 
     if current_equity is not None:
@@ -218,4 +313,5 @@ def billing_snapshot(
         "unbilled_profit_usd": unbilled,
         "copy_allowed": allowed,
         "pending_invoice": pending_data,
+        "reconnect_allowed_after": reconnect_after.isoformat() if reconnect_after else None,
     }
