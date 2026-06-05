@@ -239,6 +239,7 @@ class Subscriber(Base):
     trial_used: Mapped[bool] = mapped_column(Boolean, default=False)
     cult_subscription_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     referral_code: Mapped[str | None] = mapped_column(String(16), nullable=True, unique=True)
+    payment_memo: Mapped[str | None] = mapped_column(String(16), nullable=True, unique=True)
     referred_by_telegram_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

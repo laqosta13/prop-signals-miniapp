@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import PaymentTx, Subscriber
-from app.subscription_billing import _now
+from app.subscription_billing import _now, ensure_payment_memo
 from app.ton_payments import TonPaymentError, verify_usdt_ton_payment
 
 CULT_SUBSCRIPTION_USD = 20.0
@@ -47,15 +47,16 @@ def extend_cult_subscription(db: Session, sub: Subscriber, days: int) -> None:
 
 
 def record_cult_payment(db: Session, telegram_user_id: int, tx_id: str) -> None:
+    sub = db.get(Subscriber, telegram_user_id)
+    if sub is None:
+        raise ValueError("Подписчик не найден")
+    memo = ensure_payment_memo(db, sub)
     try:
-        check = verify_usdt_ton_payment(tx_id, CULT_SUBSCRIPTION_USD)
+        check = verify_usdt_ton_payment(tx_id, CULT_SUBSCRIPTION_USD, expected_memo=memo)
     except TonPaymentError as e:
         raise ValueError(str(e)) from e
     if db.scalar(select(PaymentTx.id).where(PaymentTx.tx_id == check.tx_hash_hex)):
         raise ValueError("Этот TXID уже зарегистрирован")
-    sub = db.get(Subscriber, telegram_user_id)
-    if sub is None:
-        raise ValueError("Подписчик не найден")
     extend_cult_subscription(db, sub, CULT_SUBSCRIPTION_DAYS)
     db.add(
         PaymentTx(

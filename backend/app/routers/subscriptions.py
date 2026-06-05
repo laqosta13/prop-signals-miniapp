@@ -11,6 +11,7 @@ from app.subscription_billing import (
     REFERRAL_BONUS_DAYS,
     TRIAL_DAYS,
     WEEK_USD,
+    ensure_payment_memo,
     record_payment,
     usdt_pay_address,
 )
@@ -21,6 +22,7 @@ router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
 
 def _info(db, user: TelegramUser) -> SubscriptionInfo:
     sub = db.get(Subscriber, user.telegram_user_id)
+    memo = ensure_payment_memo(db, sub) if sub is not None else ""
     code = (sub.referral_code if sub else None) or user.referral_code or ""
     bot = telegram_bot_username()
     link = build_referral_link(code)
@@ -35,6 +37,7 @@ def _info(db, user: TelegramUser) -> SubscriptionInfo:
         hint = ""
     return SubscriptionInfo(
         usdt_ton_address=usdt_pay_address(),
+        payment_memo=memo,
         week_usd=WEEK_USD,
         month_usd=MONTH_USD,
         trial_days=TRIAL_DAYS,

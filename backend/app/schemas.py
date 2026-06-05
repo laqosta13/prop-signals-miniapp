@@ -123,6 +123,7 @@ class SupportInfo(BaseModel):
 
 class SubscriptionInfo(BaseModel):
     usdt_ton_address: str
+    payment_memo: str = ""
     week_usd: float
     month_usd: float
     trial_days: int
@@ -247,6 +248,7 @@ class CultCandidateRead(BaseModel):
 
 class CultCandidateSubscriptionInfo(BaseModel):
     usdt_ton_address: str
+    payment_memo: str = ""
     subscription_usd: float
     subscription_days: int
     cult_subscription_until: datetime | None = None

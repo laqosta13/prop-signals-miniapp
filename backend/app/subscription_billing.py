@@ -1,4 +1,4 @@
-"""Подписка, рефералы, оплата USDT TON (по TXID)."""
+"""Подписка, рефералы, оплата USDT(в сети TON) (по TXID)."""
 
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ WEEK_USD = 20.0
 MONTH_USD = 70.0
 WEEK_DAYS = 7
 MONTH_DAYS = 30
+PAYMENT_MEMO_PREFIX = "VC-"
 
 
 def _now() -> datetime:
@@ -94,6 +95,31 @@ def _gen_referral_code(db: Session) -> str:
     return secrets.token_hex(4).upper()[:8]
 
 
+def _gen_payment_memo(db: Session) -> str:
+    alphabet = string.ascii_uppercase + string.digits
+    for _ in range(50):
+        code = PAYMENT_MEMO_PREFIX + "".join(secrets.choice(alphabet) for _ in range(8))
+        exists = db.scalar(select(Subscriber.telegram_user_id).where(Subscriber.payment_memo == code))
+        if not exists:
+            return code
+    return PAYMENT_MEMO_PREFIX + secrets.token_hex(4).upper()
+
+
+def ensure_payment_memo(db: Session, sub: Subscriber) -> str:
+    if sub.payment_memo:
+        return sub.payment_memo
+    sub.payment_memo = _gen_payment_memo(db)
+    db.flush()
+    return sub.payment_memo
+
+
+def payment_memo_for_user(db: Session, telegram_user_id: int) -> str:
+    sub = db.get(Subscriber, telegram_user_id)
+    if sub is None:
+        raise ValueError("Подписчик не найден")
+    return ensure_payment_memo(db, sub)
+
+
 def grant_referrer_bonus(db: Session, referrer_id: int) -> None:
     ref_sub = db.get(Subscriber, referrer_id)
     if ref_sub is None:
@@ -129,6 +155,7 @@ def register_subscriber_with_meta(
     if sub is not None:
         if username and sub.username != username:
             sub.username = username
+        ensure_payment_memo(db, sub)
         return sub
 
     code = (start_param or "").strip().upper()[:16]
@@ -144,6 +171,7 @@ def register_subscriber_with_meta(
         subscription_until=_now() + timedelta(days=TRIAL_DAYS),
         trial_used=True,
         referral_code=_gen_referral_code(db),
+        payment_memo=_gen_payment_memo(db),
         referred_by_telegram_id=referrer_id if referrer_id and referrer_id != telegram_id else None,
     )
     created = False
@@ -172,16 +200,17 @@ def record_payment(db: Session, telegram_user_id: int, plan: str, tx_id: str) ->
     if plan not in ("week", "month"):
         raise ValueError("plan: week или month")
     expected_usd = WEEK_USD if plan == "week" else MONTH_USD
+    sub = db.get(Subscriber, telegram_user_id)
+    if sub is None:
+        raise ValueError("Подписчик не найден")
+    memo = ensure_payment_memo(db, sub)
     try:
-        check = verify_usdt_ton_payment(tx_id, expected_usd)
+        check = verify_usdt_ton_payment(tx_id, expected_usd, expected_memo=memo)
     except TonPaymentError as e:
         raise ValueError(str(e)) from e
     if db.scalar(select(PaymentTx.id).where(PaymentTx.tx_id == check.tx_hash_hex)):
         raise ValueError("Этот TXID уже зарегистрирован")
     days = WEEK_DAYS if plan == "week" else MONTH_DAYS
-    sub = db.get(Subscriber, telegram_user_id)
-    if sub is None:
-        raise ValueError("Подписчик не найден")
     extend_subscription(db, sub, days)
     db.add(
         PaymentTx(

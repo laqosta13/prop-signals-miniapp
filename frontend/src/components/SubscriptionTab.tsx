@@ -10,6 +10,7 @@ import {
   SUBSCRIPTION_INTRO,
   subscriptionInactiveHint,
 } from "../data/appCopy";
+import { PaymentMemoRow } from "./PaymentMemoRow";
 import { SubscriptionSupportChat } from "./SubscriptionSupportChat";
 
 type Props = {
@@ -121,7 +122,7 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: Props) {
       )}
 
       <section className="sub-card sub-card--pay">
-        <h3>Оплата USDT в сети TON</h3>
+        <h3>Оплата USDT(в сети TON)</h3>
         <p className="meta">TXID проверяется on-chain и засчитывается только после подтверждений сети.</p>
         <div className="pay-addr-row">
           <input
@@ -131,12 +132,13 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: Props) {
             value={info.usdt_ton_address}
             onFocus={(e) => selectFieldText(e.currentTarget)}
             onClick={(e) => selectFieldText(e.currentTarget)}
-            aria-label="Адрес USDT TON"
+            aria-label="Адрес USDT(в сети TON)"
           />
           <button type="button" className={`copy-btn${copied ? " copied" : ""}`} onClick={() => void copyWallet()}>
             {copied ? "Скопировано ✓" : "Копировать адрес"}
           </button>
         </div>
+        <PaymentMemoRow memo={info.payment_memo} />
 
         <div className="sub-price-grid">
           <button type="button" className={`sub-plan${plan === "week" ? " on" : ""}`} onClick={() => setPlan("week")}>
@@ -148,7 +150,7 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: Props) {
             <strong>${info.month_usd}</strong>
           </button>
         </div>
-        <p className="meta small">Лента активных сигналов · USDT TON · TXID</p>
+        <p className="meta small">Лента активных сигналов · USDT(в сети TON) · TXID</p>
 
         <form onSubmit={pay} className="pay-form">
           <div className="field-row">
@@ -164,7 +166,7 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: Props) {
             spellCheck={false}
             required
           />
-          <p className="meta small">Убедитесь, что оплата отправлена именно в USDT (TON) на адрес выше.</p>
+          <p className="meta small">USDT(в сети TON) на адрес выше с вашим кодом в комментарии.</p>
           {err && <p className="err">{err}</p>}
           <button type="submit" className="submit-btn" disabled={busy}>
             {busy ? "Проверяем в сети…" : "Проверить TXID и активировать"}

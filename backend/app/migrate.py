@@ -87,6 +87,11 @@ def run_migrations(engine: Engine) -> None:
                 conn.execute(text("ALTER TABLE subscribers ADD COLUMN subscription_until DATETIME"))
             if not _has_column(engine, "subscribers", "referral_code"):
                 conn.execute(text("ALTER TABLE subscribers ADD COLUMN referral_code VARCHAR(16)"))
+            if not _has_column(engine, "subscribers", "payment_memo"):
+                conn.execute(text("ALTER TABLE subscribers ADD COLUMN payment_memo VARCHAR(16)"))
+                conn.execute(
+                    text("CREATE UNIQUE INDEX IF NOT EXISTS ix_subscribers_payment_memo ON subscribers (payment_memo)")
+                )
             if not _has_column(engine, "subscribers", "referred_by_telegram_id"):
                 conn.execute(text("ALTER TABLE subscribers ADD COLUMN referred_by_telegram_id INTEGER"))
             if not _has_column(engine, "subscribers", "notify_news_enabled"):

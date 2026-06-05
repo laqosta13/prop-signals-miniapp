@@ -72,7 +72,84 @@ def _api_base() -> str:
     return settings.toncenter_api_base.rstrip("/")
 
 
-def verify_usdt_ton_payment(tx_id: str, expected_usd: float) -> TonPaymentCheck:
+def _normalize_payment_memo(value: str) -> str:
+    return "".join(value.split()).upper()
+
+
+def _decode_forward_payload_bytes(raw: bytes) -> str | None:
+    if len(raw) >= 4 and raw[:4] == b"\x00\x00\x00\x00":
+        text = raw[4:].split(b"\x00", 1)[0].decode("utf-8", errors="ignore").strip()
+        return text or None
+    text = raw.decode("utf-8", errors="ignore").strip(" \x00")
+    return text or None
+
+
+def _comment_from_decoded_payload(decoded: object) -> str | None:
+    if isinstance(decoded, dict):
+        for key in ("comment", "text", "value", "message"):
+            val = decoded.get(key)
+            if isinstance(val, str) and val.strip():
+                return val.strip()
+        inner = decoded.get("decoded")
+        if isinstance(inner, dict):
+            return _comment_from_decoded_payload(inner)
+    if isinstance(decoded, list) and decoded:
+        try:
+            raw = bytes(int(x) & 0xFF for x in decoded)
+            return _decode_forward_payload_bytes(raw)
+        except (TypeError, ValueError):
+            pass
+    if isinstance(decoded, str) and decoded.strip():
+        return decoded.strip()
+    return None
+
+
+def _jetton_transfer_comment(transfer: dict) -> str | None:
+    decoded = transfer.get("decoded_forward_payload")
+    comment = _comment_from_decoded_payload(decoded)
+    if comment:
+        return comment
+
+    forward_payload = transfer.get("forward_payload")
+    if isinstance(forward_payload, str) and forward_payload.strip():
+        token = forward_payload.strip()
+        for decoder in (
+            lambda t: base64.b64decode(t + "=" * ((4 - len(t) % 4) % 4), validate=False),
+            lambda t: base64.urlsafe_b64decode(t + "=" * ((4 - len(t) % 4) % 4)),
+        ):
+            try:
+                raw = decoder(token)
+                comment = _decode_forward_payload_bytes(raw)
+                if comment:
+                    return comment
+            except (binascii.Error, ValueError):
+                continue
+        try:
+            raw = bytes.fromhex(token.removeprefix("0x"))
+            return _decode_forward_payload_bytes(raw)
+        except (ValueError, binascii.Error):
+            pass
+
+    custom = transfer.get("decoded_custom_payload")
+    comment = _comment_from_decoded_payload(custom)
+    if comment:
+        return comment
+    return None
+
+
+def _memo_matches_transfer(comment: str | None, expected_memo: str) -> bool:
+    if not comment:
+        return False
+    expected = _normalize_payment_memo(expected_memo)
+    if not expected:
+        return False
+    normalized = _normalize_payment_memo(comment)
+    if normalized == expected:
+        return True
+    return expected in normalized
+
+
+def verify_usdt_ton_payment(tx_id: str, expected_usd: float, *, expected_memo: str) -> TonPaymentCheck:
     tx_hash = _canon_hash(tx_id)
     expected_raw = int(round(expected_usd * 1_000_000))
     if expected_raw <= 0:
@@ -111,6 +188,12 @@ def verify_usdt_ton_payment(tx_id: str, expected_usd: float) -> TonPaymentCheck:
             raise TonPaymentError("TXID не найден среди входящих USDT переводов на наш кошелёк")
         if _to_int(selected.get("amount")) < expected_raw:
             raise TonPaymentError("Сумма в транзакции меньше стоимости выбранного тарифа")
+        comment = _jetton_transfer_comment(selected)
+        if not _memo_matches_transfer(comment, expected_memo):
+            raise TonPaymentError(
+                f"В комментарии перевода укажите ваш код {expected_memo.strip()} "
+                "(поле comment/memo в кошельке)"
+            )
 
         tx_rows: list[dict] = []
         for hash_candidate in _hash_variants(tx_hash):

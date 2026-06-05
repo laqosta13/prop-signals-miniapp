@@ -6,6 +6,7 @@ import {
   type CultCandidateSubscriptionInfo,
 } from "../api";
 import { copyToClipboard, formatDateTimeMsk, selectFieldText } from "../utils";
+import { PaymentMemoRow } from "./PaymentMemoRow";
 import { PasteButton } from "./PasteButton";
 
 type Props = {
@@ -75,12 +76,12 @@ export function CultCandidatePaySection({ onPaid }: Props) {
   return (
     <section className="cult-candidate-pay">
       <h3 className="cult-candidate-pay__title">1. Подписка кандидата</h3>
-      <p className="meta cult-candidate-pay__hint">$20 · 30 дней · USDT TON · проверка TXID</p>
+      <p className="meta cult-candidate-pay__hint">$20 · 30 дней · USDT(в сети TON) · проверка TXID</p>
       <div className="sub-price-single cult-candidate-pay__price">
         <p className="sub-price-single__label">30 дней</p>
         <p className="sub-price-single__value">
           <strong>${info.subscription_usd}</strong>
-          <span className="sub-price-single__days">USDT TON</span>
+          <span className="sub-price-single__days">USDT(в сети TON)</span>
         </p>
       </div>
       <div className="pay-addr-row">
@@ -90,12 +91,13 @@ export function CultCandidatePaySection({ onPaid }: Props) {
           className="pay-addr"
           value={info.usdt_ton_address}
           onFocus={(e) => selectFieldText(e.currentTarget)}
-          aria-label="Адрес USDT TON"
+          aria-label="Адрес USDT(в сети TON)"
         />
         <button type="button" className={`copy-btn${copied ? " copied" : ""}`} onClick={() => void copyWallet()}>
           {copied ? "✓" : "Копировать"}
         </button>
       </div>
+      <PaymentMemoRow memo={info.payment_memo} />
       <form onSubmit={(e) => void pay(e)} className="pay-form">
         <div className="field-row">
           <label className="field-label">TXID транзакции</label>

@@ -9,8 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import CopyTradingInvoice, PaymentTx, UserBybitSettings
-from app.subscription_billing import usdt_pay_address
+from app.models import CopyTradingInvoice, PaymentTx, Subscriber, UserBybitSettings
+from app.subscription_billing import ensure_payment_memo, usdt_pay_address
 from app.ton_payments import TonPaymentError, verify_usdt_ton_payment
 
 logger = logging.getLogger(__name__)
@@ -137,8 +137,13 @@ def record_copy_fee_payment(db: Session, telegram_user_id: int, invoice_id: int,
     if inv.fee_usd < MIN_FEE_USD:
         raise ValueError("Сумма счёта некорректна")
 
+    sub = db.get(Subscriber, telegram_user_id)
+    if sub is None:
+        raise ValueError("Подписчик не найден")
+    memo = ensure_payment_memo(db, sub)
+
     try:
-        check = verify_usdt_ton_payment(tx_id, inv.fee_usd)
+        check = verify_usdt_ton_payment(tx_id, inv.fee_usd, expected_memo=memo)
     except TonPaymentError as e:
         raise ValueError(str(e)) from e
 

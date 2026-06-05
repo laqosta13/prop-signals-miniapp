@@ -10,6 +10,7 @@ import {
   testCopyTradingConnection,
 } from "../api";
 import { copyToClipboard, formatUsd, selectFieldText } from "../utils";
+import { PaymentMemoRow } from "./PaymentMemoRow";
 import { PasteButton } from "./PasteButton";
 import {
   VOLNOVOI_COPY_DESC,
@@ -27,6 +28,7 @@ const EMPTY_STATUS: CopyTradingStatus = {
   account_balance_usd: 10000,
   stake_percent: 10,
   usdt_ton_address: "",
+  payment_memo: "",
   fee_percent: 20,
   profit_usd: 0,
   unbilled_profit_usd: 0,
@@ -240,12 +242,13 @@ export function VolnovoiCopyPanel() {
                       className="pay-addr"
                       value={status?.usdt_ton_address ?? ""}
                       onFocus={(e) => selectFieldText(e.currentTarget)}
-                      aria-label="Адрес USDT TON"
+                      aria-label="Адрес USDT(в сети TON)"
                     />
                     <button type="button" className={`copy-btn${copied ? " copied" : ""}`} onClick={() => void copyWallet()}>
                       {copied ? "✓" : "Копировать"}
                     </button>
                   </div>
+                  <PaymentMemoRow memo={status?.payment_memo ?? ""} />
                   <form className="volnovoi-copy__pay-form" onSubmit={(e) => void onPay(e)}>
                     <div className="field-row">
                       <label className="field-label">TXID перевода</label>

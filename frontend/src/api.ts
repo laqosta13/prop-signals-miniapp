@@ -89,6 +89,7 @@ export type SupportMessage = {
 
 export type SubscriptionInfo = {
   usdt_ton_address: string;
+  payment_memo: string;
   week_usd: number;
   month_usd: number;
   trial_days: number;
@@ -206,6 +207,7 @@ export const fetchCultCandidateSignal = (signalId: number) =>
 
 export type CultCandidateSubscriptionInfo = {
   usdt_ton_address: string;
+  payment_memo: string;
   subscription_usd: number;
   subscription_days: number;
   cult_subscription_until: string | null;
@@ -417,6 +419,7 @@ export type CopyTradingStatus = {
   usdt_balance?: number | null;
   balance_error?: string | null;
   usdt_ton_address: string;
+  payment_memo: string;
   fee_percent: number;
   connected_at?: string | null;
   equity_baseline_usd?: number | null;

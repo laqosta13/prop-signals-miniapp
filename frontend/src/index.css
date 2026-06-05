@@ -2067,6 +2067,19 @@
   margin: 10px 0;
 }
 
+.pay-memo {
+  margin-bottom: 12px;
+}
+
+.pay-memo__hint {
+  margin: 0 0 8px;
+}
+
+.pay-memo__code {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
 .pay-addr {
   flex: 1;
   min-width: 0;
