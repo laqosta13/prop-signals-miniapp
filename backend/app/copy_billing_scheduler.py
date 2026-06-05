@@ -34,7 +34,6 @@ async def run_copy_billing_once() -> int:
                 creds = BybitCredentials(
                     api_key=decrypt_secret(row.api_key_encrypted),
                     api_secret=decrypt_secret(row.api_secret_encrypted),
-                    testnet=bool(row.testnet),
                 )
                 equity = await get_wallet_usdt_balance(creds)
             except Exception as e:

@@ -27,12 +27,9 @@ _httpx_client: httpx.AsyncClient | None = None
 class BybitCredentials:
     api_key: str
     api_secret: str
-    testnet: bool = True
 
     @property
     def api_base(self) -> str:
-        if self.testnet:
-            return "https://api-testnet.bybit.com"
         return "https://api.bybit.com"
 
 
@@ -107,7 +104,18 @@ async def _request(
         payload = json.dumps(body or {}, separators=(",", ":"))
         headers = _auth_headers(creds, payload)
         r = await _client().post(url, content=payload, headers=headers)
-    data = r.json()
+    raw = (r.text or "").strip()
+    if not raw:
+        if r.status_code == 401:
+            raise RuntimeError(
+                f"Bybit {path}: неверный API-ключ или secret. "
+                "Проверьте ключи с основного Bybit и права Trade."
+            )
+        raise RuntimeError(f"Bybit {path}: пустой ответ (HTTP {r.status_code})")
+    try:
+        data = r.json()
+    except json.JSONDecodeError as e:
+        raise RuntimeError(f"Bybit {path}: неожиданный ответ (HTTP {r.status_code})") from e
     if r.status_code != 200 or data.get("retCode") != 0:
         msg = data.get("retMsg") or f"HTTP {r.status_code}"
         raise RuntimeError(f"Bybit {path}: {msg}")

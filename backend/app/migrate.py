@@ -432,6 +432,7 @@ def run_migrations(engine: Engine) -> None:
     _purge_all_published_jun2026_v7(engine)
     _purge_all_published_jun2026_v8(engine)
     _purge_all_published_jun2026_v9(engine)
+    _disable_bybit_testnet_v1(engine)
     _sync_news_notify_flags_v1(engine)
     _reset_news_notify_opt_in_v2(engine)
     _recalc_market_close_ratings_v1(engine)
@@ -864,6 +865,26 @@ def _purge_all_published_jun2026_v9(engine: Engine) -> None:
         marker.touch()
     finally:
         db.close()
+
+
+def _disable_bybit_testnet_v1(engine: Engine) -> None:
+    """Одноразово: только основной Bybit — сброс testnet у сохранённых API-ключей."""
+    marker = _marker_path(engine, ".disabled_bybit_testnet_v1")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".disabled_bybit_testnet_v1"
+    if marker.exists():
+        return
+    insp = inspect(engine)
+    if "user_bybit_settings" not in insp.get_table_names():
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+        return
+    with engine.begin() as conn:
+        conn.execute(text("UPDATE user_bybit_settings SET testnet = 0"))
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.touch()
 
 
 def _purge_all_published_may2026_v3(engine: Engine) -> None:

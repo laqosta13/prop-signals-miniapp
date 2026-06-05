@@ -33,7 +33,6 @@ class CopyInvoiceRead(BaseModel):
 class CopyTradingStatusRead(BaseModel):
     configured: bool
     enabled: bool = False
-    testnet: bool = True
     api_key_hint: str | None = None
     account_balance_usd: float = 10_000.0
     stake_percent: float = 10.0
@@ -53,7 +52,6 @@ class CopyTradingStatusRead(BaseModel):
 class CopyTradingSaveBody(BaseModel):
     api_key: str = Field(min_length=8, max_length=128)
     api_secret: str = Field(min_length=8, max_length=128)
-    testnet: bool = True
     enabled: bool = True
     account_balance_usd: float | None = Field(default=None, ge=100, le=10_000_000)
     stake_percent: float = Field(default=10.0, ge=0.1, le=100)
@@ -67,7 +65,6 @@ def _sync_deposit_from_balance(row: UserBybitSettings, balance: float | None) ->
 
 class CopyTradingPatchBody(BaseModel):
     enabled: bool | None = None
-    testnet: bool | None = None
     account_balance_usd: float | None = Field(default=None, ge=100, le=10_000_000)
     stake_percent: float | None = Field(default=None, ge=0.1, le=100)
 
@@ -81,7 +78,6 @@ def _credentials_from_row(row: UserBybitSettings) -> BybitCredentials:
     return BybitCredentials(
         api_key=decrypt_secret(row.api_key_encrypted),
         api_secret=decrypt_secret(row.api_secret_encrypted),
-        testnet=bool(row.testnet),
     )
 
 
@@ -128,7 +124,6 @@ def _build_status(
     return CopyTradingStatusRead(
         configured=True,
         enabled=bool(row.enabled),
-        testnet=bool(row.testnet),
         api_key_hint=_api_key_hint(row),
         account_balance_usd=float(row.account_balance_usd),
         stake_percent=float(row.stake_percent),
@@ -182,7 +177,7 @@ async def save_my_copy_trading(
         row.api_secret_encrypted = encrypt_secret(body.api_secret.strip())
 
     row.enabled = body.enabled
-    row.testnet = body.testnet
+    row.testnet = False
     row.stake_percent = round(body.stake_percent, 2)
     db.flush()
 
@@ -209,8 +204,7 @@ async def patch_my_copy_trading(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="API не настроен")
     if body.enabled is not None:
         row.enabled = body.enabled
-    if body.testnet is not None:
-        row.testnet = body.testnet
+    row.testnet = False
     if body.stake_percent is not None:
         row.stake_percent = round(body.stake_percent, 2)
     balance, balance_error = await _fetch_balance(row)

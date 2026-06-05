@@ -55,7 +55,6 @@ def _user_credentials(row: UserBybitSettings) -> BybitCredentials:
     return BybitCredentials(
         api_key=decrypt_secret(row.api_key_encrypted),
         api_secret=decrypt_secret(row.api_secret_encrypted),
-        testnet=bool(row.testnet),
     )
 
 

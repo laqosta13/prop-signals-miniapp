@@ -24,7 +24,6 @@ import { RiskPercentSlider } from "./RiskPercentSlider";
 const EMPTY_STATUS: CopyTradingStatus = {
   configured: false,
   enabled: false,
-  testnet: true,
   account_balance_usd: 10000,
   stake_percent: 10,
   usdt_ton_address: "",
@@ -45,7 +44,6 @@ export function VolnovoiCopyPanel() {
 
   const [apiKey, setApiKey] = useState("");
   const [apiSecret, setApiSecret] = useState("");
-  const [testnet, setTestnet] = useState(true);
   const [enabled, setEnabled] = useState(true);
   const [stakePercent, setStakePercent] = useState("10");
 
@@ -55,7 +53,6 @@ export function VolnovoiCopyPanel() {
     const s = await fetchCopyTradingStatus();
     setStatus(s);
     if (s.configured) {
-      setTestnet(s.testnet);
       setEnabled(s.enabled);
       setStakePercent(String(s.stake_percent));
     }
@@ -69,7 +66,6 @@ export function VolnovoiCopyPanel() {
   }, []);
 
   const stakePayload = {
-    testnet,
     enabled,
     stake_percent: Number(stakePercent) || 10,
   };
@@ -311,16 +307,10 @@ export function VolnovoiCopyPanel() {
                   </p>
                 </div>
 
-                <div className="volnovoi-copy__checks">
-                <label className="volnovoi-copy__check">
-                  <input type="checkbox" checked={testnet} onChange={(e) => setTestnet(e.target.checked)} />
-                  <span className="volnovoi-copy__check-text">Testnet</span>
-                </label>
                 <label className="volnovoi-copy__check">
                   <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
                   <span className="volnovoi-copy__check-text">Копирование включено</span>
                 </label>
-                </div>
               </div>
 
               {err && <p className="err volnovoi-copy__err">{err}</p>}

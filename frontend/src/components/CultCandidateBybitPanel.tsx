@@ -17,7 +17,6 @@ import { RiskPercentSlider } from "./RiskPercentSlider";
 const EMPTY_STATUS: CopyTradingStatus = {
   configured: false,
   enabled: false,
-  testnet: true,
   account_balance_usd: 10000,
   stake_percent: 10,
   usdt_ton_address: "",
@@ -41,7 +40,6 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
 
   const [apiKey, setApiKey] = useState("");
   const [apiSecret, setApiSecret] = useState("");
-  const [testnet, setTestnet] = useState(true);
   const [enabled, setEnabled] = useState(true);
   const [stakePercent, setStakePercent] = useState("10");
 
@@ -49,7 +47,6 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
     const s = await fetchCopyTradingStatus();
     setStatus(s);
     if (s.configured) {
-      setTestnet(s.testnet);
       setEnabled(s.enabled);
       setStakePercent(String(s.stake_percent));
     }
@@ -63,7 +60,6 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
   }, []);
 
   const stakePayload = {
-    testnet,
     enabled,
     stake_percent: Number(stakePercent) || 10,
   };
@@ -222,16 +218,10 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
                   </p>
                 </div>
 
-                <div className="volnovoi-copy__checks">
-                  <label className="volnovoi-copy__check">
-                    <input type="checkbox" checked={testnet} onChange={(e) => setTestnet(e.target.checked)} />
-                    <span className="volnovoi-copy__check-text">Testnet</span>
-                  </label>
-                  <label className="volnovoi-copy__check">
-                    <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
-                    <span className="volnovoi-copy__check-text">Исполнение на Bybit включено</span>
-                  </label>
-                </div>
+                <label className="volnovoi-copy__check">
+                  <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+                  <span className="volnovoi-copy__check-text">Исполнение на Bybit включено</span>
+                </label>
               </div>
 
               {err && <p className="err volnovoi-copy__err">{err}</p>}

@@ -50,7 +50,7 @@ class UserBybitSettings(Base):
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     api_key_encrypted: Mapped[str] = mapped_column(String(512), nullable=False)
     api_secret_encrypted: Mapped[str] = mapped_column(String(512), nullable=False)
-    testnet: Mapped[bool] = mapped_column(Boolean, default=True)
+    testnet: Mapped[bool] = mapped_column(Boolean, default=False)
     account_balance_usd: Mapped[float] = mapped_column(Float, default=10_000.0)
     stake_percent: Mapped[float] = mapped_column(Float, default=10.0)
     connected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

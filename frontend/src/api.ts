@@ -410,7 +410,6 @@ export type CopyTradingInvoice = {
 export type CopyTradingStatus = {
   configured: boolean;
   enabled: boolean;
-  testnet: boolean;
   api_key_hint?: string | null;
   account_balance_usd: number;
   stake_percent: number;
@@ -430,7 +429,6 @@ export type CopyTradingStatus = {
 export type CopyTradingSaveBody = {
   api_key: string;
   api_secret: string;
-  testnet: boolean;
   enabled: boolean;
   account_balance_usd?: number;
   stake_percent: number;
@@ -438,7 +436,6 @@ export type CopyTradingSaveBody = {
 
 export type CopyTradingPatchBody = {
   enabled?: boolean;
-  testnet?: boolean;
   stake_percent?: number;
 };
 
