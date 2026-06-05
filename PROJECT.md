@@ -416,12 +416,12 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 `data_cleanup.py` → `purge_all_published_content()`:
 
 - Удаляет **сигналы** (+ copy-trades, лайки, просмотры, дополнения, в т.ч. сделки кандидатов CULT), **CULT-сигналы каналов** (каналы остаются, stats=0), **stats кандидатов CULT** (записи остаются), **новости**, **отзывы** + медиа
-- Сброс ТОП (рейтинг, ранги) и трекеров админов ($10k); очистка скринов пропа
-- **Не** трогает подписчиков, trial, `payment_txs`, подключённые CULT-каналы, настройки Bybit
+- Сброс ТОП (рейтинг, ранги), трекеров админов ($10k), **ручной ротации** (`trader_roster_overrides`); очистка скринов пропа
+- **Не** трогает подписчиков, trial, `payment_txs`, подключённые CULT-каналы, настройки Bybit, записи кандидатов CULT (только stats)
 
 | Способ | Как |
 |---|---|
-| Одноразово при деплое | маркеры `.purged_all_published_*` в `migrate.py` (актуально: `.purged_all_published_jun2026_v5`) |
+| Одноразово при деплое | маркеры `.purged_all_published_*` в `migrate.py` (актуально: **`.purged_all_published_jun2026_v7`**) |
 | API (без UI) | `POST /admin/purge-published` — `require_super_admin` |
 | Скрипт на сервере | `python backend/scripts/purge_published.py` |
 
@@ -456,12 +456,12 @@ GET  /health
 GET  /auth/me
 GET  /signals                    — require_active_subscription, batch read, limit 80
 GET  /signals/preview            — win/lose only
-GET  /signals/market-price       — require_admin, курс для формы нового сигнала
-POST /signals                    — require_admin → stamp_signal_at_publication
-PUT  /signals/{id}               — require_admin + owner
-DELETE /signals/{id}             — require_admin + owner
-POST /signals/{id}/supplement    — require_admin + owner (multipart, XHR на фронте)
-POST /signals/{id}/close-market  — require_admin + owner, после входа
+GET  /signals/market-price       — main_feed или cult-кандидат
+POST /signals                    — require_main_feed_publisher → stamp_signal_at_publication
+PUT  /signals/{id}               — require_main_feed_publisher + owner
+DELETE /signals/{id}             — require_main_feed_publisher + owner
+POST /signals/{id}/supplement    — require_main_feed_publisher + owner (multipart, XHR на фронте)
+POST /signals/{id}/close-market  — require_main_feed_publisher + owner, после входа
 POST /signals/{id}/view|like     — engagement rules
 GET  /reviews | POST/PUT/DELETE /reviews
 GET  /news | POST/PUT/DELETE /news — мутации: require_super_admin
@@ -476,7 +476,7 @@ GET  /copy-trading/me | PUT /copy-trading/me | PATCH /copy-trading/me
 POST /copy-trading/me/test | POST /copy-trading/me/pay | DELETE /copy-trading/me
 GET  /cult-channels | POST /cult-channels | DELETE /cult-channels/{id} — мутации: require_super_admin
 GET  /challenge/trackers
-GET  /challenge/my-tracker       — require_admin: balance, daily_loss_pct, daily_trades_count/limit
+GET  /challenge/my-tracker       — require_main_feed_publisher: balance, daily_loss_pct, daily_trades_count/limit
 GET  /challenge/rules
 PUT  /challenge/settings         — multipart: баланс с пропа / account_size, этап, скрин (require_admin)
 GET  /subscriptions/info | POST /subscriptions/pay | PUT /subscriptions/me
@@ -498,6 +498,7 @@ POST /admin/purge-published      — require_super_admin, полная очис�
 | Сигналы логика | `signal_service.py`, `signal_utils.py`, `signal_permissions.py` |
 | Цены | `price_service.py`, `price_monitor.py` |
 | Очистка данных | `data_cleanup.py`, `routers/admin.py`, `scripts/purge_published.py` |
+| Ротация трейдеров | `trader_roster_service.py`, `TraderRosterActions.tsx`, `trader_roster_overrides` в БД |
 | Лимиты формы сигнала | `daily_stop_limit.py`, `utils/dailyStopLimit.ts`, `hooks/useDailyStopSync.ts` |
 | P/L, ТОП | `trader_stats.py`, `leaderboard_service.py`, `volnovoi_account.py` |
 | Copy-trading Bybit | `bybit_trading.py`, `copy_trading_service.py`, `copy_billing.py`, `copy_billing_scheduler.py`, `credentials_crypto.py`, `routers/copy_trading.py` |
@@ -564,7 +565,7 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 
 ## Одноразовые миграции (маркеры на диске)
 
-- `.purged_test_v2`, `.purged_reset_v3`, `.purged_all_published_may2026`, `.purged_all_published_may2026_v2`, `.purged_all_published_jun2026`, `.purged_all_published_may2026_v3`, `.purged_all_published_jun2026_v2`, `.purged_all_published_jun2026_v3`, `.purged_all_published_jun2026_v4`, **`.purged_all_published_jun2026_v5`** — purge через `data_cleanup.py` / `migrate.py`
+- `.purged_test_v2`, `.purged_reset_v3`, `.purged_all_published_may2026` … `.purged_all_published_jun2026_v6`, **`.purged_all_published_jun2026_v7`** — purge через `data_cleanup.py` / `migrate.py` (v7: + сброс `trader_roster_overrides`)
 - `.recalc_closed_signal_pnl_v2`, `.recalc_closed_signal_pnl_v3` — пересчёт P/L от `account_size` и risk_percent
 - `.recalc_winrate_by_pnl_v1` — пересчёт W/L и WR по фактическому P/L ($)
 
@@ -635,9 +636,12 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 59. **График** — тема light/dark (`chartTheme.ts`); линия **«Лимитка»** до входа; P/L/% от лимита, не от `published_market_price` при зоне входа
 60. **Форма** — `confirmAction` перед постом; `rank_max_leverage`; fix `StopOffsetSlider` (импорт лимита дня)
 61. **Чат поддержки** — группа Telegram + `SubscriptionSupportChat` на вкладке Подписка
+62. **Супер-админ** — `TELEGRAM_SUPER_ADMIN_IDS`; новости, CULT-каналы, purge; ротация трейдеров ТОП ↔ кандидаты ↔ уволенные
+63. **Публикация по ростеру** — основная лента (`can_publish_main_feed`) vs кандидаты (`can_publish_candidate`); админ в кандидатах — только CULT+Bybit
+64. **Purge jun2026 v7** — разовая очистка контента + сброс ротации; маркер `.purged_all_published_jun2026_v7`
 
 ---
 
 ## Быстрое напоминание для AI
 
-> **prop-signals-miniapp** — FastAPI + React **Volnovoi Cult** Mini App на Amvera (SQLite, `/data`). Админы публикуют сигналы **#N**; активные — по подписке, win/lose + трекер + ТОП — бесплатно. **Лимит дня в форме:** 3 сделки **или** 2% стопа (MSK). **volnovoi** — сводный портфель; копирование Bybit (**20% прибыли**). **Bybit USDT perp** — мониторинг и график. P/L: вход = лимит или рынок при посте; номинал от `account_size`. Бот — **long polling**, не webhook Amvera. **↻** — полная перезагрузка ленты; фон **15 с** — лёгкий poll. Полный контекст — этот файл.
+> **prop-signals-miniapp** — FastAPI + React **Volnovoi Cult** Mini App на Amvera (SQLite, `/data`). Админы публикуют сигналы **#N** в ленту; кандидаты — отдельный поток. **Супер-админ** (`TELEGRAM_SUPER_ADMIN_IDS`) — ротация трейдеров, purge. Активные сигналы — по подписке; win/lose + трекер + ТОП — бесплатно. **Лимит дня:** 3 сделки **или** 2% стопа (MSK). **volnovoi** + Bybit copy (**20% прибыли**). Purge при деплое: **`.purged_all_published_jun2026_v7`**. Полный контекст — этот файл.

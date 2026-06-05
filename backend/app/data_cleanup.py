@@ -21,6 +21,7 @@ from app.models import (
     SignalSupplement,
     SignalView,
     Trader,
+    TraderRosterOverride,
     UserChallenge,
 )
 from app.rank_constants import DEFAULT_RANK_ID
@@ -133,11 +134,16 @@ def purge_all_signals(db: Session) -> None:
     _reset_admin_trackers(db)
 
 
+def _reset_trader_roster_overrides(db: Session) -> None:
+    db.execute(delete(TraderRosterOverride))
+
+
 def purge_all_published_content(db: Session) -> None:
-    """Сигналы, CULT, новости, отзывы, медиа; рейтинг и трекеры админов — сброс."""
+    """Сигналы, CULT, новости, отзывы, медиа; рейтинг, трекеры и ротация — сброс."""
     _purge_signals_media_and_rows(db)
     _purge_cult_channel_content(db)
     _purge_cult_candidate_stats(db)
     _purge_news_and_reviews(db)
     _reset_trader_leaderboard(db, reset_ranks=True)
     _reset_admin_trackers(db)
+    _reset_trader_roster_overrides(db)
