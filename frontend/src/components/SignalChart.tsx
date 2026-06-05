@@ -835,7 +835,11 @@ export function SignalChart({
     if (!series || !loadedRef.current) return;
 
     const showAxisLive = isLiveEntryTrail && livePrice != null;
-    const showAxisExit = frozen && !!closedAt && closeExitPriceRef.current != null;
+    const showAxisExit =
+      frozen &&
+      !!closedAt &&
+      closeExitPriceRef.current != null &&
+      closeReasonRef.current === "market";
 
     series.applyOptions({ lastValueVisible: !showAxisLive && !showAxisExit });
 
