@@ -2004,34 +2004,72 @@
   object-fit: contain;
 }
 
-.feed-block {
-  margin-bottom: 8px;
+.feed-block,
+.top-cult-block {
+  margin-bottom: 12px;
+  padding: 0 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface);
+  overflow: hidden;
 }
 
-.feed-block--closed-after-active {
-  margin-top: 20px;
-  padding-top: 4px;
+.feed-block--active,
+.top-cult-block--traders {
+  border-color: rgba(167, 139, 250, 0.24);
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.1) 0%, var(--surface) 38%);
 }
 
-.feed-block__label {
-  margin: 0 0 12px;
+.feed-block--closed,
+.top-cult-block--candidates {
+  border-color: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.top-cult-block--fired {
+  border-color: rgba(239, 68, 68, 0.2);
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.07) 0%, var(--surface) 38%);
+}
+
+.feed-block--closed-after-active,
+.top-cult-block--candidates,
+.top-cult-block--fired {
+  margin-top: 16px;
+}
+
+.feed-block__label,
+.top-cult-label {
+  margin: 0 -10px 12px;
+  padding: 10px 12px 8px;
   text-align: center;
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.14);
 }
 
-.feed-block__label--active {
+.feed-block__label--active,
+.top-cult-label--traders {
   color: var(--purple);
+  border-bottom-color: rgba(167, 139, 250, 0.2);
+  background: rgba(167, 139, 250, 0.12);
 }
 
-.feed-block__label--closed {
+.feed-block__label--closed,
+.top-cult-label--candidates {
   color: var(--muted);
 }
 
+.top-cult-label--fired {
+  color: var(--red);
+  border-bottom-color: rgba(239, 68, 68, 0.18);
+  background: rgba(239, 68, 68, 0.1);
+}
+
 .feed-block__empty {
-  margin: 0 0 8px;
+  margin: 0 0 4px;
   text-align: center;
 }
 
@@ -3320,23 +3358,8 @@
   color: var(--red);
 }
 
-.top-cult-block {
-  margin-bottom: 4px;
-}
-
 .top-cult-block--traders {
   margin-top: 12px;
-  margin-bottom: 16px;
-}
-
-.top-cult-block--candidates {
-  margin-top: 20px;
-  padding-top: 4px;
-}
-
-.top-cult-block--fired {
-  margin-top: 20px;
-  padding-top: 4px;
 }
 
 .top-list--solo {
@@ -3347,29 +3370,6 @@
   margin-top: 12px;
 }
 
-.top-cult-label {
-  margin: 0;
-  text-align: center;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.top-cult-label--traders {
-  margin-bottom: 10px;
-  color: var(--purple);
-}
-
-.top-cult-label--candidates {
-  margin-bottom: 10px;
-  color: var(--muted);
-}
-
-.top-cult-label--fired {
-  margin-bottom: 10px;
-  color: var(--red);
-}
 
 .top-card--fired {
   opacity: 0.88;
