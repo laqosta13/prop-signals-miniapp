@@ -1,14 +1,15 @@
-"""Периодическое списание комиссии копирования с депозита."""
+"""Ежедневное выставление счетов за копирование volnovoi."""
 
 from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import datetime, timezone
 
 from sqlalchemy import select
 
 from app.bybit_trading import BybitCredentials, get_wallet_usdt_balance
-from app.copy_billing import settle_copy_fees_from_deposit
+from app.copy_billing import upsert_daily_invoice
 from app.credentials_crypto import decrypt_secret
 from app.database import SessionLocal
 from app.models import UserBybitSettings
@@ -16,6 +17,11 @@ from app.models import UserBybitSettings
 logger = logging.getLogger(__name__)
 
 _CHECK_INTERVAL_SEC = 3600
+
+
+def _is_daily_billing_window(now: datetime) -> bool:
+    """00:00–00:59 UTC — раз в сутки."""
+    return now.hour == 0
 
 
 async def run_copy_billing_once() -> int:
@@ -33,10 +39,9 @@ async def run_copy_billing_once() -> int:
             except Exception as e:
                 logger.warning("Copy billing: user=%s balance error: %s", row.telegram_user_id, e)
                 continue
-            before = settle_copy_fees_from_deposit(db, row.telegram_user_id, row, equity)
-            if equity is not None:
+            inv = upsert_daily_invoice(db, row.telegram_user_id, equity, settings_row=row)
+            if inv is not None:
                 count += 1
-            logger.debug("Copy settle user=%s deposit=$%.2f", row.telegram_user_id, before)
         db.commit()
     except Exception:
         db.rollback()
@@ -47,12 +52,17 @@ async def run_copy_billing_once() -> int:
 
 
 async def copy_billing_scheduler_loop() -> None:
-    logger.info("Copy deposit settlement scheduler started (interval=%ss)", _CHECK_INTERVAL_SEC)
+    last_run_key: str | None = None
+    logger.info("Copy billing scheduler started")
     while True:
         try:
-            n = await run_copy_billing_once()
-            if n:
-                logger.info("Copy deposit settlement: %s user(s)", n)
+            now = datetime.now(timezone.utc)
+            key = now.strftime("%Y-%m-%d")
+            if _is_daily_billing_window(now) and key != last_run_key:
+                n = await run_copy_billing_once()
+                if n:
+                    logger.info("Copy billing: %s invoice(s) updated", n)
+                last_run_key = key
         except Exception as e:
             logger.exception("copy_billing_scheduler: %s", e)
         await asyncio.sleep(_CHECK_INTERVAL_SEC)

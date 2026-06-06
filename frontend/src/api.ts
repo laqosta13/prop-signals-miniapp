@@ -89,7 +89,6 @@ export type SupportMessage = {
 
 export type SubscriptionInfo = {
   usdt_ton_address: string;
-  payment_memo: string;
   week_usd: number;
   month_usd: number;
   trial_days: number;
@@ -207,7 +206,6 @@ export const fetchCultCandidateSignal = (signalId: number) =>
 
 export type CultCandidateSubscriptionInfo = {
   usdt_ton_address: string;
-  payment_memo: string;
   subscription_usd: number;
   subscription_days: number;
   cult_subscription_until: string | null;
@@ -402,6 +400,14 @@ export const fetchMarketSymbols = (query: string) =>
   api<{ symbols: string[] }>(
     `/signals/market-symbols?q=${encodeURIComponent(query.trim().toUpperCase())}`,
   );
+export type CopyTradingInvoice = {
+  id: number;
+  period_date: string;
+  profit_usd: number;
+  fee_usd: number;
+  created_at?: string | null;
+};
+
 export type CopyTradingStatus = {
   configured: boolean;
   enabled: boolean;
@@ -411,17 +417,15 @@ export type CopyTradingStatus = {
   usdt_balance?: number | null;
   balance_error?: string | null;
   usdt_ton_address: string;
+  payment_memo: string;
   fee_percent: number;
-  min_topup_usd: number;
-  fee_deposit_usd: number;
-  accrued_fee_usd: number;
   connected_at?: string | null;
   equity_baseline_usd?: number | null;
   current_equity_usd?: number | null;
   profit_usd: number;
   unbilled_profit_usd: number;
   copy_allowed: boolean;
-  payment_memo: string;
+  pending_invoice?: CopyTradingInvoice | null;
 };
 
 export type CopyTradingSaveBody = {
@@ -461,11 +465,11 @@ export async function deleteCopyTradingSettings(): Promise<void> {
   if (!res.ok) throw new Error(await parseApiError(res));
 }
 
-export const topUpCopyDeposit = (tx_id: string) =>
-  api<CopyTradingStatus>("/copy-trading/me/deposit", {
+export const payCopyTradingFee = (invoice_id: number, tx_id: string) =>
+  api<CopyTradingStatus>("/copy-trading/me/pay", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tx_id }),
+    body: JSON.stringify({ invoice_id, tx_id }),
   });
 
 export const fetchLeaderboard = () => api<Trader[]>("/traders/leaderboard");

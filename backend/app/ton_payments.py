@@ -146,6 +146,54 @@ def _memo_matches_transfer(comment: str | None, expected_memo: str) -> bool:
     return _normalize_payment_memo(comment) == expected
 
 
+def _transfer_matches_hash(row: dict, tx_hash: str) -> bool:
+    for key in ("transaction_hash", "tx_hash", "hash"):
+        raw = row.get(key)
+        if not raw:
+            continue
+        try:
+            if _canon_hash(str(raw)) == tx_hash:
+                return True
+        except TonPaymentError:
+            continue
+    return False
+
+
+def _find_incoming_jetton_transfer(client: httpx.Client, base: str, tx_hash: str) -> dict | None:
+    owner = settings.usdt_ton_address
+    master = settings.usdt_ton_jetton_master
+    base_q = (
+        f"owner_address={owner}&direction=in&jetton_master={master}&sort=desc&limit=100"
+    )
+
+    for param in ("transaction_hash", "tx_hash"):
+        try:
+            res = client.get(f"{base}/jetton/transfers?{base_q}&{param}={tx_hash}")
+            res.raise_for_status()
+            rows = res.json().get("jetton_transfers") or []
+            for row in rows:
+                if _transfer_matches_hash(row, tx_hash):
+                    return row
+        except Exception:
+            continue
+
+    cursor: str | None = None
+    for _ in range(30):
+        url = f"{base}/jetton/transfers?{base_q}"
+        if cursor:
+            url += f"&cursor={cursor}"
+        res = client.get(url)
+        res.raise_for_status()
+        payload = res.json()
+        for row in payload.get("jetton_transfers") or []:
+            if _transfer_matches_hash(row, tx_hash):
+                return row
+        cursor = payload.get("next_page_cursor") or payload.get("next_cursor") or None
+        if not cursor:
+            break
+    return None
+
+
 def verify_usdt_ton_payment(tx_id: str, expected_usd: float, *, expected_memo: str) -> TonPaymentCheck:
     tx_hash = _canon_hash(tx_id)
     expected_raw = int(round(expected_usd * 1_000_000))
@@ -155,32 +203,12 @@ def verify_usdt_ton_payment(tx_id: str, expected_usd: float, *, expected_memo: s
     timeout = settings.price_http_timeout_seconds
     headers = _headers()
     base = _api_base()
-    transfer_url = (
-        f"{base}/jetton/transfers"
-        f"?owner_address={settings.usdt_ton_address}"
-        f"&direction=in"
-        f"&jetton_master={settings.usdt_ton_jetton_master}"
-        "&limit=100"
-        "&sort=desc"
-    )
     with httpx.Client(timeout=timeout, headers=headers) as client:
         try:
-            transfer_res = client.get(transfer_url)
-            transfer_res.raise_for_status()
-            payload = transfer_res.json()
+            selected = _find_incoming_jetton_transfer(client, base, tx_hash)
         except Exception as e:
             raise TonPaymentError("Не удалось проверить оплату в TON сети, попробуйте позже") from e
 
-        transfers = payload.get("jetton_transfers") or []
-        selected: dict | None = None
-        for row in transfers:
-            try:
-                row_hash = _canon_hash(str(row.get("transaction_hash", "")))
-            except TonPaymentError:
-                continue
-            if row_hash == tx_hash:
-                selected = row
-                break
         if selected is None:
             raise TonPaymentError("TXID не найден среди входящих USDT переводов на наш кошелёк")
         if _to_int(selected.get("amount")) < expected_raw:

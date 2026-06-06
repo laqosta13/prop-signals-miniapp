@@ -20,14 +20,11 @@ const EMPTY_STATUS: CopyTradingStatus = {
   account_balance_usd: 10000,
   stake_percent: 10,
   usdt_ton_address: "",
+  payment_memo: "",
   fee_percent: 20,
   profit_usd: 0,
   unbilled_profit_usd: 0,
-  min_topup_usd: 1,
-  fee_deposit_usd: 0,
-  accrued_fee_usd: 0,
-  copy_allowed: false,
-  payment_memo: "",
+  copy_allowed: true,
 };
 
 type Props = {

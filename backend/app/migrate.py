@@ -99,16 +99,6 @@ def run_migrations(engine: Engine) -> None:
                 conn.execute(text("UPDATE subscribers SET trial_used = 1"))
             if not _has_column(engine, "subscribers", "payment_memo"):
                 conn.execute(text("ALTER TABLE subscribers ADD COLUMN payment_memo VARCHAR(16)"))
-            if not _has_column(engine, "subscribers", "copy_equity_baseline_usd"):
-                conn.execute(text("ALTER TABLE subscribers ADD COLUMN copy_equity_baseline_usd REAL"))
-            if not _has_column(engine, "subscribers", "copy_billed_profit_usd"):
-                conn.execute(text("ALTER TABLE subscribers ADD COLUMN copy_billed_profit_usd REAL DEFAULT 0"))
-                conn.execute(text("UPDATE subscribers SET copy_billed_profit_usd = 0 WHERE copy_billed_profit_usd IS NULL"))
-            if not _has_column(engine, "subscribers", "copy_connected_at"):
-                conn.execute(text("ALTER TABLE subscribers ADD COLUMN copy_connected_at DATETIME"))
-            if not _has_column(engine, "subscribers", "copy_fee_deposit_usd"):
-                conn.execute(text("ALTER TABLE subscribers ADD COLUMN copy_fee_deposit_usd REAL DEFAULT 0"))
-                conn.execute(text("UPDATE subscribers SET copy_fee_deposit_usd = 0 WHERE copy_fee_deposit_usd IS NULL"))
             conn.execute(
                 text(
                     "UPDATE subscribers SET subscription_until = datetime('now', '+3 days') "
@@ -297,6 +287,21 @@ def run_migrations(engine: Engine) -> None:
                     conn.execute(text(ddl))
             conn.execute(text("UPDATE user_bybit_settings SET billed_profit_usd = 0 WHERE billed_profit_usd IS NULL"))
 
+        if "copy_user_billing" not in inspect(engine).get_table_names():
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS copy_user_billing (
+                        telegram_user_id INTEGER PRIMARY KEY,
+                        connected_at DATETIME,
+                        equity_baseline_usd REAL,
+                        billed_profit_usd REAL DEFAULT 0,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
+            )
+
         if "copy_trading_invoices" not in inspect(engine).get_table_names():
             conn.execute(
                 text(
@@ -431,7 +436,6 @@ def run_migrations(engine: Engine) -> None:
 
     _backfill_referral_codes(engine)
     _backfill_payment_memos(engine)
-    _backfill_copy_billing_on_subscribers(engine)
     _purge_test_data_once(engine)
     _purge_signals_reset_v3(engine)
     _purge_all_published_may2026(engine)
@@ -446,6 +450,7 @@ def run_migrations(engine: Engine) -> None:
     _purge_all_published_jun2026_v7(engine)
     _purge_all_published_jun2026_v8(engine)
     _purge_all_published_jun2026_v9(engine)
+    _migrate_copy_user_billing_v1(engine)
     _disable_bybit_testnet_v1(engine)
     _sync_news_notify_flags_v1(engine)
     _reset_news_notify_opt_in_v2(engine)
@@ -664,50 +669,6 @@ def _backfill_payment_memos(engine: Engine) -> None:
                         {"c": code, "t": tid},
                     )
                     break
-        db.commit()
-    finally:
-        db.close()
-
-
-def _backfill_copy_billing_on_subscribers(engine: Engine) -> None:
-    """Перенос baseline/billed/connected с user_bybit_settings на subscribers (переживает удаление API)."""
-    if not str(engine.url).startswith("sqlite"):
-        return
-    from app.database import SessionLocal
-
-    db = SessionLocal()
-    try:
-        rows = db.execute(
-            text(
-                """
-                SELECT telegram_user_id, equity_baseline_usd, billed_profit_usd, connected_at
-                FROM user_bybit_settings
-                """
-            )
-        ).fetchall()
-        for tid, baseline, billed, connected_at in rows:
-            db.execute(
-                text(
-                    """
-                    UPDATE subscribers
-                    SET
-                        copy_equity_baseline_usd = COALESCE(copy_equity_baseline_usd, :baseline),
-                        copy_billed_profit_usd = CASE
-                            WHEN copy_billed_profit_usd IS NULL OR copy_billed_profit_usd = 0
-                            THEN COALESCE(:billed, 0)
-                            ELSE copy_billed_profit_usd
-                        END,
-                        copy_connected_at = COALESCE(copy_connected_at, :connected_at)
-                    WHERE telegram_user_id = :tid
-                    """
-                ),
-                {
-                    "tid": tid,
-                    "baseline": baseline,
-                    "billed": billed or 0,
-                    "connected_at": connected_at,
-                },
-            )
         db.commit()
     finally:
         db.close()
@@ -953,6 +914,115 @@ def _purge_all_published_jun2026_v9(engine: Engine) -> None:
         marker.touch()
     finally:
         db.close()
+
+
+def _upsert_copy_user_billing_row(
+    conn,
+    *,
+    tid: int,
+    connected_at,
+    baseline,
+    billed,
+) -> None:
+    exists = conn.execute(
+        text("SELECT 1 FROM copy_user_billing WHERE telegram_user_id = :tid"),
+        {"tid": tid},
+    ).fetchone()
+    if exists:
+        conn.execute(
+            text(
+                """
+                UPDATE copy_user_billing
+                SET
+                    connected_at = COALESCE(connected_at, :connected_at),
+                    equity_baseline_usd = COALESCE(equity_baseline_usd, :baseline),
+                    billed_profit_usd = CASE
+                        WHEN billed_profit_usd IS NULL OR billed_profit_usd = 0
+                        THEN COALESCE(:billed, 0)
+                        ELSE billed_profit_usd
+                    END
+                WHERE telegram_user_id = :tid
+                """
+            ),
+            {
+                "tid": tid,
+                "connected_at": connected_at,
+                "baseline": baseline,
+                "billed": billed if billed is not None else 0,
+            },
+        )
+        return
+    conn.execute(
+        text(
+            """
+            INSERT INTO copy_user_billing (
+                telegram_user_id, connected_at, equity_baseline_usd, billed_profit_usd
+            ) VALUES (:tid, :connected_at, :baseline, :billed)
+            """
+        ),
+        {
+            "tid": tid,
+            "connected_at": connected_at,
+            "baseline": baseline,
+            "billed": billed if billed is not None else 0,
+        },
+    )
+
+
+def _migrate_copy_user_billing_v1(engine: Engine) -> None:
+    """Перенос учёта прибыли copy-trading (переживает delete API)."""
+    marker = _marker_path(engine, ".migrated_copy_user_billing_v1")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".migrated_copy_user_billing_v1"
+    if marker.exists():
+        return
+    insp = inspect(engine)
+    if "copy_user_billing" not in insp.get_table_names():
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+        return
+    with engine.begin() as conn:
+        if "user_bybit_settings" in insp.get_table_names():
+            rows = conn.execute(
+                text(
+                    """
+                    SELECT telegram_user_id, connected_at, equity_baseline_usd, billed_profit_usd
+                    FROM user_bybit_settings
+                    """
+                )
+            ).fetchall()
+            for tid, connected_at, baseline, billed in rows:
+                _upsert_copy_user_billing_row(
+                    conn,
+                    tid=tid,
+                    connected_at=connected_at,
+                    baseline=baseline,
+                    billed=billed,
+                )
+        if "subscribers" in insp.get_table_names() and _has_column(engine, "subscribers", "copy_equity_baseline_usd"):
+            sub_rows = conn.execute(
+                text(
+                    """
+                    SELECT telegram_user_id, copy_connected_at, copy_equity_baseline_usd, copy_billed_profit_usd
+                    FROM subscribers
+                    WHERE copy_equity_baseline_usd IS NOT NULL
+                       OR copy_billed_profit_usd > 0
+                       OR copy_connected_at IS NOT NULL
+                    """
+                )
+            ).fetchall()
+            for tid, connected_at, baseline, billed in sub_rows:
+                _upsert_copy_user_billing_row(
+                    conn,
+                    tid=tid,
+                    connected_at=connected_at,
+                    baseline=baseline,
+                    billed=billed,
+                )
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.touch()
 
 
 def _disable_bybit_testnet_v1(engine: Engine) -> None:

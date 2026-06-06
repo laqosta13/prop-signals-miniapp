@@ -20,7 +20,7 @@ from app.cult_subscription_billing import (
 )
 from app.deps import db_session, get_current_user
 from app.trader_roster_service import cult_subscription_admin_bypass
-from app.subscription_billing import ensure_payment_memo, usdt_pay_address
+from app.subscription_billing import usdt_pay_address
 from app.models import Subscriber
 from app.schemas import (
     CultCandidateJoinBody,
@@ -62,7 +62,6 @@ def cult_subscription_info(
     sub = _subscriber(db, user)
     return CultCandidateSubscriptionInfo(
         usdt_ton_address=usdt_pay_address(),
-        payment_memo=ensure_payment_memo(db, sub),
         subscription_usd=CULT_SUBSCRIPTION_USD,
         subscription_days=CULT_SUBSCRIPTION_DAYS,
         cult_subscription_until=sub.cult_subscription_until,
@@ -88,7 +87,6 @@ def cult_subscription_pay(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     return CultCandidateSubscriptionInfo(
         usdt_ton_address=usdt_pay_address(),
-        payment_memo=ensure_payment_memo(db, sub),
         subscription_usd=CULT_SUBSCRIPTION_USD,
         subscription_days=CULT_SUBSCRIPTION_DAYS,
         cult_subscription_until=sub.cult_subscription_until,

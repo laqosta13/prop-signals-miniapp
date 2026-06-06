@@ -1,54 +1,63 @@
-"""Копирование volnovoi: депозит комиссии, 20% прибыли списывается автоматически."""
+"""Оплата копирования volnovoi: 20% от прироста прибыли с момента подключения."""
 
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import PaymentTx, Subscriber, UserBybitSettings
+from app.models import CopyTradingInvoice, CopyUserBilling, PaymentTx, Subscriber, UserBybitSettings
 from app.subscription_billing import ensure_payment_memo, usdt_pay_address
-from app.ton_payments import TonPaymentCheck, TonPaymentError, verify_usdt_ton_payment
+from app.ton_payments import TonPaymentError, verify_usdt_ton_payment
 
 logger = logging.getLogger(__name__)
 
 COPY_FEE_PERCENT = 20.0
 MIN_FEE_USD = 0.01
-MIN_COPY_DEPOSIT_USD = 0.01
-MIN_TOPUP_USD = 1.0
 
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _require_subscriber(db: Session, telegram_user_id: int) -> Subscriber:
-    sub = db.get(Subscriber, telegram_user_id)
-    if sub is None:
-        raise ValueError("Подписчик не найден")
-    return sub
+def _today() -> date:
+    return _now().date()
 
 
-def copy_fee_deposit_usd(sub: Subscriber) -> float:
-    return round(max(0.0, float(sub.copy_fee_deposit_usd or 0)), 2)
+def get_or_create_copy_billing(db: Session, telegram_user_id: int) -> CopyUserBilling:
+    billing = db.get(CopyUserBilling, telegram_user_id)
+    if billing is None:
+        billing = CopyUserBilling(telegram_user_id=telegram_user_id)
+        db.add(billing)
+        db.flush()
+    return billing
 
 
-def usdt_credited_usd(check: TonPaymentCheck) -> float:
-    return round(check.amount_raw / 1_000_000, 2)
+def hydrate_copy_billing_from_settings(db: Session, row: UserBybitSettings | None) -> CopyUserBilling | None:
+    if row is None:
+        return None
+    billing = get_or_create_copy_billing(db, row.telegram_user_id)
+    if billing.equity_baseline_usd is None and row.equity_baseline_usd is not None:
+        billing.equity_baseline_usd = float(row.equity_baseline_usd)
+    if billing.connected_at is None and row.connected_at is not None:
+        billing.connected_at = row.connected_at
+    if float(billing.billed_profit_usd or 0) <= 0 and float(row.billed_profit_usd or 0) > 0:
+        billing.billed_profit_usd = float(row.billed_profit_usd)
+    return billing
 
 
-def profit_since_connect(current_equity: float | None, sub: Subscriber) -> float:
-    if current_equity is None or sub.copy_equity_baseline_usd is None:
+def profit_since_connect(current_equity: float | None, billing: CopyUserBilling) -> float:
+    if current_equity is None or billing.equity_baseline_usd is None:
         return 0.0
-    return round(max(0.0, float(current_equity) - float(sub.copy_equity_baseline_usd)), 2)
+    return round(max(0.0, float(current_equity) - float(billing.equity_baseline_usd)), 2)
 
 
-def unbilled_profit(current_equity: float | None, sub: Subscriber) -> float:
-    total = profit_since_connect(current_equity, sub)
-    billed = float(sub.copy_billed_profit_usd or 0)
+def unbilled_profit(current_equity: float | None, billing: CopyUserBilling) -> float:
+    total = profit_since_connect(current_equity, billing)
+    billed = float(billing.billed_profit_usd or 0)
     return round(max(0.0, total - billed), 2)
 
 
@@ -58,144 +67,208 @@ def fee_from_profit(profit_usd: float) -> float:
     return round(profit_usd * COPY_FEE_PERCENT / 100.0, 2)
 
 
+def has_unpaid_copy_invoice(db: Session, telegram_user_id: int) -> bool:
+    if telegram_user_id in settings.all_admin_id_set:
+        return False
+    inv = db.scalar(
+        select(CopyTradingInvoice)
+        .where(
+            CopyTradingInvoice.telegram_user_id == telegram_user_id,
+            CopyTradingInvoice.status == "pending",
+            CopyTradingInvoice.fee_usd >= MIN_FEE_USD,
+        )
+        .order_by(CopyTradingInvoice.created_at.desc())
+        .limit(1)
+    )
+    return inv is not None
+
+
 def copy_trading_allowed(db: Session, telegram_user_id: int) -> bool:
     if telegram_user_id in settings.all_admin_id_set:
         return True
-    sub = db.get(Subscriber, telegram_user_id)
-    if sub is None:
-        return False
-    return copy_fee_deposit_usd(sub) >= MIN_COPY_DEPOSIT_USD
+    return not has_unpaid_copy_invoice(db, telegram_user_id)
+
+
+def pending_invoice(db: Session, telegram_user_id: int) -> CopyTradingInvoice | None:
+    return db.scalar(
+        select(CopyTradingInvoice)
+        .where(
+            CopyTradingInvoice.telegram_user_id == telegram_user_id,
+            CopyTradingInvoice.status == "pending",
+        )
+        .order_by(CopyTradingInvoice.created_at.desc())
+        .limit(1)
+    )
 
 
 def ensure_baseline_on_connect(
-    db: Session,
-    sub: Subscriber,
-    row: UserBybitSettings | None,
+    billing: CopyUserBilling,
     current_equity: float | None,
+    *,
+    settings_row: UserBybitSettings | None = None,
 ) -> None:
-    """База прибыли хранится у подписчика — не сбрасывается при удалении/переподключении API."""
-    if sub.copy_connected_at is None:
-        sub.copy_connected_at = _now()
-    if sub.copy_equity_baseline_usd is None and current_equity is not None and current_equity >= 0:
-        sub.copy_equity_baseline_usd = round(float(current_equity), 2)
-    if row is not None and current_equity is not None:
-        row.last_equity_usd = round(float(current_equity), 2)
+    if billing.connected_at is None:
+        billing.connected_at = _now()
+    if billing.equity_baseline_usd is None and current_equity is not None and current_equity >= 0:
+        billing.equity_baseline_usd = round(float(current_equity), 2)
+    if settings_row is not None and current_equity is not None:
+        settings_row.last_equity_usd = round(float(current_equity), 2)
+        if settings_row.connected_at is None:
+            settings_row.connected_at = billing.connected_at
+        if settings_row.equity_baseline_usd is None:
+            settings_row.equity_baseline_usd = billing.equity_baseline_usd
 
 
-def settle_copy_fees_from_deposit(
+def upsert_daily_invoice(
     db: Session,
     telegram_user_id: int,
-    row: UserBybitSettings | None,
     current_equity: float | None,
-) -> float:
-    """Списать до 20% неоплаченной прибыли с депозита. Возвращает остаток депозита."""
+    *,
+    settings_row: UserBybitSettings | None = None,
+) -> CopyTradingInvoice | None:
+    """Счёт 20% от неоплаченной прибыли с момента первого подключения."""
     if telegram_user_id in settings.all_admin_id_set:
-        sub = db.get(Subscriber, telegram_user_id)
-        return copy_fee_deposit_usd(sub) if sub is not None else 0.0
+        return None
     if current_equity is None:
-        sub = db.get(Subscriber, telegram_user_id)
-        return copy_fee_deposit_usd(sub) if sub is not None else 0.0
+        return None
 
-    sub = _require_subscriber(db, telegram_user_id)
-    if row is not None:
-        row.last_equity_usd = round(float(current_equity), 2)
-
-    fee_due = fee_from_profit(unbilled_profit(current_equity, sub))
-    if fee_due < MIN_FEE_USD:
-        return copy_fee_deposit_usd(sub)
-
-    deposit = copy_fee_deposit_usd(sub)
-    deduct = round(min(fee_due, deposit), 2)
-    if deduct < MIN_FEE_USD:
-        return deposit
-
-    profit_billed = round(deduct / (COPY_FEE_PERCENT / 100.0), 2)
-    sub.copy_billed_profit_usd = round(float(sub.copy_billed_profit_usd or 0) + profit_billed, 2)
-    sub.copy_fee_deposit_usd = round(deposit - deduct, 2)
-    logger.info(
-        "Copy fee debit user=%s fee=$%.2f profit_billed=$%.2f deposit_left=$%.2f",
-        telegram_user_id,
-        deduct,
-        profit_billed,
-        sub.copy_fee_deposit_usd,
+    billing = hydrate_copy_billing_from_settings(db, settings_row) or get_or_create_copy_billing(
+        db, telegram_user_id
     )
-    return copy_fee_deposit_usd(sub)
+    if settings_row is not None:
+        settings_row.last_equity_usd = round(float(current_equity), 2)
+
+    profit = unbilled_profit(current_equity, billing)
+    fee = fee_from_profit(profit)
+    if fee < MIN_FEE_USD:
+        return None
+
+    today = _today()
+    inv = pending_invoice(db, telegram_user_id)
+    if inv is not None and inv.period_date == today:
+        inv.profit_usd = profit
+        inv.fee_usd = fee
+        return inv
+    if inv is not None and inv.period_date != today:
+        return inv
+
+    inv = CopyTradingInvoice(
+        telegram_user_id=telegram_user_id,
+        period_date=today,
+        profit_usd=profit,
+        fee_usd=fee,
+        status="pending",
+    )
+    db.add(inv)
+    db.flush()
+    logger.info("Copy invoice user=%s profit=$%.2f fee=$%.2f", telegram_user_id, profit, fee)
+    return inv
 
 
-def record_copy_deposit_topup(db: Session, telegram_user_id: int, tx_id: str) -> float:
-    sub = _require_subscriber(db, telegram_user_id)
+def record_copy_fee_payment(db: Session, telegram_user_id: int, invoice_id: int, tx_id: str) -> CopyTradingInvoice:
+    inv = db.get(CopyTradingInvoice, invoice_id)
+    if inv is None or inv.telegram_user_id != telegram_user_id:
+        raise ValueError("Счёт не найден")
+    if inv.status == "paid":
+        raise ValueError("Счёт уже оплачен")
+    if inv.fee_usd < MIN_FEE_USD:
+        raise ValueError("Сумма счёта некорректна")
+
+    sub = db.get(Subscriber, telegram_user_id)
+    if sub is None:
+        raise ValueError("Подписчик не найден")
     memo = ensure_payment_memo(db, sub)
 
     try:
-        check = verify_usdt_ton_payment(tx_id, MIN_TOPUP_USD, expected_memo=memo)
+        check = verify_usdt_ton_payment(tx_id, inv.fee_usd, expected_memo=memo)
     except TonPaymentError as e:
         raise ValueError(str(e)) from e
 
     if db.scalar(select(PaymentTx.id).where(PaymentTx.tx_id == check.tx_hash_hex)):
         raise ValueError("Этот TXID уже зарегистрирован")
 
-    credit = usdt_credited_usd(check)
-    if credit < MIN_TOPUP_USD:
-        raise ValueError(f"Минимальное пополнение — ${MIN_TOPUP_USD:g}")
+    settings_row = db.get(UserBybitSettings, telegram_user_id)
+    billing = hydrate_copy_billing_from_settings(db, settings_row) or get_or_create_copy_billing(
+        db, telegram_user_id
+    )
 
-    sub.copy_fee_deposit_usd = round(copy_fee_deposit_usd(sub) + credit, 2)
+    inv.status = "paid"
+    inv.paid_at = _now()
+    inv.tx_id = check.tx_hash_hex
+    billing.billed_profit_usd = round(float(billing.billed_profit_usd or 0) + float(inv.profit_usd), 2)
+    if settings_row is not None:
+        settings_row.billed_profit_usd = billing.billed_profit_usd
+
     db.add(
         PaymentTx(
             telegram_user_id=telegram_user_id,
             tx_id=check.tx_hash_hex,
-            plan="copy_deposit",
-            amount_usd=credit,
+            plan="copy_fee",
+            amount_usd=inv.fee_usd,
         )
     )
     db.flush()
-    return copy_fee_deposit_usd(sub)
+    return inv
 
 
 def billing_snapshot(
     db: Session,
-    telegram_user_id: int,
     row: UserBybitSettings | None,
     *,
+    telegram_user_id: int | None = None,
     current_equity: float | None = None,
 ) -> dict[str, object]:
-    sub = db.get(Subscriber, telegram_user_id)
-    last_equity = row.last_equity_usd if row is not None else None
-    equity = current_equity if current_equity is not None else last_equity
+    tid = telegram_user_id or (row.telegram_user_id if row is not None else None)
+    allowed = copy_trading_allowed(db, tid) if tid is not None else True
+    inv = pending_invoice(db, tid) if tid is not None else None
 
-    if sub is None:
-        return {
-            "usdt_ton_address": usdt_pay_address(),
-            "fee_percent": COPY_FEE_PERCENT,
-            "min_topup_usd": MIN_TOPUP_USD,
-            "fee_deposit_usd": 0.0,
-            "connected_at": None,
-            "equity_baseline_usd": None,
-            "current_equity_usd": equity,
-            "profit_usd": 0.0,
-            "unbilled_profit_usd": 0.0,
-            "accrued_fee_usd": 0.0,
-            "copy_allowed": copy_trading_allowed(db, telegram_user_id),
+    pending_data = None
+    if inv is not None and inv.status == "pending" and inv.fee_usd >= MIN_FEE_USD:
+        pending_data = {
+            "id": inv.id,
+            "period_date": inv.period_date.isoformat(),
+            "profit_usd": inv.profit_usd,
+            "fee_usd": inv.fee_usd,
+            "created_at": inv.created_at.isoformat() if inv.created_at else None,
         }
 
-    if row is not None and current_equity is not None:
-        row.last_equity_usd = round(float(current_equity), 2)
-        equity = current_equity
+    payment_memo = ""
+    if tid is not None:
+        sub = db.get(Subscriber, tid)
+        if sub is not None:
+            payment_memo = ensure_payment_memo(db, sub)
 
-    profit = profit_since_connect(equity, sub)
-    unbilled = unbilled_profit(equity, sub)
-    accrued_fee = fee_from_profit(unbilled)
-    deposit = copy_fee_deposit_usd(sub)
+    if row is None:
+        return {
+            "usdt_ton_address": usdt_pay_address(),
+            "payment_memo": payment_memo,
+            "fee_percent": COPY_FEE_PERCENT,
+            "connected_at": None,
+            "equity_baseline_usd": None,
+            "current_equity_usd": None,
+            "profit_usd": 0.0,
+            "unbilled_profit_usd": 0.0,
+            "copy_allowed": allowed,
+            "pending_invoice": pending_data,
+        }
+
+    billing = hydrate_copy_billing_from_settings(db, row) or get_or_create_copy_billing(db, row.telegram_user_id)
+    if current_equity is not None:
+        row.last_equity_usd = round(float(current_equity), 2)
+
+    equity = current_equity if current_equity is not None else row.last_equity_usd
+    profit = profit_since_connect(equity, billing)
+    unbilled = unbilled_profit(equity, billing)
 
     return {
         "usdt_ton_address": usdt_pay_address(),
+        "payment_memo": payment_memo,
         "fee_percent": COPY_FEE_PERCENT,
-        "min_topup_usd": MIN_TOPUP_USD,
-        "fee_deposit_usd": deposit,
-        "connected_at": sub.copy_connected_at.isoformat() if sub.copy_connected_at else None,
-        "equity_baseline_usd": sub.copy_equity_baseline_usd,
+        "connected_at": billing.connected_at.isoformat() if billing.connected_at else None,
+        "equity_baseline_usd": billing.equity_baseline_usd,
         "current_equity_usd": equity,
         "profit_usd": profit,
         "unbilled_profit_usd": unbilled,
-        "accrued_fee_usd": accrued_fee,
-        "copy_allowed": copy_trading_allowed(db, telegram_user_id),
+        "copy_allowed": allowed,
+        "pending_invoice": pending_data,
     }

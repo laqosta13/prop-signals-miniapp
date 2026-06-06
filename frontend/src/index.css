@@ -2067,21 +2067,6 @@
   margin: 10px 0;
 }
 
-.pay-memo-row {
-  margin: 0 0 4px;
-}
-
-.pay-memo-row__hint {
-  margin: 0 0 6px;
-  line-height: 1.4;
-  color: #fbbf24;
-}
-
-.pay-memo-row__code {
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
 .pay-addr {
   flex: 1;
   min-width: 0;
@@ -3022,17 +3007,6 @@
 .volnovoi-copy__bill-row--due strong {
   color: #ffd166;
   font-size: 1rem;
-}
-
-.volnovoi-copy__bill-warn {
-  margin: 0 0 8px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  background: rgba(245, 158, 11, 0.1);
-  color: #fbbf24;
-  font-size: 0.85rem;
-  line-height: 1.4;
 }
 
 .volnovoi-copy__bill-hint {
