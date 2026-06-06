@@ -456,15 +456,19 @@ def run_migrations(engine: Engine) -> None:
     _recalc_closed_signal_pnl_v3(engine)
     _recalc_winrate_by_pnl_v1(engine)
     _seed_volnovoi_cult_launch_news_v1(engine)
+    _seed_volnovoi_cult_launch_news_v2(engine)
 
 
-def _seed_volnovoi_cult_launch_news_v1(engine: Engine) -> None:
-    """Одноразово: стартовая новость с обложкой + push после старта приложения."""
-    marker = _marker_path(engine, ".seeded_volnovoi_cult_launch_news_v1")
+def _seed_launch_news(
+    engine: Engine,
+    *,
+    marker_name: str,
+) -> None:
+    marker = _marker_path(engine, marker_name)
     if marker is None:
         from app.media_storage import media_root
 
-        marker = media_root() / ".seeded_volnovoi_cult_launch_news_v1"
+        marker = media_root() / marker_name
     if marker.exists():
         return
     if "news_posts" not in inspect(engine).get_table_names():
@@ -503,6 +507,16 @@ def _seed_volnovoi_cult_launch_news_v1(engine: Engine) -> None:
         marker.touch()
     finally:
         db.close()
+
+
+def _seed_volnovoi_cult_launch_news_v1(engine: Engine) -> None:
+    """Одноразово: короткая стартовая новость (июнь 2026)."""
+    _seed_launch_news(engine, marker_name=".seeded_volnovoi_cult_launch_news_v1")
+
+
+def _seed_volnovoi_cult_launch_news_v2(engine: Engine) -> None:
+    """Одноразово: полная новость с новой обложкой + push после старта."""
+    _seed_launch_news(engine, marker_name=".seeded_volnovoi_cult_launch_news_v2")
 
 
 def _recalc_closed_signal_pnl_v3(engine: Engine) -> None:
