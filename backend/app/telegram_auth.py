@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import time
 import urllib.parse
 from dataclasses import dataclass
 from typing import Any
@@ -39,12 +40,27 @@ def _parse_user(user_json: str) -> WebAppUser | None:
         return None
 
 
+def _auth_date_fresh(auth_date_raw: str | None) -> bool:
+    if not auth_date_raw:
+        return False
+    try:
+        auth_ts = int(auth_date_raw)
+    except (TypeError, ValueError):
+        return False
+    if auth_ts <= 0:
+        return False
+    max_age = max(60, int(settings.telegram_init_data_max_age_seconds))
+    return time.time() - auth_ts <= max_age
+
+
 def validate_init_data(init_data: str, bot_token: str) -> WebAppUser | None:
     if not init_data or not bot_token:
         return None
     parsed = dict(urllib.parse.parse_qsl(init_data, strict_parsing=True))
     received_hash = parsed.pop("hash", None)
     if not received_hash:
+        return None
+    if not _auth_date_fresh(parsed.get("auth_date")):
         return None
     data_check_parts = [f"{k}={v}" for k, v in sorted(parsed.items())]
     data_check_string = "\n".join(data_check_parts)

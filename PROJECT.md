@@ -27,7 +27,7 @@
 3. **ТОП** — **volnovoi** + копирование Bybit; **RankGuide**; **ТРЕЙДЕРЫ CULT**; **КОНДИДАТЫ В CULT** — админы + **Telegram-каналы** (аналитика % с момента подключения)
 4. **Отзывы** — оценка 1–5 и текст; один отзыв на пользователя
 5. **Новости** — публикации админов; чтение для всех
-6. **Подписка** — оплата USDT(в сети TON) (проверка TXID в блокчейне), реферальные ссылки, trial, **чат поддержки** (`SubscriptionSupportChat` → `POST /support/messages`)
+6. **Подписка** — оплата USDT TON (проверка TXID в блокчейне), реферальные ссылки, trial, **чат поддержки** (`SubscriptionSupportChat` → `POST /support/messages`)
 
 **Шапка:** круглая кнопка **↻** — по вкладке: **Лента/Трекер** — полная перезагрузка сигналов (`refreshSignalsFull`) + `feedRefreshKey` (ремонт графиков), трекеры, `fetchMe`; **ТОП** — рейтинг + me; **Новости/Отзывы/Подписка** — `refreshKey` вкладки + me. Фоновый poll **15 с** — только лёгкий `refreshSignalsOnly()` (без remount графиков).
 
@@ -195,7 +195,7 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 |---|---|
 | Комиссия | **20%** от **прибыли** на Bybit с момента подключения (`equity_baseline_usd`) |
 | Счёт | Раз в сутки (**00:00 UTC**), если выросла неоплаченная прибыль — `copy_billing_scheduler.py` |
-| Оплата | USDT(в сети TON) + **TXID** on-chain (тот же кошелёк, что подписка) |
+| Оплата | USDT TON + **TXID** on-chain (тот же кошелёк, что подписка) |
 | Блокировка | При неоплаченном счёте **`copy_allowed: false`** — новые копии не открываются |
 | Админы | Счета и блокировка **не применяются** |
 
@@ -344,7 +344,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 | Месяц | $70 | 30 дней |
 | Trial | — | 3 дня при первом входе |
 
-- USDT(в сети TON) (jetton): `USDT_TON_ADDRESS` в env
+- USDT TON (jetton): `USDT_TON_ADDRESS` в env
 - **TXID** проверяется **on-chain** через Toncenter (`ton_payments.py`): USDT jetton, сумма ≥ плана, подтверждения; дубликаты TXID отклоняются (`subscription_billing.py` → `record_payment`)
 - Опционально: `TONCENTER_API_KEY`, `TONCENTER_API_BASE`
 - UI: `SubscriptionTab.tsx` — копирование кошелька, ввод TXID, обновление по `refreshKey` из шапки
@@ -577,7 +577,7 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 
 1. Редактирование, уведомления, просмотры/лайки, ТОП, трекеры, P/L
 2. Freemium preview, профиль админа на карточках, только свои сигналы
-3. Отзывы, новости, подписка USDT(в сети TON), equity curve
+3. Отзывы, новости, подписка USDT TON, equity curve
 4. **Система рангов** (8 уровней), RankGuide в ТОП
 5. Hash Hedge таблица правил, трекер по этапам
 6. **Upload progress** (XHR), автор в push (дополнил/изменил/удалил)
@@ -586,7 +586,7 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 9. UI: кнопка «Дополнить» pill; **плечо + бегунок суммы входа %**; номинал с плечом
 10. **Форма нового сигнала:** автозаполнение курса, стоп/цель ±1%, подсветка номинала
 11. **Закрыть по рынку** — ручное закрытие активного сигнала после входа
-12. **USDT(в сети TON) on-chain** — проверка TXID через Toncenter; обновлён UI подписки
+12. **USDT TON on-chain** — проверка TXID через Toncenter; обновлён UI подписки
 13. **Реферальная программа** — `startapp`-ссылки, share/copy в Mini App
 14. **WIN/LOSE reveal** — одноразовая анимация на ленте, localStorage
 15. **График на карточке** — Bybit klines, уровни, `lightweight-charts` v4; UI: ряд админ-кнопок, z-index ленты

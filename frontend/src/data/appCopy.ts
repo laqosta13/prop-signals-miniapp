@@ -27,7 +27,7 @@ export const TAB_SUBTITLES = {
   top: "Ранги и отбор",
   reviews: "Опыт участников",
   news: "",
-  pay: "Доступ к ленте · USDT(в сети TON)",
+  pay: "Доступ к ленте · USDT TON",
 } as const;
 
 export const TOP_INTRO = PRODUCT_PITCH;
@@ -46,10 +46,9 @@ export const VOLNOVOI_SUBTITLE = "Сводка сделок отобранных
 export const VOLNOVOI_COPY_TITLE = "Копирование volnovoi · Bybit";
 export const VOLNOVOI_COPY_DESC =
   "Сделки volnovoi на вашем Bybit (perp). Оплата отдельно от подписки на ленту.";
-export const VOLNOVOI_COPY_HINT_BILLING = "Счёт раз в сутки · USDT(в сети TON) · TXID";
-export const VOLNOVOI_COPY_HINT_API = "API Trade · без оплаты — пауза";
-export const BYBIT_DISCONNECT_COOLDOWN_CONFIRM =
-  "Отключить API Bybit?\n\nПовторное подключение будет доступно не раньше чем через 24 часа и после ночного выставления счёта (≈02:00 UTC). До этого момента сбросить baseline и обойти комиссию нельзя.";
+export const VOLNOVOI_COPY_HINT_BILLING =
+  "Депозит комиссии · 20% прибыли списывается автоматически · депозит пуст — стоп копи";
+export const VOLNOVOI_COPY_HINT_API = "API Trade · без Withdraw";
 
 export const VOLNOVOI_MARKETING_CTA = "Подключите Bybit под карточкой ↓";
 

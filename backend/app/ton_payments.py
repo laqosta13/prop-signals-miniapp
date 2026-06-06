@@ -143,10 +143,7 @@ def _memo_matches_transfer(comment: str | None, expected_memo: str) -> bool:
     expected = _normalize_payment_memo(expected_memo)
     if not expected:
         return False
-    normalized = _normalize_payment_memo(comment)
-    if normalized == expected:
-        return True
-    return expected in normalized
+    return _normalize_payment_memo(comment) == expected
 
 
 def verify_usdt_ton_payment(tx_id: str, expected_usd: float, *, expected_memo: str) -> TonPaymentCheck:

@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     ton_payment_min_confirmations: int = 3
     public_base_url: str = ""
     exchange_secrets_key: str = ""
+    telegram_init_data_max_age_seconds: int = 86_400
+    """Макс. возраст auth_date в initData Mini App (секунды)."""
 
     @property
     def admin_id_set(self) -> set[int]:

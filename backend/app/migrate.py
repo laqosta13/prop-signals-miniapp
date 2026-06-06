@@ -87,19 +87,6 @@ def run_migrations(engine: Engine) -> None:
                 conn.execute(text("ALTER TABLE subscribers ADD COLUMN subscription_until DATETIME"))
             if not _has_column(engine, "subscribers", "referral_code"):
                 conn.execute(text("ALTER TABLE subscribers ADD COLUMN referral_code VARCHAR(16)"))
-            if not _has_column(engine, "subscribers", "payment_memo"):
-                conn.execute(text("ALTER TABLE subscribers ADD COLUMN payment_memo VARCHAR(16)"))
-                conn.execute(
-                    text("CREATE UNIQUE INDEX IF NOT EXISTS ix_subscribers_payment_memo ON subscribers (payment_memo)")
-                )
-            if not _has_column(engine, "subscribers", "copy_reconnect_after"):
-                conn.execute(text("ALTER TABLE subscribers ADD COLUMN copy_reconnect_after DATETIME"))
-            if not _has_column(engine, "subscribers", "copy_preserved_baseline_usd"):
-                conn.execute(text("ALTER TABLE subscribers ADD COLUMN copy_preserved_baseline_usd REAL"))
-            if not _has_column(engine, "subscribers", "copy_preserved_billed_profit_usd"):
-                conn.execute(text("ALTER TABLE subscribers ADD COLUMN copy_preserved_billed_profit_usd REAL"))
-            if not _has_column(engine, "subscribers", "copy_preserved_last_equity_usd"):
-                conn.execute(text("ALTER TABLE subscribers ADD COLUMN copy_preserved_last_equity_usd REAL"))
             if not _has_column(engine, "subscribers", "referred_by_telegram_id"):
                 conn.execute(text("ALTER TABLE subscribers ADD COLUMN referred_by_telegram_id INTEGER"))
             if not _has_column(engine, "subscribers", "notify_news_enabled"):
@@ -110,6 +97,18 @@ def run_migrations(engine: Engine) -> None:
             if not _has_column(engine, "subscribers", "trial_used"):
                 conn.execute(text("ALTER TABLE subscribers ADD COLUMN trial_used BOOLEAN DEFAULT 0"))
                 conn.execute(text("UPDATE subscribers SET trial_used = 1"))
+            if not _has_column(engine, "subscribers", "payment_memo"):
+                conn.execute(text("ALTER TABLE subscribers ADD COLUMN payment_memo VARCHAR(16)"))
+            if not _has_column(engine, "subscribers", "copy_equity_baseline_usd"):
+                conn.execute(text("ALTER TABLE subscribers ADD COLUMN copy_equity_baseline_usd REAL"))
+            if not _has_column(engine, "subscribers", "copy_billed_profit_usd"):
+                conn.execute(text("ALTER TABLE subscribers ADD COLUMN copy_billed_profit_usd REAL DEFAULT 0"))
+                conn.execute(text("UPDATE subscribers SET copy_billed_profit_usd = 0 WHERE copy_billed_profit_usd IS NULL"))
+            if not _has_column(engine, "subscribers", "copy_connected_at"):
+                conn.execute(text("ALTER TABLE subscribers ADD COLUMN copy_connected_at DATETIME"))
+            if not _has_column(engine, "subscribers", "copy_fee_deposit_usd"):
+                conn.execute(text("ALTER TABLE subscribers ADD COLUMN copy_fee_deposit_usd REAL DEFAULT 0"))
+                conn.execute(text("UPDATE subscribers SET copy_fee_deposit_usd = 0 WHERE copy_fee_deposit_usd IS NULL"))
             conn.execute(
                 text(
                     "UPDATE subscribers SET subscription_until = datetime('now', '+3 days') "
@@ -431,6 +430,8 @@ def run_migrations(engine: Engine) -> None:
             )
 
     _backfill_referral_codes(engine)
+    _backfill_payment_memos(engine)
+    _backfill_copy_billing_on_subscribers(engine)
     _purge_test_data_once(engine)
     _purge_signals_reset_v3(engine)
     _purge_all_published_may2026(engine)
@@ -633,6 +634,80 @@ def _backfill_referral_codes(engine: Engine) -> None:
                 if not clash:
                     db.execute(text("UPDATE subscribers SET referral_code = :c WHERE telegram_user_id = :t"), {"c": code, "t": tid})
                     break
+        db.commit()
+    finally:
+        db.close()
+
+
+def _backfill_payment_memos(engine: Engine) -> None:
+    if not str(engine.url).startswith("sqlite"):
+        return
+    import secrets
+    import string
+
+    from app.database import SessionLocal
+    from app.subscription_billing import PAYMENT_MEMO_PREFIX
+
+    alphabet = string.ascii_uppercase + string.digits
+    db = SessionLocal()
+    try:
+        rows = db.execute(
+            text("SELECT telegram_user_id FROM subscribers WHERE payment_memo IS NULL OR payment_memo = ''")
+        ).fetchall()
+        for (tid,) in rows:
+            for _ in range(30):
+                code = PAYMENT_MEMO_PREFIX + "".join(secrets.choice(alphabet) for _ in range(8))
+                clash = db.execute(text("SELECT 1 FROM subscribers WHERE payment_memo = :c"), {"c": code}).fetchone()
+                if not clash:
+                    db.execute(
+                        text("UPDATE subscribers SET payment_memo = :c WHERE telegram_user_id = :t"),
+                        {"c": code, "t": tid},
+                    )
+                    break
+        db.commit()
+    finally:
+        db.close()
+
+
+def _backfill_copy_billing_on_subscribers(engine: Engine) -> None:
+    """Перенос baseline/billed/connected с user_bybit_settings на subscribers (переживает удаление API)."""
+    if not str(engine.url).startswith("sqlite"):
+        return
+    from app.database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        rows = db.execute(
+            text(
+                """
+                SELECT telegram_user_id, equity_baseline_usd, billed_profit_usd, connected_at
+                FROM user_bybit_settings
+                """
+            )
+        ).fetchall()
+        for tid, baseline, billed, connected_at in rows:
+            db.execute(
+                text(
+                    """
+                    UPDATE subscribers
+                    SET
+                        copy_equity_baseline_usd = COALESCE(copy_equity_baseline_usd, :baseline),
+                        copy_billed_profit_usd = CASE
+                            WHEN copy_billed_profit_usd IS NULL OR copy_billed_profit_usd = 0
+                            THEN COALESCE(:billed, 0)
+                            ELSE copy_billed_profit_usd
+                        END,
+                        copy_connected_at = COALESCE(copy_connected_at, :connected_at)
+                    WHERE telegram_user_id = :tid
+                    """
+                ),
+                {
+                    "tid": tid,
+                    "baseline": baseline,
+                    "billed": billed or 0,
+                    "connected_at": connected_at,
+                },
+            )
         db.commit()
     finally:
         db.close()
