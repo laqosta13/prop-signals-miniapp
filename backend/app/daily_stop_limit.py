@@ -304,6 +304,8 @@ def validate_signal_daily_stop(
     stop_loss: str | None,
     stake_pct: float,
     leverage: int,
+    *,
+    exclude_signal_id: int | None = None,
 ) -> None:
     from app.signal_service import get_or_create_trader
     from app.signal_stake_pool import stake_pool_snapshot
@@ -314,7 +316,13 @@ def validate_signal_daily_stop(
 
     ch, _ = _admin_tracker_stats(db, admin_id)
     balance = ch.balance
-    stop_state = admin_daily_stop_form_state(db, admin_id, balance, rank_cap)
+    stop_state = admin_daily_stop_form_state(
+        db,
+        admin_id,
+        balance,
+        rank_cap,
+        exclude_signal_id=exclude_signal_id,
+    )
     rank_nominal = stop_state["rank_nominal_usd"]
     consumed_pct = stop_state["consumed_rank_pct"]
     remaining_pct = stop_state["remaining_rank_pct"]

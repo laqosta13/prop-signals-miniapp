@@ -110,9 +110,9 @@ export function useSignalMarketPriceInit({
     return () => clearTimeout(t);
   }, [open, symbol, skipTrackerInit, trackerLoading, trackerSnap, setRisk, loadMarketPrice]);
 
-  // Смена тикера: только цена входа, % стопа не сбрасываем.
+  // Смена тикера: только цена входа, % стопа не сбрасываем (не при редактировании).
   useEffect(() => {
-    if (!open || !symbol.trim() || trackerLoading) return;
+    if (skipTrackerInit || !open || !symbol.trim() || trackerLoading) return;
     const sym = symbol.trim().toUpperCase();
     if (sym === lastSymbolRef.current) return;
     lastSymbolRef.current = sym;
@@ -126,7 +126,7 @@ export function useSignalMarketPriceInit({
       });
     }, 200);
     return () => clearTimeout(t);
-  }, [open, symbol, stakePctLabel, trackerSnap, trackerLoading, loadMarketPrice]);
+  }, [open, skipTrackerInit, symbol, stakePctLabel, trackerSnap, trackerLoading, loadMarketPrice]);
 
   // Трекер подгрузился после открытия формы — повторить цену, если смена тикера уже «прошла».
   useEffect(() => {

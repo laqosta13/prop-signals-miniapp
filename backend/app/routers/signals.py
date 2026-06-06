@@ -251,6 +251,7 @@ async def update_signal(
         stop_loss or None,
         stake,
         min(int(lev), 5),
+        exclude_signal_id=signal_id,
     )
     validate_signal_stake_pool(db, admin.telegram_user_id, stake, exclude_signal_id=signal_id)
 
