@@ -22,7 +22,7 @@
 
 ## Вкладки приложения
 
-1. **Лента** — шапка **Marketplace крипто-сделок** (без заголовка «Сигналы»); сигналы **#N**, график на карточке, просмотры/лайки, мини-трекеры админов, переключатель **«Уведомления в Telegram»** (`NotifySettingsPanel`), **дисклеймер** (кнопка **!** + принятие при первом заходе), **анимация WIN/LOSE** при **живом** закрытии
+1. **Лента** — шапка **Marketplace крипто-сделок** (без заголовка «Сигналы»); счётчики **«N в рынке»** / **«M ожидание входа»** (одна строка «крипто-сделок», если активен только один счётчик); сигналы **#N**, график на карточке, просмотры/лайки, мини-трекеры админов, переключатель **«Уведомления в Telegram»** (`NotifySettingsPanel`), **дисклеймер** (кнопка **!** + принятие при первом заходе), **анимация WIN/LOSE** при **живом** закрытии
 2. **Трекер** — Hash Hedge challenge для каждого админа + таблица правил по этапам
 3. **ТОП** — **volnovoi** + копирование Bybit; **RankGuide**; **ТРЕЙДЕРЫ CULT**; **КОНДИДАТЫ В CULT** — админы + **Telegram-каналы** (аналитика % с момента подключения)
 4. **Отзывы** — оценка 1–5 и текст; один отзыв на пользователя
@@ -76,10 +76,10 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 - **Трекер $** — только чтение, **баланс Hash Hedge**; при открытии формы подгружается **`GET /challenge/my-tracker`** (`useAdminTrackerSnapshot`)
 - **Дополнения** на карточке — отдельный блок с фиолетовым акцентом, бейдж «Доп. N», счётчик дополнений
 - **Скрин / Видео / Комментарий** (на русском)
-- **График на карточке** — `SignalChart.tsx` + палитра **`chartTheme.ts`** / `subscribeTheme()` (светлая и тёмная тема): свечи **Bybit USDT perpetual (linear)** 1m / 5m / 15m, линии входа / стопа / целей (`lightweight-charts` **v4**); **~220 видимых баров**, высота **268px**, скругление **12px**; lazy-load в viewport; TradingView `BYBIT:…` ↗; **`z-index` ниже нижней панели**
-- **Ожидание лимитного входа** — серая линия с подписью **«Лимитка»** (цена на оси Y, без цены в title); после входа — **«Вход»** как раньше
+- **График на карточке** — `SignalChart.tsx` + палитра **`chartTheme.ts`** / `subscribeTheme()` (светлая и тёмная тема): свечи **Bybit USDT perpetual (linear)** 1m / **5m** (по умолчанию) / 15m, линии входа / стопа / целей (`lightweight-charts` **v4**); **~220 видимых баров**, отступ справа **40 баров** (`CHART_RIGHT_OFFSET_BARS`), высота **268px**, скругление **12px**; lazy-load в viewport; TradingView `BYBIT:…` ↗; **`z-index` ниже нижней панели**
+- **Ожидание лимитного входа** — серая линия **«Лимитка»** на оси Y; **live-цена Bybit** каждые **10 с** (`CHART_LIVE_PRICE_MS`) до и после входа; после `entry_filled_at` — легенда **«Вход»**, trail P/L
 - **График после win/lose** — `frozen`: свечи грузятся **один раз**, таймфреймы **скрыты**, график обрезается на свече `closed_at`, повторных запросов нет
-- **Закрытие на графике** (только frozen): **точка** на свече `closed_at`, **вертикальная линия**, бейдж **«Стоп»** / **«Цель»** / **«По рынку»** (цвет: красный / фиолетовый / жёлтый); поля `close_reason`, `closed_exit_price` в БД
+- **Закрытие на графике** (только frozen): **точка** на свече `closed_at`; SL/TP — точки на уровнях (без дубля % на оси); **«По рынку»** — пунктир + бейдж на оси (без `%` в подписи); поля `close_reason`, `closed_exit_price` в БД
 - **Активный график** — свечи обновляются каждые **30 с** (`CHART_POLL_MS`), пока сигнал не закрыт
 - **Вход на графике** — вертикальная линия + маркер «Вход» после срабатывания входа; маркер **привязан к свече `entry_filled_at`** (не к последней свече)
 - **Рынок при публикации** — `published_market_price` / `published_market_source` (`bybit_perp`) в БД и **Telegram**; на карточке — график, не текст
@@ -156,7 +156,7 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 
 ### Мониторинг
 
-- Фоновый цикл каждые **`PRICE_CHECK_INTERVAL_SECONDS`** (по умолчанию 60)
+- Фоновый цикл **`price_monitor_loop`**: пока есть сигналы **в ожидании лимитки** — опрос каждые **`PRICE_ENTRY_CHECK_INTERVAL_SECONDS`** (по умолчанию **5**); для сигналов **в рынке** (стоп/цель) — **`PRICE_CHECK_INTERVAL_SECONDS`** (по умолчанию **60**)
 - **Не** вызывается `sync_pending_entry_fills` / `sync_admin_avatars` на каждый `GET /signals` (только price monitor + publish/edit)
 - При срабатывании **входа** и **закрытии** сигнала — параллельно **`open_signal_copies` / `close_signal_copies`** для подписчиков с API Bybit (`copy_trading_service.py`)
 
@@ -187,16 +187,17 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 | Выход | Reduce-only market при закрытии сигнала; SL/TP на позиции через `trading-stop` |
 | Размер | `account_balance_usd × stake_percent × leverage_сигнала / 100` (депозит и % задаёт пользователь) |
 | Ключи | Шифрование Fernet (`credentials_crypto.py`); ключ = `EXCHANGE_SECRETS_KEY` или `BOT_TOKEN`; права API — только **Trade** |
-| Testnet | По умолчанию **true** в форме; переключатель в UI |
+| Биржа | Только **основной Bybit** (`api.bybit.com`); testnet убран из UI; подпись GET с сортировкой параметров (`X-BAPI-SIGN-TYPE: 2`) |
 
 ### Оплата копирования (отдельно от подписки)
 
 | Параметр | Значение |
 |---|---|
-| Комиссия | **20%** от **прибыли** на Bybit с момента подключения (`equity_baseline_usd`) |
+| Комиссия | **20%** от **прибыли** на Bybit с момента подключения (`equity_baseline_usd` в `user_bybit_settings`) |
 | Счёт | Раз в сутки (**00:00 UTC**), если выросла неоплаченная прибыль — `copy_billing_scheduler.py` |
-| Оплата | USDT TON + **TXID** on-chain (тот же кошелёк, что подписка) |
+| Оплата | USDT(в сети TON) + **TXID** on-chain + **персональный memo `VC-…`** (`PaymentMemoRow.tsx`) |
 | Блокировка | При неоплаченном счёте **`copy_allowed: false`** — новые копии не открываются |
+| Отключение API | **`DELETE /copy-trading/me`** запрещён, пока есть неоплаченный счёт или неоплаченная прибыль ≥ $0.01 (`assert_can_disconnect_copy`) |
 | Админы | Счета и блокировка **не применяются** |
 
 **Таблицы:** `user_bybit_settings` (+ `connected_at`, `equity_baseline_usd`, `billed_profit_usd`), `signal_copy_trades`, **`copy_trading_invoices`**.
@@ -204,17 +205,48 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 **API:**
 
 ```
-GET    /copy-trading/me          — статус (маска ключа, баланс, прибыль, счёт)
-PUT    /copy-trading/me          — сохранить ключи
-PATCH  /copy-trading/me          — enabled / testnet / депозит / stake %
+GET    /copy-trading/me          — статус (маска ключа, баланс, прибыль, счёт, payment_memo)
+PUT    /copy-trading/me          — сохранить ключи (Key + Secret вместе на «Проверить»)
+PATCH  /copy-trading/me          — enabled / депозит / stake %
 POST   /copy-trading/me/test     — проверка подключения
 POST   /copy-trading/me/pay      — оплата счёта (invoice_id + tx_id)
-DELETE /copy-trading/me          — отключить
+DELETE /copy-trading/me          — отключить (если нет долга по комиссии)
 ```
 
 **Backend:** `bybit_trading.py`, `copy_trading_service.py`, `copy_billing.py`, `copy_billing_scheduler.py`, `routers/copy_trading.py`; хуки в `signal_service.py`, `price_monitor.py`.
 
 **Env (опционально):** `EXCHANGE_SECRETS_KEY` — отдельный ключ шифрования (иначе `BOT_TOKEN`).
+
+---
+
+## Кандидаты CULT (пользователи)
+
+Отдельный поток от основной ленты: пользователь публикует **свои** сигналы в блок **«Кандидаты на отбор»** на вкладке ТОП.
+
+| Шаг | Условие |
+|---|---|
+| Подписка кандидата | **$20 / 30 дней** — отдельно от ленты (`cult_subscription_until`, план `cult` в `payment_txs`) |
+| API Bybit | Настроен и сохранён (`CultCandidateBybitPanel` / тот же `copy-trading` API) |
+| Вступить | `POST /cult-candidates/me`; имя из Telegram (≥2 символа) |
+
+**Кто не может вступить:** админы в **ТОП** (`main_feed_publisher`) — публикуют в основную ленту; CTA **«Стать кандидатом»** скрыт (`CultCandidateJoinPanel`).
+
+**UI:** `CultCandidateJoinPanel.tsx`, `CultCandidatePaySection.tsx`, модалка с чеклистом; кнопка «Вступить» даёт ошибку с вибрацией, если шаги не закрыты.
+
+**API:**
+
+```
+GET  /cult-candidates                    — список кандидатов
+GET  /cult-candidates/me                 — статус вступления (blockers, bybit, подписка)
+POST /cult-candidates/me                 — вступить
+PATCH /cult-candidates/me                — display_name
+GET  /cult-candidates/subscription/info  — оплата CULT (+ payment_memo)
+POST /cult-candidates/subscription/pay   — TXID → cult_subscription_until
+POST /cult-candidates/me/signals         — публикация сигнала кандидата
+GET  /cult-candidates/signals/{id}       — деталь сигнала
+```
+
+**Backend:** `cult_candidate_service.py`, `cult_subscription_billing.py`, `routers/cult_candidates.py`; сигналы с `is_cult_candidate=True`; copy на Bybit автора через `open_signal_copy_for_user`.
 
 ---
 
@@ -338,18 +370,22 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 ## Подписка и оплата
 
-| План | Цена | Срок |
-|---|---|---|
-| Неделя | $20 | 7 дней |
-| Месяц | $70 | 30 дней |
-| Trial | — | 3 дня при первом входе |
+| План | Цена | Срок | `payment_txs.plan` |
+|---|---|---|---|
+| Неделя (лента) | $20 | 7 дней | `week` |
+| Месяц (лента) | $70 | 30 дней | `month` |
+| Кандидат CULT | $20 | 30 дней | `cult` |
+| Copy-trading fee | 20% прибыли | по счёту | `copy_fee` |
+| Trial | — | 3 дня при первом входе | — |
 
-- USDT TON (jetton): `USDT_TON_ADDRESS` в env
-- **TXID** проверяется **on-chain** через Toncenter (`ton_payments.py`): USDT jetton, сумма ≥ плана, подтверждения; дубликаты TXID отклоняются (`subscription_billing.py` → `record_payment`)
-- Опционально: `TONCENTER_API_KEY`, `TONCENTER_API_BASE`
-- UI: `SubscriptionTab.tsx` — копирование кошелька, ввод TXID, обновление по `refreshKey` из шапки
+- USDT(в сети TON) (jetton): `USDT_TON_ADDRESS` + `USDT_TON_JETTON_MASTER` в env
+- **Персональный код** `VC-XXXXXXXX` — колонка `subscribers.payment_memo`; обязателен в **comment/memo** перевода; UI — `PaymentMemoRow.tsx` (лента, CULT, copy-счёт)
+- **TXID** проверяется **on-chain** через Toncenter v3 (`ton_payments.py`): входящий jetton на наш кошелёк, сумма ≥ тарифа, **memo совпадает**, ≥ `TON_PAYMENT_MIN_CONFIRMATIONS` (по умолчанию 3); **один TXID — одна активация** (`payment_txs.tx_id` UNIQUE)
+- Опционально: `TONCENTER_API_KEY`, `TONCENTER_API_BASE` (дефолт `https://toncenter.com/api/v3`)
+- UI: `SubscriptionTab.tsx` — кошелёк, код оплаты, TXID; обновление по `refreshKey` из шапки
 - **Рефералы:** `referral_code`; ссылка `startapp`; **+3 дня рефереру после первой оплаты** приглашённого (неделя или месяц), не при регистрации
 - В блоке рефералов: оставлены кнопки **«Пригласить друга»** и **«Копировать ссылку»**; `Переслать` и подсказки-шаги убраны
+- **Auth:** `validate_init_data` — HMAC + `auth_date` не старше `TELEGRAM_INIT_DATA_MAX_AGE_SECONDS` (по умолчанию 86400)
 
 ---
 
@@ -381,7 +417,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 **Новости:** push **всем** зарегистрированным в БД при публикации админом; подписка на ленту не проверяется.
 
-**Поддержка:** `TELEGRAM_SUPPORT_GROUP_ID` (+ `BOT_TOKEN`); UI на вкладке **Подписка**, API `routers/support.py`. На Amvera webhook бота для Mini App **не обязателен** — приложение ходит через initData, бот — через polling.
+**Поддержка:** `TELEGRAM_SUPPORT_GROUP_ID` (+ `BOT_TOKEN`); UI на вкладке **Подписка** (`SubscriptionSupportChat`), API `routers/support.py`; без подсказки про reply в группе. На Amvera webhook бота для Mini App **не обязателен** — приложение ходит через initData, бот — через polling.
 
 ---
 
@@ -392,7 +428,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 | Лента API | Батч-сериализация `feed_serializers.py`, лимит **80** сигналов |
 | GZip | JSON-ответы >800 байт |
 | Polling | Только сигналы, **15 с**, по всему приложению (для WIN/LOSE reveal) |
-| График active | Обновление свечей каждые **30 с** (`SignalChart.tsx`) |
+| График active | Свечи **30 с**; live-цена Bybit **10 с** (ожидание лимитки и в сделке) |
 | Трекеры | Lazy fetch при первом открытии Лента/Трекер |
 | Вкладки | Один JS-бандл (без lazy-chunks вкладок — меньше «вечной загрузки» в WebView) |
 | Просмотры | IntersectionObserver, не N POST при загрузке ленты |
@@ -421,7 +457,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 | Способ | Как |
 |---|---|
-| Одноразово при деплое | маркеры `.purged_all_published_*` в `migrate.py` (актуально: **`.purged_all_published_jun2026_v7`**) |
+| Одноразово при деплое | маркеры `.purged_all_published_*` в `migrate.py` (актуально: **`.purged_all_published_jun2026_v9`**) |
 | API (без UI) | `POST /admin/purge-published` — `require_super_admin` |
 | Скрипт на сервере | `python backend/scripts/purge_published.py` |
 
@@ -431,13 +467,15 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 | Риск | Мера |
 |---|---|
-| Подделка пользователя | `X-Telegram-Init-Data` + `BOT_TOKEN` на проде (**обязательно**) |
+| Подделка пользователя | `X-Telegram-Init-Data` + `BOT_TOKEN` + свежий `auth_date` на проде (**обязательно**) |
 | Админ | ID из `TELEGRAM_ADMIN_IDS` или `TELEGRAM_SUPER_ADMIN_IDS`; мутации — по `is_super_admin` |
 | Dev bypass | Только без `BOT_TOKEN` локально — **никогда на проде** |
 | Секреты | Только env Amvera, не в Git (`.gitignore`) |
-| API Bybit пользователей | Шифрование Fernet; ключи **Trade** без Withdraw; testnet для тестов |
+| API Bybit пользователей | Шифрование Fernet; ключи **Trade** без Withdraw; только **mainnet** |
 | Публичный Git | Код виден; сервер защищён токеном, не репозиторием |
-| Оплата TXID | On-chain через Toncenter; лимит API / подделка initData — следить при росте |
+| Оплата TXID | On-chain: сумма + **memo `VC-…`** + уникальный TXID; чужой перевод не засчитается |
+| Уклонение от copy-fee | Нельзя `DELETE` API Bybit при долге; baseline в `user_bybit_settings` |
+| Toncenter / initData | Лимит API; `TELEGRAM_INIT_DATA_MAX_AGE_SECONDS` — следить при росте |
 
 ---
 
@@ -480,6 +518,9 @@ GET  /challenge/my-tracker       — require_main_feed_publisher: balance, daily
 GET  /challenge/rules
 PUT  /challenge/settings         — multipart: баланс с пропа / account_size, этап, скрин (require_admin)
 GET  /subscriptions/info | POST /subscriptions/pay | PUT /subscriptions/me
+GET  /cult-candidates | GET /cult-candidates/me | POST /cult-candidates/me
+GET  /cult-candidates/subscription/info | POST /cult-candidates/subscription/pay
+POST /cult-candidates/me/signals | GET /cult-candidates/signals/{id}
 POST /support/messages           — сообщение в группу поддержки (если настроена)
 POST /admin/purge-published      — require_super_admin, полная очистка ленты/новостей/отзывов
 ```
@@ -502,6 +543,7 @@ POST /admin/purge-published      — require_super_admin, полная очис�
 | Лимиты формы сигнала | `daily_stop_limit.py`, `utils/dailyStopLimit.ts`, `hooks/useDailyStopSync.ts` |
 | P/L, ТОП | `trader_stats.py`, `leaderboard_service.py`, `volnovoi_account.py` |
 | Copy-trading Bybit | `bybit_trading.py`, `copy_trading_service.py`, `copy_billing.py`, `copy_billing_scheduler.py`, `credentials_crypto.py`, `routers/copy_trading.py` |
+| Кандидаты CULT (users) | `cult_candidate_service.py`, `cult_subscription_billing.py`, `CultCandidateJoinPanel.tsx`, `CultCandidatePaySection.tsx`, `routers/cult_candidates.py` |
 | CULT каналы | `cult_channel_service.py`, `channel_signal_parser.py`, `telegram_updates.py`, `telegram_bot_api.py`, `routers/cult_channels.py` |
 | Ранги | `rank_service.py`, `rank_scheduler.py`, `rank_constants.py` |
 | Трекер | `challenge_service.py`, `tracker_metrics.py`, `hashhedge_rules.py` |
@@ -512,7 +554,7 @@ POST /admin/purge-published      — require_super_admin, полная очис�
 | Подтверждения | `utils/confirmAction.ts` |
 | Дисклеймер | `DisclaimerModal.tsx`, `data/disclaimer.ts`, `utils/disclaimerStorage.ts` |
 | WIN/LOSE reveal | `OutcomeReveal.tsx`, `hooks/useOutcomeReveal.ts`, `utils/outcomeRevealStorage.ts`, `utils/outcomeSounds.ts` (логика в `App.tsx`) |
-| Подписка / рефералы | `SubscriptionTab.tsx`, `subscription_billing.py`, `ton_payments.py`, `referral_links.py`, `utils/referralShare.ts` |
+| Подписка / рефералы / оплата | `SubscriptionTab.tsx`, `PaymentMemoRow.tsx`, `subscription_billing.py`, `cult_subscription_billing.py`, `ton_payments.py`, `referral_links.py`, `utils/referralShare.ts` |
 | Форма сигнала | `NewSignalModal.tsx`, `EditSignalModal.tsx`, `hooks/useAdminTrackerSnapshot.ts`, `SignalLevelsFields.tsx`, `StopOffsetSlider.tsx`, `hooks/useSignalLevelFields.ts`, `hooks/useDailyStopSync.ts`, `utils/signalForm.ts`, `utils/signalLevels.ts`, `utils/dailyStopLimit.ts` |
 | Тема | `theme.css`, `ThemeToggle.tsx`, `utils/theme.ts` |
 | Логотипы CTA | `BrandLogos.tsx`, `public/brands/` |
@@ -530,6 +572,7 @@ POST /admin/purge-published      — require_super_admin, полная очис�
 
 ```env
 BOT_TOKEN=...
+TELEGRAM_INIT_DATA_MAX_AGE_SECONDS=86400
 TELEGRAM_BOT_USERNAME=PropDeskBot   # для реферальных startapp-ссылок
 TELEGRAM_ADMIN_IDS=123456789,...   # трейдеры: публикация сигналов
 TELEGRAM_SUPER_ADMIN_IDS=987654321 # главный админ (полный доступ); если пусто — все админы с полным доступом
@@ -537,11 +580,14 @@ TELEGRAM_SUPPORT_GROUP_ID=   # опционально; чат поддержки
 TELEGRAM_SUPPORT_USERNAME=   # опционально; ссылка в UI
 DATABASE_URL=sqlite:////data/signals.db
 MEDIA_ROOT=/data/media
-PRICE_CHECK_INTERVAL_SECONDS=60
+PRICE_CHECK_INTERVAL_SECONDS=60          # стоп/цель (сигнал в рынке)
+PRICE_ENTRY_CHECK_INTERVAL_SECONDS=5    # ожидание лимитного входа
 PRICE_HTTP_TIMEOUT_SECONDS=10
 USDT_TON_ADDRESS=UQDdFFYSG8sGiQfps2WWuIWFuaDPv1GAcFeRck6y5oeR_sPe
+USDT_TON_JETTON_MASTER=EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs
+TON_PAYMENT_MIN_CONFIRMATIONS=3
 TONCENTER_API_KEY=          # опционально, выше лимиты Toncenter
-TONCENTER_API_BASE=https://toncenter.com/api/v2
+TONCENTER_API_BASE=https://toncenter.com/api/v3
 EXCHANGE_SECRETS_KEY=       # опционально; шифрование API Bybit пользователей (иначе BOT_TOKEN)
 ```
 
@@ -565,11 +611,13 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 
 ## Одноразовые миграции (маркеры на диске)
 
-- `.purged_test_v2`, `.purged_reset_v3`, `.purged_all_published_may2026` … `.purged_all_published_jun2026_v6`, **`.purged_all_published_jun2026_v7`** — purge через `data_cleanup.py` / `migrate.py` (v7: + сброс `trader_roster_overrides`)
+- `.purged_test_v2`, `.purged_reset_v3`, `.purged_all_published_may2026` … `.purged_all_published_jun2026_v8`, **`.purged_all_published_jun2026_v9`** — purge через `data_cleanup.py` / `migrate.py` (v7: + сброс `trader_roster_overrides`)
+- **`.backfill_payment_memos_v1`** — VC-коды для существующих подписчиков
+- **`.disabled_bybit_testnet_v1`** — сброс testnet у сохранённых API-ключей
 - `.recalc_closed_signal_pnl_v2`, `.recalc_closed_signal_pnl_v3` — пересчёт P/L от `account_size` и risk_percent
 - `.recalc_winrate_by_pnl_v1` — пересчёт W/L и WR по фактическому P/L ($)
 
-Новые колонки через `migrate.py`: `published_market_price`, `published_market_source`, `prop_screenshot_path`, `number`, `close_reason`, `closed_exit_price`, `account_size`, rank fields; таблицы **`user_bybit_settings`**, **`signal_copy_trades`**, **`copy_trading_invoices`** и др.
+Новые колонки через `migrate.py`: `published_market_price`, `published_market_source`, `prop_screenshot_path`, `number`, `close_reason`, `closed_exit_price`, `account_size`, **`subscribers.payment_memo`**, rank fields; таблицы **`user_bybit_settings`**, **`signal_copy_trades`**, **`copy_trading_invoices`** и др.
 
 ---
 
@@ -639,9 +687,17 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 62. **Супер-админ** — `TELEGRAM_SUPER_ADMIN_IDS`; новости, CULT-каналы, purge; ротация трейдеров ТОП ↔ кандидаты ↔ уволенные
 63. **Публикация по ростеру** — основная лента (`can_publish_main_feed`) vs кандидаты (`can_publish_candidate`); админ в кандидатах — только CULT+Bybit
 64. **Purge jun2026 v7** — разовая очистка контента + сброс ротации; маркер `.purged_all_published_jun2026_v7`
+65. **Purge jun2026 v8/v9** — повторные разовые очистки; маркеры `.purged_all_published_jun2026_v8`, `.purged_all_published_jun2026_v9`
+66. **Лимитный вход быстрее** — монитор **5 с** при ожидании входа; live-цена на графике до лимитки
+67. **График UI** — TF **5m** по умолчанию; SL/TP точки; «По рынку» без дубля %; шапка ленты со счётчиками входа
+68. **Bybit mainnet** — без testnet; подпись API v2; понятные ошибки Secret
+69. **Оплата `VC-memo`** — `payment_memo` в БД и API; проверка memo для ленты, CULT и copy-fee; `PaymentMemoRow`
+70. **Copy-fee защита** — `assert_can_disconnect_copy`: нельзя сбросить API при долге комиссии
+71. **CULT вступление** — `CultCandidateJoinPanel`; админы в ТОП не видят CTA; blockers + обратная связь на «Вступить»
+72. **Поддержка** — убрана подсказка про reply в чате; `TELEGRAM_INIT_DATA_MAX_AGE_SECONDS`
 
 ---
 
 ## Быстрое напоминание для AI
 
-> **prop-signals-miniapp** — FastAPI + React **Volnovoi Cult** Mini App на Amvera (SQLite, `/data`). Админы публикуют сигналы **#N** в ленту; кандидаты — отдельный поток. **Супер-админ** (`TELEGRAM_SUPER_ADMIN_IDS`) — ротация трейдеров, purge. Активные сигналы — по подписке; win/lose + трекер + ТОП — бесплатно. **Лимит дня:** 3 сделки **или** 2% стопа (MSK). **volnovoi** + Bybit copy (**20% прибыли**). Purge при деплое: **`.purged_all_published_jun2026_v7`**. Полный контекст — этот файл.
+> **prop-signals-miniapp** — FastAPI + React **Volnovoi Cult** Mini App на Amvera (SQLite, `/data`). Админы публикуют сигналы **#N** в ленту; **кандидаты CULT** — отдельный поток ($20/30д + Bybit). **Супер-админ** — ротация трейдеров, purge. Активные сигналы — по подписке; win/lose + трекер + ТОП — бесплатно. **Лимит дня:** 3 сделки **или** 2% стопа (MSK). **volnovoi** + Bybit copy (**20% прибыли**, memo `VC-…`). Оплата: TXID + персональный memo. Purge при деплое: **`.purged_all_published_jun2026_v9`**. Полный контекст — этот файл.
