@@ -39,7 +39,7 @@ async def run_copy_billing_once() -> int:
             except Exception as e:
                 logger.warning("Copy billing: user=%s balance error: %s", row.telegram_user_id, e)
                 continue
-            inv = upsert_daily_invoice(db, row.telegram_user_id, equity, settings_row=row)
+            inv = upsert_daily_invoice(db, row, equity)
             if inv is not None:
                 count += 1
         db.commit()

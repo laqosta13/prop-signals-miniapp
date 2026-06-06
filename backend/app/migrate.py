@@ -287,21 +287,6 @@ def run_migrations(engine: Engine) -> None:
                     conn.execute(text(ddl))
             conn.execute(text("UPDATE user_bybit_settings SET billed_profit_usd = 0 WHERE billed_profit_usd IS NULL"))
 
-        if "copy_user_billing" not in inspect(engine).get_table_names():
-            conn.execute(
-                text(
-                    """
-                    CREATE TABLE IF NOT EXISTS copy_user_billing (
-                        telegram_user_id INTEGER PRIMARY KEY,
-                        connected_at DATETIME,
-                        equity_baseline_usd REAL,
-                        billed_profit_usd REAL DEFAULT 0,
-                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                    )
-                    """
-                )
-            )
-
         if "copy_trading_invoices" not in inspect(engine).get_table_names():
             conn.execute(
                 text(
@@ -435,7 +420,6 @@ def run_migrations(engine: Engine) -> None:
             )
 
     _backfill_referral_codes(engine)
-    _backfill_payment_memos(engine)
     _purge_test_data_once(engine)
     _purge_signals_reset_v3(engine)
     _purge_all_published_may2026(engine)
@@ -450,8 +434,8 @@ def run_migrations(engine: Engine) -> None:
     _purge_all_published_jun2026_v7(engine)
     _purge_all_published_jun2026_v8(engine)
     _purge_all_published_jun2026_v9(engine)
-    _migrate_copy_user_billing_v1(engine)
     _disable_bybit_testnet_v1(engine)
+    _backfill_payment_memos_v1(engine)
     _sync_news_notify_flags_v1(engine)
     _reset_news_notify_opt_in_v2(engine)
     _recalc_market_close_ratings_v1(engine)
@@ -638,36 +622,6 @@ def _backfill_referral_codes(engine: Engine) -> None:
                 clash = db.execute(text("SELECT 1 FROM subscribers WHERE referral_code = :c"), {"c": code}).fetchone()
                 if not clash:
                     db.execute(text("UPDATE subscribers SET referral_code = :c WHERE telegram_user_id = :t"), {"c": code, "t": tid})
-                    break
-        db.commit()
-    finally:
-        db.close()
-
-
-def _backfill_payment_memos(engine: Engine) -> None:
-    if not str(engine.url).startswith("sqlite"):
-        return
-    import secrets
-    import string
-
-    from app.database import SessionLocal
-    from app.subscription_billing import PAYMENT_MEMO_PREFIX
-
-    alphabet = string.ascii_uppercase + string.digits
-    db = SessionLocal()
-    try:
-        rows = db.execute(
-            text("SELECT telegram_user_id FROM subscribers WHERE payment_memo IS NULL OR payment_memo = ''")
-        ).fetchall()
-        for (tid,) in rows:
-            for _ in range(30):
-                code = PAYMENT_MEMO_PREFIX + "".join(secrets.choice(alphabet) for _ in range(8))
-                clash = db.execute(text("SELECT 1 FROM subscribers WHERE payment_memo = :c"), {"c": code}).fetchone()
-                if not clash:
-                    db.execute(
-                        text("UPDATE subscribers SET payment_memo = :c WHERE telegram_user_id = :t"),
-                        {"c": code, "t": tid},
-                    )
                     break
         db.commit()
     finally:
@@ -916,113 +870,41 @@ def _purge_all_published_jun2026_v9(engine: Engine) -> None:
         db.close()
 
 
-def _upsert_copy_user_billing_row(
-    conn,
-    *,
-    tid: int,
-    connected_at,
-    baseline,
-    billed,
-) -> None:
-    exists = conn.execute(
-        text("SELECT 1 FROM copy_user_billing WHERE telegram_user_id = :tid"),
-        {"tid": tid},
-    ).fetchone()
-    if exists:
-        conn.execute(
-            text(
-                """
-                UPDATE copy_user_billing
-                SET
-                    connected_at = COALESCE(connected_at, :connected_at),
-                    equity_baseline_usd = COALESCE(equity_baseline_usd, :baseline),
-                    billed_profit_usd = CASE
-                        WHEN billed_profit_usd IS NULL OR billed_profit_usd = 0
-                        THEN COALESCE(:billed, 0)
-                        ELSE billed_profit_usd
-                    END
-                WHERE telegram_user_id = :tid
-                """
-            ),
-            {
-                "tid": tid,
-                "connected_at": connected_at,
-                "baseline": baseline,
-                "billed": billed if billed is not None else 0,
-            },
-        )
-        return
-    conn.execute(
-        text(
-            """
-            INSERT INTO copy_user_billing (
-                telegram_user_id, connected_at, equity_baseline_usd, billed_profit_usd
-            ) VALUES (:tid, :connected_at, :baseline, :billed)
-            """
-        ),
-        {
-            "tid": tid,
-            "connected_at": connected_at,
-            "baseline": baseline,
-            "billed": billed if billed is not None else 0,
-        },
-    )
-
-
-def _migrate_copy_user_billing_v1(engine: Engine) -> None:
-    """Перенос учёта прибыли copy-trading (переживает delete API)."""
-    marker = _marker_path(engine, ".migrated_copy_user_billing_v1")
+def _backfill_payment_memos_v1(engine: Engine) -> None:
+    """Персональные VC-коды для привязки USDT-платежей к пользователю."""
+    marker = _marker_path(engine, ".backfill_payment_memos_v1")
     if marker is None:
         from app.media_storage import media_root
 
-        marker = media_root() / ".migrated_copy_user_billing_v1"
+        marker = media_root() / ".backfill_payment_memos_v1"
     if marker.exists():
         return
-    insp = inspect(engine)
-    if "copy_user_billing" not in insp.get_table_names():
+    if "subscribers" not in inspect(engine).get_table_names():
         marker.parent.mkdir(parents=True, exist_ok=True)
         marker.touch()
         return
-    with engine.begin() as conn:
-        if "user_bybit_settings" in insp.get_table_names():
-            rows = conn.execute(
+    from app.database import SessionLocal
+    from app.models import Subscriber
+    from app.subscription_billing import ensure_payment_memo
+    from sqlalchemy import select
+
+    db = SessionLocal()
+    try:
+        subs = list(db.scalars(select(Subscriber).where(Subscriber.payment_memo.is_(None))).all())
+        for sub in subs:
+            ensure_payment_memo(db, sub)
+        db.commit()
+        with engine.begin() as conn:
+            conn.execute(
                 text(
-                    """
-                    SELECT telegram_user_id, connected_at, equity_baseline_usd, billed_profit_usd
-                    FROM user_bybit_settings
-                    """
+                    "CREATE UNIQUE INDEX IF NOT EXISTS ix_subscribers_payment_memo "
+                    "ON subscribers (payment_memo)"
                 )
-            ).fetchall()
-            for tid, connected_at, baseline, billed in rows:
-                _upsert_copy_user_billing_row(
-                    conn,
-                    tid=tid,
-                    connected_at=connected_at,
-                    baseline=baseline,
-                    billed=billed,
-                )
-        if "subscribers" in insp.get_table_names() and _has_column(engine, "subscribers", "copy_equity_baseline_usd"):
-            sub_rows = conn.execute(
-                text(
-                    """
-                    SELECT telegram_user_id, copy_connected_at, copy_equity_baseline_usd, copy_billed_profit_usd
-                    FROM subscribers
-                    WHERE copy_equity_baseline_usd IS NOT NULL
-                       OR copy_billed_profit_usd > 0
-                       OR copy_connected_at IS NOT NULL
-                    """
-                )
-            ).fetchall()
-            for tid, connected_at, baseline, billed in sub_rows:
-                _upsert_copy_user_billing_row(
-                    conn,
-                    tid=tid,
-                    connected_at=connected_at,
-                    baseline=baseline,
-                    billed=billed,
-                )
-    marker.parent.mkdir(parents=True, exist_ok=True)
-    marker.touch()
+            )
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
 
 
 def _disable_bybit_testnet_v1(engine: Engine) -> None:

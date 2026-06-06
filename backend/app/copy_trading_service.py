@@ -13,13 +13,12 @@ from app.bybit_trading import (
     calc_qty,
     close_position_market,
     get_instrument_rules,
-    get_wallet_usdt_balance,
     place_market_entry,
     set_leverage,
     set_position_stops,
 )
 from app.credentials_crypto import decrypt_secret
-from app.copy_billing import copy_trading_allowed, upsert_daily_invoice
+from app.copy_billing import copy_trading_allowed
 from app.models import Signal, SignalCopyTrade, UserBybitSettings
 from app.price_service import bybit_linear_pair
 from app.signal_utils import parse_price, parse_take_profit_levels
@@ -160,30 +159,7 @@ async def _open_copy_for_user(db: Session, signal: Signal, user_row: UserBybitSe
         _mark_copy_failed(db, copy_row, str(e))
 
 
-async def _upsert_invoice_after_close(
-    db: Session,
-    user_row: UserBybitSettings,
-    creds: BybitCredentials,
-) -> None:
-    try:
-        equity = await get_wallet_usdt_balance(creds)
-        if equity is not None:
-            user_row.last_equity_usd = round(float(equity), 2)
-        upsert_daily_invoice(db, user_row.telegram_user_id, equity, settings_row=user_row)
-        db.commit()
-    except Exception as e:
-        logger.warning("Copy invoice after close user=%s: %s", user_row.telegram_user_id, e)
-        db.rollback()
-
-
-async def _close_copy_for_user(
-    db: Session,
-    copy_row: SignalCopyTrade,
-    signal: Signal,
-    creds: BybitCredentials,
-    *,
-    user_row: UserBybitSettings,
-) -> None:
+async def _close_copy_for_user(db: Session, copy_row: SignalCopyTrade, signal: Signal, creds: BybitCredentials) -> None:
     if copy_row.exchange_status != EXCHANGE_OPEN:
         return
     if not copy_row.exchange_pair or not copy_row.exchange_qty or copy_row.exchange_qty <= 0:
@@ -209,14 +185,12 @@ async def _close_copy_for_user(
         copy_row.exchange_error = None
         db.commit()
         logger.info("Bybit copy close: user=%s signal #%s", uid, signal.id)
-        await _upsert_invoice_after_close(db, user_row, creds)
     except Exception as e:
         err = str(e).lower()
         if "position" in err or "110017" in err or "110018" in err or "empty" in err:
             copy_row.exchange_status = EXCHANGE_CLOSED
             copy_row.exchange_error = None
             db.commit()
-            await _upsert_invoice_after_close(db, user_row, creds)
             return
         logger.exception("Bybit copy close user=%s signal #%s", uid, signal.id)
         _mark_copy_failed(db, copy_row, f"close: {e}")
@@ -268,4 +242,4 @@ async def close_signal_copies(db: Session, signal: Signal) -> None:
             creds = _user_credentials(user_row)
         except ValueError:
             continue
-        await _close_copy_for_user(db, copy_row, signal, creds, user_row=user_row)
+        await _close_copy_for_user(db, copy_row, signal, creds)

@@ -41,18 +41,6 @@ class Signal(Base):
     is_cult_candidate: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
-class CopyUserBilling(Base):
-    """Учёт прибыли copy-trading — не удаляется при отключении API Bybit."""
-
-    __tablename__ = "copy_user_billing"
-
-    telegram_user_id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    connected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    equity_baseline_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
-    billed_profit_usd: Mapped[float] = mapped_column(Float, default=0.0)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-
-
 class UserBybitSettings(Base):
     """API Bybit пользователя для копирования сигналов volnovoi."""
 

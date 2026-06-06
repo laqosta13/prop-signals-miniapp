@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     bot_token: str = ""
+    telegram_init_data_max_age_seconds: int = 86_400
     telegram_bot_username: str = ""
     telegram_support_username: str = ""
     telegram_support_group_id: str = ""
@@ -32,8 +33,6 @@ class Settings(BaseSettings):
     ton_payment_min_confirmations: int = 3
     public_base_url: str = ""
     exchange_secrets_key: str = ""
-    telegram_init_data_max_age_seconds: int = 86_400
-    """Макс. возраст auth_date в initData Mini App (секунды)."""
 
     @property
     def admin_id_set(self) -> set[int]:

@@ -9,15 +9,15 @@ from sqlalchemy.orm import Session
 from app.bybit_trading import BybitCredentials, get_wallet_usdt_balance
 from app.copy_billing import (
     billing_snapshot,
+    assert_can_disconnect_copy,
     ensure_baseline_on_connect,
-    get_or_create_copy_billing,
-    hydrate_copy_billing_from_settings,
     record_copy_fee_payment,
     upsert_daily_invoice,
 )
 from app.credentials_crypto import decrypt_secret, encrypt_secret
 from app.deps import db_session, get_current_user
-from app.models import UserBybitSettings
+from app.models import Subscriber, UserBybitSettings
+from app.subscription_billing import ensure_payment_memo
 from app.schemas import TelegramUser
 
 router = APIRouter(prefix="/copy-trading", tags=["copy-trading"])
@@ -98,43 +98,36 @@ async def _fetch_balance(row: UserBybitSettings) -> tuple[float | None, str | No
         return None, str(e)[:200]
 
 
-def _apply_baseline_and_invoice(
-    db: Session,
-    row: UserBybitSettings,
-    balance: float | None,
-) -> None:
-    billing = hydrate_copy_billing_from_settings(db, row) or get_or_create_copy_billing(
-        db, row.telegram_user_id
-    )
-    ensure_baseline_on_connect(billing, balance, settings_row=row)
-    upsert_daily_invoice(db, row.telegram_user_id, balance, settings_row=row)
-
-
 def _build_status(
     db: Session,
     row: UserBybitSettings | None,
     *,
-    telegram_user_id: int,
     balance: float | None = None,
     balance_error: str | None = None,
 ) -> CopyTradingStatusRead:
-    snap = billing_snapshot(db, row, telegram_user_id=telegram_user_id, current_equity=balance)
+    snap = billing_snapshot(db, row, current_equity=balance)
     pending = snap.get("pending_invoice")
     pending_read = CopyInvoiceRead(**pending) if isinstance(pending, dict) else None
+
+    payment_memo = ""
+    if row is not None:
+        sub = db.get(Subscriber, row.telegram_user_id)
+        if sub is not None:
+            payment_memo = ensure_payment_memo(db, sub)
 
     if row is None:
         return CopyTradingStatusRead(
             configured=False,
             usdt_ton_address=str(snap["usdt_ton_address"]),
-            payment_memo=str(snap.get("payment_memo") or ""),
+            payment_memo=payment_memo,
             fee_percent=float(snap["fee_percent"]),
             connected_at=None,
             equity_baseline_usd=None,
             current_equity_usd=None,
             profit_usd=0.0,
             unbilled_profit_usd=0.0,
-            copy_allowed=bool(snap["copy_allowed"]),
-            pending_invoice=pending_read,
+            copy_allowed=True,
+            pending_invoice=None,
         )
 
     return CopyTradingStatusRead(
@@ -146,7 +139,7 @@ def _build_status(
         usdt_balance=balance,
         balance_error=balance_error,
         usdt_ton_address=str(snap["usdt_ton_address"]),
-        payment_memo=str(snap.get("payment_memo") or ""),
+        payment_memo=payment_memo,
         fee_percent=float(snap["fee_percent"]),
         connected_at=snap["connected_at"] if isinstance(snap["connected_at"], str) else None,
         equity_baseline_usd=snap["equity_baseline_usd"] if isinstance(snap["equity_baseline_usd"], (int, float)) else None,
@@ -165,12 +158,13 @@ async def get_my_copy_trading(
 ) -> CopyTradingStatusRead:
     row = db.get(UserBybitSettings, user.telegram_user_id)
     if row is None:
-        return _build_status(db, None, telegram_user_id=user.telegram_user_id)
+        return _build_status(db, None)
     balance, balance_error = await _fetch_balance(row)
     _sync_deposit_from_balance(row, balance)
-    _apply_baseline_and_invoice(db, row, balance)
+    ensure_baseline_on_connect(row, balance)
+    upsert_daily_invoice(db, row, balance)
     db.commit()
-    return _build_status(db, row, telegram_user_id=user.telegram_user_id, balance=balance, balance_error=balance_error)
+    return _build_status(db, row, balance=balance, balance_error=balance_error)
 
 
 @router.put("/me", response_model=CopyTradingStatusRead)
@@ -180,6 +174,7 @@ async def save_my_copy_trading(
     db: Session = Depends(db_session),
 ) -> CopyTradingStatusRead:
     row = db.get(UserBybitSettings, user.telegram_user_id)
+    is_new = row is None
     if row is None:
         row = UserBybitSettings(
             telegram_user_id=user.telegram_user_id,
@@ -200,10 +195,12 @@ async def save_my_copy_trading(
     _sync_deposit_from_balance(row, balance)
     if balance is None and body.account_balance_usd is not None:
         row.account_balance_usd = round(body.account_balance_usd, 2)
-    _apply_baseline_and_invoice(db, row, balance)
+    if is_new or row.equity_baseline_usd is None:
+        ensure_baseline_on_connect(row, balance)
+    upsert_daily_invoice(db, row, balance)
     db.commit()
     db.refresh(row)
-    return _build_status(db, row, telegram_user_id=user.telegram_user_id, balance=balance, balance_error=balance_error)
+    return _build_status(db, row, balance=balance, balance_error=balance_error)
 
 
 @router.patch("/me", response_model=CopyTradingStatusRead)
@@ -226,7 +223,7 @@ async def patch_my_copy_trading(
         row.account_balance_usd = round(body.account_balance_usd, 2)
     db.commit()
     db.refresh(row)
-    return _build_status(db, row, telegram_user_id=user.telegram_user_id, balance=balance, balance_error=balance_error)
+    return _build_status(db, row, balance=balance, balance_error=balance_error)
 
 
 @router.delete("/me")
@@ -235,9 +232,14 @@ def delete_my_copy_trading(
     db: Session = Depends(db_session),
 ) -> dict[str, bool]:
     row = db.get(UserBybitSettings, user.telegram_user_id)
-    if row is not None:
-        db.delete(row)
-        db.commit()
+    if row is None:
+        return {"ok": True}
+    try:
+        assert_can_disconnect_copy(db, row)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    db.delete(row)
+    db.commit()
     return {"ok": True}
 
 
@@ -256,9 +258,9 @@ async def test_my_copy_trading(
             detail=f"Не удалось подключиться к Bybit: {balance_error}",
         )
     _sync_deposit_from_balance(row, balance)
-    _apply_baseline_and_invoice(db, row, balance)
+    ensure_baseline_on_connect(row, balance)
     db.commit()
-    return _build_status(db, row, telegram_user_id=user.telegram_user_id, balance=balance)
+    return _build_status(db, row, balance=balance)
 
 
 @router.post("/me/pay", response_model=CopyTradingStatusRead)
@@ -268,19 +270,13 @@ async def pay_copy_fee(
     db: Session = Depends(db_session),
 ) -> CopyTradingStatusRead:
     row = db.get(UserBybitSettings, user.telegram_user_id)
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="API не настроен")
     try:
         record_copy_fee_payment(db, user.telegram_user_id, body.invoice_id, body.tx_id.strip())
         db.commit()
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
-    balance, balance_error = (None, None)
-    if row is not None:
-        db.refresh(row)
-        balance, balance_error = await _fetch_balance(row)
-    return _build_status(
-        db,
-        row,
-        telegram_user_id=user.telegram_user_id,
-        balance=balance,
-        balance_error=balance_error,
-    )
+    db.refresh(row)
+    balance, balance_error = await _fetch_balance(row)
+    return _build_status(db, row, balance=balance, balance_error=balance_error)

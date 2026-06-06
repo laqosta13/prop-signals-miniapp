@@ -11,7 +11,6 @@ import {
 } from "../api";
 import { copyToClipboard, formatUsd, selectFieldText } from "../utils";
 import { PasteButton } from "./PasteButton";
-import { PaymentMemoRow } from "./PaymentMemoRow";
 import {
   VOLNOVOI_COPY_DESC,
   VOLNOVOI_COPY_HINT_API,
@@ -19,6 +18,7 @@ import {
   VOLNOVOI_COPY_TITLE,
 } from "../data/appCopy";
 import { BybitLogo } from "./BrandLogos";
+import { PaymentMemoRow } from "./PaymentMemoRow";
 import { PartnerLinks } from "./PartnerLinks";
 import { RiskPercentSlider } from "./RiskPercentSlider";
 
@@ -234,10 +234,7 @@ export function VolnovoiCopyPanel() {
                     <span>К оплате ({status?.fee_percent}%)</span>
                     <strong>{formatUsd(pending.fee_usd)}</strong>
                   </p>
-                  <p className="meta volnovoi-copy__bill-hint">
-                    В комментарии перевода укажите код ниже. После TXID копирование включится снова.
-                  </p>
-                  {status?.payment_memo ? <PaymentMemoRow memo={status.payment_memo} /> : null}
+                  <p className="meta volnovoi-copy__bill-hint">После TXID копирование включится снова.</p>
                   <div className="pay-addr-row">
                     <input
                       ref={walletRef}
@@ -251,6 +248,7 @@ export function VolnovoiCopyPanel() {
                       {copied ? "✓" : "Копировать"}
                     </button>
                   </div>
+                  <PaymentMemoRow memo={status?.payment_memo ?? ""} />
                   <form className="volnovoi-copy__pay-form" onSubmit={(e) => void onPay(e)}>
                     <div className="field-row">
                       <label className="field-label">TXID перевода</label>
