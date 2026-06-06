@@ -9,6 +9,7 @@ import {
   REFERRAL_SHARE_FALLBACK,
   SUBSCRIPTION_INTRO,
   subscriptionInactiveHint,
+  testModeBannerText,
 } from "../data/appCopy";
 import { PaymentMemoRow } from "./PaymentMemoRow";
 import { SubscriptionSupportChat } from "./SubscriptionSupportChat";
@@ -111,8 +112,17 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: Props) {
       <SubscriptionSupportChat />
       <p className="meta sub-pay__intro">{SUBSCRIPTION_INTRO}</p>
       <p className={`sub-pay__status ${info.subscription_active ? "on" : "off"}`}>
-        {info.subscription_active ? (
+        {info.test_mode_active ? (
+          <>
+            {testModeBannerText(info.test_mode_until, info.test_mode_days_left)}
+            {info.test_mode_until ? (
+              <> До {formatDateTimeMsk(info.test_mode_until)} МСК.</>
+            ) : null}
+          </>
+        ) : info.subscription_active && info.subscription_until ? (
           <>Подписка активна до {formatDateTimeMsk(info.subscription_until)} МСК</>
+        ) : info.subscription_active ? (
+          <>Подписка активна</>
         ) : (
           <>{subscriptionInactiveHint(info.trial_days, info.trial_used)}</>
         )}

@@ -13,6 +13,7 @@ from app.subscription_billing import (
     subscription_active,
     subscription_active_strict,
 )
+from app.test_mode import test_mode_public_fields
 from app.telegram_auth import validate_init_data
 
 
@@ -125,6 +126,7 @@ def _telegram_user_from_sub(
     last_name: str | None = None,
 ) -> TelegramUser:
     can_write, reason, days_left = review_write_access(db, sub, is_admin=is_admin)
+    test_mode = test_mode_public_fields()
     return TelegramUser(
         telegram_user_id=telegram_user_id,
         is_admin=is_admin,
@@ -140,6 +142,9 @@ def _telegram_user_from_sub(
         and subscription_active_strict(sub, is_admin=is_admin),
         subscription_until=sub.subscription_until,
         subscription_active=subscription_active(sub, is_admin),
+        test_mode_active=test_mode["test_mode_active"],
+        test_mode_until=test_mode["test_mode_until"],
+        test_mode_days_left=int(test_mode["test_mode_days_left"]),
         referral_code=sub.referral_code or "",
         member_since=sub.created_at,
         paid_subscription=has_active_paid_subscription(db, sub, is_admin),

@@ -64,6 +64,15 @@ export function CultCandidatePaySection({ onPaid }: Props) {
 
   if (!info) return <p className="meta">Загрузка оплаты…</p>;
 
+  if (info.test_mode_active) {
+    return (
+      <p className="meta cult-candidate-pay__active">
+        Тестовый режим — подписка кандидата бесплатна
+        {info.test_mode_until ? ` до ${formatDateTimeMsk(info.test_mode_until)} МСК` : ""}.
+      </p>
+    );
+  }
+
   if (info.cult_subscription_active) {
     return (
       <p className="meta cult-candidate-pay__active">

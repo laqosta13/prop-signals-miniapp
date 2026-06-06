@@ -130,6 +130,9 @@ export default function App() {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [myId, setMyId] = useState<number | null>(null);
   const [subActive, setSubActive] = useState(false);
+  const [testModeActive, setTestModeActive] = useState(false);
+  const [testModeUntil, setTestModeUntil] = useState<string | null>(null);
+  const [testModeDaysLeft, setTestModeDaysLeft] = useState(0);
   const [canWriteReview, setCanWriteReview] = useState(false);
   const [reviewWriteBlockedReason, setReviewWriteBlockedReason] = useState<string | null>(null);
   const [daysUntilReview, setDaysUntilReview] = useState<number | null>(null);
@@ -208,6 +211,9 @@ export default function App() {
       const fullAccess = me.subscription_active || me.is_admin || me.can_publish_main_feed;
       fullAccessRef.current = fullAccess;
       setSubActive(me.subscription_active);
+      setTestModeActive(me.test_mode_active);
+      setTestModeUntil(me.test_mode_until);
+      setTestModeDaysLeft(me.test_mode_days_left);
       setCanWriteReview(me.can_write_review);
       setReviewWriteBlockedReason(me.review_write_blocked_reason);
       setDaysUntilReview(me.days_until_review);
@@ -235,6 +241,9 @@ export default function App() {
       const fullAccess = me.subscription_active || me.is_admin || me.can_publish_main_feed;
       fullAccessRef.current = fullAccess;
       setSubActive(me.subscription_active);
+      setTestModeActive(me.test_mode_active);
+      setTestModeUntil(me.test_mode_until);
+      setTestModeDaysLeft(me.test_mode_days_left);
       setCanWriteReview(me.can_write_review);
       setReviewWriteBlockedReason(me.review_write_blocked_reason);
       setDaysUntilReview(me.days_until_review);
@@ -558,6 +567,9 @@ export default function App() {
             onPatch={patchSignal}
             onOpenPay={() => setTab("pay")}
             onOpenTracker={() => setTab("tracker")}
+            testModeActive={testModeActive}
+            testModeUntil={testModeUntil}
+            testModeDaysLeft={testModeDaysLeft}
           />
         )}
         <Suspense fallback={<p className="meta">Загрузка…</p>}>

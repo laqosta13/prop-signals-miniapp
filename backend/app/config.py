@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     ton_payment_min_confirmations: int = 3
     public_base_url: str = ""
     exchange_secrets_key: str = ""
+    """ISO8601 UTC — старт тестового режима (всё бесплатно test_mode_days). Пусто — режим выключен."""
+    test_mode_start_at: str = "2026-06-01T00:00:00+00:00"
+    test_mode_days: int = 30
 
     @property
     def admin_id_set(self) -> set[int]:

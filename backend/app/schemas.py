@@ -85,6 +85,9 @@ class TelegramUser(BaseModel):
     notify_push_active: bool = False
     subscription_until: datetime | None = None
     subscription_active: bool = False
+    test_mode_active: bool = False
+    test_mode_until: datetime | None = None
+    test_mode_days_left: int = 0
     referral_code: str = ""
     member_since: datetime | None = None
     paid_subscription: bool = False
@@ -131,6 +134,9 @@ class SubscriptionInfo(BaseModel):
     subscription_until: datetime | None
     subscription_active: bool
     trial_used: bool = False
+    test_mode_active: bool = False
+    test_mode_until: datetime | None = None
+    test_mode_days_left: int = 0
     referral_code: str
     referral_link: str = ""
     referral_share_text: str = ""
@@ -276,6 +282,9 @@ class CultCandidateSubscriptionInfo(BaseModel):
     subscription_days: int
     cult_subscription_until: datetime | None = None
     cult_subscription_active: bool = False
+    test_mode_active: bool = False
+    test_mode_until: datetime | None = None
+    test_mode_days_left: int = 0
 
 
 class CultCandidatePayBody(BaseModel):
@@ -291,6 +300,9 @@ class CultCandidateMeRead(BaseModel):
     bybit_configured: bool = False
     cult_subscription_active: bool = False
     cult_subscription_until: datetime | None = None
+    test_mode_active: bool = False
+    test_mode_until: datetime | None = None
+    test_mode_days_left: int = 0
 
 
 class CultCandidateJoinBody(BaseModel):

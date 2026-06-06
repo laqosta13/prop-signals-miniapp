@@ -13,7 +13,7 @@ from app.config import settings
 from app.models import PaymentTx, Subscriber
 from app.ton_payments import TonPaymentError, verify_usdt_ton_payment
 
-TRIAL_DAYS = 3
+TRIAL_DAYS = 0
 REFERRAL_BONUS_DAYS = 3
 REVIEW_WAIT_DAYS = 7
 WEEK_USD = 20.0
@@ -41,7 +41,11 @@ def _subscription_until_active(sub: Subscriber | None) -> bool:
 
 
 def subscription_active(sub: Subscriber | None, is_admin: bool) -> bool:
+    from app.test_mode import is_test_mode_active
+
     if is_admin:
+        return True
+    if is_test_mode_active():
         return True
     if not settings.bot_token:
         return True
@@ -50,7 +54,11 @@ def subscription_active(sub: Subscriber | None, is_admin: bool) -> bool:
 
 def subscription_active_strict(sub: Subscriber | None, *, is_admin: bool = False) -> bool:
     """Для push-уведомлений — без dev-bypass, только реальная подписка или админ."""
+    from app.test_mode import is_test_mode_active
+
     if is_admin:
+        return True
+    if is_test_mode_active():
         return True
     return _subscription_until_active(sub)
 
@@ -168,7 +176,7 @@ def register_subscriber_with_meta(
         username=username,
         notify_enabled=True,
         notify_news_enabled=False,
-        subscription_until=_now() + timedelta(days=TRIAL_DAYS),
+        subscription_until=None,
         trial_used=True,
         referral_code=_gen_referral_code(db),
         payment_memo=_gen_payment_memo(db),

@@ -411,6 +411,9 @@ def build_cult_candidate_me_read(db: Session, sub: Subscriber) -> CultCandidateM
     bypass = cult_subscription_admin_bypass(db, sub.telegram_user_id)
     blockers = join_blockers(db, sub, cult_admin_bypass=bypass)
     bybit = db.get(UserBybitSettings, sub.telegram_user_id)
+    from app.test_mode import test_mode_public_fields
+
+    test_mode = test_mode_public_fields()
     return CultCandidateMeRead(
         is_candidate=row is not None and bool(row.enabled),
         display_name=row.display_name if row else None,
@@ -420,6 +423,9 @@ def build_cult_candidate_me_read(db: Session, sub: Subscriber) -> CultCandidateM
         bybit_configured=bybit is not None,
         cult_subscription_active=cult_subscription_active(sub, is_admin=bypass),
         cult_subscription_until=sub.cult_subscription_until,
+        test_mode_active=test_mode["test_mode_active"],
+        test_mode_until=test_mode["test_mode_until"],
+        test_mode_days_left=int(test_mode["test_mode_days_left"]),
     )
 
 

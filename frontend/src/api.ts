@@ -65,6 +65,9 @@ export type Me = {
   notify_push_active: boolean;
   subscription_until: string | null;
   subscription_active: boolean;
+  test_mode_active: boolean;
+  test_mode_until: string | null;
+  test_mode_days_left: number;
   referral_code: string;
   member_since: string | null;
   paid_subscription: boolean;
@@ -97,6 +100,9 @@ export type SubscriptionInfo = {
   subscription_until: string | null;
   subscription_active: boolean;
   trial_used: boolean;
+  test_mode_active: boolean;
+  test_mode_until: string | null;
+  test_mode_days_left: number;
   referral_code: string;
   referral_link: string;
   referral_share_text: string;
@@ -235,6 +241,9 @@ export type CultCandidateSubscriptionInfo = {
   subscription_days: number;
   cult_subscription_until: string | null;
   cult_subscription_active: boolean;
+  test_mode_active: boolean;
+  test_mode_until: string | null;
+  test_mode_days_left: number;
 };
 
 export type CultCandidateMe = {
@@ -246,6 +255,9 @@ export type CultCandidateMe = {
   bybit_configured: boolean;
   cult_subscription_active: boolean;
   cult_subscription_until: string | null;
+  test_mode_active: boolean;
+  test_mode_until: string | null;
+  test_mode_days_left: number;
 };
 
 export type ChallengeDashboard = {

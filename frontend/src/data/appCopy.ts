@@ -17,11 +17,23 @@ export const PRODUCT_PITCH =
 export const SUBSCRIPTION_INTRO =
   "Доступ к ленте сигналов трейдеров Cult — отобранных по рангам и результатам.";
 
-export const SUBSCRIPTION_TRIAL_USED_MSG = "Пробный период уже использован. Оформите подписку ниже.";
+export const SUBSCRIPTION_TRIAL_USED_MSG = "Подписка не активна. Оформите доступ ниже.";
+
+export function testModeBannerText(until: string | null, daysLeft: number): string {
+  if (until) {
+    return `Тестовый режим — всё бесплатно до конца периода. После дедлайна доступ только по подписке.`;
+  }
+  if (daysLeft > 0) {
+    return `Тестовый режим — всё бесплатно ещё ${daysLeft} дн. После дедлайна доступ только по подписке.`;
+  }
+  return "Тестовый режим — всё бесплатно. После дедлайна доступ только по подписке.";
+}
 
 export function subscriptionInactiveHint(trialDays: number, trialUsed: boolean): string {
-  if (trialUsed) return SUBSCRIPTION_TRIAL_USED_MSG;
-  return `Подписка не активна. Доступен пробный период — ${trialDays} дн.`;
+  if (trialDays > 0 && !trialUsed) {
+    return `Подписка не активна. Доступен пробный период — ${trialDays} дн.`;
+  }
+  return SUBSCRIPTION_TRIAL_USED_MSG;
 }
 
 export const TAB_SUBTITLES = {

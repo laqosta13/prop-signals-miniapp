@@ -44,6 +44,7 @@ from app.serializers import signal_to_read
 from app.signal_service import build_signal_row, close_signal_at_market, stamp_signal_at_publication
 from app.signal_utils import signal_in_trade
 from app.routers.signals import _parse_direction
+from app.test_mode import test_mode_public_fields
 
 router = APIRouter(prefix="/cult-candidates", tags=["cult-candidates"])
 
@@ -56,6 +57,7 @@ def _subscriber(db: Session, user: TelegramUser) -> Subscriber:
 
 
 def _cult_subscription_info(db: Session, user: TelegramUser, sub: Subscriber) -> CultCandidateSubscriptionInfo:
+    test_mode = test_mode_public_fields()
     return CultCandidateSubscriptionInfo(
         usdt_ton_address=usdt_pay_address(),
         payment_memo=ensure_payment_memo(db, sub),
@@ -65,6 +67,9 @@ def _cult_subscription_info(db: Session, user: TelegramUser, sub: Subscriber) ->
         cult_subscription_active=cult_subscription_active(
             sub, is_admin=cult_subscription_admin_bypass(db, user.telegram_user_id)
         ),
+        test_mode_active=test_mode["test_mode_active"],
+        test_mode_until=test_mode["test_mode_until"],
+        test_mode_days_left=int(test_mode["test_mode_days_left"]),
     )
 
 

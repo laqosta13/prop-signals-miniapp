@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { closeSignalAtMarket, deleteSignal, type ChallengeDashboard, type Signal } from "../api";
-import { FEED_LABEL_ACTIVE, FEED_LABEL_CLOSED } from "../data/appCopy";
+import { FEED_LABEL_ACTIVE, FEED_LABEL_CLOSED, testModeBannerText } from "../data/appCopy";
+import { formatDateTimeMsk } from "../utils";
 import { canViewActiveSignals, visibleFeedSignals } from "../utils/signalActions";
 import { splitFeedSignals } from "../utils/sortFeedSignals";
 import { PropTrackerMini } from "./PropTrackerMini";
@@ -23,6 +24,9 @@ type Props = {
   onOpenPay: () => void;
   onOpenTracker: () => void;
   refreshKey?: number;
+  testModeActive?: boolean;
+  testModeUntil?: string | null;
+  testModeDaysLeft?: number;
 };
 
 export function FeedTab({
@@ -41,6 +45,9 @@ export function FeedTab({
   onOpenPay,
   onOpenTracker,
   refreshKey = 0,
+  testModeActive = false,
+  testModeUntil = null,
+  testModeDaysLeft = 0,
 }: Props) {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [closingId, setClosingId] = useState<number | null>(null);
@@ -106,9 +113,17 @@ export function FeedTab({
 
   return (
     <>
+      {testModeActive && (
+        <div className="sub-banner sub-banner--test-mode">
+          <p>
+            {testModeBannerText(testModeUntil, testModeDaysLeft)}
+            {testModeUntil ? ` До ${formatDateTimeMsk(testModeUntil)} МСК.` : ""}
+          </p>
+        </div>
+      )}
       {!hasActiveAccess && (
         <div className="sub-banner">
-          <p>Всё бесплатно, кроме активных сигналов — они по подписке.</p>
+          <p>Активные сигналы доступны по подписке. Оформите доступ во вкладке «Подписка».</p>
           <button type="button" className="ghost-btn" onClick={onOpenPay}>
             Оплата и подписка →
           </button>

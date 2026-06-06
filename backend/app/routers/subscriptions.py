@@ -16,6 +16,7 @@ from app.subscription_billing import (
     usdt_pay_address,
 )
 from app.subscription_pause import SUBSCRIPTION_PAUSE_HINT
+from app.test_mode import test_mode_public_fields
 
 router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
 
@@ -35,6 +36,7 @@ def _info(db, user: TelegramUser) -> SubscriptionInfo:
         )
     else:
         hint = ""
+    test_mode = test_mode_public_fields()
     return SubscriptionInfo(
         usdt_ton_address=usdt_pay_address(),
         payment_memo=memo,
@@ -45,6 +47,9 @@ def _info(db, user: TelegramUser) -> SubscriptionInfo:
         subscription_until=sub.subscription_until if sub else None,
         subscription_active=user.subscription_active,
         trial_used=bool(sub.trial_used) if sub else False,
+        test_mode_active=test_mode["test_mode_active"],
+        test_mode_until=test_mode["test_mode_until"],
+        test_mode_days_left=int(test_mode["test_mode_days_left"]),
         referral_code=code,
         referral_link=link,
         referral_share_text=referral_share_text(bonus_days=REFERRAL_BONUS_DAYS) if link else "",

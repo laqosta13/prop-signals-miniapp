@@ -17,7 +17,11 @@ CULT_PLAN = "cult"
 
 
 def cult_subscription_active(sub: Subscriber | None, *, is_admin: bool = False) -> bool:
+    from app.test_mode import is_test_mode_active
+
     if is_admin:
+        return True
+    if is_test_mode_active():
         return True
     if sub is None or sub.cult_subscription_until is None:
         return False
