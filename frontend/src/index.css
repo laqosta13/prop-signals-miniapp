@@ -3394,6 +3394,44 @@
   border-color: rgba(109, 40, 217, 0.45);
 }
 
+.top-card--candidate-collapsed {
+  padding-bottom: 4px;
+}
+
+.top-card__head-btn--candidate {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.top-card__head-btn--candidate .top-card__head,
+.top-card--candidate-collapsed .top-card__head {
+  margin-bottom: 0;
+}
+
+.top-card__trades-hint {
+  margin-left: auto;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.top-card__chevron {
+  flex-shrink: 0;
+  margin-left: 4px;
+  font-size: 0.62rem;
+  color: var(--muted);
+  line-height: 1;
+}
+
 .top-rank--candidate {
   color: var(--purple);
 }

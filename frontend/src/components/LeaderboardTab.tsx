@@ -189,14 +189,13 @@ export function LeaderboardTab({
         .sort((a, b) => b.rating_percent - a.rating_percent),
     [traders],
   );
-  const userCandidates = useMemo(
-    () => [...cultCandidates].sort((a, b) => b.rating_percent - a.rating_percent),
-    [cultCandidates],
-  );
-  const myCandidate = useMemo(() => userCandidates.find((c) => c.is_me), [userCandidates]);
+  const myCandidate = useMemo(() => cultCandidates.find((c) => c.is_me), [cultCandidates]);
   const otherUserCandidates = useMemo(
-    () => userCandidates.filter((c) => !c.is_me),
-    [userCandidates],
+    () =>
+      [...cultCandidates]
+        .filter((c) => !c.is_me)
+        .sort((a, b) => b.rating_percent - a.rating_percent),
+    [cultCandidates],
   );
   const channelCandidates = useMemo(
     () => [...cultChannels].sort((a, b) => b.rating_percent - a.rating_percent),
@@ -214,14 +213,14 @@ export function LeaderboardTab({
 
   const showTradersBlock = Boolean(volnovoi || traderCandidates.length > 0);
   const showCandidatesBlock =
-    userCandidates.length > 0 || channelCandidates.length > 0 || isAdmin || myId != null;
+    cultCandidates.length > 0 || channelCandidates.length > 0 || isAdmin || myId != null;
   const showFiredBlock = firedList.length > 0;
 
   if (loading) return <p className="meta">Загрузка…</p>;
 
   return (
     <>
-      {!traders.length && !firedList.length && !userCandidates.length && !cultChannels.length && (
+      {!traders.length && !firedList.length && !cultCandidates.length && !cultChannels.length && (
         <p className="meta">{TOP_EMPTY}</p>
       )}
 
@@ -292,7 +291,7 @@ export function LeaderboardTab({
               ))}
             </ol>
           )}
-          {userCandidates.length === 0 && channelCandidates.length === 0 && !isAdmin && (
+          {cultCandidates.length === 0 && channelCandidates.length === 0 && !isAdmin && (
             <p className="meta">{TOP_CANDIDATES_EMPTY}</p>
           )}
           {isSuperAdmin && <CultChannelAdminPanel channels={cultChannels} onChange={onCultChannelsChange} />}
