@@ -216,6 +216,11 @@ class CultCandidateActiveSignalRead(BaseModel):
     entry: str
     level_label: str
     stake_percent: float
+    leverage: int = 1
+    stop_loss: str | None = None
+    take_profits: str | None = None
+    in_market: bool = False
+    awaiting_entry: bool = False
 
 
 class CultCandidateClosedSignalRead(BaseModel):
@@ -243,7 +248,25 @@ class CultCandidateRead(BaseModel):
     daily_stats: list[TraderDayStat] = []
     active_signals: list[CultCandidateActiveSignalRead] = []
     closed_signals: list[CultCandidateClosedSignalRead] = []
+    trader_rank: TraderRankRead | None = None
     is_me: bool = False
+
+
+class CultCandidateFormSnapshot(BaseModel):
+    balance: float
+    account_size: float
+    daily_loss_usd: float = 0.0
+    daily_trades_count: int = 0
+    daily_trades_limit: int = 3
+    current_rank_id: int = 8
+    current_rank_name: str = "Нулёвый"
+    rank_max_stake_pct: float = 15.0
+    rank_max_leverage: int = 1
+    daily_stop_reserved_rank_pct: float = 0.0
+    daily_stop_remaining_rank_pct: float = 2.0
+    stake_pool_used_pct: float = 0.0
+    stake_pool_remaining_pct: float = 100.0
+    max_stake_pct: float = 15.0
 
 
 class CultCandidateSubscriptionInfo(BaseModel):

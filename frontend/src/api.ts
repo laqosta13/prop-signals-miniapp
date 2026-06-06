@@ -172,6 +172,28 @@ export type CultCandidateActiveSignal = {
   entry: string;
   level_label: string;
   stake_percent: number;
+  leverage: number;
+  stop_loss: string | null;
+  take_profits: string | null;
+  in_market: boolean;
+  awaiting_entry: boolean;
+};
+
+export type CultCandidateFormSnapshot = {
+  balance: number;
+  account_size: number;
+  daily_loss_usd: number;
+  daily_trades_count: number;
+  daily_trades_limit: number;
+  current_rank_id: number;
+  current_rank_name: string;
+  rank_max_stake_pct: number;
+  rank_max_leverage: number;
+  daily_stop_reserved_rank_pct: number;
+  daily_stop_remaining_rank_pct: number;
+  stake_pool_used_pct: number;
+  stake_pool_remaining_pct: number;
+  max_stake_pct: number;
 };
 
 export type CultCandidateClosedSignal = {
@@ -199,6 +221,7 @@ export type CultCandidate = {
   daily_stats: TraderDayStat[];
   active_signals: CultCandidateActiveSignal[];
   closed_signals: CultCandidateClosedSignal[];
+  trader_rank: TraderRank | null;
   is_me: boolean;
 };
 
@@ -499,6 +522,12 @@ export async function deleteCultChannel(id: number): Promise<void> {
 
 export const fetchCultCandidates = () => api<CultCandidate[]>("/cult-candidates");
 export const fetchCultCandidateMe = () => api<CultCandidateMe>("/cult-candidates/me");
+export const fetchCultCandidateFormSnapshot = (excludeSignalId?: number) =>
+  api<CultCandidateFormSnapshot>(
+    excludeSignalId != null
+      ? `/cult-candidates/me/form-snapshot?exclude_signal_id=${excludeSignalId}`
+      : "/cult-candidates/me/form-snapshot",
+  );
 export const joinCultCandidate = () =>
   api<CultCandidate>("/cult-candidates/me", {
     method: "POST",
@@ -511,6 +540,9 @@ export const patchCultCandidateMe = (display_name: string) =>
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ display_name }),
   });
+export const closeCultCandidateSignalAtMarket = (signalId: number) =>
+  api<Signal>(`/cult-candidates/me/signals/${signalId}/close-market`, { method: "POST" });
+
 export const createCultCandidateSignal = (form: FormData, onProgress?: (p: UploadProgress) => void) => {
   if (!onProgress) return sendForm<Signal>("/cult-candidates/me/signals", "POST", form);
   return new Promise<Signal>((resolve, reject) => {

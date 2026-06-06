@@ -1,5 +1,14 @@
 import { useMemo, useState } from "react";
-import { fetchCultCandidateSignal, type CultCandidate, type CultCandidateClosedSignal, type CultChannel, type Signal, type Trader } from "../api";
+import WebApp from "@twa-dev/sdk";
+import {
+  closeCultCandidateSignalAtMarket,
+  fetchCultCandidateSignal,
+  type CultCandidate,
+  type CultCandidateClosedSignal,
+  type CultChannel,
+  type Signal,
+  type Trader,
+} from "../api";
 import { EquityCurve } from "./EquityCurve";
 import { CultCandidateCard } from "./CultCandidateCard";
 import { CultCandidateJoinPanel } from "./CultCandidateJoinPanel";
@@ -140,6 +149,22 @@ export function LeaderboardTab({
   const [closedTradeDetail, setClosedTradeDetail] = useState<Signal | null>(null);
   const [closedTradeLoading, setClosedTradeLoading] = useState(false);
   const [closedTradeError, setClosedTradeError] = useState<string | null>(null);
+  const [closingSignalId, setClosingSignalId] = useState<number | null>(null);
+
+  const handleCloseCandidateAtMarket = async (signalId: number) => {
+    if (!confirm("Закрыть сделку по текущей рыночной цене?")) return;
+    setClosingSignalId(signalId);
+    try {
+      await closeCultCandidateSignalAtMarket(signalId);
+      WebApp.HapticFeedback.notificationOccurred("success");
+      onCultCandidatesChange();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Не удалось закрыть");
+      onCultCandidatesChange();
+    } finally {
+      setClosingSignalId(null);
+    }
+  };
 
   const openClosedTrade = (trade: CultCandidateClosedSignal) => {
     setClosedTradeDetail(null);
@@ -243,6 +268,8 @@ export function LeaderboardTab({
                   candidate={myCandidate}
                   onTrade={canPublishCandidate ? () => setSignalModalOpen(true) : undefined}
                   onOpenClosedTrade={openClosedTrade}
+                  onCloseAtMarket={handleCloseCandidateAtMarket}
+                  closingSignalId={closingSignalId}
                   isSuperAdmin={isSuperAdmin}
                   onRosterChange={onRosterChange}
                 />

@@ -1,16 +1,22 @@
 """API кандидатов CULT — пользователи со своими сигналами на Bybit."""
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.cult_candidate_service import (
+    build_candidate_form_snapshot,
     build_cult_candidate_me_read,
     build_cult_candidates_read,
     cult_candidate_account_size,
     ensure_can_trade,
+    get_candidate_owned_signal,
     get_cult_candidate_signal,
     join_cult_candidate,
     update_display_name,
+    validate_candidate_signal_daily_stop,
+    validate_candidate_signal_daily_trades,
+    validate_candidate_signal_leverage,
+    validate_candidate_signal_stake,
 )
 from app.cult_subscription_billing import (
     CULT_SUBSCRIPTION_DAYS,
@@ -23,6 +29,7 @@ from app.trader_roster_service import cult_subscription_admin_bypass
 from app.subscription_billing import ensure_payment_memo, usdt_pay_address
 from app.models import Subscriber
 from app.schemas import (
+    CultCandidateFormSnapshot,
     CultCandidateJoinBody,
     CultCandidateMeRead,
     CultCandidatePatchBody,
@@ -32,8 +39,10 @@ from app.schemas import (
     SignalRead,
     TelegramUser,
 )
+from app.media_storage import save_signal_image, save_signal_video
 from app.serializers import signal_to_read
-from app.signal_service import build_signal_row, stamp_signal_at_publication
+from app.signal_service import build_signal_row, close_signal_at_market, stamp_signal_at_publication
+from app.signal_utils import signal_in_trade
 from app.routers.signals import _parse_direction
 
 router = APIRouter(prefix="/cult-candidates", tags=["cult-candidates"])
@@ -106,6 +115,19 @@ def cult_candidate_signal_detail(
     return signal_to_read(db, row, user.telegram_user_id)
 
 
+@router.get("/me/form-snapshot", response_model=CultCandidateFormSnapshot)
+def cult_candidate_form_snapshot(
+    exclude_signal_id: int | None = Query(None, ge=1),
+    db: Session = Depends(db_session),
+    user: TelegramUser = Depends(get_current_user),
+) -> CultCandidateFormSnapshot:
+    sub = _subscriber(db, user)
+    try:
+        return build_candidate_form_snapshot(db, sub, exclude_signal_id=exclude_signal_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e)) from e
+
+
 @router.get("/me", response_model=CultCandidateMeRead)
 def cult_candidate_me(
     db: Session = Depends(db_session),
@@ -170,6 +192,8 @@ async def create_cult_candidate_signal(
     comment: str | None = Form(None),
     leverage: int | None = Form(None),
     risk_percent: float | None = Form(None),
+    screenshot: UploadFile | None = File(None),
+    video: UploadFile | None = File(None),
     db: Session = Depends(db_session),
     user: TelegramUser = Depends(get_current_user),
 ) -> SignalRead:
@@ -182,6 +206,12 @@ async def create_cult_candidate_signal(
     acct = cult_candidate_account_size(db, user.telegram_user_id)
     stake = risk_percent if risk_percent is not None and risk_percent > 0 else 10.0
     lev = leverage if leverage is not None and leverage >= 1 else 1
+    validate_candidate_signal_daily_trades(db, user.telegram_user_id)
+    validate_candidate_signal_stake(db, user.telegram_user_id, stake)
+    validate_candidate_signal_leverage(db, user.telegram_user_id, lev)
+    validate_candidate_signal_daily_stop(
+        db, user.telegram_user_id, entry_low, entry_high, stop_loss, stake, lev
+    )
     row = build_signal_row(
         db,
         symbol=symbol.strip().upper(),
@@ -203,7 +233,52 @@ async def create_cult_candidate_signal(
     )
     db.add(row)
     db.flush()
+    if screenshot and screenshot.filename:
+        row.media_image_path = await save_signal_image(row.id, screenshot)
+    if video and video.filename:
+        row.media_video_path = await save_signal_video(row.id, video)
     await stamp_signal_at_publication(db, row, notify_entry=False)
     db.commit()
     db.refresh(row)
+    return signal_to_read(db, row, user.telegram_user_id)
+
+
+@router.post("/me/signals/{signal_id}/close-market", response_model=SignalRead)
+async def close_cult_candidate_market(
+    signal_id: int,
+    db: Session = Depends(db_session),
+    user: TelegramUser = Depends(get_current_user),
+) -> SignalRead:
+    sub = _subscriber(db, user)
+    try:
+        ensure_can_trade(db, sub)
+        row = get_candidate_owned_signal(db, signal_id, user.telegram_user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    if not signal_in_trade(row):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Закрыть по рынку можно только активный сигнал после входа",
+        )
+    try:
+        await close_signal_at_market(db, row, notify=False)
+    except ValueError as e:
+        if str(e) == "no_price":
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"Не удалось получить цену для {row.symbol}",
+            ) from e
+        if str(e) == "close_failed":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Сделка не удалось закрыть — обновите карточку",
+            ) from e
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Сделку нельзя закрыть") from e
+    db.refresh(row)
+    if row.status == "active":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Сделка не удалось закрыть — обновите карточку",
+        )
+    db.commit()
     return signal_to_read(db, row, user.telegram_user_id)

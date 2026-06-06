@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.copy_trading_service import copy_deposit_base_usd
@@ -13,12 +13,13 @@ from app.models import CultCandidate, Signal, UserBybitSettings
 from app.schemas import (
     CultCandidateActiveSignalRead,
     CultCandidateClosedSignalRead,
+    CultCandidateFormSnapshot,
     CultCandidateMeRead,
     CultCandidateRead,
     TelegramUser,
     TraderDayStat,
 )
-from app.serializers import trader_avatar_url, trader_display_name, trader_login
+from app.serializers import trader_avatar_url, trader_display_name, trader_login, trader_rank_read
 from app.signal_service import get_or_create_trader
 from app.signal_utils import (
     effective_entry_price,
@@ -172,6 +173,8 @@ def apply_outcome_to_cult_candidate(
     signal: Signal,
     outcome: str,
     exit_price: float,
+    *,
+    close_reason: str | None = None,
 ) -> bool:
     if signal.status != "active":
         return False
@@ -186,11 +189,15 @@ def apply_outcome_to_cult_candidate(
         published_market_price=signal.published_market_price,
     )
     final_outcome = outcome_from_move(move)
-    close_reason = "target" if final_outcome == "win" else "stop"
+    if close_reason:
+        signal.close_reason = close_reason
+    elif final_outcome == "win":
+        signal.close_reason = "target"
+    else:
+        signal.close_reason = "stop"
     signal.status = final_outcome
     signal.closed_at = _now()
     signal.closed_exit_price = exit_price
-    signal.close_reason = close_reason
 
     wins = int(candidate.wins or 0)
     losses = int(candidate.losses or 0)
@@ -217,21 +224,29 @@ def _active_signals_for(db: Session, user_ids: list[int]) -> dict[int, list[Cult
         ).all()
     )
     out: dict[int, list[CultCandidateActiveSignalRead]] = defaultdict(list)
+    from app.signal_utils import signal_awaiting_entry, signal_in_trade
+
     for s in rows:
         stake = s.risk_percent if s.risk_percent is not None else 10.0
+        lev = int(s.leverage or 1)
         if s.entry_low and s.entry_high and s.entry_low != s.entry_high:
             entry = f"{s.entry_low}–{s.entry_high}"
         else:
             entry = s.entry_low or s.entry_high or "—"
-        if s.entry_filled_at is None:
+        awaiting = signal_awaiting_entry(s)
+        in_market = signal_in_trade(s)
+        if awaiting:
             level_label = "ожидание входа"
-        elif s.stop_loss:
-            level_label = f"стоп {s.stop_loss}"
-        elif s.take_profits:
-            tp = (s.take_profits or "").split(",")[0].strip()
-            level_label = f"цель {tp}" if tp else "цель —"
+        elif in_market:
+            if s.stop_loss:
+                level_label = f"стоп {s.stop_loss}"
+            elif s.take_profits:
+                tp = (s.take_profits or "").split(",")[0].strip()
+                level_label = f"цель {tp}" if tp else "в рынке"
+            else:
+                level_label = "в рынке"
         else:
-            level_label = "по рынку"
+            level_label = "активна"
         out[s.author_telegram_id].append(
             CultCandidateActiveSignalRead(
                 id=s.id,
@@ -240,6 +255,11 @@ def _active_signals_for(db: Session, user_ids: list[int]) -> dict[int, list[Cult
                 entry=entry,
                 level_label=level_label,
                 stake_percent=float(stake),
+                leverage=lev,
+                stop_loss=s.stop_loss,
+                take_profits=s.take_profits,
+                in_market=in_market,
+                awaiting_entry=awaiting,
             )
         )
     return out
@@ -348,6 +368,7 @@ def _candidate_read(
         daily_stats=daily.get(row.telegram_user_id, []),
         active_signals=active.get(row.telegram_user_id, []),
         closed_signals=closed.get(row.telegram_user_id, []),
+        trader_rank=trader_rank_read(trader, include_history=False) if trader else None,
         is_me=is_me,
     )
 
@@ -407,6 +428,354 @@ def cult_candidate_account_size(db: Session, telegram_id: int) -> float:
     if bybit is None:
         return 10_000.0
     return copy_deposit_base_usd(bybit)
+
+
+def _candidate_active_signals(db: Session, author_id: int) -> list[Signal]:
+    return list(
+        db.scalars(
+            select(Signal).where(
+                Signal.author_telegram_id == author_id,
+                Signal.status == "active",
+                Signal.is_cult_candidate.is_(True),
+            )
+        ).all()
+    )
+
+
+def candidate_active_stake_used(db: Session, author_id: int, *, exclude_signal_id: int | None = None) -> float:
+    from app.signal_stake_pool import _signal_stake_expr
+
+    q = select(func.coalesce(func.sum(_signal_stake_expr()), 0.0)).where(
+        Signal.status == "active",
+        Signal.is_cult_candidate.is_(True),
+        Signal.author_telegram_id == author_id,
+    )
+    if exclude_signal_id is not None:
+        q = q.where(Signal.id != exclude_signal_id)
+    return round(float(db.scalar(q) or 0.0), 2)
+
+
+def candidate_stake_pool_snapshot(
+    db: Session,
+    trader,
+    author_id: int,
+    *,
+    exclude_signal_id: int | None = None,
+) -> dict[str, float | int | str]:
+    from app.rank_constants import DEFAULT_RANK_ID, rank_max_leverage, rank_name
+    from app.rank_service import ensure_rank_fields
+    from app.signal_stake_pool import rank_max_stake_pct
+
+    ensure_rank_fields(trader)
+    rank_id = trader.current_rank_id or DEFAULT_RANK_ID
+    used = candidate_active_stake_used(db, author_id, exclude_signal_id=exclude_signal_id)
+    remaining = round(max(0.0, 100.0 - used), 2)
+    rank_cap = rank_max_stake_pct(rank_id)
+    return {
+        "current_rank_id": rank_id,
+        "current_rank_name": rank_name(rank_id),
+        "rank_max_stake_pct": rank_cap,
+        "rank_max_leverage": rank_max_leverage(rank_id),
+        "stake_pool_used_pct": used,
+        "stake_pool_remaining_pct": remaining,
+        "max_stake_pct": round(min(rank_cap, remaining), 2),
+    }
+
+
+def candidate_signals_today_count(db: Session, author_id: int) -> int:
+    from app.daily_stop_limit import msk_day_key
+
+    today_key = msk_day_key(_now())
+    if not today_key:
+        return 0
+    rows = db.scalars(
+        select(Signal).where(
+            Signal.author_telegram_id == author_id,
+            Signal.is_cult_candidate.is_(True),
+        )
+    ).all()
+    return sum(1 for s in rows if msk_day_key(s.created_at) == today_key)
+
+
+def candidate_stop_consumed_rank_pct(
+    db: Session,
+    author_id: int,
+    balance: float,
+    rank_max_stake_pct_val: float,
+) -> float:
+    from app.daily_stop_limit import (
+        SIGNAL_DAILY_STOP_LIMIT_PCT,
+        msk_day_key,
+        signal_closed_stop_budget_rank_pct,
+    )
+
+    today_key = msk_day_key(_now())
+    if not today_key:
+        return 0.0
+    total = 0.0
+    rows = db.scalars(
+        select(Signal).where(
+            Signal.author_telegram_id == author_id,
+            Signal.status.in_(("win", "lose")),
+            Signal.is_cult_candidate.is_(True),
+        )
+    ).all()
+    for sig in rows:
+        if msk_day_key(sig.closed_at) != today_key:
+            continue
+        total += signal_closed_stop_budget_rank_pct(sig, balance, rank_max_stake_pct_val)
+    return round(min(total, SIGNAL_DAILY_STOP_LIMIT_PCT), 2)
+
+
+def candidate_active_stop_reserved_rank_pct(
+    db: Session,
+    author_id: int,
+    balance: float,
+    rank_max_stake_pct_val: float,
+    *,
+    exclude_signal_id: int | None = None,
+) -> float:
+    from app.daily_stop_limit import SIGNAL_DAILY_STOP_LIMIT_PCT, signal_reserved_rank_pct
+
+    total = 0.0
+    for sig in _candidate_active_signals(db, author_id):
+        if exclude_signal_id is not None and sig.id == exclude_signal_id:
+            continue
+        total += signal_reserved_rank_pct(sig, balance, rank_max_stake_pct_val)
+    return round(min(total, SIGNAL_DAILY_STOP_LIMIT_PCT), 2)
+
+
+def candidate_daily_stop_form_state(
+    db: Session,
+    author_id: int,
+    balance: float,
+    rank_max_stake_pct_val: float,
+    *,
+    exclude_signal_id: int | None = None,
+) -> dict[str, float]:
+    from app.daily_stop_limit import (
+        RANK_NOMINAL_LEVERAGE_FOR_DAILY,
+        daily_stop_remaining_rank_pct,
+        rank_nominal_usd,
+    )
+
+    rank_nominal_ref = rank_nominal_usd(balance, rank_max_stake_pct_val, RANK_NOMINAL_LEVERAGE_FOR_DAILY)
+    consumed_rank_pct = candidate_stop_consumed_rank_pct(db, author_id, balance, rank_max_stake_pct_val)
+    reserved_rank_pct = candidate_active_stop_reserved_rank_pct(
+        db,
+        author_id,
+        balance,
+        rank_max_stake_pct_val,
+        exclude_signal_id=exclude_signal_id,
+    )
+    remaining_rank_pct = daily_stop_remaining_rank_pct(
+        consumed_rank_pct,
+        reserved_rank_pct=reserved_rank_pct,
+    )
+    consumed_usd = (
+        round(consumed_rank_pct / 100.0 * rank_nominal_ref, 2) if rank_nominal_ref > 0 else 0.0
+    )
+    return {
+        "rank_nominal_usd": rank_nominal_ref,
+        "consumed_rank_pct": consumed_rank_pct,
+        "consumed_usd": consumed_usd,
+        "reserved_rank_pct": reserved_rank_pct,
+        "remaining_rank_pct": remaining_rank_pct,
+    }
+
+
+def build_candidate_form_snapshot(
+    db: Session,
+    sub: Subscriber,
+    *,
+    exclude_signal_id: int | None = None,
+) -> CultCandidateFormSnapshot:
+    from app.daily_stop_limit import SIGNAL_DAILY_TRADE_LIMIT
+    from app.signal_service import get_or_create_trader
+
+    ensure_can_trade(db, sub)
+    balance = cult_candidate_account_size(db, sub.telegram_user_id)
+    trader = get_or_create_trader(db, sub.telegram_user_id, None)
+    pool = candidate_stake_pool_snapshot(
+        db,
+        trader,
+        sub.telegram_user_id,
+        exclude_signal_id=exclude_signal_id,
+    )
+    rank_cap = float(pool["rank_max_stake_pct"])
+    stop_state = candidate_daily_stop_form_state(
+        db,
+        sub.telegram_user_id,
+        balance,
+        rank_cap,
+        exclude_signal_id=exclude_signal_id,
+    )
+    return CultCandidateFormSnapshot(
+        balance=balance,
+        account_size=balance,
+        daily_loss_usd=float(stop_state["consumed_usd"]),
+        daily_trades_count=candidate_signals_today_count(db, sub.telegram_user_id),
+        daily_trades_limit=SIGNAL_DAILY_TRADE_LIMIT,
+        current_rank_id=int(pool["current_rank_id"]),
+        current_rank_name=str(pool["current_rank_name"]),
+        rank_max_stake_pct=float(pool["rank_max_stake_pct"]),
+        rank_max_leverage=int(pool["rank_max_leverage"]),
+        daily_stop_reserved_rank_pct=float(stop_state["reserved_rank_pct"]),
+        daily_stop_remaining_rank_pct=float(stop_state["remaining_rank_pct"]),
+        stake_pool_used_pct=float(pool["stake_pool_used_pct"]),
+        stake_pool_remaining_pct=float(pool["stake_pool_remaining_pct"]),
+        max_stake_pct=float(pool["max_stake_pct"]),
+    )
+
+
+def validate_candidate_signal_stake(
+    db: Session,
+    author_id: int,
+    stake_pct: float,
+    *,
+    exclude_signal_id: int | None = None,
+) -> None:
+    from fastapi import HTTPException, status
+
+    from app.signal_service import get_or_create_trader
+
+    if stake_pct <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Сумма входа должна быть больше 0%",
+        )
+    trader = get_or_create_trader(db, author_id, None)
+    snap = candidate_stake_pool_snapshot(db, trader, author_id, exclude_signal_id=exclude_signal_id)
+    rank_cap = float(snap["rank_max_stake_pct"])
+    pool_left = float(snap["stake_pool_remaining_pct"])
+    max_allowed = float(snap["max_stake_pct"])
+    if stake_pct > rank_cap + 0.001:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Максимум {rank_cap:g}% входа для ранга «{snap['current_rank_name']}»",
+        )
+    if stake_pct > pool_left + 0.001:
+        used = float(snap["stake_pool_used_pct"])
+        if pool_left <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="100% пула суммы входа уже занято вашими активными сделками",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"В пуле занято {used:g}% суммы входа — доступно {pool_left:g}%",
+        )
+    if stake_pct > max_allowed + 0.001:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Максимальная сумма входа сейчас {max_allowed:g}%",
+        )
+
+
+def validate_candidate_signal_leverage(db: Session, author_id: int, leverage: int) -> None:
+    from fastapi import HTTPException, status
+
+    from app.rank_constants import MAX_SIGNAL_LEVERAGE, rank_max_leverage, rank_name
+    from app.rank_service import ensure_rank_fields
+    from app.signal_service import get_or_create_trader
+
+    lev = max(1, min(int(leverage or 1), MAX_SIGNAL_LEVERAGE))
+    trader = get_or_create_trader(db, author_id, None)
+    ensure_rank_fields(trader)
+    rank_id = trader.current_rank_id or 8
+    max_lev = rank_max_leverage(rank_id)
+    if lev > max_lev:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Для ранга «{rank_name(rank_id)}» доступно плечо до {max_lev}×",
+        )
+
+
+def validate_candidate_signal_daily_trades(db: Session, author_id: int) -> None:
+    from fastapi import HTTPException, status
+
+    from app.daily_stop_limit import SIGNAL_DAILY_TRADE_LIMIT
+
+    count = candidate_signals_today_count(db, author_id)
+    if count >= SIGNAL_DAILY_TRADE_LIMIT:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Лимит дня: {SIGNAL_DAILY_TRADE_LIMIT} сделки — "
+                f"сделок сегодня уже {count}"
+            ),
+        )
+
+
+def validate_candidate_signal_daily_stop(
+    db: Session,
+    author_id: int,
+    entry_low: str | None,
+    entry_high: str | None,
+    stop_loss: str | None,
+    stake_pct: float,
+    leverage: int,
+    *,
+    exclude_signal_id: int | None = None,
+) -> None:
+    from fastapi import HTTPException, status
+
+    from app.daily_stop_limit import (
+        ACCOUNT_STOP_MIN_STEP,
+        SIGNAL_DAILY_STOP_LIMIT_PCT,
+        SIGNAL_DAILY_TRADE_LIMIT,
+        compute_signal_points_percent,
+        daily_stop_budget_usd,
+        price_stop_to_reserved_rank_pct,
+    )
+    from app.signal_service import get_or_create_trader
+
+    _ = stake_pct
+    balance = cult_candidate_account_size(db, author_id)
+    trader = get_or_create_trader(db, author_id, None)
+    snap = candidate_stake_pool_snapshot(db, trader, author_id, exclude_signal_id=exclude_signal_id)
+    rank_cap = float(snap["rank_max_stake_pct"])
+    stop_state = candidate_daily_stop_form_state(
+        db,
+        author_id,
+        balance,
+        rank_cap,
+        exclude_signal_id=exclude_signal_id,
+    )
+    rank_nominal = stop_state["rank_nominal_usd"]
+    consumed_pct = stop_state["consumed_rank_pct"]
+    remaining_pct = stop_state["remaining_rank_pct"]
+    reserved_pct = stop_state["reserved_rank_pct"]
+    if remaining_pct < ACCOUNT_STOP_MIN_STEP:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Лимит дня: {SIGNAL_DAILY_TRADE_LIMIT} сделки или "
+                f"{SIGNAL_DAILY_STOP_LIMIT_PCT:g}% стопа от номинала ранга — дневной стоп исчерпан "
+                f"(использовано {consumed_pct:g}%, заморожено {reserved_pct:g}%, "
+                f"лимит ${daily_stop_budget_usd(rank_nominal):g})"
+            ),
+        )
+    if not stop_loss:
+        return
+    price_stop_pct = compute_signal_points_percent(entry_low, entry_high, stop_loss)
+    needed_rank_pct = price_stop_to_reserved_rank_pct(price_stop_pct, leverage)
+    if needed_rank_pct > remaining_pct + 0.01:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Стоп {price_stop_pct:g}% цены занимает {needed_rank_pct:g}% дневного лимита "
+                f"({SIGNAL_DAILY_STOP_LIMIT_PCT:g}% макс.), остаток {remaining_pct:g}% "
+                f"(использовано {consumed_pct:g}%, заморожено {reserved_pct:g}%)"
+            ),
+        )
+
+
+def get_candidate_owned_signal(db: Session, signal_id: int, author_id: int) -> Signal:
+    row = db.get(Signal, signal_id)
+    if row is None or not row.is_cult_candidate or row.author_telegram_id != author_id:
+        raise ValueError("Сделка не найдена")
+    return row
 
 
 def ensure_can_trade(db: Session, sub: Subscriber) -> CultCandidate:

@@ -203,7 +203,9 @@ def close_signal(
             return False
         if exit_price is None:
             return False
-        if not apply_outcome_to_cult_candidate(db, candidate, signal, outcome, exit_price):
+        if not apply_outcome_to_cult_candidate(
+            db, candidate, signal, outcome, exit_price, close_reason=close_reason
+        ):
             return False
         db.commit()
         db.refresh(signal)

@@ -1,12 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
-import { createCultCandidateSignal, fetchCopyTradingStatus } from "../api";
+import { createCultCandidateSignal, type UploadProgress } from "../api";
+import { useCandidateSignalFormTracker } from "../hooks/useCandidateSignalFormTracker";
 import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
 import { useSignalMarketPriceInit } from "../hooks/useSignalMarketPriceInit";
 import { buildSignalFormData } from "../utils/buildSignalFormData";
-import { parseLeverage, parseRiskPercent } from "../utils/signalForm";
+import { confirmAction } from "../utils/confirmAction";
+import { parseLeverage } from "../utils/signalForm";
+import { initialUploadProgress, mediaBytesInForm } from "../utils/upload";
 import { SignalLevelsFields } from "./SignalLevelsFields";
+import { SignalMediaPicker } from "./SignalMediaPicker";
+import { SignalFormCommentSection } from "./signal-form/SignalFormCommentSection";
 import { SignalFormDealSection } from "./signal-form/SignalFormDealSection";
+import { SignalFormLimitsBar } from "./signal-form/SignalFormLimitsBar";
 import { SignalFormPositionCard } from "./signal-form/SignalFormPositionCard";
 import { SignalFormSection } from "./signal-form/SignalFormSection";
 import { SignalFormShell } from "./signal-form/SignalFormShell";
@@ -28,8 +34,10 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
   const [leverage, setLeverage] = useState("1");
   const [risk, setRisk] = useState("10");
   const [comment, setComment] = useState("");
-  const [balanceUsd, setBalanceUsd] = useState(10_000);
-
+  const [screenshot, setScreenshot] = useState<File | null>(null);
+  const [video, setVideo] = useState<File | null>(null);
+  const [shotPreview, setShotPreview] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const {
     direction,
     entry,
@@ -47,9 +55,33 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
   } = useSignalLevelFields("long");
   const directionRef = useRef(direction);
   directionRef.current = direction;
+  const wasOpenRef = useRef(false);
 
-  const stakePct = parseRiskPercent(risk);
-  const lev = parseLeverage(leverage);
+  const tracker = useCandidateSignalFormTracker(open, { risk, setRisk }, { leverage, setLeverage });
+  const balance = tracker.balanceForNominal();
+
+  const trackerSnapForInit = useMemo(() => {
+    const snap = tracker.trackerSnap;
+    if (!snap) return null;
+    return {
+      balance: snap.balance,
+      accountSize: snap.account_size,
+      dailyLossPct: 0,
+      dailyLossUsd: snap.daily_loss_usd,
+      maxDailyLossPct: 0,
+      dailyTradesCount: snap.daily_trades_count,
+      dailyTradesLimit: snap.daily_trades_limit,
+      currentRankId: snap.current_rank_id,
+      currentRankName: snap.current_rank_name,
+      rankMaxStakePct: snap.rank_max_stake_pct,
+      rankMaxLeverage: snap.rank_max_leverage,
+      dailyStopReservedRankPct: snap.daily_stop_reserved_rank_pct,
+      dailyStopRemainingRankPct: snap.daily_stop_remaining_rank_pct,
+      stakePoolUsedPct: snap.stake_pool_used_pct,
+      stakePoolRemainingPct: snap.stake_pool_remaining_pct,
+      maxStakePct: snap.max_stake_pct,
+    };
+  }, [tracker.trackerSnap]);
 
   const { resetInitKey } = useSignalMarketPriceInit({
     open,
@@ -57,46 +89,61 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
     stakePctLabel: risk,
     leverage,
     riskPct,
-    trackerSnap: null,
-    trackerLoading: false,
+    trackerSnap: trackerSnapForInit,
+    trackerLoading: tracker.trackerLoading,
     directionRef,
     applyMarketPrice,
     setRisk,
     setPriceLoading,
     setError,
-    skipTrackerInit: true,
   });
 
   useEffect(() => {
-    if (!open) return;
-    void fetchCopyTradingStatus()
-      .then((s) => {
-        const b = s.usdt_balance ?? s.account_balance_usd;
-        if (b != null && b > 0) setBalanceUsd(b);
-        if (s.stake_percent > 0) setRisk(String(s.stake_percent));
-      })
-      .catch(() => undefined);
-  }, [open]);
+    const wasOpen = wasOpenRef.current;
+    wasOpenRef.current = open;
 
-  useEffect(() => {
-    if (!open) resetInitKey();
-  }, [open, resetInitKey]);
+    if (!open) {
+      if (wasOpen) {
+        setPriceLoading(false);
+        setSubmitting(false);
+        setUploadProgress(null);
+      }
+      return;
+    }
 
-  useEffect(() => {
-    if (!open) return;
-    setError(null);
-    setSymbol(DEFAULT_SYMBOL);
-    setLeverage("1");
-    setComment("");
-    resetForm();
-  }, [open, resetForm]);
+    if (!wasOpen) {
+      resetInitKey();
+      setError(null);
+      setPriceLoading(false);
+      setSubmitting(false);
+      setUploadProgress(null);
+      setSymbol(DEFAULT_SYMBOL);
+      setLeverage("1");
+      setRisk("10");
+      setComment("");
+      resetForm();
+      setScreenshot(null);
+      setVideo(null);
+      setShotPreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+    }
+  }, [open, resetForm, resetInitKey]);
 
   if (!open) return null;
 
-  const stakeUsd = balanceUsd > 0 ? (balanceUsd * stakePct * lev) / 100 : 0;
+  const formBlocked = tracker.dailyLimit.blocked || tracker.stakePoolBlocked;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formBlocked) return;
+    const side = direction === "short" ? "SHORT" : "LONG";
+    const ok = await confirmAction(
+      `Открыть ${symbol.trim().toUpperCase()} ${side} в карточке?\nВход ${risk}% · ${parseLeverage(leverage)}×`,
+    );
+    if (!ok) return;
+
     setSubmitting(true);
     setError(null);
     try {
@@ -109,10 +156,13 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
         comment,
         leverage,
         risk,
-        screenshot: null,
-        video: null,
+        screenshot,
+        video,
       });
-      await createCultCandidateSignal(fd);
+      const uploadBytes = mediaBytesInForm(fd);
+      const trackUpload = uploadBytes > 0;
+      setUploadProgress(trackUpload ? initialUploadProgress(uploadBytes) : null);
+      await createCultCandidateSignal(fd, trackUpload ? (p) => setUploadProgress(p) : undefined);
       WebApp.HapticFeedback.notificationOccurred("success");
       onCreated();
       onClose();
@@ -120,18 +170,32 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
       setError(err instanceof Error ? err.message : "Ошибка");
     } finally {
       setSubmitting(false);
+      setUploadProgress(null);
     }
   };
 
   return (
     <SignalFormShell
-      title="Сделка кандидата"
-      subtitle="Bybit"
+      title="Новый сигнал"
+      subtitle="В карточку"
       onClose={onClose}
       onBackdropClick={onClose}
       onSubmit={submit}
     >
-      <p className="meta cult-candidate-signal-hint">Только ваша карточка в ТОП · исполнение через API Bybit.</p>
+      <SignalFormLimitsBar
+        active
+        loading={tracker.trackerLoading}
+        dailyRemaining={tracker.dailyRemaining}
+        dailyStopReservedRankPct={tracker.dailyStopReservedRank}
+        dailyTradesRemaining={tracker.dailyTradesRemainingCount}
+        dailyTradesLimit={tracker.dailyTradesLimit}
+        stakePoolUsedPct={tracker.trackerSnap?.stake_pool_used_pct}
+        stakePoolRemainingPct={tracker.trackerSnap?.stake_pool_remaining_pct}
+        dailyBlocked={tracker.dailyLimit.blocked}
+        dailyBlockReason={tracker.dailyLimit.reason}
+        stakePoolBlocked={tracker.stakePoolBlocked}
+        maxStakePct={tracker.maxStakePct}
+      />
 
       <SignalFormSection title="Сделка">
         <SignalFormDealSection
@@ -154,9 +218,12 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
           onStopChange={onStopChange}
           onTargetChange={onTargetChange}
           onRiskPctChange={onRiskPctChange}
-          stakePct={stakePct}
-          leverage={lev}
-          dailyStopBlocked={false}
+          stakePct={tracker.stakePct}
+          leverage={tracker.lev}
+          dailyRemainingPct={tracker.dailyRemainingRank}
+          balanceUsd={balance}
+          rankMaxStakePct={tracker.rankMaxStakePct}
+          dailyStopBlocked={tracker.dailyStopBlocked}
         />
       </SignalFormSection>
 
@@ -170,36 +237,53 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
             resyncStopTargetForLeverage({
               prevLeverage: prev,
               newLeverage: next,
-              stakePct,
+              stakePct: tracker.stakePct,
+              dailyRemainingRankPct: tracker.dailyRemainingRank,
+              balanceUsd: balance,
+              rankMaxStakePct: tracker.rankMaxStakePct,
             });
           }}
           risk={risk}
           onRiskChange={setRisk}
-          maxStakePct={100}
-          balanceUsd={balanceUsd}
-          stakeUsd={stakeUsd}
-          stakePct={stakePct}
-          lev={lev}
+          maxStakePct={tracker.maxStakePct}
+          maxLeverage={tracker.rankMaxLeverage}
+          disabled={tracker.stakePoolBlocked}
+          balanceUsd={balance}
+          stakeUsd={tracker.stakeUsd(balance)}
+          stakePct={tracker.stakePct}
+          lev={tracker.lev}
         />
       </SignalFormSection>
 
       <SignalFormSection title="Комментарий">
-        <textarea
-          className="signal-form-comment"
+        <SignalMediaPicker
+          screenshot={screenshot}
+          video={video}
+          shotPreview={shotPreview}
+          onScreenshot={(file) => {
+            setScreenshot(file);
+            if (shotPreview) URL.revokeObjectURL(shotPreview);
+            setShotPreview(file ? URL.createObjectURL(file) : null);
+          }}
+          onVideo={setVideo}
+          label="Скрин или видео"
+        />
+        <SignalFormCommentSection
           value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          placeholder="Необязательно"
-          rows={2}
+          onChange={setComment}
+          disabled={submitting}
+          placeholder="Краткий разбор сделки…"
         />
       </SignalFormSection>
 
       <SignalFormSubmitFooter
         error={error}
         submitting={submitting}
-        uploadProgress={null}
-        hasVideo={false}
-        disabled={false}
-        publishLabel="Отправить на Bybit"
+        uploadProgress={uploadProgress}
+        hasVideo={!!video}
+        disabled={submitting || priceLoading || formBlocked}
+        publishLabel="Опубликовать"
+        saveLabel="Публикация…"
       />
     </SignalFormShell>
   );

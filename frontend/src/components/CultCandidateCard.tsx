@@ -1,14 +1,18 @@
 import type { CultCandidate, CultCandidateClosedSignal } from "../api";
 import { authorProfile } from "../utils";
 import { Avatar } from "./Avatar";
+import { CultCandidateActiveTrades } from "./CultCandidateActiveTrades";
 import { CultCandidateClosedTrades } from "./CultCandidateClosedTrades";
 import { EquityCurve } from "./EquityCurve";
+import { RankBadge } from "./RankBadge";
 import { TraderRosterActions } from "./TraderRosterActions";
 
 type Props = {
   candidate: CultCandidate;
   onTrade?: () => void;
   onOpenClosedTrade?: (trade: CultCandidateClosedSignal) => void;
+  onCloseAtMarket?: (signalId: number) => void;
+  closingSignalId?: number | null;
   isSuperAdmin?: boolean;
   onRosterChange?: () => void;
 };
@@ -17,11 +21,11 @@ export function CultCandidateCard({
   candidate,
   onTrade,
   onOpenClosedTrade,
+  onCloseAtMarket,
+  closingSignalId = null,
   isSuperAdmin = false,
   onRosterChange,
 }: Props) {
-  const dirLabel = (d: string) => (d.toLowerCase() === "long" ? "LONG" : "SHORT");
-
   return (
     <li className={candidate.is_me ? "top-list__item--me" : undefined}>
       <div className={`top-card top-card--candidate${candidate.is_me ? " top-card--candidate-me" : ""}`}>
@@ -38,6 +42,7 @@ export function CultCandidateCard({
               <p className="top-name">
                 {authorProfile(candidate.display_name, candidate.username).title}
               </p>
+              {candidate.trader_rank && <RankBadge rank={candidate.trader_rank} featured />}
             </div>
             <p className={`top-score ${candidate.rating_percent >= 0 ? "up" : "down"}`}>
               {candidate.rating_percent >= 0 ? "+" : ""}
@@ -50,17 +55,12 @@ export function CultCandidateCard({
         </div>
 
         {candidate.active_signals.length > 0 && (
-          <ul className="cult-candidate-trades">
-            {candidate.active_signals.map((s) => (
-              <li key={s.id} className="cult-candidate-trades__row">
-                <span className="cult-candidate-trades__sym">{s.symbol}</span>
-                <span className="cult-candidate-trades__dir">{dirLabel(s.direction)}</span>
-                <span className="cult-candidate-trades__entry">вход {s.entry}</span>
-                <span className="cult-candidate-trades__level">{s.level_label}</span>
-                <span className="cult-candidate-trades__pct">{s.stake_percent}%</span>
-              </li>
-            ))}
-          </ul>
+          <CultCandidateActiveTrades
+            trades={candidate.active_signals}
+            canClose={candidate.is_me}
+            closingId={closingSignalId}
+            onCloseAtMarket={onCloseAtMarket}
+          />
         )}
 
         {(candidate.closed_signals?.length ?? 0) > 0 && onOpenClosedTrade && (
