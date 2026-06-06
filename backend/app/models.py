@@ -24,6 +24,7 @@ class Signal(Base):
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(16), default="active")  # active | win | lose
     entry_filled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    entry_notified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     published_market_price: Mapped[float | None] = mapped_column(Float, nullable=True)
     published_market_source: Mapped[str | None] = mapped_column(String(32), nullable=True)
     points_percent: Mapped[float] = mapped_column(Float, default=1.0)

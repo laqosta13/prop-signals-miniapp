@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { closeSignalAtMarket, deleteSignal, type ChallengeDashboard, type Signal } from "../api";
+import { FEED_LABEL_ACTIVE, FEED_LABEL_CLOSED } from "../data/appCopy";
 import { canViewActiveSignals, visibleFeedSignals } from "../utils/signalActions";
+import { splitFeedSignals } from "../utils/sortFeedSignals";
 import { PropTrackerMini } from "./PropTrackerMini";
 import { SignalCard } from "./SignalCard";
 
@@ -45,6 +47,11 @@ export function FeedTab({
   const feedTrader = isAdmin || canPublishMainFeed;
   const hasActiveAccess = canViewActiveSignals(subscriptionActive, feedTrader);
   const visible = visibleFeedSignals(signals, subscriptionActive, feedTrader);
+  const { active: activeSignals, closed: closedSignals } = useMemo(
+    () => splitFeedSignals(visible),
+    [visible],
+  );
+
   const handleDelete = async (id: number) => {
     if (!confirm("Удалить этот сигнал?")) return;
     setDeletingId(id);
@@ -75,6 +82,28 @@ export function FeedTab({
     }
   };
 
+  const renderCards = (list: Signal[]) =>
+    list.map((s) => (
+      <SignalCard
+        key={`${s.id}-${s.status}-${s.closed_at ?? "open"}-${refreshKey}`}
+        signal={s}
+        liveTrackerBalance={trackers.find((t) => t.owner_telegram_id === s.author_telegram_id)?.balance}
+        isAdmin={isAdmin}
+        myId={myId}
+        canEngage={true}
+        deleting={deletingId === s.id}
+        closing={closingId === s.id}
+        onEdit={onEdit}
+        onSupplement={onSupplement}
+        onCloseAtMarket={handleCloseAtMarket}
+        onDelete={handleDelete}
+        onPatch={onPatch}
+      />
+    ));
+
+  const showActiveBlock = hasActiveAccess;
+  const showClosedBlock = closedSignals.length > 0;
+
   return (
     <>
       {!hasActiveAccess && (
@@ -89,23 +118,28 @@ export function FeedTab({
       {!loading && visible.length === 0 && (
         <p className="meta">{hasActiveAccess ? "Пока нет сигналов." : "Пока нет отработанных сигналов."}</p>
       )}
-      {visible.map((s) => (
-        <SignalCard
-          key={`${s.id}-${s.status}-${s.closed_at ?? "open"}-${refreshKey}`}
-          signal={s}
-          liveTrackerBalance={trackers.find((t) => t.owner_telegram_id === s.author_telegram_id)?.balance}
-          isAdmin={isAdmin}
-          myId={myId}
-          canEngage={true}
-          deleting={deletingId === s.id}
-          closing={closingId === s.id}
-          onEdit={onEdit}
-          onSupplement={onSupplement}
-          onCloseAtMarket={handleCloseAtMarket}
-          onDelete={handleDelete}
-          onPatch={onPatch}
-        />
-      ))}
+
+      {showActiveBlock && !loading && (
+        <section className="feed-block feed-block--active" aria-label={FEED_LABEL_ACTIVE}>
+          <h2 className="feed-block__label feed-block__label--active">{FEED_LABEL_ACTIVE}</h2>
+          {activeSignals.length > 0 ? (
+            renderCards(activeSignals)
+          ) : (
+            <p className="meta feed-block__empty">Нет активных сделок</p>
+          )}
+        </section>
+      )}
+
+      {showClosedBlock && !loading && (
+        <section
+          className={`feed-block feed-block--closed${showActiveBlock ? " feed-block--closed-after-active" : ""}`}
+          aria-label={FEED_LABEL_CLOSED}
+        >
+          <h2 className="feed-block__label feed-block__label--closed">{FEED_LABEL_CLOSED}</h2>
+          {renderCards(closedSignals)}
+        </section>
+      )}
+
       {trackers.length > 0 && <PropTrackerMini trackers={trackers} onOpen={onOpenTracker} />}
     </>
   );

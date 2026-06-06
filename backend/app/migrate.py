@@ -51,6 +51,7 @@ def run_migrations(engine: Engine) -> None:
                 ("views_count", "ALTER TABLE signals ADD COLUMN views_count INTEGER DEFAULT 0"),
                 ("likes_count", "ALTER TABLE signals ADD COLUMN likes_count INTEGER DEFAULT 0"),
                 ("entry_filled_at", "ALTER TABLE signals ADD COLUMN entry_filled_at DATETIME"),
+                ("entry_notified_at", "ALTER TABLE signals ADD COLUMN entry_notified_at DATETIME"),
                 ("published_market_price", "ALTER TABLE signals ADD COLUMN published_market_price REAL"),
                 ("published_market_source", "ALTER TABLE signals ADD COLUMN published_market_source VARCHAR(32)"),
                 ("number", "ALTER TABLE signals ADD COLUMN number INTEGER"),
@@ -447,6 +448,7 @@ def run_migrations(engine: Engine) -> None:
     _disable_bybit_testnet_v1(engine)
     _backfill_payment_memos_v1(engine)
     _backfill_copy_billing_on_subscribers_v1(engine)
+    _backfill_entry_notified_at_v1(engine)
     _sync_news_notify_flags_v1(engine)
     _reset_news_notify_opt_in_v2(engine)
     _recalc_market_close_ratings_v1(engine)
@@ -879,6 +881,30 @@ def _purge_all_published_jun2026_v9(engine: Engine) -> None:
         marker.touch()
     finally:
         db.close()
+
+
+def _backfill_entry_notified_at_v1(engine: Engine) -> None:
+    """Старые входы по лимитке не дублируем push «В РЫНКЕ» после деплоя."""
+    marker = _marker_path(engine, ".backfill_entry_notified_at_v1")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".backfill_entry_notified_at_v1"
+    if marker.exists():
+        return
+    if "signals" not in inspect(engine).get_table_names():
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+        return
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "UPDATE signals SET entry_notified_at = entry_filled_at "
+                "WHERE entry_filled_at IS NOT NULL AND entry_notified_at IS NULL"
+            )
+        )
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.touch()
 
 
 def _backfill_copy_billing_on_subscribers_v1(engine: Engine) -> None:

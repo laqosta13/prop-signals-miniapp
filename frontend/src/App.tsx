@@ -22,6 +22,7 @@ import {
 import { FeedTab } from "./components/FeedTab";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { mergeFeedSignals } from "./utils/mergeFeedSignals";
+import { sortFeedSignals } from "./utils/sortFeedSignals";
 import { isSignalAwaitingEntry, isSignalInMarket } from "./utils/signalActions";
 import { PRODUCT_TAGLINE, TAB_SUBTITLES } from "./data/appCopy";
 import { hasAcceptedDisclaimer, markDisclaimerAccepted } from "./utils/disclaimerStorage";
@@ -159,7 +160,9 @@ export default function App() {
 
   const patchSignal = useCallback(
     (id: number, patch: Partial<Signal>) =>
-      setSignals((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s))),
+      setSignals((prev) =>
+        sortFeedSignals(prev.map((s) => (s.id === id ? { ...s, ...patch } : s))),
+      ),
     [],
   );
 
@@ -184,7 +187,7 @@ export default function App() {
   const refreshSignalsFull = useCallback(async () => {
     try {
       const sig = fullAccessRef.current ? await fetchSignals() : await fetchSignalsPreview();
-      setSignals(sig);
+      setSignals(sortFeedSignals(sig));
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось обновить ленту");
@@ -246,7 +249,7 @@ export default function App() {
         setRankPending(null);
       }
       const sig = fullAccess ? await fetchSignals() : await fetchSignalsPreview();
-      setSignals(sig);
+      setSignals(sortFeedSignals(sig));
     } catch (e) {
       setSignals([]);
       setTrackers([]);

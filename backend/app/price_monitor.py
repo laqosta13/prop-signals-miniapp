@@ -20,7 +20,7 @@ from app.price_service import (
     normalize_symbol,
 )
 from app.copy_trading_service import open_signal_copies, open_signal_copy_for_user
-from app.signal_service import close_signal_and_notify, notify_entry_filled
+from app.signal_service import after_limit_entry_filled, close_signal_and_notify, notify_entry_filled_if_needed
 from app.signal_utils import entry_zone_defined, monitor_exit_price
 
 logger = logging.getLogger(__name__)
@@ -72,62 +72,68 @@ async def check_active_signals_once() -> tuple[int, bool]:
         quotes_by_symbol = dict(zip(symbols, quote_lists, strict=True))
 
         for signal in admin_active:
-            sym = normalize_symbol(signal.symbol)
-            quotes = quotes_by_symbol.get(sym) or []
-            if not quotes:
-                logger.warning("Монитор: нет цен для %s (signal #%s)", signal.symbol, signal.id)
-                continue
-
-            if signal.entry_filled_at is None:
-                if not entry_zone_defined(signal.entry_low, signal.entry_high):
+            try:
+                sym = normalize_symbol(signal.symbol)
+                quotes = quotes_by_symbol.get(sym) or []
+                if not quotes:
+                    logger.warning("Монитор: нет цен для %s (signal #%s)", signal.symbol, signal.id)
                     continue
-                hit = first_entry_quote(quotes, signal.direction, signal.entry_low, signal.entry_high)
-                if hit is None:
-                    continue
-                signal.entry_filled_at = datetime.now(timezone.utc)
-                db.commit()
-                logger.info(
-                    "Монитор: вход signal #%s %s, %s=%.4f",
-                    signal.id,
-                    signal.symbol,
-                    hit.source,
-                    hit.price,
-                )
-                await notify_entry_filled(db, signal)
-                await open_signal_copies(db, signal)
-                continue
 
-            outcome_hit = first_outcome_quote(
-                quotes, signal.direction, signal.stop_loss, signal.take_profits
-            )
-            if outcome_hit is None:
-                continue
-            outcome, hit = outcome_hit
-            if outcome in ("win", "lose"):
-                exit_px = monitor_exit_price(
-                    outcome,
-                    direction=signal.direction,
-                    stop_loss=signal.stop_loss,
-                    take_profits=signal.take_profits,
-                    market_price=hit.price,
+                if signal.entry_filled_at is None:
+                    if not entry_zone_defined(signal.entry_low, signal.entry_high):
+                        continue
+                    hit = first_entry_quote(quotes, signal.direction, signal.entry_low, signal.entry_high)
+                    if hit is None:
+                        continue
+                    signal.entry_filled_at = datetime.now(timezone.utc)
+                    db.commit()
+                    db.refresh(signal)
+                    logger.info(
+                        "Монитор: вход signal #%s %s, %s=%.4f",
+                        signal.id,
+                        signal.symbol,
+                        hit.source,
+                        hit.price,
+                    )
+                    await after_limit_entry_filled(db, signal)
+                    continue
+
+                if signal.entry_notified_at is None:
+                    await notify_entry_filled_if_needed(db, signal)
+
+                outcome_hit = first_outcome_quote(
+                    quotes, signal.direction, signal.stop_loss, signal.take_profits
                 )
-                logger.info(
-                    "Монитор: %s signal #%s %s, %s=%.4f → exit=%.4f",
-                    outcome,
-                    signal.id,
-                    signal.symbol,
-                    hit.source,
-                    hit.price,
-                    exit_px,
-                )
-                await close_signal_and_notify(
-                    db,
-                    signal,
-                    outcome,
-                    exit_price=exit_px,
-                    close_reason="target" if outcome == "win" else "stop",
-                )
-                closed += 1
+                if outcome_hit is None:
+                    continue
+                outcome, hit = outcome_hit
+                if outcome in ("win", "lose"):
+                    exit_px = monitor_exit_price(
+                        outcome,
+                        direction=signal.direction,
+                        stop_loss=signal.stop_loss,
+                        take_profits=signal.take_profits,
+                        market_price=hit.price,
+                    )
+                    logger.info(
+                        "Монитор: %s signal #%s %s, %s=%.4f → exit=%.4f",
+                        outcome,
+                        signal.id,
+                        signal.symbol,
+                        hit.source,
+                        hit.price,
+                        exit_px,
+                    )
+                    await close_signal_and_notify(
+                        db,
+                        signal,
+                        outcome,
+                        exit_price=exit_px,
+                        close_reason="target" if outcome == "win" else "stop",
+                    )
+                    closed += 1
+            except Exception:
+                logger.exception("Монитор: ошибка signal #%s", signal.id)
 
         for signal in cult_trader_active:
             sym = normalize_symbol(signal.symbol)

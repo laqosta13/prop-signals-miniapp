@@ -449,6 +449,10 @@ body {
   color: var(--text);
 }
 
+[data-theme="light"] .feed-block__label--active {
+  color: #7c3aed;
+}
+
 [data-theme="light"] .top-cult-label--traders {
   color: var(--purple);
 }

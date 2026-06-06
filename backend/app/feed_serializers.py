@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from sqlalchemy import select
+from sqlalchemy import case, select
 from sqlalchemy.orm import Session
 
 from app.media_storage import public_url
@@ -22,6 +22,13 @@ from app.trader_stats import signal_realized_pnl_for_read
 
 FEED_SIGNAL_LIMIT = 80
 MAX_SUPPLEMENTS_PER_SIGNAL = 8
+
+# Активные сверху; внутри группы — #N ↓, затем created_at ↓
+FEED_SIGNAL_ORDER = (
+    case((Signal.status == "active", 0), else_=1),
+    Signal.number.desc(),
+    Signal.created_at.desc(),
+)
 
 
 def signals_list_read(db: Session, signals: list[Signal], viewer_id: int | None) -> list[SignalRead]:

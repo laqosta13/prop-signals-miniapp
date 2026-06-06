@@ -17,7 +17,7 @@ from app.media_storage import (
 )
 from app.models import Signal, SignalSupplement
 from app.schemas import LikeResponse, MarketPriceRead, MarketSymbolsRead, SignalRead, TelegramUser, ViewResponse
-from app.feed_serializers import FEED_SIGNAL_LIMIT, signals_list_read
+from app.feed_serializers import FEED_SIGNAL_LIMIT, FEED_SIGNAL_ORDER, signals_list_read
 from app.serializers import signal_to_read
 from app.price_service import (
     fetch_bybit_linear_symbols,
@@ -67,7 +67,7 @@ async def list_signals(
     stmt = (
         select(Signal)
         .where(Signal.is_cult_candidate.is_(False))
-        .order_by(Signal.created_at.desc())
+        .order_by(*FEED_SIGNAL_ORDER)
         .limit(FEED_SIGNAL_LIMIT)
     )
     rows = list(db.scalars(stmt).all())

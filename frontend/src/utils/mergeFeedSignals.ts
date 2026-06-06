@@ -1,5 +1,6 @@
 import type { Signal } from "../api";
 import { parseApiDate } from "../utils";
+import { sortFeedSignals } from "./sortFeedSignals";
 
 function mergeClosedSignal(local: Signal, remote: Signal): Signal {
   return {
@@ -18,7 +19,7 @@ function mergeClosedSignal(local: Signal, remote: Signal): Signal {
 /** Не откатывать локально закрытый сигнал из-за устаревшего poll/refetch. */
 export function mergeFeedSignals(prev: Signal[], next: Signal[]): Signal[] {
   const prevById = new Map(prev.map((s) => [s.id, s]));
-  return next.map((remote) => {
+  const merged = next.map((remote) => {
     const local = prevById.get(remote.id);
     if (!local) return remote;
 
@@ -42,4 +43,5 @@ export function mergeFeedSignals(prev: Signal[], next: Signal[]): Signal[] {
       liked_by_me: remote.liked_by_me ?? local.liked_by_me,
     };
   });
+  return sortFeedSignals(merged);
 }

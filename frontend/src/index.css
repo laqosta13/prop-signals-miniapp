@@ -2004,6 +2004,37 @@
   object-fit: contain;
 }
 
+.feed-block {
+  margin-bottom: 8px;
+}
+
+.feed-block--closed-after-active {
+  margin-top: 20px;
+  padding-top: 4px;
+}
+
+.feed-block__label {
+  margin: 0 0 12px;
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.feed-block__label--active {
+  color: var(--purple);
+}
+
+.feed-block__label--closed {
+  color: var(--muted);
+}
+
+.feed-block__empty {
+  margin: 0 0 8px;
+  text-align: center;
+}
+
 .sub-banner {
   background: var(--surface);
   border-radius: 14px;

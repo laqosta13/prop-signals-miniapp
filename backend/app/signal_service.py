@@ -296,10 +296,49 @@ async def notify_market_closed(signal_id: int) -> None:
         db.close()
 
 
-async def notify_entry_filled(db: Session, signal: Signal) -> None:
+async def notify_entry_filled_if_needed(db: Session, signal: Signal) -> bool:
+    """Push «В РЫНКЕ» один раз после срабатывания лимитки."""
+    if signal.entry_filled_at is None or signal.entry_notified_at is not None:
+        return False
     ids = subscriber_ids_for_notify(db)
     if ids:
         await notify_subscribers(format_entry_filled_message(signal), ids)
+        logger.info(
+            "Entry push #%s → %s subscribers",
+            signal.number if signal.number is not None else signal.id,
+            len(ids),
+        )
+    else:
+        logger.info(
+            "Entry push #%s: no subscribers (notify_enabled + subscription)",
+            signal.number if signal.number is not None else signal.id,
+        )
+    signal.entry_notified_at = datetime.now(timezone.utc)
+    db.commit()
+    return bool(ids)
+
+
+async def after_limit_entry_filled(db: Session, signal: Signal, *, notify: bool = True) -> None:
+    """После entry_filled_at: Telegram push и копии на Bybit."""
+    if getattr(signal, "is_cult_candidate", False):
+        try:
+            await open_signal_copy_for_user(db, signal, signal.author_telegram_id)
+        except Exception:
+            logger.exception("CULT copy open failed for signal #%s", signal.id)
+        return
+    if notify:
+        try:
+            await notify_entry_filled_if_needed(db, signal)
+        except Exception:
+            logger.exception("Entry notify failed for signal #%s", signal.id)
+    try:
+        await open_signal_copies(db, signal)
+    except Exception:
+        logger.exception("open_signal_copies failed for signal #%s", signal.id)
+
+
+async def notify_entry_filled(db: Session, signal: Signal) -> None:
+    await notify_entry_filled_if_needed(db, signal)
 
 
 async def notify_signal_supplement(
@@ -382,11 +421,8 @@ async def stamp_signal_at_publication(
             await open_signal_copy_for_user(db, signal, signal.author_telegram_id)
         return
 
-    if notify_entry and entry_hit:
-        await notify_entry_filled(db, signal)
-
     if signal.entry_filled_at is not None:
-        await open_signal_copies(db, signal)
+        await after_limit_entry_filled(db, signal, notify=notify_entry and entry_hit is not None)
 
 
 async def try_fill_entry_from_market(db: Session, signal: Signal, *, notify: bool = True) -> bool:
@@ -422,9 +458,7 @@ async def try_fill_entry_from_market(db: Session, signal: Signal, *, notify: boo
     if getattr(signal, "is_cult_candidate", False):
         await open_signal_copy_for_user(db, signal, signal.author_telegram_id)
         return True
-    if notify:
-        await notify_entry_filled(db, signal)
-    await open_signal_copies(db, signal)
+    await after_limit_entry_filled(db, signal, notify=notify)
     return True
 
 

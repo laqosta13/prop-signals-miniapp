@@ -6,6 +6,9 @@
 export const PRODUCT_NAME = "Volnovoi Cult";
 export const PRODUCT_TAGLINE = "Marketplace крипто-сделок";
 
+export const FEED_LABEL_ACTIVE = "Активные сделки";
+export const FEED_LABEL_CLOSED = "Закрытые сделки";
+
 export const PRODUCT_PITCH =
   "Прозрачная витрина сделок для всех участников рынка. Ранги и отбор — в топ только лучшие трейдеры и их сделки.";
 
