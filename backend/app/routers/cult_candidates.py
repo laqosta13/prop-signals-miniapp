@@ -20,7 +20,7 @@ from app.cult_subscription_billing import (
 )
 from app.deps import db_session, get_current_user
 from app.trader_roster_service import cult_subscription_admin_bypass
-from app.subscription_billing import usdt_pay_address
+from app.subscription_billing import ensure_payment_memo, usdt_pay_address
 from app.models import Subscriber
 from app.schemas import (
     CultCandidateJoinBody,
@@ -46,6 +46,19 @@ def _subscriber(db: Session, user: TelegramUser) -> Subscriber:
     return sub
 
 
+def _cult_subscription_info(db: Session, user: TelegramUser, sub: Subscriber) -> CultCandidateSubscriptionInfo:
+    return CultCandidateSubscriptionInfo(
+        usdt_ton_address=usdt_pay_address(),
+        payment_memo=ensure_payment_memo(db, sub),
+        subscription_usd=CULT_SUBSCRIPTION_USD,
+        subscription_days=CULT_SUBSCRIPTION_DAYS,
+        cult_subscription_until=sub.cult_subscription_until,
+        cult_subscription_active=cult_subscription_active(
+            sub, is_admin=cult_subscription_admin_bypass(db, user.telegram_user_id)
+        ),
+    )
+
+
 @router.get("", response_model=list[CultCandidateRead])
 def list_cult_candidates(
     db: Session = Depends(db_session),
@@ -60,15 +73,7 @@ def cult_subscription_info(
     user: TelegramUser = Depends(get_current_user),
 ) -> CultCandidateSubscriptionInfo:
     sub = _subscriber(db, user)
-    return CultCandidateSubscriptionInfo(
-        usdt_ton_address=usdt_pay_address(),
-        subscription_usd=CULT_SUBSCRIPTION_USD,
-        subscription_days=CULT_SUBSCRIPTION_DAYS,
-        cult_subscription_until=sub.cult_subscription_until,
-        cult_subscription_active=cult_subscription_active(
-            sub, is_admin=cult_subscription_admin_bypass(db, user.telegram_user_id)
-        ),
-    )
+    return _cult_subscription_info(db, user, sub)
 
 
 @router.post("/subscription/pay", response_model=CultCandidateSubscriptionInfo)
@@ -85,15 +90,7 @@ def cult_subscription_pay(
     except ValueError as e:
         db.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
-    return CultCandidateSubscriptionInfo(
-        usdt_ton_address=usdt_pay_address(),
-        subscription_usd=CULT_SUBSCRIPTION_USD,
-        subscription_days=CULT_SUBSCRIPTION_DAYS,
-        cult_subscription_until=sub.cult_subscription_until,
-        cult_subscription_active=cult_subscription_active(
-            sub, is_admin=cult_subscription_admin_bypass(db, user.telegram_user_id)
-        ),
-    )
+    return _cult_subscription_info(db, user, sub)
 
 
 @router.get("/signals/{signal_id}", response_model=SignalRead)
