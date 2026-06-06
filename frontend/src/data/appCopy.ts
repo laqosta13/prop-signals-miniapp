@@ -46,8 +46,8 @@ export const VOLNOVOI_SUBTITLE = "Сводка сделок отобранных
 export const VOLNOVOI_COPY_TITLE = "Копирование volnovoi · Bybit";
 export const VOLNOVOI_COPY_DESC =
   "Сделки volnovoi на вашем Bybit (perp). Оплата отдельно от подписки на ленту.";
-export const VOLNOVOI_COPY_HINT_BILLING = "Счёт раз в сутки · USDT TON · TXID";
-export const VOLNOVOI_COPY_HINT_API = "API Trade · без оплаты — пауза";
+export const VOLNOVOI_COPY_HINT_BILLING = "Депозит комиссии · USDT(в сети TON) · TXID";
+export const VOLNOVOI_COPY_HINT_API = "API Trade · без депозита — пауза";
 
 export const VOLNOVOI_MARKETING_CTA = "Подключите Bybit под карточкой ↓";
 

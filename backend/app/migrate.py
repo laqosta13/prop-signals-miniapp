@@ -99,6 +99,16 @@ def run_migrations(engine: Engine) -> None:
                 conn.execute(text("UPDATE subscribers SET trial_used = 1"))
             if not _has_column(engine, "subscribers", "payment_memo"):
                 conn.execute(text("ALTER TABLE subscribers ADD COLUMN payment_memo VARCHAR(16)"))
+            if not _has_column(engine, "subscribers", "copy_equity_baseline_usd"):
+                conn.execute(text("ALTER TABLE subscribers ADD COLUMN copy_equity_baseline_usd REAL"))
+            if not _has_column(engine, "subscribers", "copy_billed_profit_usd"):
+                conn.execute(text("ALTER TABLE subscribers ADD COLUMN copy_billed_profit_usd REAL DEFAULT 0"))
+                conn.execute(text("UPDATE subscribers SET copy_billed_profit_usd = 0 WHERE copy_billed_profit_usd IS NULL"))
+            if not _has_column(engine, "subscribers", "copy_connected_at"):
+                conn.execute(text("ALTER TABLE subscribers ADD COLUMN copy_connected_at DATETIME"))
+            if not _has_column(engine, "subscribers", "copy_fee_deposit_usd"):
+                conn.execute(text("ALTER TABLE subscribers ADD COLUMN copy_fee_deposit_usd REAL DEFAULT 0"))
+                conn.execute(text("UPDATE subscribers SET copy_fee_deposit_usd = 0 WHERE copy_fee_deposit_usd IS NULL"))
             conn.execute(
                 text(
                     "UPDATE subscribers SET subscription_until = datetime('now', '+3 days') "
@@ -436,6 +446,7 @@ def run_migrations(engine: Engine) -> None:
     _purge_all_published_jun2026_v9(engine)
     _disable_bybit_testnet_v1(engine)
     _backfill_payment_memos_v1(engine)
+    _backfill_copy_billing_on_subscribers_v1(engine)
     _sync_news_notify_flags_v1(engine)
     _reset_news_notify_opt_in_v2(engine)
     _recalc_market_close_ratings_v1(engine)
@@ -863,6 +874,66 @@ def _purge_all_published_jun2026_v9(engine: Engine) -> None:
     db = SessionLocal()
     try:
         purge_all_published_content(db)
+        db.commit()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
+
+
+def _backfill_copy_billing_on_subscribers_v1(engine: Engine) -> None:
+    """Перенос baseline/billed/connected с user_bybit_settings на subscribers."""
+    marker = _marker_path(engine, ".backfill_copy_billing_on_subscribers_v1")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".backfill_copy_billing_on_subscribers_v1"
+    if marker.exists():
+        return
+    if not str(engine.url).startswith("sqlite"):
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+        return
+    if "user_bybit_settings" not in inspect(engine).get_table_names():
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+        return
+
+    from app.database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        rows = db.execute(
+            text(
+                """
+                SELECT telegram_user_id, equity_baseline_usd, billed_profit_usd, connected_at
+                FROM user_bybit_settings
+                """
+            )
+        ).fetchall()
+        for tid, baseline, billed, connected_at in rows:
+            db.execute(
+                text(
+                    """
+                    UPDATE subscribers
+                    SET
+                        copy_equity_baseline_usd = COALESCE(copy_equity_baseline_usd, :baseline),
+                        copy_billed_profit_usd = CASE
+                            WHEN copy_billed_profit_usd IS NULL OR copy_billed_profit_usd = 0
+                            THEN COALESCE(:billed, 0)
+                            ELSE copy_billed_profit_usd
+                        END,
+                        copy_connected_at = COALESCE(copy_connected_at, :connected_at)
+                    WHERE telegram_user_id = :tid
+                    """
+                ),
+                {
+                    "tid": tid,
+                    "baseline": baseline,
+                    "billed": billed or 0,
+                    "connected_at": connected_at,
+                },
+            )
         db.commit()
         marker.parent.mkdir(parents=True, exist_ok=True)
         marker.touch()
