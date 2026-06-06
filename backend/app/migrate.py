@@ -455,6 +455,54 @@ def run_migrations(engine: Engine) -> None:
     _recalc_closed_signal_pnl_v2(engine)
     _recalc_closed_signal_pnl_v3(engine)
     _recalc_winrate_by_pnl_v1(engine)
+    _seed_volnovoi_cult_launch_news_v1(engine)
+
+
+def _seed_volnovoi_cult_launch_news_v1(engine: Engine) -> None:
+    """Одноразово: стартовая новость с обложкой + push после старта приложения."""
+    marker = _marker_path(engine, ".seeded_volnovoi_cult_launch_news_v1")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".seeded_volnovoi_cult_launch_news_v1"
+    if marker.exists():
+        return
+    if "news_posts" not in inspect(engine).get_table_names():
+        return
+
+    from app.config import settings
+    from app.database import SessionLocal
+    from app.media_storage import media_root
+    from app.models import NewsPost
+    from app.news_launch import (
+        LAUNCH_NEWS_BODY,
+        LAUNCH_NEWS_TITLE,
+        PENDING_NEWS_NOTIFY_FILE,
+        copy_news_cover,
+        launch_news_cover_path,
+    )
+
+    author_id = next(iter(sorted(settings.super_admin_id_set or settings.admin_id_set)), 1)
+    cover = launch_news_cover_path()
+    root = media_root()
+    db = SessionLocal()
+    try:
+        row = NewsPost(
+            title=LAUNCH_NEWS_TITLE[:200],
+            body=LAUNCH_NEWS_BODY.strip()[:10000],
+            author_telegram_id=author_id,
+        )
+        db.add(row)
+        db.flush()
+        if cover is not None:
+            row.image_path = copy_news_cover(root, row.id, cover)
+        db.commit()
+        db.refresh(row)
+        (root / PENDING_NEWS_NOTIFY_FILE).write_text(str(row.id), encoding="utf-8")
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
 
 
 def _recalc_closed_signal_pnl_v3(engine: Engine) -> None:
@@ -619,6 +667,8 @@ def _purge_signals_reset_v3(engine: Engine) -> None:
 
 def _backfill_referral_codes(engine: Engine) -> None:
     if not str(engine.url).startswith("sqlite"):
+        return
+    if "subscribers" not in inspect(engine).get_table_names():
         return
     import secrets
     import string

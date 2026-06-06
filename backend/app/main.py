@@ -45,10 +45,36 @@ run_migrations(engine)
 media_root()
 
 
+async def _notify_pending_launch_news() -> None:
+    from app.database import SessionLocal
+    from app.media_storage import media_root
+    from app.models import NewsPost
+    from app.news_launch import PENDING_NEWS_NOTIFY_FILE
+    from app.signal_service import notify_new_news
+
+    flag = media_root() / PENDING_NEWS_NOTIFY_FILE
+    if not flag.is_file():
+        return
+    try:
+        post_id = int(flag.read_text(encoding="utf-8").strip())
+    except ValueError:
+        flag.unlink(missing_ok=True)
+        return
+    db = SessionLocal()
+    try:
+        row = db.get(NewsPost, post_id)
+        if row is not None:
+            await notify_new_news(db, row)
+    finally:
+        db.close()
+        flag.unlink(missing_ok=True)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from app.price_monitor import check_active_signals_once
 
+    await _notify_pending_launch_news()
     await check_active_signals_once()
     asyncio.create_task(verify_support_group_after_delay())
     try:
