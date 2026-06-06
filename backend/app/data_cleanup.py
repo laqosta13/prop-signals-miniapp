@@ -65,13 +65,22 @@ def _purge_signals_media_and_rows(db: Session) -> None:
 
 
 def _purge_news_and_reviews(db: Session) -> None:
-    for post in db.scalars(select(NewsPost)):
+    pinned_ids = {
+        post.id for post in db.scalars(select(NewsPost).where(NewsPost.pinned.is_(True)))
+    }
+    for post in db.scalars(select(NewsPost).where(NewsPost.pinned.is_(False))):
         delete_media_files(post.image_path, post.video_path)
+    db.execute(delete(NewsPost).where(NewsPost.pinned.is_(False)))
+
+    news_root = media_root() / "news"
+    if news_root.is_dir():
+        for item in news_root.iterdir():
+            if item.is_dir() and item.name.isdigit() and int(item.name) not in pinned_ids:
+                shutil.rmtree(item, ignore_errors=True)
+
     for row in db.scalars(select(Review)):
         delete_media_files(row.image_path)
-    _clear_media_subdir("news")
     _clear_media_subdir("reviews")
-    db.execute(delete(NewsPost))
     db.execute(delete(Review))
 
 

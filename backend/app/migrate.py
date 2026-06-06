@@ -234,6 +234,7 @@ def run_migrations(engine: Engine) -> None:
                 ("link_title", "ALTER TABLE news_posts ADD COLUMN link_title VARCHAR(300)"),
                 ("link_description", "ALTER TABLE news_posts ADD COLUMN link_description TEXT"),
                 ("link_image_url", "ALTER TABLE news_posts ADD COLUMN link_image_url VARCHAR(512)"),
+                ("pinned", "ALTER TABLE news_posts ADD COLUMN pinned BOOLEAN DEFAULT 0"),
             ):
                 if not _has_column(engine, "news_posts", col):
                     conn.execute(text(ddl))
@@ -457,6 +458,7 @@ def run_migrations(engine: Engine) -> None:
     _recalc_winrate_by_pnl_v1(engine)
     _seed_volnovoi_cult_launch_news_v1(engine)
     _seed_volnovoi_cult_launch_news_v2(engine)
+    _backfill_pinned_launch_news_v1(engine)
 
 
 def _seed_launch_news(
@@ -495,6 +497,7 @@ def _seed_launch_news(
             title=LAUNCH_NEWS_TITLE[:200],
             body=LAUNCH_NEWS_BODY.strip()[:10000],
             author_telegram_id=author_id,
+            pinned=True,
         )
         db.add(row)
         db.flush()
@@ -517,6 +520,31 @@ def _seed_volnovoi_cult_launch_news_v1(engine: Engine) -> None:
 def _seed_volnovoi_cult_launch_news_v2(engine: Engine) -> None:
     """Одноразово: полная новость с новой обложкой + push после старта."""
     _seed_launch_news(engine, marker_name=".seeded_volnovoi_cult_launch_news_v2")
+
+
+def _backfill_pinned_launch_news_v1(engine: Engine) -> None:
+    """Закрепить стартовые новости Volnovoi Cult — не удаляются при purge."""
+    marker = _marker_path(engine, ".backfill_pinned_launch_news_v1")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".backfill_pinned_launch_news_v1"
+    if marker.exists():
+        return
+    if "news_posts" not in inspect(engine).get_table_names():
+        return
+    if not _has_column(engine, "news_posts", "pinned"):
+        return
+
+    from app.news_launch import LAUNCH_NEWS_TITLE
+
+    with engine.begin() as conn:
+        conn.execute(
+            text("UPDATE news_posts SET pinned = 1 WHERE title = :title"),
+            {"title": LAUNCH_NEWS_TITLE[:200]},
+        )
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.touch()
 
 
 def _recalc_closed_signal_pnl_v3(engine: Engine) -> None:

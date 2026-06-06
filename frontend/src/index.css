@@ -6721,6 +6721,14 @@ input.readonly {
   font-size: 1.05rem;
 }
 
+.news-card__pin {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .news-card__actions {
   display: flex;
   gap: 6px;

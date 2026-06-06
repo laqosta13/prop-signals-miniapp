@@ -386,3 +386,4 @@ class NewsRead(BaseModel):
     link: NewsLinkPreview | None = None
     author_telegram_id: int
     author_display_name: str | None = None
+    pinned: bool = False

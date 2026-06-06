@@ -188,4 +188,5 @@ def news_to_read(db: Session, row: NewsPost) -> NewsRead:
         link=link,
         author_telegram_id=row.author_telegram_id,
         author_display_name=display,
+        pinned=bool(row.pinned),
     )

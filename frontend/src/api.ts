@@ -358,6 +358,7 @@ export type NewsPost = {
   link: NewsLinkPreview | null;
   author_telegram_id: number;
   author_display_name: string | null;
+  pinned?: boolean;
 };
 
 function authHeaders(): HeadersInit {

@@ -325,3 +325,4 @@ class NewsPost(Base):
     link_description: Mapped[str | None] = mapped_column(Text, nullable=True)
     link_image_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     author_telegram_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    pinned: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")

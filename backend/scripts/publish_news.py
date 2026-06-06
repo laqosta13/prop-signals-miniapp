@@ -54,6 +54,7 @@ def publish(
             title=title.strip()[:200],
             body=body.strip()[:10000],
             author_telegram_id=author_id,
+            pinned=title.strip() == LAUNCH_NEWS_TITLE,
         )
         db.add(row)
         db.flush()

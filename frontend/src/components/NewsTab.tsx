@@ -55,7 +55,10 @@ export function NewsTab({ isSuperAdmin, onEdit, refreshKey = 0 }: Props) {
           <li key={p.id} className="news-card">
             <header className="news-card__head">
               <div>
-                <h3>{p.title}</h3>
+                <h3>
+                  {p.title}
+                  {p.pinned ? <span className="news-card__pin"> закреплена</span> : null}
+                </h3>
                 <p className="meta">
                   {formatTime(p.created_at)}
                   {p.author_display_name ? ` · ${p.author_display_name}` : ""}
