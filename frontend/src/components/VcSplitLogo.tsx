@@ -4,16 +4,18 @@ import { VcPunkLogoMark } from "./VcPunkLogoMark";
 type Props = {
   size?: number;
   className?: string;
+  /** На всю ширину текстового блока (шапка ленты, классика). */
+  fluid?: boolean;
 };
 
 /** VC: классический PNG в ТЕ, кибер-SVG в МА. */
-export function VcSplitLogo({ size = 32, className = "" }: Props) {
+export function VcSplitLogo({ size = 32, className = "", fluid = false }: Props) {
   const punk = useAppTheme() === "punk";
 
   return (
     <span
-      className={`vc-split-logo vc-split-logo--${punk ? "punk" : "classic"}${className ? ` ${className}` : ""}`}
-      style={{ width: size, height: size }}
+      className={`vc-split-logo vc-split-logo--${punk ? "punk" : "classic"}${fluid ? " vc-split-logo--fluid" : ""}${className ? ` ${className}` : ""}`}
+      style={fluid ? undefined : { width: size, height: size }}
       role="img"
       aria-label="Volnovoi Cult"
     >

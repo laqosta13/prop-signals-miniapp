@@ -96,11 +96,17 @@
 
 .topbar__marketplace {
   margin: 0;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 10px;
   line-height: 1.15;
+  min-width: 0;
+}
+
+.topbar__marketplace-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  width: max-content;
+  max-width: 100%;
   min-width: 0;
 }
 
@@ -140,7 +146,22 @@
 }
 
 .vc-split-logo__classic {
-  object-fit: cover;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.vc-split-logo--fluid {
+  display: block;
+  width: 100%;
+  height: 2rem;
+  overflow: visible;
+  border-radius: 0;
+}
+
+.vc-split-logo--fluid .vc-split-logo__classic,
+.vc-split-logo--fluid .vc-split-logo__punk {
+  object-fit: contain;
+  object-position: left center;
 }
 
 .vc-split-logo__punk {
@@ -150,7 +171,7 @@
 .vc-split-logo--classic .vc-split-logo__classic {
   opacity: 1;
   transform: scale(1);
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.35));
+  filter: drop-shadow(0 1px 4px rgba(201, 162, 39, 0.35));
 }
 
 .vc-split-logo--classic .vc-split-logo__punk {

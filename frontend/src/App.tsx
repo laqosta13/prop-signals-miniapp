@@ -488,7 +488,8 @@ export default function App() {
                 className="topbar__marketplace"
                 aria-label={feedStatsLabel ? `${copy.productTagline}, ${feedStatsLabel}` : copy.productTagline}
               >
-                <VcSplitLogo size={34} className="topbar__marketplace-logo" />
+                <span className="topbar__marketplace-brand">
+                <VcSplitLogo fluid className="topbar__marketplace-logo" />
                 <span className="topbar__marketplace-copy">
                   <span className="topbar__marketplace-kicker">{copy.feedKicker}</span>
                   {copy.feedSubKicker ? (
@@ -536,6 +537,7 @@ export default function App() {
                       </span>
                     )}
                   </span>
+                </span>
                 </span>
               </p>
             )
