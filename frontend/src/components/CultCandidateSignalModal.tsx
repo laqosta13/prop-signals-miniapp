@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { createCultCandidateSignal, type UploadProgress } from "../api";
 import { useCandidateSignalFormTracker } from "../hooks/useCandidateSignalFormTracker";
+import { useGuardedSubmit } from "../hooks/useGuardedSubmit";
 import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
 import { useSignalMarketPriceInit } from "../hooks/useSignalMarketPriceInit";
 import { buildSignalFormData } from "../utils/buildSignalFormData";
@@ -57,6 +58,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
   directionRef.current = direction;
   const wasOpenRef = useRef(false);
 
+  const { tryAcquire, release } = useGuardedSubmit();
   const tracker = useCandidateSignalFormTracker(open, { risk, setRisk }, { leverage, setLeverage });
   const balance = tracker.balanceForNominal();
 
@@ -104,6 +106,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
 
     if (!open) {
       if (wasOpen) {
+        release();
         setPriceLoading(false);
         setSubmitting(false);
         setUploadProgress(null);
@@ -112,6 +115,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
     }
 
     if (!wasOpen) {
+      release();
       resetInitKey();
       setError(null);
       setPriceLoading(false);
@@ -129,23 +133,28 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
         return null;
       });
     }
-  }, [open, resetForm, resetInitKey]);
+  }, [open, resetForm, resetInitKey, release]);
 
   if (!open) return null;
 
   const formBlocked = tracker.dailyLimit.blocked || tracker.stakePoolBlocked;
+  const handleClose = () => {
+    if (submitting) return;
+    onClose();
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formBlocked) return;
+    if (formBlocked || submitting || !tryAcquire()) return;
+
+    setSubmitting(true);
+    setError(null);
     const side = direction === "short" ? "SHORT" : "LONG";
     const ok = await confirmAction(
       `Открыть ${symbol.trim().toUpperCase()} ${side} в карточке?\nВход ${risk}% · ${parseLeverage(leverage)}×`,
     );
     if (!ok) return;
 
-    setSubmitting(true);
-    setError(null);
     try {
       const fd = buildSignalFormData({
         symbol,
@@ -169,6 +178,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка");
     } finally {
+      release();
       setSubmitting(false);
       setUploadProgress(null);
     }
@@ -178,8 +188,8 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
     <SignalFormShell
       title="Новый сигнал"
       subtitle="В карточку"
-      onClose={onClose}
-      onBackdropClick={onClose}
+      onClose={handleClose}
+      onBackdropClick={handleClose}
       onSubmit={submit}
     >
       <SignalFormLimitsBar

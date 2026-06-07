@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { updateSignalWithMedia, type Signal, type UploadProgress } from "../api";
+import { useGuardedSubmit } from "../hooks/useGuardedSubmit";
 import { useSignalFormTracker } from "../hooks/useSignalFormTracker";
 import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
 import { useSignalMarketPriceInit } from "../hooks/useSignalMarketPriceInit";
@@ -57,6 +58,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
   const directionRef = useRef(direction);
   directionRef.current = direction;
 
+  const { tryAcquire, release } = useGuardedSubmit();
   const tracker = useSignalFormTracker(
     signal != null,
     { risk, setRisk },
@@ -83,7 +85,10 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
   });
 
   useEffect(() => {
-    if (!signal) return;
+    if (!signal) {
+      release();
+      return;
+    }
     setSymbol(signal.symbol);
     setLeverage(String(parseLeverage(String(signal.leverage ?? 1))));
     setRisk(String(signal.risk_percent ?? signal.points_percent ?? 10));
@@ -102,12 +107,19 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
     setRemoveVideo(false);
     setError(null);
     levelsInitRef.current = null;
-  }, [signal, loadLevels]);
+  }, [signal, loadLevels, release]);
 
   if (!signal) return null;
 
+  const handleClose = () => {
+    if (submitting) return;
+    onClose();
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting || !tryAcquire()) return;
+
     setSubmitting(true);
     setError(null);
     try {
@@ -136,6 +148,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка");
     } finally {
+      release();
       setSubmitting(false);
       setUploadProgress(null);
     }
@@ -145,8 +158,8 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
     <SignalFormShell
       title="Редактирование"
       subtitle={`#${signal.number} · ${signal.symbol}`}
-      onClose={onClose}
-      onBackdropClick={onClose}
+      onClose={handleClose}
+      onBackdropClick={handleClose}
       onSubmit={submit}
     >
       <SignalFormLimitsBar
