@@ -329,26 +329,36 @@ html.theme-glitch::after {
   text-shadow: var(--neon-glow-green);
 }
 
-[data-theme="punk"] .vc-split-logo--punk-active .vc-split-logo__cyber {
-  filter: drop-shadow(0 0 5px rgba(188, 19, 254, 0.55)) drop-shadow(0 0 8px rgba(57, 255, 20, 0.35));
+[data-theme="punk"] .vc-split-logo--punk .vc-split-logo__punk {
+  filter: drop-shadow(0 0 6px rgba(188, 19, 254, 0.5)) drop-shadow(0 0 10px rgba(57, 255, 20, 0.3));
 }
 
-[data-theme="punk"] .vc-split-logo__seam {
-  stroke: var(--neon-green);
-  stroke-width: 2;
-  filter: drop-shadow(0 0 6px rgba(57, 255, 20, 0.5));
+[data-theme="punk"] .vc-split-logo--punk {
+  filter: drop-shadow(0 0 12px rgba(188, 19, 254, 0.22));
 }
 
-[data-theme="punk"] .vc-split-logo--punk-active .vc-split-logo__letter--c {
+[data-theme="punk"] .vc-punk-logo__frame {
+  animation: punk-neon-flicker 3.2s ease-in-out infinite;
+}
+
+[data-theme="punk"] .vc-punk-logo__letter--c {
   animation: punk-neon-flicker 2.4s ease-in-out infinite;
 }
 
-[data-theme="punk"] .vc-split-logo--punk-active .vc-split-logo__node {
+[data-theme="punk"] .vc-punk-logo__letter--v {
+  animation: punk-neon-flicker 2.8s ease-in-out infinite reverse;
+}
+
+[data-theme="punk"] .vc-punk-logo__node {
   animation: punk-neon-flicker 1.8s ease-in-out infinite alternate;
 }
 
-[data-theme="punk"] .vc-split-logo--punk-active {
-  filter: drop-shadow(0 0 10px rgba(188, 19, 254, 0.28));
+[data-theme="punk"] .vc-punk-logo__glitch {
+  animation: theme-glitch-shift 4.5s steps(3) infinite;
+}
+
+html.theme-glitch [data-theme="punk"] .vc-split-logo--punk .vc-split-logo__punk {
+  animation: theme-glitch-shift 0.68s steps(4) 1;
 }
 
 [data-theme="punk"] .topbar__marketplace-sub {

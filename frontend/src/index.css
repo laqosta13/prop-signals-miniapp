@@ -115,50 +115,59 @@
   min-width: 0;
 }
 
-/* ── VC split logo: V = classic (gold), C = cyber (neon) ─── */
+/* ── VC theme logo: PNG (ТЕ) ↔ кибер-SVG (МА) ───────────── */
 
 .vc-split-logo {
   position: relative;
   display: inline-block;
   flex-shrink: 0;
   border-radius: 8px;
-  overflow: visible;
-}
-
-.vc-split-logo__svg {
-  display: block;
-  width: 100%;
-  height: 100%;
+  overflow: hidden;
 }
 
 .vc-split-logo__classic,
-.vc-split-logo__cyber {
-  transition: opacity 0.35s ease, filter 0.35s ease;
-}
-
-.vc-split-logo__seam {
-  stroke: rgba(255, 255, 255, 0.28);
-  stroke-width: 1.2;
+.vc-split-logo__punk {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
+  user-select: none;
+  transition:
+    opacity 0.38s ease,
+    transform 0.38s ease,
+    filter 0.38s ease;
 }
 
-.vc-split-logo--classic-active .vc-split-logo__classic {
+.vc-split-logo__classic {
+  object-fit: cover;
+}
+
+.vc-split-logo__punk {
+  display: block;
+}
+
+.vc-split-logo--classic .vc-split-logo__classic {
   opacity: 1;
+  transform: scale(1);
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.35));
 }
 
-.vc-split-logo--classic-active .vc-split-logo__cyber {
-  opacity: 0.38;
-  filter: saturate(0.35) brightness(0.55);
+.vc-split-logo--classic .vc-split-logo__punk {
+  opacity: 0;
+  transform: scale(0.88);
+  filter: blur(1px) brightness(0.6);
 }
 
-.vc-split-logo--punk-active .vc-split-logo__classic {
-  opacity: 0.34;
-  filter: saturate(0.25) brightness(0.5);
+.vc-split-logo--punk .vc-split-logo__classic {
+  opacity: 0;
+  transform: scale(0.88);
+  filter: blur(1px) brightness(0.5);
 }
 
-.vc-split-logo--punk-active .vc-split-logo__cyber {
+.vc-split-logo--punk .vc-split-logo__punk {
   opacity: 1;
+  transform: scale(1);
   filter: none;
 }
 
