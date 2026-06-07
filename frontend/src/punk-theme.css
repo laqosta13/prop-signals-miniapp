@@ -329,18 +329,26 @@ html.theme-glitch::after {
   text-shadow: var(--neon-glow-green);
 }
 
-[data-theme="punk"] .vc-split-logo--punk-active .vc-split-logo__half--punk {
-  filter: saturate(1.6) hue-rotate(285deg) brightness(1.15) drop-shadow(0 0 6px rgba(188, 19, 254, 0.55));
+[data-theme="punk"] .vc-split-logo--punk-active .vc-split-logo__cyber {
+  filter: drop-shadow(0 0 5px rgba(188, 19, 254, 0.55)) drop-shadow(0 0 8px rgba(57, 255, 20, 0.35));
 }
 
 [data-theme="punk"] .vc-split-logo__seam {
-  background: linear-gradient(180deg, transparent, var(--neon-green), var(--neon-purple), transparent);
-  box-shadow: 0 0 8px rgba(57, 255, 20, 0.45);
-  width: 2px;
+  stroke: var(--neon-green);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 6px rgba(57, 255, 20, 0.5));
+}
+
+[data-theme="punk"] .vc-split-logo--punk-active .vc-split-logo__letter--c {
+  animation: punk-neon-flicker 2.4s ease-in-out infinite;
+}
+
+[data-theme="punk"] .vc-split-logo--punk-active .vc-split-logo__node {
+  animation: punk-neon-flicker 1.8s ease-in-out infinite alternate;
 }
 
 [data-theme="punk"] .vc-split-logo--punk-active {
-  box-shadow: 0 0 14px rgba(188, 19, 254, 0.25);
+  filter: drop-shadow(0 0 10px rgba(188, 19, 254, 0.28));
 }
 
 [data-theme="punk"] .topbar__marketplace-sub {

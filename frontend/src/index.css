@@ -115,65 +115,51 @@
   min-width: 0;
 }
 
-/* ── VC split logo: V = classic (left), C = punk (right) ─── */
+/* ── VC split logo: V = classic (gold), C = cyber (neon) ─── */
 
 .vc-split-logo {
   position: relative;
   display: inline-block;
   flex-shrink: 0;
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible;
 }
 
-.vc-split-logo__half {
-  position: absolute;
-  inset: 0;
+.vc-split-logo__svg {
+  display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  pointer-events: none;
-  user-select: none;
-  transition: opacity 0.3s ease, filter 0.3s ease;
 }
 
-.vc-split-logo__half--classic {
-  clip-path: inset(0 50% 0 0);
-}
-
-.vc-split-logo__half--punk {
-  clip-path: inset(0 0 0 50%);
+.vc-split-logo__classic,
+.vc-split-logo__cyber {
+  transition: opacity 0.35s ease, filter 0.35s ease;
 }
 
 .vc-split-logo__seam {
-  position: absolute;
-  top: 8%;
-  bottom: 8%;
-  left: 50%;
-  width: 1px;
-  transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.22);
+  stroke: rgba(255, 255, 255, 0.28);
+  stroke-width: 1.2;
   pointer-events: none;
-  z-index: 2;
 }
 
-.vc-split-logo--classic-active .vc-split-logo__half--classic {
+.vc-split-logo--classic-active .vc-split-logo__classic {
+  opacity: 1;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.35));
+}
+
+.vc-split-logo--classic-active .vc-split-logo__cyber {
+  opacity: 0.38;
+  filter: saturate(0.35) brightness(0.55);
+}
+
+.vc-split-logo--punk-active .vc-split-logo__classic {
+  opacity: 0.34;
+  filter: saturate(0.25) brightness(0.5);
+}
+
+.vc-split-logo--punk-active .vc-split-logo__cyber {
   opacity: 1;
   filter: none;
-}
-
-.vc-split-logo--classic-active .vc-split-logo__half--punk {
-  opacity: 0.32;
-  filter: grayscale(0.85) brightness(0.55);
-}
-
-.vc-split-logo--punk-active .vc-split-logo__half--classic {
-  opacity: 0.28;
-  filter: grayscale(0.9) brightness(0.45);
-}
-
-.vc-split-logo--punk-active .vc-split-logo__half--punk {
-  opacity: 1;
-  filter: saturate(1.35) hue-rotate(-8deg) brightness(1.05);
 }
 
 .topbar__marketplace-kicker {
