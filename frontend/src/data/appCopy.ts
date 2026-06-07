@@ -82,14 +82,15 @@ export const RANK_RULES = [
   "Ниже «Китяры» — плечо 1×; дальше +1× за ранг.",
 ] as const;
 
-export const DISCLAIMER_TITLE = "Перед сделкой";
-export const DISCLAIMER_LEAD = "Сигнал — параметры сделки. Решение и риск — ваши.";
+export const DISCLAIMER_TITLE = "Методика Cult";
+export const DISCLAIMER_LEAD =
+  "Результат возможен только при 100% повторении сделки — как в сигнале.";
 export const DISCLAIMER_POINTS = [
-  "Вход только по уровням сигнала и вашему % риска.",
-  "Цена ушла от входа — пропуск, не догоняйте.",
-  "FOMO и лудомания — на вас; сервис не гарантирует прибыль.",
+  "Вход, стоп, цель, % риска и плечо — один в один.",
+  "Пропустили вход, догнали цену или изменили размер — это уже другая сделка.",
+  "Cult показывает сделки на виду; прибыль не гарантируем.",
 ] as const;
-export const DISCLAIMER_FOOTER = "Продолжая, вы принимаете это.";
+export const DISCLAIMER_FOOTER = "Решение и риск — ваши. Продолжая, вы это принимаете.";
 export const DISCLAIMER_ACCEPT_LABEL = "Принимаю";
 
 export const SUPPORT_TITLE = "Поддержка";

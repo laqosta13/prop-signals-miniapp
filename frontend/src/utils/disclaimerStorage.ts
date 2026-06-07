@@ -1,4 +1,4 @@
-const KEY = "prop_disclaimer_v1";
+const KEY = "prop_disclaimer_v2";
 
 export function hasAcceptedDisclaimer(userId: number): boolean {
   try {

@@ -18,7 +18,7 @@ export function TopPlaceMedal({ place, className = "" }: Props) {
       aria-label={`${place} место`}
       role="img"
     >
-      <img src={MEDAL_SRC[place]} alt="" width={41} height={52} decoding="async" draggable={false} />
+      <img src={MEDAL_SRC[place]} alt="" height={52} decoding="async" draggable={false} />
     </span>
   );
 }
