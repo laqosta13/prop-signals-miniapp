@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import type { Trader, TraderRank } from "../api";
 import { activateRankShield, confirmMyRank, fetchTraderRank } from "../api";
-import { authorProfile, formatUsd } from "../utils";
-import { isVolnovoiTrader, VOLNOVOI_SUBTITLE } from "../utils/volnovoi";
+import { useAuthorProfile } from "../hooks/useAuthorProfile";
+import { formatUsd } from "../utils";
+import { useThemedCopy } from "../hooks/useThemedCopy";
+import { isVolnovoiTrader } from "../utils/volnovoi";
 import { useAppTheme } from "../hooks/useAppTheme";
 import { resolveRankName } from "../utils/punkTheme";
 import { rankStyle } from "../utils/ranks";
@@ -19,6 +21,7 @@ type Props = {
 
 export function TraderProfileModal({ trader, isMe, isAdmin, onClose }: Props) {
   const theme = useAppTheme();
+  const copy = useThemedCopy();
   const aggregate = isVolnovoiTrader(trader);
   const [rank, setRank] = useState<TraderRank | null>(trader.trader_rank ?? null);
   const [busy, setBusy] = useState(false);
@@ -34,7 +37,7 @@ export function TraderProfileModal({ trader, isMe, isAdmin, onClose }: Props) {
   }, [aggregate, trader.telegram_id, trader.trader_rank]);
 
   const st = rank ? rankStyle(rank.current_rank_id) : rankStyle(8);
-  const profile = authorProfile(trader.display_name, trader.username);
+  const profile = useAuthorProfile(trader.display_name, trader.username, trader.telegram_id);
 
   const onConfirm = async () => {
     setBusy(true);
@@ -82,7 +85,7 @@ export function TraderProfileModal({ trader, isMe, isAdmin, onClose }: Props) {
               <p className="trader-profile-sheet__name">{profile.title}</p>
               {rank && <RankBadge rank={rank} featured />}
             </div>
-            {aggregate && <p className="trader-profile-sheet__sub">{VOLNOVOI_SUBTITLE}</p>}
+            {aggregate && <p className="trader-profile-sheet__sub">{copy.volnovoiSubtitle}</p>}
           </div>
         </div>
 

@@ -8,7 +8,7 @@ import {
   saveCopyTradingSettings,
   testCopyTradingConnection,
 } from "../api";
-import { CULT_BYBIT_DESC } from "../data/appCopy";
+import { useThemedCopy } from "../hooks/useThemedCopy";
 import { formatUsd } from "../utils";
 import { BybitLogo } from "./BrandLogos";
 import { PartnerLinks } from "./PartnerLinks";
@@ -33,6 +33,7 @@ type Props = {
 };
 
 export function CultCandidateBybitPanel({ onConfigured }: Props) {
+  const copy = useThemedCopy();
   const [status, setStatus] = useState<CopyTradingStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -164,7 +165,7 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
       {open && (
         <div className="volnovoi-copy__panel">
           <p className="cult-candidate-bybit__step meta">2. API Bybit</p>
-          <p className="volnovoi-copy__desc cult-candidate-bybit__desc">{CULT_BYBIT_DESC}</p>
+          <p className="volnovoi-copy__desc cult-candidate-bybit__desc">{copy.cultBybitDesc}</p>
 
           <ul className="volnovoi-copy__hints cult-candidate-bybit__hints">
             <li>API Trade · ключи шифруются</li>

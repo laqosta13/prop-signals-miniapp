@@ -1,3 +1,4 @@
+import { authorIdentitySeed } from "../utils/punkCodename";
 import { avatarEvilTier, avatarVariantSeed } from "../utils/punkAvatar";
 
 type Props = {
@@ -8,16 +9,28 @@ type Props = {
 };
 
 /** Загадочный силуэт в панк-теме — ранг и seed задают «злость» и форму лица. */
+function mysteryHue(seed: string | number): number {
+  const s = String(seed);
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return 250 + (h % 70);
+}
+
 export function MysteryAvatar({ size, label = "Оператор", rankId, variantSeed }: Props) {
   const tier = avatarEvilTier(rankId);
-  const variant = avatarVariantSeed(variantSeed ?? label);
+  const seed = variantSeed ?? label;
+  const variant = avatarVariantSeed(seed);
   const eye = Math.max(3, Math.round(size * (tier >= 7 ? 0.11 : tier >= 4 ? 0.095 : 0.08)));
-  const gap = Math.max(4, Math.round(size * (0.12 + variant * 0.02)));
+  const gap = Math.max(4, Math.round(size * (0.12 + (variant % 6) * 0.015)));
+  const hue = mysteryHue(typeof seed === "number" ? authorIdentitySeed(seed) : seed);
 
   return (
     <span
       className={`avatar avatar--mystery avatar--mystery-tier-${tier} avatar--mystery-variant-${variant}`}
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, ["--mystery-hue" as string]: hue }}
       role="img"
       aria-label={label}
     >

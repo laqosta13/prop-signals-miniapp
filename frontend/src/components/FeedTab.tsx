@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { closeSignalAtMarket, deleteSignal, type ChallengeDashboard, type Signal } from "../api";
-import { testModeBannerText } from "../data/appCopy";
 import { useThemedCopy } from "../hooks/useThemedCopy";
 import { formatDateTimeMsk } from "../utils";
 import { canViewActiveSignals, visibleFeedSignals } from "../utils/signalActions";
@@ -118,22 +117,22 @@ export function FeedTab({
       {testModeActive && (
         <div className="sub-banner sub-banner--test-mode">
           <p>
-            {testModeBannerText(testModeUntil, testModeDaysLeft)}
+            {copy.formatTestModeBanner(testModeUntil, testModeDaysLeft)}
             {testModeUntil ? ` До ${formatDateTimeMsk(testModeUntil)} МСК.` : ""}
           </p>
         </div>
       )}
       {!hasActiveAccess && (
         <div className="sub-banner">
-          <p>Активные сигналы доступны по подписке. Оформите доступ во вкладке «Подписка».</p>
+          <p>{copy.feedSubBanner}</p>
           <button type="button" className="ghost-btn" onClick={onOpenPay}>
-            Оплата и подписка →
+            {copy.feedSubBannerBtn}
           </button>
         </div>
       )}
       {loading && <p className="meta">{copy.loading}</p>}
       {!loading && visible.length === 0 && (
-        <p className="meta">{hasActiveAccess ? "Пока нет сигналов." : "Пока нет отработанных сигналов."}</p>
+        <p className="meta">{hasActiveAccess ? copy.feedEmpty : copy.feedEmptyClosed}</p>
       )}
 
       {showActiveBlock && !loading && (
@@ -142,7 +141,7 @@ export function FeedTab({
           {activeSignals.length > 0 ? (
             renderCards(activeSignals)
           ) : (
-            <p className="meta feed-block__empty">Нет активных сделок</p>
+            <p className="meta feed-block__empty">{copy.feedEmptyActive}</p>
           )}
         </section>
       )}

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { recordSignalView, toggleSignalLike, type Signal } from "../api";
-import { calcRR, authorProfile, formatTakeProfits, formatTime, formatUsd, mediaUrl } from "../utils";
+import { useAuthorProfile } from "../hooks/useAuthorProfile";
+import { calcRR, formatTakeProfits, formatTime, formatUsd, mediaUrl } from "../utils";
 import {
   signalEntryStakePct,
   signalPriceMovePct,
@@ -112,7 +113,7 @@ export function SignalCard({
   );
   const statusBadge = localizeOutcomeLabel(outcome.label, copy);
   const statusClass = outcome.className;
-  const author = authorProfile(s.author_display_name, s.author_username);
+  const author = useAuthorProfile(s.author_display_name, s.author_username, s.author_telegram_id);
   const rr = calcRR(entry === "—" ? null : entry, s.stop_loss, s.take_profits);
   const stopMovePct = signalStopMovePct(s);
   const showResult = headerPnl != null || headerMove != null || (livePnl.loading && s.status === "active" && entryDone);
@@ -150,6 +151,7 @@ export function SignalCard({
             url={s.author_avatar_url}
             displayName={s.author_display_name}
             username={s.author_username}
+            telegramId={s.author_telegram_id}
             rankId={s.author_rank?.current_rank_id}
             size={40}
           />

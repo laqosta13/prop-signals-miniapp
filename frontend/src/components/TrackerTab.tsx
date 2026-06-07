@@ -2,7 +2,9 @@ import { useMemo, useState } from "react";
 import type { ChallengeDashboard, Signal } from "../api";
 import { HASHHEDGE_RULES } from "../data/hashhedgeRules";
 import { useThemedCopy } from "../hooks/useThemedCopy";
-import { authorProfile, formatTakeProfits, formatUsd, mediaUrl, mskDayBoundsMs, parseApiDate } from "../utils";
+import { useAppTheme } from "../hooks/useAppTheme";
+import { formatTakeProfits, formatUsd, mediaUrl, mskDayBoundsMs, parseApiDate } from "../utils";
+import { resolveAuthorProfile } from "../utils/punkCodename";
 import { signalRealizedPnl } from "../utils/signalPnl";
 import { Avatar } from "./Avatar";
 import { CoinLogo } from "./CoinLogo";
@@ -18,6 +20,7 @@ type Props = {
 };
 
 export function TrackerTab({ trackers, signals, myId, canPublishMainFeed, onSettings, onCreateTracker }: Props) {
+  const theme = useAppTheme();
   const copy = useThemedCopy();
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [tradesOpen, setTradesOpen] = useState<Record<number, boolean>>({});
@@ -117,7 +120,9 @@ export function TrackerTab({ trackers, signals, myId, canPublishMainFeed, onSett
                 size={40}
               />
               <div>
-                <p className="tracker-block__name">{authorProfile(d.owner_display_name, d.owner_username).title}</p>
+                <p className="tracker-block__name">
+                  {resolveAuthorProfile(theme, d.owner_display_name, d.owner_username, d.owner_telegram_id).title}
+                </p>
                 <p className="tracker-block__sub">
                   {copy.formatTrackerStageLev(d.stage, d.max_leverage)}
                 </p>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAppTheme } from "../hooks/useAppTheme";
 import { initialsFromAuthor, mediaUrl } from "../utils";
+import { authorIdentitySeed, resolvePunkCodename } from "../utils/punkCodename";
 import { isPunkTheme } from "../utils/punkTheme";
 import { MysteryAvatar } from "./MysteryAvatar";
 
@@ -19,11 +20,12 @@ export function Avatar({ url, displayName, username, telegramId, size = 40, rank
   const [broken, setBroken] = useState(false);
   const initials = initialsFromAuthor(displayName, username);
   const src = mediaUrl(url);
-  const label = displayName || username || "Оператор";
-  const variantSeed = telegramId ?? username ?? displayName;
+  const identitySeed = authorIdentitySeed(telegramId, username, displayName);
+  const punk = isPunkTheme(theme);
+  const label = punk ? resolvePunkCodename(telegramId, username, displayName) : displayName || username || "Оператор";
 
-  if (isPunkTheme(theme)) {
-    return <MysteryAvatar size={size} label={label} rankId={rankId} variantSeed={variantSeed} />;
+  if (punk) {
+    return <MysteryAvatar size={size} label={label} rankId={rankId} variantSeed={identitySeed} />;
   }
 
   if (src && !broken) {

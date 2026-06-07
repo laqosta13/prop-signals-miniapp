@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { deleteNewsPost, fetchNews, type NewsPost } from "../api";
+import { useAppTheme } from "../hooks/useAppTheme";
 import { formatTime, mediaUrl } from "../utils";
+import { resolveAuthorProfile } from "../utils/punkCodename";
 import { LinkPreviewCard } from "./LinkPreviewCard";
 
 type Props = {
@@ -11,6 +13,7 @@ type Props = {
 };
 
 export function NewsTab({ isSuperAdmin, onEdit, refreshKey = 0 }: Props) {
+  const theme = useAppTheme();
   const [posts, setPosts] = useState<NewsPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -61,7 +64,9 @@ export function NewsTab({ isSuperAdmin, onEdit, refreshKey = 0 }: Props) {
                 </h3>
                 <p className="meta">
                   {formatTime(p.created_at)}
-                  {p.author_display_name ? ` · ${p.author_display_name}` : ""}
+                  {p.author_display_name || p.author_telegram_id
+                    ? ` · ${resolveAuthorProfile(theme, p.author_display_name, null, p.author_telegram_id).title}`
+                    : ""}
                 </p>
               </div>
               {isSuperAdmin && (

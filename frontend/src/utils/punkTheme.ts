@@ -14,7 +14,7 @@ export const PUNK_RANK_NAMES: Record<number, string> = {
   8: "ПРИЗРАК",
 };
 
-export const PUNK_RANK_GUIDE_TITLE = "КОД ДОСТУПА CULT";
+export const PUNK_RANK_GUIDE_TITLE = "КОД ДОСТУПА";
 export const PUNK_RANK_GUIDE_INTRO =
   "Ты внутри неоновой сети. Недельный результат открывает уровень — чем выше код, тем больше огонь в сделке.";
 export const PUNK_RANK_GUIDE_POOL =

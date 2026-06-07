@@ -1,14 +1,39 @@
 import {
+  CULT_BYBIT_DESC,
+  CULT_CHANNEL_ADMIN_HINT,
+  CULT_JOIN_INTRO,
+  CULT_JOIN_TITLE,
+  DISCLAIMER_ACCEPT_LABEL,
+  DISCLAIMER_FOOTER,
+  DISCLAIMER_LEAD,
+  DISCLAIMER_POINTS,
+  DISCLAIMER_TITLE,
   FEED_LABEL_ACTIVE,
   FEED_LABEL_CLOSED,
+  PARTNER_BYBIT_HINT,
   PRODUCT_NAME,
+  PRODUCT_PITCH,
   PRODUCT_TAGLINE,
+  REFERRAL_SHARE_FALLBACK,
+  REVIEW_RULES,
+  REVIEW_RULES_TITLE,
+  SUBSCRIPTION_INTRO,
+  SUBSCRIPTION_TRIAL_USED_MSG,
   TAB_SUBTITLES,
   TOP_CANDIDATES_EMPTY,
   TOP_EMPTY,
   TOP_LABEL_CANDIDATES,
   TOP_LABEL_FIRED,
   TOP_LABEL_TRADERS,
+  VOLNOVOI_COPY_DESC,
+  VOLNOVOI_COPY_HINT_API,
+  VOLNOVOI_COPY_HINT_BILLING,
+  VOLNOVOI_COPY_TITLE,
+  VOLNOVOI_MARKETING_CTA,
+  VOLNOVOI_SUBTITLE,
+  RANK_GUIDE_HINT,
+  subscriptionInactiveHint,
+  testModeBannerText,
 } from "../data/appCopy";
 import * as P from "../data/punkCopy";
 import { isPunkTheme, PUNK_RANK_GUIDE_INTRO, PUNK_RANK_GUIDE_POOL, PUNK_RANK_GUIDE_TITLE } from "../utils/punkTheme";
@@ -33,11 +58,47 @@ export type ThemedCopy = {
   feedAwaiting: string;
   feedLabelActive: string;
   feedLabelClosed: string;
+  feedSubBanner: string;
+  feedSubBannerBtn: string;
+  feedEmpty: string;
+  feedEmptyClosed: string;
+  feedEmptyActive: string;
+  topIntro: string;
   topLabelTraders: string;
   topLabelCandidates: string;
   topLabelFired: string;
   topEmpty: string;
   topCandidatesEmpty: string;
+  rankGuideHint: string;
+  volnovoiSubtitle: string;
+  volnovoiCopyTitle: string;
+  volnovoiCopyDesc: string;
+  volnovoiCopyHintBilling: string;
+  volnovoiCopyHintApi: string;
+  volnovoiMarketingCta: string;
+  subscriptionIntro: string;
+  referralShareFallback: string;
+  disclaimerTitle: string;
+  disclaimerLead: string;
+  disclaimerPoints: readonly string[];
+  disclaimerFooter: string;
+  disclaimerAccept: string;
+  disclaimerUnderstood: string;
+  cultJoinTitle: string;
+  cultJoinIntro: string;
+  cultJoinCta: string;
+  cultJoinStepPay: string;
+  cultJoinStepApi: string;
+  cultJoinStepConfirm: string;
+  cultJoinConfirmBtn: string;
+  cultBybitDesc: string;
+  cultChannelAdminHint: string;
+  reviewRulesTitle: string;
+  reviewRules: readonly string[];
+  partnerBybitHint: string;
+  partnerBingxHint: string;
+  partnerAntarcticHint: string;
+  partnerLinksTitle: string;
   signalEntry: string;
   signalStop: string;
   signalTarget: string;
@@ -106,6 +167,8 @@ export type ThemedCopy = {
   cardTrade: string;
   formatTrackerStageLev: (stage: number, leverage: number) => string;
   formatTrackerTradesTab: (count: number) => string;
+  formatTestModeBanner: (until: string | null, daysLeft: number) => string;
+  formatSubscriptionInactiveHint: (trialDays: number, trialUsed: boolean) => string;
 };
 
 function buildCopy(theme: Theme): ThemedCopy {
@@ -121,7 +184,7 @@ function buildCopy(theme: Theme): ThemedCopy {
       nav: { feed: "Лента", tracker: "Трекер", top: "ТОП", reviews: "Отзывы", news: "Новости", pay: "Подписка" },
       tabTitles: { feed: "", tracker: "Трекер", top: "ТОП", reviews: "Отзывы", news: "Новости", pay: "Подписка" },
       tabSubtitles: { ...TAB_SUBTITLES },
-      feedKicker: "Marketplace",
+      feedKicker: PRODUCT_NAME,
       feedWordCrypto: "крипто-",
       feedWordDeals: "сделок",
       feedWordDealsSingle: "крипто-сделок",
@@ -129,11 +192,48 @@ function buildCopy(theme: Theme): ThemedCopy {
       feedAwaiting: "ожидание входа",
       feedLabelActive: FEED_LABEL_ACTIVE,
       feedLabelClosed: FEED_LABEL_CLOSED,
+      feedSubBanner:
+        "Активные сигналы доступны по подписке. Оформите доступ во вкладке «Подписка».",
+      feedSubBannerBtn: "Оплата и подписка →",
+      feedEmpty: "Пока нет сигналов.",
+      feedEmptyClosed: "Пока нет отработанных сигналов.",
+      feedEmptyActive: "Нет активных сделок",
+      topIntro: PRODUCT_PITCH,
       topLabelTraders: TOP_LABEL_TRADERS,
       topLabelCandidates: TOP_LABEL_CANDIDATES,
       topLabelFired: TOP_LABEL_FIRED,
       topEmpty: TOP_EMPTY,
       topCandidatesEmpty: TOP_CANDIDATES_EMPTY,
+      rankGuideHint: RANK_GUIDE_HINT,
+      volnovoiSubtitle: VOLNOVOI_SUBTITLE,
+      volnovoiCopyTitle: VOLNOVOI_COPY_TITLE,
+      volnovoiCopyDesc: VOLNOVOI_COPY_DESC,
+      volnovoiCopyHintBilling: VOLNOVOI_COPY_HINT_BILLING,
+      volnovoiCopyHintApi: VOLNOVOI_COPY_HINT_API,
+      volnovoiMarketingCta: VOLNOVOI_MARKETING_CTA,
+      subscriptionIntro: SUBSCRIPTION_INTRO,
+      referralShareFallback: REFERRAL_SHARE_FALLBACK,
+      disclaimerTitle: DISCLAIMER_TITLE,
+      disclaimerLead: DISCLAIMER_LEAD,
+      disclaimerPoints: DISCLAIMER_POINTS,
+      disclaimerFooter: DISCLAIMER_FOOTER,
+      disclaimerAccept: DISCLAIMER_ACCEPT_LABEL,
+      disclaimerUnderstood: "Понятно",
+      cultJoinTitle: CULT_JOIN_TITLE,
+      cultJoinIntro: CULT_JOIN_INTRO,
+      cultJoinCta: "Стать кандидатом",
+      cultJoinStepPay: "Оплатить подписку кандидата",
+      cultJoinStepApi: "Подключить API Bybit",
+      cultJoinStepConfirm: "Нажать «Вступить»",
+      cultJoinConfirmBtn: "Вступить",
+      cultBybitDesc: CULT_BYBIT_DESC,
+      cultChannelAdminHint: CULT_CHANNEL_ADMIN_HINT,
+      reviewRulesTitle: REVIEW_RULES_TITLE,
+      reviewRules: REVIEW_RULES,
+      partnerBybitHint: PARTNER_BYBIT_HINT,
+      partnerBingxHint: "Регистрация BingX",
+      partnerAntarcticHint: "Вывод крипты и оплата по СБП",
+      partnerLinksTitle: "Биржи и вывод",
       signalEntry: "Вход",
       signalStop: "Стоп",
       signalTarget: "Цель 1:3",
@@ -209,6 +309,8 @@ function buildCopy(theme: Theme): ThemedCopy {
       cardTrade: "+ Сделка",
       formatTrackerStageLev: (stage, leverage) => `Этап ${stage} · плечо ${leverage}`,
       formatTrackerTradesTab: (count) => `Сделки · ${count}`,
+      formatTestModeBanner: testModeBannerText,
+      formatSubscriptionInactiveHint: subscriptionInactiveHint,
     };
   }
 
@@ -222,7 +324,7 @@ function buildCopy(theme: Theme): ThemedCopy {
     nav: { ...P.PUNK_NAV },
     tabTitles: { ...P.PUNK_TAB_TITLES },
     tabSubtitles: { ...P.PUNK_TAB_SUBTITLES },
-    feedKicker: P.PUNK_FEED_KICKER,
+    feedKicker: P.PUNK_PRODUCT_NAME,
     feedWordCrypto: P.PUNK_FEED_WORD_CRYPTO,
     feedWordDeals: P.PUNK_FEED_WORD_DEALS,
     feedWordDealsSingle: P.PUNK_FEED_WORD_DEALS_SINGLE,
@@ -230,11 +332,47 @@ function buildCopy(theme: Theme): ThemedCopy {
     feedAwaiting: P.PUNK_FEED_AWAITING,
     feedLabelActive: P.PUNK_FEED_LABEL_ACTIVE,
     feedLabelClosed: P.PUNK_FEED_LABEL_CLOSED,
+    feedSubBanner: P.PUNK_FEED_SUB_BANNER,
+    feedSubBannerBtn: P.PUNK_FEED_SUB_BANNER_BTN,
+    feedEmpty: P.PUNK_FEED_EMPTY,
+    feedEmptyClosed: P.PUNK_FEED_EMPTY_CLOSED,
+    feedEmptyActive: P.PUNK_FEED_EMPTY_ACTIVE,
+    topIntro: P.PUNK_TOP_INTRO,
     topLabelTraders: P.PUNK_TOP_LABEL_TRADERS,
     topLabelCandidates: P.PUNK_TOP_LABEL_CANDIDATES,
     topLabelFired: P.PUNK_TOP_LABEL_FIRED,
     topEmpty: P.PUNK_TOP_EMPTY,
     topCandidatesEmpty: P.PUNK_TOP_CANDIDATES_EMPTY,
+    rankGuideHint: P.PUNK_RANK_GUIDE_HINT,
+    volnovoiSubtitle: P.PUNK_VOLNOVOI_SUBTITLE,
+    volnovoiCopyTitle: P.PUNK_VOLNOVOI_COPY_TITLE,
+    volnovoiCopyDesc: P.PUNK_VOLNOVOI_COPY_DESC,
+    volnovoiCopyHintBilling: P.PUNK_VOLNOVOI_COPY_HINT_BILLING,
+    volnovoiCopyHintApi: P.PUNK_VOLNOVOI_COPY_HINT_API,
+    volnovoiMarketingCta: P.PUNK_VOLNOVOI_MARKETING_CTA,
+    subscriptionIntro: P.PUNK_SUBSCRIPTION_INTRO,
+    referralShareFallback: P.PUNK_REFERRAL_SHARE_FALLBACK,
+    disclaimerTitle: P.PUNK_DISCLAIMER_TITLE,
+    disclaimerLead: P.PUNK_DISCLAIMER_LEAD,
+    disclaimerPoints: P.PUNK_DISCLAIMER_POINTS,
+    disclaimerFooter: P.PUNK_DISCLAIMER_FOOTER,
+    disclaimerAccept: P.PUNK_DISCLAIMER_ACCEPT_LABEL,
+    disclaimerUnderstood: P.PUNK_RANK_GUIDE_UNDERSTOOD,
+    cultJoinTitle: P.PUNK_CULT_JOIN_TITLE,
+    cultJoinIntro: P.PUNK_CULT_JOIN_INTRO,
+    cultJoinCta: P.PUNK_CULT_JOIN_CTA,
+    cultJoinStepPay: P.PUNK_CULT_JOIN_STEP_PAY,
+    cultJoinStepApi: P.PUNK_CULT_JOIN_STEP_API,
+    cultJoinStepConfirm: P.PUNK_CULT_JOIN_STEP_CONFIRM,
+    cultJoinConfirmBtn: P.PUNK_CULT_JOIN_CONFIRM_BTN,
+    cultBybitDesc: P.PUNK_CULT_BYBIT_DESC,
+    cultChannelAdminHint: P.PUNK_CULT_CHANNEL_ADMIN_HINT,
+    reviewRulesTitle: P.PUNK_REVIEW_RULES_TITLE,
+    reviewRules: P.PUNK_REVIEW_RULES,
+    partnerBybitHint: P.PUNK_PARTNER_BYBIT_HINT,
+    partnerBingxHint: P.PUNK_PARTNER_BINGX_HINT,
+    partnerAntarcticHint: P.PUNK_PARTNER_ANTARCTIC_HINT,
+    partnerLinksTitle: P.PUNK_PARTNER_LINKS_TITLE,
     signalEntry: P.PUNK_SIGNAL_ENTRY,
     signalStop: P.PUNK_SIGNAL_STOP,
     signalTarget: P.PUNK_SIGNAL_TARGET,
@@ -303,6 +441,8 @@ function buildCopy(theme: Theme): ThemedCopy {
     cardTrade: P.PUNK_CARD_TRADE,
     formatTrackerStageLev: P.PUNK_TRACKER_STAGE_LEV,
     formatTrackerTradesTab: P.PUNK_TRACKER_TRADES_TAB,
+    formatTestModeBanner: P.punkTestModeBannerText,
+    formatSubscriptionInactiveHint: P.punkSubscriptionInactiveHint,
   };
 }
 

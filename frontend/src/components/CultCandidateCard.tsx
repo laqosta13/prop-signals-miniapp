@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { CultCandidate, CultCandidateClosedSignal } from "../api";
-import { authorProfile } from "../utils";
+import { useAuthorProfile } from "../hooks/useAuthorProfile";
 import { Avatar } from "./Avatar";
 import { CultCandidateActiveTrades } from "./CultCandidateActiveTrades";
 import { CultCandidateClosedTrades } from "./CultCandidateClosedTrades";
@@ -28,6 +28,7 @@ export function CultCandidateCard({
   isSuperAdmin = false,
   onRosterChange,
 }: Props) {
+  const profile = useAuthorProfile(candidate.display_name, candidate.username, candidate.telegram_user_id);
   const [opened, setOpened] = useState(false);
   const expanded = candidate.is_me || opened;
   const activeCount = candidate.active_signals.length;
@@ -53,7 +54,7 @@ export function CultCandidateCard({
             ) : (
               <span className="top-rank-inline top-rank-inline--candidate">#{candidate.rank}</span>
             )}
-            <p className="top-name">{authorProfile(candidate.display_name, candidate.username).title}</p>
+            <p className="top-name">{profile.title}</p>
           </div>
           {!candidate.is_me && (
             <span className="top-card__chevron" aria-hidden>

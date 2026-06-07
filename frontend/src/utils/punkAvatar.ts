@@ -17,11 +17,16 @@ export function avatarEvilTier(rankId?: number | null): number {
   return 1;
 }
 
-/** 0…4 — разные силуэты при одном ранге. */
+export const AVATAR_VARIANT_COUNT = 12;
+
+/** 0…11 — разные силуэты у каждого оператора. */
 export function avatarVariantSeed(seed?: string | number | null): number {
   if (seed == null || seed === "") return 0;
   const s = String(seed);
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return h % 5;
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h % AVATAR_VARIANT_COUNT;
 }

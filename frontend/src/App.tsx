@@ -24,8 +24,11 @@ import { ThemeToggle } from "./components/ThemeToggle";
 import { mergeFeedSignals } from "./utils/mergeFeedSignals";
 import { sortFeedSignals } from "./utils/sortFeedSignals";
 import { isSignalAwaitingEntry, isSignalInMarket } from "./utils/signalActions";
+import { useAppTheme } from "./hooks/useAppTheme";
 import { useThemedCopy } from "./hooks/useThemedCopy";
 import { hasAcceptedDisclaimer, markDisclaimerAccepted } from "./utils/disclaimerStorage";
+import { isPunkTheme } from "./utils/punkTheme";
+import { triggerGlitch } from "./utils/theme";
 
 const TrackerTab = lazy(() => import("./components/TrackerTab").then((m) => ({ default: m.TrackerTab })));
 const LeaderboardTab = lazy(() => import("./components/LeaderboardTab").then((m) => ({ default: m.LeaderboardTab })));
@@ -102,7 +105,16 @@ function NavIcon({ tab }: { tab: Tab }) {
 
 export default function App() {
   const copy = useThemedCopy();
+  const theme = useAppTheme();
   const [tab, setTab] = useState<Tab>("feed");
+
+  const switchTab = useCallback(
+    (next: Tab) => {
+      if (next !== tab && isPunkTheme(theme)) triggerGlitch();
+      setTab(next);
+    },
+    [tab, theme],
+  );
   const [signals, setSignals] = useState<Signal[]>([]);
   const [traders, setTraders] = useState<Trader[]>([]);
   const [firedTraders, setFiredTraders] = useState<Trader[]>([]);
@@ -550,8 +562,8 @@ export default function App() {
             onEdit={setEditSignal}
             onSupplement={setSupplementSignal}
             onPatch={patchSignal}
-            onOpenPay={() => setTab("pay")}
-            onOpenTracker={() => setTab("tracker")}
+            onOpenPay={() => switchTab("pay")}
+            onOpenTracker={() => switchTab("tracker")}
             testModeActive={testModeActive}
             testModeUntil={testModeUntil}
             testModeDaysLeft={testModeDaysLeft}
@@ -622,7 +634,7 @@ export default function App() {
 
       <nav className="bottom-nav">
         {NAV_TABS.map((id) => (
-          <button key={id} type="button" className={tab === id ? "on" : ""} onClick={() => setTab(id)}>
+          <button key={id} type="button" className={tab === id ? "on" : ""} onClick={() => switchTab(id)}>
             <span className="ico">
               <NavIcon tab={id} />
             </span>

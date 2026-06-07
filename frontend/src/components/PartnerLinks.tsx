@@ -1,4 +1,5 @@
 import { PARTNER_LINKS, type PartnerLink } from "../data/partnerLinks";
+import { useThemedCopy } from "../hooks/useThemedCopy";
 import { openExternalLink } from "../utils/openExternalLink";
 import { PartnerBrandLogo, type PartnerBrandId } from "./BrandLogos";
 
@@ -9,7 +10,14 @@ type Props = {
   ids?: PartnerBrandId[];
 };
 
-export function PartnerLinks({ title = "Партнёры", ids }: Props) {
+export function PartnerLinks({ title, ids }: Props) {
+  const copy = useThemedCopy();
+  const hintFor = (id: PartnerBrandId) => {
+    if (id === "bybit") return copy.partnerBybitHint;
+    if (id === "bingx") return copy.partnerBingxHint;
+    if (id === "antarctic") return copy.partnerAntarcticHint;
+    return "";
+  };
   const links: PartnerLink[] = ids?.length
     ? PARTNER_LINKS.filter((l) => ids.includes(l.id))
     : PARTNER_LINKS;
@@ -17,7 +25,7 @@ export function PartnerLinks({ title = "Партнёры", ids }: Props) {
   if (links.length === 0) return null;
 
   return (
-    <section className="partner-strip" aria-label={title}>
+    <section className="partner-strip" aria-label={title ?? copy.partnerLinksTitle}>
       {title ? <p className="partner-strip__title">{title}</p> : null}
       <div className="partner-strip__row">
         {links.map((link) => (
@@ -25,8 +33,8 @@ export function PartnerLinks({ title = "Партнёры", ids }: Props) {
             key={link.id}
             type="button"
             className="partner-chip"
-            title={link.hint}
-            aria-label={link.hint}
+            title={hintFor(link.id) || link.hint}
+            aria-label={hintFor(link.id) || link.hint}
             onClick={() => openExternalLink(link.url)}
           >
             <PartnerBrandLogo id={link.id} size={18} />

@@ -22,10 +22,9 @@ import { TraderProfileModal } from "./TraderProfileModal";
 import { TraderRosterActions, type TraderRosterPlacement } from "./TraderRosterActions";
 import { VolnovoiCopyPanel } from "./VolnovoiCopyPanel";
 import { VolnovoiMarketingBadge } from "./VolnovoiMarketingBadge";
-import { authorProfile } from "../utils";
-import { TOP_INTRO } from "../data/appCopy";
+import { useAuthorProfile } from "../hooks/useAuthorProfile";
 import { useThemedCopy } from "../hooks/useThemedCopy";
-import { isVolnovoiTrader, VOLNOVOI_SUBTITLE } from "../utils/volnovoi";
+import { isVolnovoiTrader } from "../utils/volnovoi";
 import { Avatar } from "./Avatar";
 import { TopPlaceMedal } from "./TopPlaceMedal";
 
@@ -59,6 +58,8 @@ function TopTraderCard({
   rosterPlacement?: TraderRosterPlacement;
   onRosterChange?: () => void;
 }) {
+  const copy = useThemedCopy();
+  const profile = useAuthorProfile(trader.display_name, trader.username, trader.telegram_id);
   const aggregate = isVolnovoiTrader(trader);
   const topChip = !aggregate && !fired && trader.rank >= 1 && trader.rank <= 3;
 
@@ -89,7 +90,7 @@ function TopTraderCard({
                       {aggregate ? "∑" : fired ? "—" : `#${trader.rank}`}
                     </span>
                   )}
-                  <p className="top-name">{authorProfile(trader.display_name, trader.username).title}</p>
+                  <p className="top-name">{profile.title}</p>
                 </div>
                 {aggregate ? (
                   <VolnovoiMarketingBadge trader={trader} />
@@ -102,7 +103,7 @@ function TopTraderCard({
                   <RankBadge rank={trader.trader_rank} featured />
                 </div>
               )}
-              {aggregate && <p className="top-aggregate-hint">{VOLNOVOI_SUBTITLE}</p>}
+              {aggregate && <p className="top-aggregate-hint">{copy.volnovoiSubtitle}</p>}
               <p className={`top-score ${trader.rating_percent >= 0 ? "up" : "down"}`}>
                 {trader.rating_percent >= 0 ? "+" : ""}
                 {trader.rating_percent.toFixed(2)}%
@@ -234,7 +235,7 @@ export function LeaderboardTab({
         <p className="meta">{copy.topEmpty}</p>
       )}
 
-      <p className="meta top-marketplace-intro">{TOP_INTRO}</p>
+      <p className="meta top-marketplace-intro">{copy.topIntro}</p>
       <RankGuide />
 
       {showTradersBlock && (

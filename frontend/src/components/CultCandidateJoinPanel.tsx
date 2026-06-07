@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { fetchCultCandidateMe, joinCultCandidate, type CultCandidateMe } from "../api";
-import { CULT_JOIN_INTRO, CULT_JOIN_TITLE } from "../data/appCopy";
+import { useThemedCopy } from "../hooks/useThemedCopy";
 import { CultCandidateBybitPanel } from "./CultCandidateBybitPanel";
 import { CultCandidatePaySection } from "./CultCandidatePaySection";
 import { telegramCardDisplayName } from "../utils/telegramProfile";
@@ -11,6 +11,7 @@ type Props = {
 };
 
 export function CultCandidateJoinPanel({ onJoined }: Props) {
+  const copy = useThemedCopy();
   const [me, setMe] = useState<CultCandidateMe | null>(null);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -68,27 +69,27 @@ export function CultCandidateJoinPanel({ onJoined }: Props) {
         <span className="cult-candidate-join__plus" aria-hidden>
           +
         </span>
-        Стать кандидатом
+        {copy.cultJoinCta}
       </button>
 
       {open && (
         <div className="modal-backdrop" role="presentation" onClick={() => !busy && setOpen(false)}>
           <div className="modal cult-candidate-join__modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal__head">
-              <h2>{CULT_JOIN_TITLE}</h2>
+              <h2>{copy.cultJoinTitle}</h2>
               <button type="button" className="btn-ghost" disabled={busy} onClick={() => setOpen(false)}>
                 ×
               </button>
             </div>
-            <p className="meta cult-candidate-join__intro">{CULT_JOIN_INTRO}</p>
+            <p className="meta cult-candidate-join__intro">{copy.cultJoinIntro}</p>
             <ol className="cult-candidate-join__steps">
               <li className={me.cult_subscription_active ? "ok" : "pending"}>
-                Оплатить подписку кандидата {me.cult_subscription_active ? "✓" : ""}
+                {copy.cultJoinStepPay} {me.cult_subscription_active ? "✓" : ""}
               </li>
               <li className={me.bybit_configured ? "ok" : "pending"}>
-                Подключить API Bybit {me.bybit_configured ? "✓" : ""}
+                {copy.cultJoinStepApi} {me.bybit_configured ? "✓" : ""}
               </li>
-              <li>Нажать «Вступить»</li>
+              <li>{copy.cultJoinStepConfirm}</li>
             </ol>
             <CultCandidatePaySection onPaid={reload} />
             <CultCandidateBybitPanel onConfigured={reload} />
@@ -113,7 +114,7 @@ export function CultCandidateJoinPanel({ onJoined }: Props) {
               disabled={busy}
               onClick={onJoin}
             >
-              Вступить
+              {copy.cultJoinConfirmBtn}
             </button>
           </div>
         </div>

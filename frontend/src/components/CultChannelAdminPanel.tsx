@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { CultChannel } from "../api";
 import { createCultChannel, deleteCultChannel } from "../api";
-import { CULT_CHANNEL_ADMIN_HINT } from "../data/appCopy";
+import { useThemedCopy } from "../hooks/useThemedCopy";
 
 type Props = {
   channels: CultChannel[];
@@ -9,6 +9,7 @@ type Props = {
 };
 
 export function CultChannelAdminPanel({ channels, onChange }: Props) {
+  const copy = useThemedCopy();
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -49,7 +50,7 @@ export function CultChannelAdminPanel({ channels, onChange }: Props) {
 
   return (
     <div className="cult-channel-admin">
-      <p className="cult-channel-admin__hint meta">{CULT_CHANNEL_ADMIN_HINT}</p>
+      <p className="cult-channel-admin__hint meta">{copy.cultChannelAdminHint}</p>
       <div className="cult-channel-admin__row">
         <input
           value={url}

@@ -7,8 +7,10 @@ import {
   updateReview,
   type Review,
 } from "../api";
-import { REVIEW_RULES, REVIEW_RULES_TITLE } from "../data/reviewRules";
-import { authorProfile, formatTime, mediaUrl } from "../utils";
+import { useAppTheme } from "../hooks/useAppTheme";
+import { useThemedCopy } from "../hooks/useThemedCopy";
+import { formatTime, mediaUrl } from "../utils";
+import { resolveAuthorProfile } from "../utils/punkCodename";
 import { reviewTextError } from "../utils/reviewText";
 import { ruTextFieldProps } from "../utils/textFieldProps";
 import { Avatar } from "./Avatar";
@@ -41,6 +43,8 @@ export function ReviewsTab({
   daysUntilReview,
   refreshKey = 0,
 }: Props) {
+  const theme = useAppTheme();
+  const copy = useThemedCopy();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
@@ -149,10 +153,10 @@ export function ReviewsTab({
     <div className="reviews-tab">
       <section className="review-form-card">
         <h3>{mine ? "Ваш отзыв" : "Оставить отзыв"}</h3>
-        <div className="review-rules" aria-label={REVIEW_RULES_TITLE}>
-          <p className="review-rules__title">{REVIEW_RULES_TITLE}</p>
+        <div className="review-rules" aria-label={copy.reviewRulesTitle}>
+          <p className="review-rules__title">{copy.reviewRulesTitle}</p>
           <ul className="review-rules__list">
-            {REVIEW_RULES.map((rule) => (
+            {copy.reviewRules.map((rule) => (
               <li key={rule}>{rule}</li>
             ))}
           </ul>
@@ -220,13 +224,24 @@ export function ReviewsTab({
 
       <ul className="review-list">
         {reviews.map((r) => {
-          const profile = authorProfile(r.author_display_name, r.author_username);
+          const profile = resolveAuthorProfile(
+            theme,
+            r.author_display_name,
+            r.author_username,
+            r.author_telegram_id,
+          );
           const canDelete = r.is_mine || isSuperAdmin;
           const imgSrc = mediaUrl(r.image_url);
           return (
             <li key={r.id} className="review-card">
               <header className="review-card__head">
-                <Avatar url={r.author_avatar_url} displayName={profile.title} username={r.author_username} size={36} />
+                <Avatar
+                  url={r.author_avatar_url}
+                  displayName={r.author_display_name}
+                  username={r.author_username}
+                  telegramId={r.author_telegram_id}
+                  size={36}
+                />
                 <div>
                   <strong>{profile.title}</strong>
                   <span className="meta">{formatTime(r.created_at)}</span>

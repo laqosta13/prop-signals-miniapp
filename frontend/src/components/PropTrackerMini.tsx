@@ -1,9 +1,13 @@
 import type { ChallengeDashboard } from "../api";
-import { authorProfile, formatUsd } from "../utils";
+import { useAppTheme } from "../hooks/useAppTheme";
+import { formatUsd } from "../utils";
+import { resolveAuthorProfile } from "../utils/punkCodename";
 
 type Props = { trackers: ChallengeDashboard[]; onOpen: () => void };
 
 export function PropTrackerMini({ trackers, onOpen }: Props) {
+  const theme = useAppTheme();
+
   if (trackers.length === 0) return null;
 
   return (
@@ -19,9 +23,15 @@ export function PropTrackerMini({ trackers, onOpen }: Props) {
         const progress = unlimited
           ? Math.min(100, data.profit_pct > 0 ? 100 : 0)
           : Math.min(100, Math.max(0, (data.profit_pct / data.profit_target_pct) * 100));
+        const owner = resolveAuthorProfile(
+          theme,
+          data.owner_display_name,
+          data.owner_username,
+          data.owner_telegram_id,
+        );
         return (
           <div key={data.owner_telegram_id} className="prop-mini__item">
-            <p className="prop-mini__owner">{authorProfile(data.owner_display_name, data.owner_username).title}</p>
+            <p className="prop-mini__owner">{owner.title}</p>
             <p className="prop-mini__balance">{formatUsd(data.balance)}</p>
             <p className={`prop-mini__pct ${data.profit_pct >= 0 ? "up" : "down"}`}>
               {data.profit_pct >= 0 ? "+" : ""}

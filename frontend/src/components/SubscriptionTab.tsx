@@ -5,12 +5,7 @@ import { PasteButton } from "./PasteButton";
 import { copyToClipboard, formatDateTimeMsk, selectFieldText } from "../utils";
 import { copyReferralLink, openReferralShare } from "../utils/referralShare";
 import { PartnerLinks } from "./PartnerLinks";
-import {
-  REFERRAL_SHARE_FALLBACK,
-  SUBSCRIPTION_INTRO,
-  subscriptionInactiveHint,
-  testModeBannerText,
-} from "../data/appCopy";
+import { useThemedCopy } from "../hooks/useThemedCopy";
 import { PaymentMemoRow } from "./PaymentMemoRow";
 import { SubscriptionSupportChat } from "./SubscriptionSupportChat";
 
@@ -20,6 +15,7 @@ type Props = {
 };
 
 export function SubscriptionTab({ onPaid, refreshKey = 0 }: Props) {
+  const copy = useThemedCopy();
   const [info, setInfo] = useState<SubscriptionInfo | null>(null);
   const [tx, setTx] = useState("");
   const [plan, setPlan] = useState<"week" | "month">("month");
@@ -79,7 +75,7 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: Props) {
 
   const shareReferral = () => {
     if (!info?.referral_link) return;
-    openReferralShare(info.referral_link, info.referral_share_text || REFERRAL_SHARE_FALLBACK);
+    openReferralShare(info.referral_link, info.referral_share_text || copy.referralShareFallback);
     WebApp.HapticFeedback.impactOccurred("medium");
   };
 
@@ -87,7 +83,7 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: Props) {
     if (!info?.referral_link) return;
     const ok = await copyReferralLink(
       info.referral_link,
-      info.referral_share_text || REFERRAL_SHARE_FALLBACK,
+      info.referral_share_text || copy.referralShareFallback,
     );
     WebApp.HapticFeedback.notificationOccurred(ok ? "success" : "error");
     if (ok) {
@@ -110,11 +106,11 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: Props) {
   return (
     <div className="sub-pay sub-pay--with-chat">
       <SubscriptionSupportChat />
-      <p className="meta sub-pay__intro">{SUBSCRIPTION_INTRO}</p>
+      <p className="meta sub-pay__intro">{copy.subscriptionIntro}</p>
       <p className={`sub-pay__status ${info.subscription_active ? "on" : "off"}`}>
         {info.test_mode_active ? (
           <>
-            {testModeBannerText(info.test_mode_until, info.test_mode_days_left)}
+            {copy.formatTestModeBanner(info.test_mode_until, info.test_mode_days_left)}
             {info.test_mode_until ? (
               <> До {formatDateTimeMsk(info.test_mode_until)} МСК.</>
             ) : null}
@@ -124,7 +120,7 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: Props) {
         ) : info.subscription_active ? (
           <>Подписка активна</>
         ) : (
-          <>{subscriptionInactiveHint(info.trial_days, info.trial_used)}</>
+          <>{copy.formatSubscriptionInactiveHint(info.trial_days, info.trial_used)}</>
         )}
       </p>
       {info.subscription_pause_hint && (
@@ -225,7 +221,7 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: Props) {
         )}
       </section>
 
-      <PartnerLinks title="Биржи и вывод" />
+      <PartnerLinks title={copy.partnerLinksTitle} />
     </div>
   );
 }

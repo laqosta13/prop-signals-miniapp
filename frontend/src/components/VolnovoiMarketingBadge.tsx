@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { Trader } from "../api";
-import { VOLNOVOI_MARKETING_CTA } from "../data/appCopy";
+import { useThemedCopy } from "../hooks/useThemedCopy";
 import { volnovoiCopyPitch } from "../utils/volnovoiPitch";
 
 type Props = {
@@ -9,6 +9,7 @@ type Props = {
 };
 
 export function VolnovoiMarketingBadge({ trader, className = "" }: Props) {
+  const copy = useThemedCopy();
   const pitch = volnovoiCopyPitch(trader);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -54,7 +55,7 @@ export function VolnovoiMarketingBadge({ trader, className = "" }: Props) {
         <p className="volnovoi-marketing__tip-head">{pitch.headline}</p>
         <p className={`volnovoi-marketing__tip-profit${pitch.positive ? " up" : " down"}`}>{pitch.profitLine}</p>
         <p className="volnovoi-marketing__tip-body">{pitch.depositLine}</p>
-        <p className="volnovoi-marketing__tip-cta">{VOLNOVOI_MARKETING_CTA}</p>
+        <p className="volnovoi-marketing__tip-cta">{copy.volnovoiMarketingCta}</p>
       </div>
     </div>
   );

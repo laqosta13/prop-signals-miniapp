@@ -11,12 +11,7 @@ import {
 } from "../api";
 import { copyToClipboard, formatUsd, selectFieldText } from "../utils";
 import { PasteButton } from "./PasteButton";
-import {
-  VOLNOVOI_COPY_DESC,
-  VOLNOVOI_COPY_HINT_API,
-  VOLNOVOI_COPY_HINT_BILLING,
-  VOLNOVOI_COPY_TITLE,
-} from "../data/appCopy";
+import { useThemedCopy } from "../hooks/useThemedCopy";
 import { BybitLogo } from "./BrandLogos";
 import { PartnerLinks } from "./PartnerLinks";
 import { PaymentMemoRow } from "./PaymentMemoRow";
@@ -39,6 +34,7 @@ const EMPTY_STATUS: CopyTradingStatus = {
 };
 
 export function VolnovoiCopyPanel() {
+  const copy = useThemedCopy();
   const [status, setStatus] = useState<CopyTradingStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -190,7 +186,7 @@ export function VolnovoiCopyPanel() {
       >
         <span className="cta-btn__label">
           <BybitLogo size={22} />
-          <span>{VOLNOVOI_COPY_TITLE}</span>
+          <span>{copy.volnovoiCopyTitle}</span>
         </span>
         <span className="volnovoi-copy__chevron" aria-hidden>
           {open ? "▾" : "▸"}
@@ -199,14 +195,14 @@ export function VolnovoiCopyPanel() {
 
       {open && (
         <div className="volnovoi-copy__panel">
-          <p className="volnovoi-copy__desc">{VOLNOVOI_COPY_DESC}</p>
+          <p className="volnovoi-copy__desc">{copy.volnovoiCopyDesc}</p>
 
           <ul className="volnovoi-copy__hints">
             <li>
               Комиссия <strong>{status?.fee_percent ?? 20}%</strong> с прибыли копирования
             </li>
-            <li>{VOLNOVOI_COPY_HINT_BILLING}</li>
-            <li>{VOLNOVOI_COPY_HINT_API}</li>
+            <li>{copy.volnovoiCopyHintBilling}</li>
+            <li>{copy.volnovoiCopyHintApi}</li>
           </ul>
 
           {loading ? (
