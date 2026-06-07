@@ -21,6 +21,7 @@ import {
 } from "./api";
 import { FeedTab } from "./components/FeedTab";
 import { ThemeToggle } from "./components/ThemeToggle";
+import { ClassicFeedBrand } from "./components/ClassicFeedBrand";
 import { VcSplitLogo } from "./components/VcSplitLogo";
 import { mergeFeedSignals } from "./utils/mergeFeedSignals";
 import { sortFeedSignals } from "./utils/sortFeedSignals";
@@ -488,9 +489,7 @@ export default function App() {
                 className="topbar__marketplace"
                 aria-label={feedStatsLabel ? `${copy.productTagline}, ${feedStatsLabel}` : copy.productTagline}
               >
-                <span className="topbar__marketplace-brand">
-                <VcSplitLogo fluid className="topbar__marketplace-logo" />
-                <span className="topbar__marketplace-copy">
+                <ClassicFeedBrand>
                   <span className="topbar__marketplace-kicker">{copy.feedKicker}</span>
                   {copy.feedSubKicker ? (
                     <span className="topbar__marketplace-sub">{copy.feedSubKicker}</span>
@@ -537,8 +536,7 @@ export default function App() {
                       </span>
                     )}
                   </span>
-                </span>
-                </span>
+                </ClassicFeedBrand>
               </p>
             )
           ) : (

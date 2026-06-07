@@ -1,5 +1,7 @@
 import type { RankIconId } from "../components/RankIcon";
 import { RANK_RULES as RANK_RULES_COPY } from "../data/appCopy";
+import type { Theme } from "./theme";
+import { isPunkTheme } from "./punkTheme";
 
 export type RankStyle = {
   bg: string;
@@ -22,8 +24,29 @@ export const RANK_STYLES: Record<number, RankStyle> = {
   8: { bg: "#222222", color: "#888888", iconId: "zero" },
 };
 
+/** Неоновая палитра рангов для темы МА. */
+export const PUNK_RANK_STYLES: Record<number, RankStyle> = {
+  10: { bg: "#0a0614", color: "#39ff14", iconId: "pyramid-eye", tier: "apex" },
+  9: { bg: "#0a0614", color: "#bc13fe", iconId: "satoshi", tier: "elite" },
+  1: { bg: "#100818", color: "#39ff14", iconId: "crown", tier: "legend" },
+  2: { bg: "#0e0818", color: "#ff2bd6", iconId: "wolf" },
+  3: { bg: "#0c0818", color: "#bc13fe", iconId: "chart-down" },
+  4: { bg: "#080c12", color: "#39ff14", iconId: "kittyra" },
+  5: { bg: "#080c12", color: "#00f0ff", iconId: "clover" },
+  6: { bg: "#0a1018", color: "#5eb3ff", iconId: "wave" },
+  7: { bg: "#0a1018", color: "#39ff14", iconId: "bolt" },
+  8: { bg: "#141414", color: "#6a6a6a", iconId: "zero" },
+};
+
 export function rankStyle(rankId: number): RankStyle {
   return RANK_STYLES[rankId] ?? RANK_STYLES[8];
+}
+
+export function resolveRankStyle(rankId: number, theme: Theme): RankStyle {
+  if (isPunkTheme(theme)) {
+    return PUNK_RANK_STYLES[rankId] ?? PUNK_RANK_STYLES[8];
+  }
+  return rankStyle(rankId);
 }
 
 export function rankPillExtraClass(rankId: number, featured: boolean): string {

@@ -134,6 +134,7 @@ export const PUNK_RANK_RULES = [
 ] as const;
 
 export const PUNK_RANK_GUIDE_UNDERSTOOD = "ВХОД В СЕТЬ";
+export const PUNK_RANK_PENALTY_WARN = "−1 код";
 export const PUNK_RANK_CONFIRM_TITLE = "ПОДТВЕРДИ КОД";
 export const PUNK_RANK_CONFIRM_BTN = "ЗАФИКСИРОВАТЬ";
 export const PUNK_RANK_CONFIRM_WEEK = "за цикл";

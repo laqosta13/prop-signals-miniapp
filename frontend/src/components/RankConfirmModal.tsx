@@ -4,8 +4,9 @@ import type { TraderRank } from "../api";
 import { confirmMyRank } from "../api";
 import { useAppTheme } from "../hooks/useAppTheme";
 import { useThemedCopy } from "../hooks/useThemedCopy";
-import { resolveRankName } from "../utils/punkTheme";
-import { rankStyle } from "../utils/ranks";
+import { isPunkTheme, resolveRankName } from "../utils/punkTheme";
+import { resolveRankStyle } from "../utils/ranks";
+import { PunkRankIcon } from "./PunkRankIcon";
 import { RankIcon } from "./RankIcon";
 
 type Props = {
@@ -17,7 +18,8 @@ export function RankConfirmModal({ rank, onDone }: Props) {
   const theme = useAppTheme();
   const copy = useThemedCopy();
   const [busy, setBusy] = useState(false);
-  const st = rankStyle(rank.current_rank_id);
+  const punk = isPunkTheme(theme);
+  const st = resolveRankStyle(rank.current_rank_id, theme);
   const rankName = resolveRankName(rank.current_rank_id, rank.current_rank_name, theme);
   const pct = rank.weekly_pct;
   const pctLabel = `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`;
@@ -36,10 +38,15 @@ export function RankConfirmModal({ rank, onDone }: Props) {
 
   return createPortal(
     <div className="modal-backdrop modal-backdrop--rank" role="dialog" aria-modal="true">
-      <div className="rank-confirm-sheet">
+      <div className={`rank-confirm-sheet${punk ? " rank-confirm-sheet--punk" : ""}`}>
         <h2>{copy.rankConfirmTitle}</h2>
-        <div className="rank-confirm-sheet__hero" style={{ background: st.bg, color: st.color }}>
-          {st.iconId && <RankIcon id={st.iconId} size={32} className="rank-confirm-sheet__icon" />}
+        <div className={`rank-confirm-sheet__hero${punk ? " rank-confirm-sheet__hero--punk" : ""}`} style={{ background: st.bg, color: st.color }}>
+          {st.iconId &&
+            (punk ? (
+              <PunkRankIcon id={st.iconId} size={32} className="rank-confirm-sheet__icon" />
+            ) : (
+              <RankIcon id={st.iconId} size={32} className="rank-confirm-sheet__icon" />
+            ))}
           <span className="rank-confirm-sheet__name">{rankName}</span>
           <span className="rank-confirm-sheet__pct">{pctLabel}</span>
           <span className="rank-confirm-sheet__sub">{copy.rankConfirmWeek}</span>

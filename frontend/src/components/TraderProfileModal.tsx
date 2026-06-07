@@ -7,7 +7,7 @@ import { useThemedCopy } from "../hooks/useThemedCopy";
 import { isVolnovoiTrader } from "../utils/volnovoi";
 import { useAppTheme } from "../hooks/useAppTheme";
 import { resolveRankName } from "../utils/punkTheme";
-import { rankStyle } from "../utils/ranks";
+import { resolveRankStyle } from "../utils/ranks";
 import { Avatar } from "./Avatar";
 import { RankBadge } from "./RankBadge";
 import { VolnovoiMarketingBadge } from "./VolnovoiMarketingBadge";
@@ -36,7 +36,7 @@ export function TraderProfileModal({ trader, isMe, isAdmin, onClose }: Props) {
       .catch(() => setRank(trader.trader_rank ?? null));
   }, [aggregate, trader.telegram_id, trader.trader_rank]);
 
-  const st = rank ? rankStyle(rank.current_rank_id) : rankStyle(8);
+  const st = resolveRankStyle(rank?.current_rank_id ?? 8, theme);
   const profile = useAuthorProfile(trader.display_name, trader.username, trader.telegram_id);
 
   const onConfirm = async () => {

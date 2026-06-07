@@ -2,13 +2,15 @@ import { createPortal } from "react-dom";
 import { useAppTheme } from "../hooks/useAppTheme";
 import { useThemedCopy } from "../hooks/useThemedCopy";
 import { resolveRankName } from "../utils/punkTheme";
+import { isPunkTheme } from "../utils/punkTheme";
 import {
   RANK_TIERS,
   rankMaxLeverage,
   rankMaxStakePct,
-  rankStyle,
   rankTierExtraClass,
+  resolveRankStyle,
 } from "../utils/ranks";
+import { PunkRankIcon } from "./PunkRankIcon";
 import { RankIcon } from "./RankIcon";
 
 type Props = {
@@ -19,6 +21,7 @@ type Props = {
 export function RankGuideModal({ onClose, highlightRankId }: Props) {
   const theme = useAppTheme();
   const copy = useThemedCopy();
+  const punk = isPunkTheme(theme);
 
   return createPortal(
     <div
@@ -37,15 +40,23 @@ export function RankGuideModal({ onClose, highlightRankId }: Props) {
         <p className="rank-guide-sheet__pool">{copy.rankGuidePool}</p>
         <ul className="rank-guide__tiers rank-guide__tiers--modal">
           {RANK_TIERS.map((tier) => {
-            const st = rankStyle(tier.id);
+            const st = resolveRankStyle(tier.id, theme);
             const highlighted = highlightRankId === tier.id;
             return (
               <li
                 key={tier.id}
                 className={`rank-guide__tier${rankTierExtraClass(tier.id)}${highlighted ? " rank-guide__tier--current" : ""}`}
               >
-                <span className="rank-guide__tier-pill" style={{ background: st.bg, color: st.color }}>
-                  {st.iconId && <RankIcon id={st.iconId} size={18} className="rank-guide__tier-icon" />}
+                <span
+                  className={`rank-guide__tier-pill${punk ? " rank-guide__tier-pill--punk" : ""}`}
+                  style={{ background: st.bg, color: st.color }}
+                >
+                  {st.iconId &&
+                    (punk ? (
+                      <PunkRankIcon id={st.iconId} size={18} className="rank-guide__tier-icon" />
+                    ) : (
+                      <RankIcon id={st.iconId} size={18} className="rank-guide__tier-icon" />
+                    ))}
                   {resolveRankName(tier.id, tier.name, theme)}
                 </span>
                 <div className="rank-guide__tier-meta">

@@ -151,6 +151,7 @@ export type ThemedCopy = {
   rankConfirmTitle: string;
   rankConfirmBtn: string;
   rankConfirmWeek: string;
+  rankPenaltyWarn: string;
   themeToggleDark: string;
   themeTogglePunk: string;
   outcomeWaiting: string;
@@ -295,6 +296,7 @@ function buildCopy(theme: Theme): ThemedCopy {
       rankConfirmTitle: "Подтверди свой ранг",
       rankConfirmBtn: "Подтвердить результат",
       rankConfirmWeek: "за неделю",
+      rankPenaltyWarn: "−1 ранг",
       themeToggleDark: "Тёмная тема",
       themeTogglePunk: "Панк-тема",
       outcomeWaiting: "Ожидание входа",
@@ -429,6 +431,7 @@ function buildCopy(theme: Theme): ThemedCopy {
     rankConfirmTitle: P.PUNK_RANK_CONFIRM_TITLE,
     rankConfirmBtn: P.PUNK_RANK_CONFIRM_BTN,
     rankConfirmWeek: P.PUNK_RANK_CONFIRM_WEEK,
+    rankPenaltyWarn: P.PUNK_RANK_PENALTY_WARN,
     themeToggleDark: P.PUNK_THEME_TOGGLE_DARK,
     themeTogglePunk: P.PUNK_THEME_TOGGLE_PUNK,
     outcomeWaiting: P.PUNK_OUTCOME_WAITING,
