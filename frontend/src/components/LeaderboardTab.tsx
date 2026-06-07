@@ -33,6 +33,7 @@ import {
 } from "../data/appCopy";
 import { isVolnovoiTrader, VOLNOVOI_SUBTITLE } from "../utils/volnovoi";
 import { Avatar } from "./Avatar";
+import { TopPlaceMedal } from "./TopPlaceMedal";
 
 type Props = {
   traders: Trader[];
@@ -65,6 +66,7 @@ function TopTraderCard({
   onRosterChange?: () => void;
 }) {
   const aggregate = isVolnovoiTrader(trader);
+  const topMedal = !aggregate && !fired && trader.rank >= 1 && trader.rank <= 3;
 
   return (
     <li className={aggregate ? "top-list__item--aggregate" : undefined}>
@@ -73,11 +75,15 @@ function TopTraderCard({
       >
         <button type="button" className="top-card__head-btn" onClick={onOpen}>
           <div className="top-card__head">
-            <span
-              className={`top-rank${aggregate ? " top-rank--aggregate" : ""}${fired ? " top-rank--fired" : ""}`}
-            >
-              {aggregate ? "∑" : fired ? "—" : `#${trader.rank}`}
-            </span>
+            {topMedal ? (
+              <TopPlaceMedal place={trader.rank as 1 | 2 | 3} className="top-rank top-rank--medal" />
+            ) : (
+              <span
+                className={`top-rank${aggregate ? " top-rank--aggregate" : ""}${fired ? " top-rank--fired" : ""}`}
+              >
+                {aggregate ? "∑" : fired ? "—" : `#${trader.rank}`}
+              </span>
+            )}
             <Avatar url={trader.avatar_url} displayName={trader.display_name} username={trader.username} size={44} />
             <div className="top-body">
               <div className="top-name-row">

@@ -2815,6 +2815,37 @@
   min-width: 36px;
 }
 
+.top-rank--medal {
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.top-place-medal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.top-place-medal svg {
+  display: block;
+}
+
+.top-place-medal--1 svg {
+  filter: drop-shadow(0 0 8px rgba(255, 196, 40, 0.85)) drop-shadow(0 0 2px rgba(255, 240, 160, 0.9));
+}
+
+.top-place-medal--2 svg {
+  filter: drop-shadow(0 0 7px rgba(186, 210, 235, 0.8)) drop-shadow(0 0 2px rgba(255, 255, 255, 0.75));
+}
+
+.top-place-medal--3 svg {
+  filter: drop-shadow(0 0 7px rgba(210, 130, 70, 0.8)) drop-shadow(0 0 2px rgba(255, 200, 140, 0.7));
+}
+
 .top-rank--aggregate {
   color: var(--purple);
   font-size: 1.35rem;
