@@ -4,6 +4,7 @@ import { HASHHEDGE_RULES } from "../data/hashhedgeRules";
 import { authorProfile, formatTakeProfits, formatUsd, mediaUrl, mskDayBoundsMs, parseApiDate } from "../utils";
 import { signalRealizedPnl } from "../utils/signalPnl";
 import { Avatar } from "./Avatar";
+import { CoinLogo } from "./CoinLogo";
 import { HashHedgeRulesTable } from "./HashHedgeRulesTable";
 
 type Props = {
@@ -213,11 +214,9 @@ export function TrackerTab({ trackers, signals, myId, canPublishMainFeed, onSett
                       const pnl = signalRealizedPnl(s) ?? s.realized_pnl;
                       return (
                         <li key={s.id}>
-                          <div>
-                            <strong>
-                              {s.number != null && <span className="signal-number">#{s.number} </span>}
-                              {s.symbol}
-                            </strong>
+                          <div className="tracker-trade__sym">
+                            {s.number != null && <span className="signal-number">#{s.number}</span>}
+                            <CoinLogo symbol={s.symbol} size={18} showLabel />
                             <span className="muted"> {s.direction.toUpperCase()}</span>
                           </div>
                           <span className={pnl != null && pnl >= 0 ? "pnl-win" : "pnl-lose"}>

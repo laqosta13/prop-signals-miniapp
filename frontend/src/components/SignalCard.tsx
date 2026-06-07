@@ -14,6 +14,7 @@ import { useSignalLivePnl } from "../hooks/useSignalLivePnl";
 import { canEditOrDeleteSignal, canCloseAtMarketSignal, canSupplementSignal } from "../utils/signalActions";
 import { signalOutcomeDisplay } from "../utils/signalChartLevels";
 import { Avatar } from "./Avatar";
+import { CoinLogo } from "./CoinLogo";
 import { RankBadge } from "./RankBadge";
 import { SignalChart } from "./SignalChart";
 
@@ -151,7 +152,7 @@ export function SignalCard({
             </div>
             <div className="signal-card__sym">
               <span className="signal-number">#{s.number}</span>
-              <span className="signal-ticker">{s.symbol}</span>
+              <CoinLogo symbol={s.symbol} size={22} showLabel className="signal-ticker" />
               <span className={`dir-badge ${isLong ? "long" : "short"}`}>
                 {isLong ? "↑ LONG" : "↓ SHORT"}
               </span>

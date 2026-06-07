@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { fetchMarketSymbols } from "../../api";
+import { CoinLogo } from "../CoinLogo";
+import { symbolBase } from "../../utils/coinSymbol";
 
 type Props = {
   symbol: string;
@@ -65,6 +67,9 @@ export function SignalFormDealSection({ symbol, onSymbolChange, direction, onDir
       <label className="signal-form__deal-symbol">
         <span className="signal-form__deal-k">Тикер</span>
         <div className="signal-form__symbol-wrap" ref={wrapRef}>
+          {symbol.trim().length >= 2 ? (
+            <CoinLogo symbol={symbol} size={20} className="signal-form__symbol-logo" />
+          ) : null}
           <input
             className="signal-form__symbol-input"
             value={symbol}
@@ -87,7 +92,7 @@ export function SignalFormDealSection({ symbol, onSymbolChange, direction, onDir
               {suggestions.map((sym) => (
                 <li key={sym} role="option">
                   <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => pick(sym)}>
-                    {sym}
+                    <CoinLogo symbol={sym} size={18} showLabel label={symbolBase(sym)} />
                   </button>
                 </li>
               ))}

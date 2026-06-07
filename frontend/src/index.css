@@ -668,10 +668,50 @@
   gap: 6px;
 }
 
-.signal-ticker {
+.signal-ticker.coin-logo .coin-logo__label {
   font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: 0.01em;
+}
+
+.coin-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.coin-logo__img-wrap {
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.coin-logo__img-wrap img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.coin-logo__fallback {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+.coin-logo__label {
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .signal-number {
@@ -2703,6 +2743,13 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.tracker-trade__sym {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .trade-list .muted {
   color: var(--muted);
   font-size: 0.8rem;
@@ -3629,11 +3676,22 @@
   gap: 6px 8px;
 }
 
-.cult-active-trades__sym {
+.cult-active-trades__coin .coin-logo__label {
   font-size: 0.92rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   color: var(--text);
+}
+
+.cult-closed-trades__coin {
+  flex: 1;
+  min-width: 0;
+}
+
+.cult-closed-trades__coin .coin-logo__label {
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .cult-active-trades__dir {
@@ -6219,6 +6277,14 @@ input.readonly {
 .signal-form__symbol-wrap {
   position: relative;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.signal-form__symbol-wrap .signal-form__symbol-input {
+  flex: 1;
+  min-width: 0;
 }
 
 .signal-form__symbol-input {
@@ -6256,7 +6322,9 @@ input.readonly {
 }
 
 .signal-form__symbol-suggest button {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   padding: 10px 12px;
   border: none;

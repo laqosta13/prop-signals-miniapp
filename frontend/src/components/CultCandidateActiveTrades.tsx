@@ -1,4 +1,5 @@
 import type { CultCandidateActiveSignal } from "../api";
+import { CoinLogo } from "./CoinLogo";
 
 type Props = {
   trades: CultCandidateActiveSignal[];
@@ -6,16 +7,6 @@ type Props = {
   closingId?: number | null;
   onCloseAtMarket?: (id: number) => void;
 };
-
-function symbolBase(symbol: string): string {
-  return symbol.replace(/USDT$/i, "").replace(/USD$/i, "") || symbol;
-}
-
-function symbolHue(symbol: string): number {
-  let h = 0;
-  for (let i = 0; i < symbol.length; i += 1) h = (h * 31 + symbol.charCodeAt(i)) % 360;
-  return h;
-}
 
 function dirLabel(direction: string): string {
   return direction.toLowerCase() === "long" ? "LONG" : "SHORT";
@@ -40,22 +31,14 @@ export function CultCandidateActiveTrades({
       <p className="cult-active-trades__title">Активные сделки</p>
       <ul className="cult-active-trades__list">
         {trades.map((t) => {
-          const base = symbolBase(t.symbol);
           const isLong = t.direction.toLowerCase() === "long";
           const showClose = canClose && t.in_market && onCloseAtMarket;
           return (
             <li key={t.id} className="cult-active-trades__item">
               <div className="cult-active-trades__row">
-                <span
-                  className="cult-active-trades__icon"
-                  style={{ background: `hsl(${symbolHue(t.symbol)} 55% 38%)` }}
-                  aria-hidden
-                >
-                  {base.slice(0, 3)}
-                </span>
+                <CoinLogo symbol={t.symbol} size={32} showLabel className="cult-active-trades__coin" />
                 <div className="cult-active-trades__main">
                   <div className="cult-active-trades__head">
-                    <span className="cult-active-trades__sym">{base}</span>
                     <span className={`cult-active-trades__dir${isLong ? " cult-active-trades__dir--long" : " cult-active-trades__dir--short"}`}>
                       {dirLabel(t.direction)}
                     </span>
