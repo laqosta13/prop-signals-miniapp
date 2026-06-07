@@ -2843,6 +2843,10 @@
   color: var(--muted);
 }
 
+.top-rank-inline--candidate {
+  color: var(--purple);
+}
+
 .top-place-chip {
   flex-shrink: 0;
   display: inline-flex;
@@ -3519,13 +3523,60 @@
   margin-bottom: 0;
 }
 
-.top-card__trades-hint {
-  margin-left: auto;
+.top-candidate-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.candidate-trades-pills {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.candidate-trades-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: var(--muted);
+  line-height: 1.35;
   white-space: nowrap;
+}
+
+.candidate-trades-pill__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.candidate-trades-pill--active {
+  color: #6ee7b7;
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.28);
+}
+
+.candidate-trades-pill--active .candidate-trades-pill__dot {
+  background: #34d399;
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.55);
+}
+
+.candidate-trades-pill--closed {
+  color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.candidate-trades-pill--closed .candidate-trades-pill__dot {
+  background: rgba(255, 255, 255, 0.35);
 }
 
 .top-card__chevron {

@@ -6,6 +6,7 @@ import { CultCandidateActiveTrades } from "./CultCandidateActiveTrades";
 import { CultCandidateClosedTrades } from "./CultCandidateClosedTrades";
 import { EquityCurve } from "./EquityCurve";
 import { RankBadge } from "./RankBadge";
+import { TopPlaceMedal } from "./TopPlaceMedal";
 import { TraderRosterActions } from "./TraderRosterActions";
 
 type Props = {
@@ -31,14 +32,11 @@ export function CultCandidateCard({
   const expanded = candidate.is_me || opened;
   const activeCount = candidate.active_signals.length;
   const closedCount = candidate.closed_signals?.length ?? 0;
-  const tradesHint =
-    activeCount + closedCount > 0
-      ? `${activeCount > 0 ? `${activeCount} акт.` : ""}${activeCount > 0 && closedCount > 0 ? " · " : ""}${closedCount > 0 ? `${closedCount} закр.` : ""}`
-      : null;
+  const topPlace = candidate.rank >= 1 && candidate.rank <= 3 ? (candidate.rank as 1 | 2 | 3) : null;
+  const showTradePills = !expanded && (activeCount > 0 || closedCount > 0);
 
   const headContent = (
     <div className="top-card__head">
-      <span className="top-rank top-rank--candidate">#{candidate.rank}</span>
       <Avatar
         url={candidate.avatar_url}
         displayName={candidate.display_name}
@@ -47,15 +45,41 @@ export function CultCandidateCard({
       />
       <div className="top-body">
         <div className="top-name-row">
-          <p className="top-name">{authorProfile(candidate.display_name, candidate.username).title}</p>
-          {candidate.trader_rank && <RankBadge rank={candidate.trader_rank} featured />}
-          {!expanded && tradesHint && <span className="top-card__trades-hint">{tradesHint}</span>}
+          <div className="top-name-line">
+            {topPlace ? (
+              <TopPlaceMedal place={topPlace} />
+            ) : (
+              <span className="top-rank-inline top-rank-inline--candidate">#{candidate.rank}</span>
+            )}
+            <p className="top-name">{authorProfile(candidate.display_name, candidate.username).title}</p>
+          </div>
           {!candidate.is_me && (
             <span className="top-card__chevron" aria-hidden>
               {expanded ? "▴" : "▾"}
             </span>
           )}
         </div>
+        {(candidate.trader_rank || showTradePills) && (
+          <div className="top-candidate-meta">
+            {candidate.trader_rank && <RankBadge rank={candidate.trader_rank} card />}
+            {showTradePills && (
+              <div className="candidate-trades-pills">
+                {activeCount > 0 && (
+                  <span className="candidate-trades-pill candidate-trades-pill--active">
+                    <span className="candidate-trades-pill__dot" aria-hidden />
+                    {activeCount} в игре
+                  </span>
+                )}
+                {closedCount > 0 && (
+                  <span className="candidate-trades-pill candidate-trades-pill--closed">
+                    <span className="candidate-trades-pill__dot" aria-hidden />
+                    {closedCount} закр.
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         <p className={`top-score ${candidate.rating_percent >= 0 ? "up" : "down"}`}>
           {candidate.rating_percent >= 0 ? "+" : ""}
           {candidate.rating_percent.toFixed(2)}%
