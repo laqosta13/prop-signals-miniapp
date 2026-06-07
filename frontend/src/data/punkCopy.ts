@@ -1,10 +1,12 @@
 /**
- * Cyber-punk копирайт — теневой мир МА·СЕТЬ (тема МА).
+ * Cyber-punk копирайт — неоновый мир Volnovoi Cult (тема МА).
  */
 
-export const PUNK_PRODUCT_NAME = "МА·СЕТЬ";
-export const PUNK_PRODUCT_TAGLINE = "ТЕНЕВОЙ MARKETPLACE";
-export const PUNK_BOOT_TITLE = "МА·СЕТЬ";
+import { PRODUCT_NAME } from "./appCopy";
+
+export const PUNK_PRODUCT_NAME = PRODUCT_NAME;
+export const PUNK_PRODUCT_TAGLINE = "NEON·SHADOW";
+export const PUNK_BOOT_TITLE = "VOLNOVOI CULT";
 export const PUNK_BOOT_META = "СИНХРОНИЗАЦИЯ СЕТИ…";
 
 export const PUNK_NAV = {
@@ -170,7 +172,7 @@ export function punkSubscriptionInactiveHint(trialDays: number, trialUsed: boole
   return PUNK_SUBSCRIPTION_TRIAL_USED_MSG;
 }
 
-export const PUNK_DISCLAIMER_TITLE = "Протокол МА·СЕТЬ";
+export const PUNK_DISCLAIMER_TITLE = "Протокол Volnovoi Cult";
 export const PUNK_DISCLAIMER_LEAD =
   "Результат возможен только при 100% повторении операции — как в коде.";
 export const PUNK_DISCLAIMER_POINTS = [
@@ -202,7 +204,7 @@ export const PUNK_REVIEW_RULES = [
 ] as const;
 
 export const PUNK_REFERRAL_SHARE_FALLBACK =
-  "МА·СЕТЬ — теневой marketplace крипто-операций. Прозрачные коды топ-операторов.";
+  "Volnovoi Cult — теневой marketplace крипто-операций. Прозрачные коды топ-операторов.";
 
 export const PUNK_PARTNER_BYBIT_HINT = "Bybit — зеркало оператора";
 export const PUNK_PARTNER_BINGX_HINT = "Регистрация BingX";
