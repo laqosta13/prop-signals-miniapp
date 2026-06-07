@@ -6,11 +6,15 @@
     <title>Hash Hedge Signals</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@400;500;600;700&family=Tektur:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
     <script>
       try {
         var t = localStorage.getItem("hh-theme");
-        document.documentElement.setAttribute("data-theme", t === "light" || t === "dark" ? t : "dark");
+        var theme = t === "punk" || t === "dark" ? t : t === "light" ? "punk" : "dark";
+        document.documentElement.setAttribute("data-theme", theme);
       } catch (e) {
         document.documentElement.setAttribute("data-theme", "dark");
       }

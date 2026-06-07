@@ -1,0 +1,399 @@
+/* ── VOLNOVOI CULT · Punk theme (cyber-neon) ─────────────── */
+
+@keyframes punk-neon-flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  93% {
+    opacity: 0.82;
+  }
+  94% {
+    opacity: 1;
+  }
+  96% {
+    opacity: 0.9;
+  }
+}
+
+@keyframes punk-neon-pulse {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.18);
+  }
+}
+
+@keyframes punk-scan {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+[data-theme="punk"] body {
+  position: relative;
+  font-family: var(--font-body);
+  letter-spacing: 0.02em;
+}
+
+[data-theme="punk"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  opacity: 0.22;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(188, 19, 254, 0.04) 2px,
+    rgba(188, 19, 254, 0.04) 4px
+  );
+}
+
+[data-theme="punk"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9997;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image:
+    linear-gradient(rgba(57, 255, 20, 0.5) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(188, 19, 254, 0.35) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* ── Typography ──────────────────────────────────────────── */
+
+[data-theme="punk"] h1,
+[data-theme="punk"] h2,
+[data-theme="punk"] h3,
+[data-theme="punk"] .topbar h1,
+[data-theme="punk"] .topbar__marketplace-word,
+[data-theme="punk"] .topbar__marketplace-kicker,
+[data-theme="punk"] .feed-block__label,
+[data-theme="punk"] .top-cult-label,
+[data-theme="punk"] .modal__head h2,
+[data-theme="punk"] .btn-primary,
+[data-theme="punk"] .bottom-nav button.on,
+[data-theme="punk"] .theme-toggle__thumb,
+[data-theme="punk"] .theme-toggle__rest {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+[data-theme="punk"] .topbar h1 {
+  background: linear-gradient(105deg, #ffffff 0%, var(--neon-purple) 42%, var(--neon-green) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 0 8px rgba(188, 19, 254, 0.45));
+  animation: punk-neon-flicker 4s ease-in-out infinite;
+}
+
+[data-theme="punk"] .topbar__marketplace-kicker {
+  color: var(--neon-purple);
+  text-shadow: var(--neon-glow-purple);
+}
+
+[data-theme="punk"] .topbar__marketplace-word {
+  background: linear-gradient(105deg, #ffffff 0%, var(--neon-purple) 40%, var(--neon-green) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(0 0 6px rgba(57, 255, 20, 0.35));
+}
+
+[data-theme="punk"] .topbar__marketplace-count {
+  color: var(--neon-green);
+  text-shadow: var(--neon-glow-green);
+}
+
+[data-theme="punk"] .topbar__marketplace-count--awaiting {
+  color: var(--neon-purple);
+  text-shadow: var(--neon-glow-purple);
+}
+
+[data-theme="punk"] .top-score.up {
+  color: var(--neon-green);
+  text-shadow: var(--neon-glow-green);
+}
+
+[data-theme="punk"] .top-score.down {
+  color: var(--red);
+  text-shadow: 0 0 10px rgba(255, 42, 109, 0.5);
+}
+
+/* ── Navigation ──────────────────────────────────────────── */
+
+[data-theme="punk"] .bottom-nav {
+  border-top-color: rgba(188, 19, 254, 0.35);
+  box-shadow: 0 -4px 24px rgba(188, 19, 254, 0.15);
+}
+
+[data-theme="punk"] .bottom-nav button.on {
+  color: var(--neon-green);
+  border-color: rgba(57, 255, 20, 0.35);
+  box-shadow: inset 0 0 12px rgba(57, 255, 20, 0.12), var(--neon-glow-green);
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+[data-theme="punk"] .bottom-nav button.on .ico {
+  filter: drop-shadow(0 0 6px rgba(57, 255, 20, 0.65));
+}
+
+/* ── Cards & blocks ──────────────────────────────────────── */
+
+[data-theme="punk"] .signal-card,
+[data-theme="punk"] .top-card,
+[data-theme="punk"] .news-card,
+[data-theme="punk"] .review-card,
+[data-theme="punk"] .sub-card,
+[data-theme="punk"] .cult-channel-card,
+[data-theme="punk"] .modal {
+  border-color: rgba(188, 19, 254, 0.32);
+  box-shadow: var(--glass-shadow);
+}
+
+[data-theme="punk"] .feed-block,
+[data-theme="punk"] .top-cult-block {
+  border-color: rgba(188, 19, 254, 0.28);
+  background: var(--surface);
+  box-shadow: inset 0 0 24px rgba(188, 19, 254, 0.06);
+}
+
+[data-theme="punk"] .feed-block--active,
+[data-theme="punk"] .top-cult-block--traders {
+  border-color: rgba(57, 255, 20, 0.35);
+  background: linear-gradient(180deg, rgba(57, 255, 20, 0.08) 0%, var(--surface) 42%);
+  box-shadow: 0 0 20px rgba(57, 255, 20, 0.08);
+}
+
+[data-theme="punk"] .feed-block--closed,
+[data-theme="punk"] .top-cult-block--candidates {
+  border-color: rgba(188, 19, 254, 0.22);
+  background: var(--surface2);
+}
+
+[data-theme="punk"] .top-cult-block--fired {
+  border-color: rgba(255, 42, 109, 0.35);
+  background: linear-gradient(180deg, rgba(255, 42, 109, 0.08) 0%, var(--surface) 42%);
+}
+
+[data-theme="punk"] .feed-block__label,
+[data-theme="punk"] .top-cult-label {
+  border-bottom-color: rgba(188, 19, 254, 0.2);
+  background: rgba(188, 19, 254, 0.08);
+  font-family: var(--font-display);
+  letter-spacing: 0.1em;
+}
+
+[data-theme="punk"] .feed-block__label--active,
+[data-theme="punk"] .top-cult-label--traders {
+  color: var(--neon-green);
+  border-bottom-color: rgba(57, 255, 20, 0.35);
+  background: rgba(57, 255, 20, 0.1);
+  text-shadow: var(--neon-glow-green);
+}
+
+[data-theme="punk"] .top-cult-label--candidates {
+  color: var(--neon-purple);
+  text-shadow: var(--neon-glow-purple);
+}
+
+[data-theme="punk"] .top-cult-label--fired {
+  color: var(--red);
+  border-bottom-color: rgba(255, 42, 109, 0.3);
+  background: rgba(255, 42, 109, 0.08);
+}
+
+[data-theme="punk"] .top-card--candidate,
+[data-theme="punk"] .top-card--aggregate {
+  border-color: rgba(188, 19, 254, 0.3);
+  background: linear-gradient(135deg, rgba(188, 19, 254, 0.06), rgba(57, 255, 20, 0.04));
+}
+
+[data-theme="punk"] .top-place-chip {
+  box-shadow: 0 0 8px rgba(255, 200, 80, 0.45);
+}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+
+[data-theme="punk"] .btn-primary {
+  font-weight: 800;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
+  animation: punk-neon-pulse 3s ease-in-out infinite;
+}
+
+[data-theme="punk"] .fab-top,
+[data-theme="punk"] .refresh-btn,
+[data-theme="punk"] .disclaimer-btn {
+  border-color: rgba(188, 19, 254, 0.35);
+  box-shadow: 0 0 10px rgba(188, 19, 254, 0.2);
+}
+
+[data-theme="punk"] .dir-toggle button.active.long {
+  color: var(--neon-green);
+  border-color: rgba(57, 255, 20, 0.45);
+  box-shadow: var(--neon-glow-green);
+}
+
+[data-theme="punk"] .dir-toggle button.active.short {
+  border-color: rgba(255, 42, 109, 0.45);
+  box-shadow: 0 0 10px rgba(255, 42, 109, 0.35);
+}
+
+[data-theme="punk"] .leverage-picker button.active {
+  color: var(--neon-purple);
+  border-color: rgba(188, 19, 254, 0.45);
+  box-shadow: var(--neon-glow-purple);
+}
+
+/* ── Rank badges ─────────────────────────────────────────── */
+
+[data-theme="punk"] .rank-badge__pill--featured,
+[data-theme="punk"] .rank-badge__pill--card {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    var(--neon-glow-purple);
+}
+
+[data-theme="punk"] .rank-badge__pill--elite {
+  box-shadow:
+    0 0 0 1px rgba(57, 255, 20, 0.2),
+    var(--neon-glow-green);
+}
+
+[data-theme="punk"] .candidate-trades-pill--active {
+  color: var(--neon-green);
+  border-color: rgba(57, 255, 20, 0.45);
+  box-shadow: var(--neon-glow-green);
+}
+
+/* ── Charts ──────────────────────────────────────────────── */
+
+[data-theme="punk"] .signal-chart {
+  background: #080810;
+  border-color: rgba(188, 19, 254, 0.28);
+  box-shadow: inset 0 0 30px rgba(188, 19, 254, 0.08);
+}
+
+[data-theme="punk"] .signal-chart__live-line--up {
+  stroke: rgba(57, 255, 20, 0.9);
+  filter: drop-shadow(0 0 4px rgba(57, 255, 20, 0.6));
+}
+
+[data-theme="punk"] .signal-chart__live-line--down,
+[data-theme="punk"] .signal-chart__live-line--stop {
+  stroke: rgba(255, 42, 109, 0.9);
+}
+
+[data-theme="punk"] .signal-chart__live-line--target {
+  stroke: rgba(188, 19, 254, 0.9);
+}
+
+[data-theme="punk"] .signal-chart__live-line--market {
+  stroke: rgba(57, 255, 20, 0.75);
+}
+
+[data-theme="punk"] .signal-chart__trail-dot--entry,
+[data-theme="punk"] .signal-chart__trail-dot--up,
+[data-theme="punk"] .signal-chart__live-dot--entry,
+[data-theme="punk"] .signal-chart__live-dot--up {
+  background: var(--neon-green);
+  fill: var(--neon-green);
+  box-shadow: var(--neon-glow-green);
+}
+
+[data-theme="punk"] .signal-chart__trail-dot--down,
+[data-theme="punk"] .signal-chart__trail-dot--stop,
+[data-theme="punk"] .signal-chart__live-dot--down,
+[data-theme="punk"] .signal-chart__live-dot--stop {
+  background: var(--red);
+  fill: var(--red);
+}
+
+[data-theme="punk"] .signal-chart__trail-dot--target,
+[data-theme="punk"] .signal-chart__live-dot--target {
+  background: var(--neon-purple);
+  fill: var(--neon-purple);
+}
+
+[data-theme="punk"] .signal-chart__pnl-particle--up {
+  color: var(--neon-green);
+  text-shadow: var(--neon-glow-green);
+}
+
+[data-theme="punk"] .signal-chart__pnl-particle--down {
+  color: var(--red);
+}
+
+/* ── Inputs & modals ─────────────────────────────────────── */
+
+[data-theme="punk"] input,
+[data-theme="punk"] textarea,
+[data-theme="punk"] select {
+  font-family: var(--font-body);
+}
+
+[data-theme="punk"] input:focus,
+[data-theme="punk"] textarea:focus,
+[data-theme="punk"] select:focus {
+  border-color: rgba(57, 255, 20, 0.55);
+  box-shadow: 0 0 0 2px rgba(57, 255, 20, 0.15), var(--neon-glow-green);
+  outline: none;
+}
+
+[data-theme="punk"] .modal {
+  border-top: 1px solid rgba(188, 19, 254, 0.4);
+  box-shadow: 0 -8px 40px rgba(188, 19, 254, 0.2);
+}
+
+[data-theme="punk"] .sub-card--referral {
+  border-color: rgba(57, 255, 20, 0.3);
+  background:
+    radial-gradient(120% 100% at 100% 0%, rgba(57, 255, 20, 0.1), transparent 50%),
+    var(--sub-card-accent-bg);
+}
+
+[data-theme="punk"] .sub-card--pay {
+  border-color: rgba(188, 19, 254, 0.3);
+  background:
+    radial-gradient(140% 120% at 0% 0%, rgba(188, 19, 254, 0.12), transparent 45%),
+    var(--sub-card-accent-bg);
+}
+
+[data-theme="punk"] .volnovoi-marketing__badge--up {
+  color: var(--neon-green);
+  text-shadow: var(--neon-glow-green);
+  animation: punk-neon-pulse 2.4s ease-in-out infinite;
+}
+
+[data-theme="punk"] .risk-slider__value {
+  color: var(--neon-purple);
+  text-shadow: var(--neon-glow-purple);
+  font-family: var(--font-display);
+}
+
+/* ── Reduced motion ──────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="punk"] .topbar h1,
+  [data-theme="punk"] .btn-primary,
+  [data-theme="punk"] .volnovoi-marketing__badge--up {
+    animation: none;
+  }
+}

@@ -12,18 +12,6 @@ export type ChartPalette = {
   entryWaiting: string;
 };
 
-const LIGHT: ChartPalette = {
-  background: "#f8fafc",
-  text: "#64748b",
-  upColor: "#059669",
-  downColor: "#dc2626",
-  wickUp: "#059669",
-  wickDown: "#dc2626",
-  stop: "#dc2626",
-  target: "#7c3aed",
-  entryWaiting: "#94a3b8",
-};
-
 const DARK: ChartPalette = {
   background: "#141416",
   text: "#8a8a93",
@@ -36,6 +24,18 @@ const DARK: ChartPalette = {
   entryWaiting: "#9ca3af",
 };
 
+const PUNK: ChartPalette = {
+  background: "#080810",
+  text: "#bc13fe",
+  upColor: "#39FF14",
+  downColor: "#ff2a6d",
+  wickUp: "#39FF14",
+  wickDown: "#ff2a6d",
+  stop: "#ff2a6d",
+  target: "#BC13FE",
+  entryWaiting: "#6b7280",
+};
+
 export function chartPaletteFor(theme: Theme): ChartPalette {
-  return theme === "light" ? LIGHT : DARK;
+  return theme === "punk" ? PUNK : DARK;
 }

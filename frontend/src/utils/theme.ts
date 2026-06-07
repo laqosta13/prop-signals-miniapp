@@ -1,4 +1,4 @@
-export type Theme = "light" | "dark";
+export type Theme = "dark" | "punk";
 
 const STORAGE_KEY = "hh-theme";
 
@@ -14,10 +14,16 @@ export function subscribeTheme(listener: () => void): () => void {
   return () => themeListeners.delete(listener);
 }
 
+function normalizeStoredTheme(raw: string | null): Theme | null {
+  if (raw === "dark" || raw === "punk") return raw;
+  if (raw === "light") return "punk";
+  return null;
+}
+
 export function getStoredTheme(): Theme {
   try {
-    const v = localStorage.getItem(STORAGE_KEY);
-    if (v === "light" || v === "dark") return v;
+    const v = normalizeStoredTheme(localStorage.getItem(STORAGE_KEY));
+    if (v) return v;
   } catch {
     /* ignore */
   }
@@ -26,7 +32,7 @@ export function getStoredTheme(): Theme {
 
 export function applyTheme(theme: Theme): void {
   document.documentElement.setAttribute("data-theme", theme);
-  document.documentElement.style.colorScheme = theme;
+  document.documentElement.style.colorScheme = "dark";
   try {
     localStorage.setItem(STORAGE_KEY, theme);
   } catch {
@@ -42,7 +48,7 @@ export function initTheme(): Theme {
 }
 
 export function toggleTheme(): Theme {
-  const next: Theme = getStoredTheme() === "dark" ? "light" : "dark";
+  const next: Theme = getStoredTheme() === "dark" ? "punk" : "dark";
   applyTheme(next);
   return next;
 }

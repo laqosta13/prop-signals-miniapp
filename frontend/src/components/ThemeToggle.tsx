@@ -10,22 +10,22 @@ export function ThemeToggle() {
     setTheme(toggleTheme());
   };
 
-  const isLight = theme === "light";
+  const isPunk = theme === "punk";
 
   return (
     <button
       type="button"
       className="theme-toggle"
       onClick={onToggle}
-      aria-label={isLight ? "Тёмная тема" : "Светлая тема"}
-      title={isLight ? "Тёмная тема" : "Светлая тема"}
+      aria-label={isPunk ? "Тёмная тема" : "Панк-тема"}
+      title={isPunk ? "Тёмная тема" : "Панк-тема"}
     >
-      <span className={`theme-toggle__track${isLight ? " theme-toggle__track--light" : ""}`}>
+      <span className={`theme-toggle__track${isPunk ? " theme-toggle__track--punk" : ""}`}>
         <span className="theme-toggle__rest" aria-hidden>
-          {isLight ? "ТЕ" : "МА"}
+          {isPunk ? "ТЕ" : "МА"}
         </span>
         <span className="theme-toggle__thumb" aria-hidden>
-          {isLight ? "МА" : "ТЕ"}
+          {isPunk ? "МА" : "ТЕ"}
         </span>
       </span>
     </button>
