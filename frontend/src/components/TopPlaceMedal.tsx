@@ -5,20 +5,13 @@ type Props = {
   className?: string;
 };
 
-const MEDAL_SRC: Record<Place, string> = {
-  1: "/ranks/top-place-1.png",
-  2: "/ranks/top-place-2.png",
-  3: "/ranks/top-place-3.png",
-};
-
 export function TopPlaceMedal({ place, className = "" }: Props) {
   return (
     <span
-      className={`top-place-medal top-place-medal--${place}${className ? ` ${className}` : ""}`}
+      className={`top-place-chip top-place-chip--${place}${className ? ` ${className}` : ""}`}
       aria-label={`${place} место`}
-      role="img"
     >
-      <img src={MEDAL_SRC[place]} alt="" height={52} decoding="async" draggable={false} />
+      {place}
     </span>
   );
 }

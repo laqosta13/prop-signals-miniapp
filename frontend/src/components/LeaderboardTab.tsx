@@ -66,7 +66,7 @@ function TopTraderCard({
   onRosterChange?: () => void;
 }) {
   const aggregate = isVolnovoiTrader(trader);
-  const topMedal = !aggregate && !fired && trader.rank >= 1 && trader.rank <= 3;
+  const topChip = !aggregate && !fired && trader.rank >= 1 && trader.rank <= 3;
 
   return (
     <li className={aggregate ? "top-list__item--aggregate" : undefined}>
@@ -75,19 +75,21 @@ function TopTraderCard({
       >
         <button type="button" className="top-card__head-btn" onClick={onOpen}>
           <div className="top-card__head">
-            {topMedal ? (
-              <TopPlaceMedal place={trader.rank as 1 | 2 | 3} className="top-rank top-rank--medal" />
-            ) : (
-              <span
-                className={`top-rank${aggregate ? " top-rank--aggregate" : ""}${fired ? " top-rank--fired" : ""}`}
-              >
-                {aggregate ? "∑" : fired ? "—" : `#${trader.rank}`}
-              </span>
-            )}
             <Avatar url={trader.avatar_url} displayName={trader.display_name} username={trader.username} size={44} />
             <div className="top-body">
               <div className="top-name-row">
-                <p className="top-name">{authorProfile(trader.display_name, trader.username).title}</p>
+                <div className="top-name-line">
+                  {topChip ? (
+                    <TopPlaceMedal place={trader.rank as 1 | 2 | 3} />
+                  ) : (
+                    <span
+                      className={`top-rank-inline${aggregate ? " top-rank-inline--aggregate" : ""}${fired ? " top-rank-inline--fired" : ""}`}
+                    >
+                      {aggregate ? "∑" : fired ? "—" : `#${trader.rank}`}
+                    </span>
+                  )}
+                  <p className="top-name">{authorProfile(trader.display_name, trader.username).title}</p>
+                </div>
                 {aggregate ? (
                   <VolnovoiMarketingBadge trader={trader} />
                 ) : (

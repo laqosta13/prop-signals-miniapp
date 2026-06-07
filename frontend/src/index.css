@@ -2792,6 +2792,15 @@
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 2px;
+  min-width: 0;
+}
+
+.top-name-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
 }
 
 .top-name {
@@ -2802,6 +2811,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
 }
 
 .top-name-row .rank-badge {
@@ -2815,29 +2825,51 @@
   min-width: 36px;
 }
 
-.top-rank--medal {
-  min-width: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.top-rank-inline {
   flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--green);
+  min-width: 1.4rem;
 }
 
-.top-place-medal {
+.top-rank-inline--aggregate {
+  color: var(--purple);
+  font-size: 0.85rem;
+}
+
+.top-rank-inline--fired {
+  color: var(--muted);
+}
+
+.top-place-chip {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  line-height: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
 }
 
-.top-place-medal img {
-  display: block;
-  width: auto;
-  height: 52px;
-  object-fit: contain;
-  user-select: none;
-  -webkit-user-drag: none;
-  image-rendering: -webkit-optimize-contrast;
+.top-place-chip--1 {
+  background: linear-gradient(145deg, #ffe566 0%, #d4a017 55%, #a67c00 100%);
+  box-shadow: 0 0 10px rgba(255, 196, 40, 0.35);
+}
+
+.top-place-chip--2 {
+  background: linear-gradient(145deg, #f0f4f8 0%, #b8c5d4 55%, #7a8fa3 100%);
+  color: #1a2430;
+}
+
+.top-place-chip--3 {
+  background: linear-gradient(145deg, #e8a56a 0%, #b87333 55%, #8b5a2b 100%);
 }
 
 .top-rank--aggregate {
