@@ -199,8 +199,28 @@ html.theme-glitch::after {
 }
 
 [data-theme="punk"] .topbar__marketplace-kicker {
+  color: var(--neon-green);
+  text-shadow: var(--neon-glow-green);
+}
+
+[data-theme="punk"] .vc-split-logo--punk-active .vc-split-logo__half--punk {
+  filter: saturate(1.6) hue-rotate(285deg) brightness(1.15) drop-shadow(0 0 6px rgba(188, 19, 254, 0.55));
+}
+
+[data-theme="punk"] .vc-split-logo__seam {
+  background: linear-gradient(180deg, transparent, var(--neon-green), var(--neon-purple), transparent);
+  box-shadow: 0 0 8px rgba(57, 255, 20, 0.45);
+  width: 2px;
+}
+
+[data-theme="punk"] .vc-split-logo--punk-active {
+  box-shadow: 0 0 14px rgba(188, 19, 254, 0.25);
+}
+
+[data-theme="punk"] .topbar__marketplace-sub {
   color: var(--neon-purple);
   text-shadow: var(--neon-glow-purple);
+  font-family: var(--font-display);
 }
 
 [data-theme="punk"] .topbar__marketplace-word {

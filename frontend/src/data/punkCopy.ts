@@ -34,6 +34,8 @@ export const PUNK_TAB_SUBTITLES = {
   pay: "КЛЮЧ · USDT TON",
 } as const;
 
+export const PUNK_FEED_KICKER = "VOLNOVOI CULT";
+
 export const PUNK_FEED_WORD_CRYPTO = "КРИПТО-";
 export const PUNK_FEED_WORD_DEALS = "ОПЕРАЦИЙ";
 export const PUNK_FEED_WORD_DEALS_SINGLE = "КРИПТО-ОПЕРАЦИЙ";
