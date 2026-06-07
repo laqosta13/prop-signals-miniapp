@@ -35,12 +35,14 @@ export const PUNK_TAB_SUBTITLES = {
 } as const;
 
 export const PUNK_FEED_KICKER = "VOLNOVOI CULT";
+export const PUNK_FEED_HEADLINE = "NEON·SHADOW";
+export const PUNK_FEED_IN_MARKET = "LIVE";
+export const PUNK_FEED_AWAITING = "QUEUE";
 
+/** Legacy — не используется в панк-шапке ленты. */
 export const PUNK_FEED_WORD_CRYPTO = "КРИПТО-";
 export const PUNK_FEED_WORD_DEALS = "ОПЕРАЦИЙ";
 export const PUNK_FEED_WORD_DEALS_SINGLE = "КРИПТО-ОПЕРАЦИЙ";
-export const PUNK_FEED_IN_MARKET = "в сети";
-export const PUNK_FEED_AWAITING = "ожидание кода";
 
 export const PUNK_FEED_LABEL_ACTIVE = "АКТИВНЫЕ ОПЕРАЦИИ";
 export const PUNK_FEED_LABEL_CLOSED = "АРХИВ СЕТИ";

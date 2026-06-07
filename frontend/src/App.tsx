@@ -450,60 +450,95 @@ export default function App() {
       <header className={`topbar${tab === "feed" ? " topbar--feed" : ""}`}>
         <div className="topbar__titles">
           {tab === "feed" ? (
-            <p
-              className="topbar__marketplace"
-              aria-label={feedStatsLabel ? `${copy.productTagline}, ${feedStatsLabel}` : copy.productTagline}
-            >
-              <VcSplitLogo size={34} className="topbar__marketplace-logo" />
-              <span className="topbar__marketplace-copy">
-              <span className="topbar__marketplace-kicker">{copy.feedKicker}</span>
-              {copy.feedSubKicker ? (
-                <span className="topbar__marketplace-sub">{copy.feedSubKicker}</span>
-              ) : null}
-              <span
-                className={`topbar__marketplace-body${splitFeedStats ? "" : " topbar__marketplace-body--single"}`}
+            copy.punk ? (
+              <p
+                className="topbar__feed-punk"
+                aria-label={
+                  feedStatsLabel
+                    ? `${copy.feedKicker}, ${copy.feedHeadline}, ${feedStatsLabel}`
+                    : `${copy.feedKicker}, ${copy.feedHeadline}`
+                }
               >
-                {splitFeedStats ? (
-                  <>
-                    <span className="topbar__marketplace-row">
-                      <span className="topbar__marketplace-word">{copy.feedWordCrypto}</span>
-                      <span className="topbar__marketplace-live" aria-hidden>
-                        <span className="topbar__marketplace-count">{inMarketSignalCount}</span>
-                        <span className="topbar__marketplace-live-label">{copy.feedInMarket}</span>
-                      </span>
-                    </span>
-                    <span className="topbar__marketplace-row">
-                      <span className="topbar__marketplace-word">{copy.feedWordDeals}</span>
-                      <span className="topbar__marketplace-live topbar__marketplace-live--awaiting" aria-hidden>
-                        <span className="topbar__marketplace-count topbar__marketplace-count--awaiting">
-                          {awaitingEntrySignalCount}
+                <VcSplitLogo size={36} className="topbar__feed-punk-logo" />
+                <span className="topbar__feed-punk-copy">
+                  <span className="topbar__feed-punk-brand">{copy.feedKicker}</span>
+                  <span className="topbar__feed-punk-headline">{copy.feedHeadline}</span>
+                  {(inMarketSignalCount > 0 || awaitingEntrySignalCount > 0) && (
+                    <span className="topbar__feed-punk-stats" aria-hidden>
+                      {inMarketSignalCount > 0 && (
+                        <span className="topbar__feed-punk-chip topbar__feed-punk-chip--live">
+                          <span className="topbar__feed-punk-chip-dot" />
+                          <span className="topbar__feed-punk-chip-count">{inMarketSignalCount}</span>
+                          <span className="topbar__feed-punk-chip-label">{copy.feedInMarket}</span>
                         </span>
-                        <span className="topbar__marketplace-live-label">{copy.feedAwaiting}</span>
-                      </span>
-                    </span>
-                  </>
-                ) : (
-                  <span className="topbar__marketplace-row">
-                    <span className="topbar__marketplace-word">{copy.feedWordDealsSingle}</span>
-                    {inMarketSignalCount > 0 && (
-                      <span className="topbar__marketplace-live" aria-hidden>
-                        <span className="topbar__marketplace-count">{inMarketSignalCount}</span>
-                        <span className="topbar__marketplace-live-label">{copy.feedInMarket}</span>
-                      </span>
-                    )}
-                    {awaitingEntrySignalCount > 0 && (
-                      <span className="topbar__marketplace-live topbar__marketplace-live--awaiting" aria-hidden>
-                        <span className="topbar__marketplace-count topbar__marketplace-count--awaiting">
-                          {awaitingEntrySignalCount}
+                      )}
+                      {awaitingEntrySignalCount > 0 && (
+                        <span className="topbar__feed-punk-chip topbar__feed-punk-chip--queue">
+                          <span className="topbar__feed-punk-chip-dot" />
+                          <span className="topbar__feed-punk-chip-count">{awaitingEntrySignalCount}</span>
+                          <span className="topbar__feed-punk-chip-label">{copy.feedAwaiting}</span>
                         </span>
-                        <span className="topbar__marketplace-live-label">{copy.feedAwaiting}</span>
+                      )}
+                    </span>
+                  )}
+                </span>
+              </p>
+            ) : (
+              <p
+                className="topbar__marketplace"
+                aria-label={feedStatsLabel ? `${copy.productTagline}, ${feedStatsLabel}` : copy.productTagline}
+              >
+                <VcSplitLogo size={34} className="topbar__marketplace-logo" />
+                <span className="topbar__marketplace-copy">
+                  <span className="topbar__marketplace-kicker">{copy.feedKicker}</span>
+                  {copy.feedSubKicker ? (
+                    <span className="topbar__marketplace-sub">{copy.feedSubKicker}</span>
+                  ) : null}
+                  <span
+                    className={`topbar__marketplace-body${splitFeedStats ? "" : " topbar__marketplace-body--single"}`}
+                  >
+                    {splitFeedStats ? (
+                      <>
+                        <span className="topbar__marketplace-row">
+                          <span className="topbar__marketplace-word">{copy.feedWordCrypto}</span>
+                          <span className="topbar__marketplace-live" aria-hidden>
+                            <span className="topbar__marketplace-count">{inMarketSignalCount}</span>
+                            <span className="topbar__marketplace-live-label">{copy.feedInMarket}</span>
+                          </span>
+                        </span>
+                        <span className="topbar__marketplace-row">
+                          <span className="topbar__marketplace-word">{copy.feedWordDeals}</span>
+                          <span className="topbar__marketplace-live topbar__marketplace-live--awaiting" aria-hidden>
+                            <span className="topbar__marketplace-count topbar__marketplace-count--awaiting">
+                              {awaitingEntrySignalCount}
+                            </span>
+                            <span className="topbar__marketplace-live-label">{copy.feedAwaiting}</span>
+                          </span>
+                        </span>
+                      </>
+                    ) : (
+                      <span className="topbar__marketplace-row">
+                        <span className="topbar__marketplace-word">{copy.feedWordDealsSingle}</span>
+                        {inMarketSignalCount > 0 && (
+                          <span className="topbar__marketplace-live" aria-hidden>
+                            <span className="topbar__marketplace-count">{inMarketSignalCount}</span>
+                            <span className="topbar__marketplace-live-label">{copy.feedInMarket}</span>
+                          </span>
+                        )}
+                        {awaitingEntrySignalCount > 0 && (
+                          <span className="topbar__marketplace-live topbar__marketplace-live--awaiting" aria-hidden>
+                            <span className="topbar__marketplace-count topbar__marketplace-count--awaiting">
+                              {awaitingEntrySignalCount}
+                            </span>
+                            <span className="topbar__marketplace-live-label">{copy.feedAwaiting}</span>
+                          </span>
+                        )}
                       </span>
                     )}
                   </span>
-                )}
-              </span>
-              </span>
-            </p>
+                </span>
+              </p>
+            )
           ) : (
             <>
               <h1>{head.title}</h1>

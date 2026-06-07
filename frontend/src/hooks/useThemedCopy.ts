@@ -51,6 +51,7 @@ export type ThemedCopy = {
   tabTitles: Record<"feed" | "tracker" | "top" | "reviews" | "news" | "pay", string>;
   tabSubtitles: Record<"feed" | "tracker" | "top" | "reviews" | "news" | "pay", string>;
   feedKicker: string;
+  feedHeadline: string;
   feedSubKicker: string;
   feedWordCrypto: string;
   feedWordDeals: string;
@@ -186,6 +187,7 @@ function buildCopy(theme: Theme): ThemedCopy {
       tabTitles: { feed: "", tracker: "Трекер", top: "ТОП", reviews: "Отзывы", news: "Новости", pay: "Подписка" },
       tabSubtitles: { ...TAB_SUBTITLES },
       feedKicker: "Marketplace",
+      feedHeadline: "",
       feedSubKicker: "",
       feedWordCrypto: "крипто-",
       feedWordDeals: "сделок",
@@ -327,6 +329,7 @@ function buildCopy(theme: Theme): ThemedCopy {
     tabTitles: { ...P.PUNK_TAB_TITLES },
     tabSubtitles: { ...P.PUNK_TAB_SUBTITLES },
     feedKicker: P.PUNK_FEED_KICKER,
+    feedHeadline: P.PUNK_FEED_HEADLINE,
     feedSubKicker: "",
     feedWordCrypto: P.PUNK_FEED_WORD_CRYPTO,
     feedWordDeals: P.PUNK_FEED_WORD_DEALS,
