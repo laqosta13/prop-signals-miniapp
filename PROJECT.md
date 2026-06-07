@@ -13,7 +13,7 @@
 | **Путь локально** | `~/prop-signals-miniapp` |
 | **Стек** | FastAPI + SQLite + React/Vite + Telegram Mini App |
 | **Деплой** | Docker → Amvera Cloud, постоянный диск `/data` |
-| **Брендинг** | **Volnovoi Cult** · Marketplace крипто-сделок (`appCopy.ts`); трекер/проп — **Hash Hedge** |
+| **Брендинг** | **ТЕ:** Volnovoi Cult · Marketplace крипто-сделок (`appCopy.ts`); **МА:** **МА·СЕТЬ** · теневой marketplace (`punkCopy.ts`); трекер/проп — **Hash Hedge** |
 | **Прод (Amvera)** | тариф **Стандартный**, 1 реплика — достаточно для ~2–3k заходов на публикацию сигнала |
 
 **Суть:** Telegram Mini App с лентой торговых сигналов. Публикуют только **админы** (`TELEGRAM_ADMIN_IDS`). **Активные** сигналы — по подписке; **отработанные** (win/lose), трекер и ТОП — **бесплатно** для всех авторизованных пользователей.
@@ -22,7 +22,7 @@
 
 ## Вкладки приложения
 
-1. **Лента** — шапка **Marketplace крипто-сделок** (без заголовка «Сигналы»); счётчики **«N в рынке»** / **«M ожидание входа»** (одна строка «крипто-сделок», если активен только один счётчик); сигналы **#N**, график на карточке, просмотры/лайки, мини-трекеры админов, переключатель **«Уведомления в Telegram»** (`NotifySettingsPanel`), **дисклеймер** (кнопка **!** + принятие при первом заходе), **анимация WIN/LOSE** при **живом** закрытии
+1. **Лента** — шапка-бренд: **ТЕ** `Volnovoi Cult` + «крипто-сделок», **МА** `МА·СЕТЬ` + «крипто-операций»; счётчики **«N в рынке»** / **«M ожидание входа»** (в МА — «в сети» / «ожидание кода»); сигналы **#N**, график на карточке, просмотры/лайки, мини-трекеры админов, переключатель **«Уведомления в Telegram»** (`NotifySettingsPanel`), **дисклеймер** (кнопка **!** + принятие при первом заходе), **анимация WIN/LOSE** при **живом** закрытии
 2. **Трекер** — Hash Hedge challenge для каждого админа + таблица правил по этапам
 3. **ТОП** — **volnovoi** + копирование Bybit; **RankGuide**; **ТРЕЙДЕРЫ CULT**; **КОНДИДАТЫ В CULT** — админы + **Telegram-каналы** (аналитика % с момента подключения)
 4. **Отзывы** — оценка 1–5 и текст; один отзыв на пользователя
@@ -438,7 +438,13 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 ## Дизайн-система (актуально)
 
-- **Светлая / тёмная тема** — переключатель в шапке (`ThemeToggle.tsx`, `theme.css`, `utils/theme.ts`); CSS-переменные для карточек, форм, CTA; **график сигнала** — отдельная палитра `utils/chartTheme.ts`
+- **Два мира: ТЕ / МА** — переключатель **ТЕ / МА** (`ThemeToggle.tsx`); `dark` = Volnovoi Cult, `punk` = **МА·СЕТЬ** (`theme.css`, `punk-theme.css`, `utils/theme.ts`); старая `light` в localStorage мигрирует в `punk`
+- **Themed copy** — `hooks/useThemedCopy.ts` + `data/appCopy.ts` / `data/punkCopy.ts`: навигация, формы, дисклеймер, подписка, ТОП, лента — разные тексты в каждом мире
+- **Панк-погружение (МА):** глич при смене темы и **переключении вкладок** (`triggerGlitch`); загрузка «СИНХРОНИЗАЦИЯ СЕТИ…»; шрифты Tektur/Rajdhani; неон, scanlines
+- **Панк-аватары** — `MysteryAvatar.tsx`: 12 вариантов силуэта + hue по id; «злость» лица по рангу (`utils/punkAvatar.ts`)
+- **Панк-имена** — стабильный код оператора по `telegram_id` (`utils/punkCodename.ts`, `hooks/useAuthorProfile.ts`); реальное имя в МА не показывается
+- **Панк-ранги** — отдельные коды (`utils/punkTheme.ts`, `PUNK_RANK_NAMES`); в ТЕ — обычные названия рангов
+- **График сигнала** — отдельная палитра `utils/chartTheme.ts` / `subscribeTheme()`
 - Жёлтые CTA пропа / Bybit — общие токены `--prop-cta-*`; логотипы **Hash Hedge** и **Bybit** (`BrandLogos.tsx`, `public/brands/`)
 - Единый стиль **glassmorphism**: полупрозрачные карточки/модалки/кнопки, blur, мягкие тени
 - Нижнее меню: вместо эмодзи используются SVG-иконки (современный iOS-like стиль)
@@ -556,7 +562,7 @@ POST /admin/purge-published      — require_super_admin, полная очис�
 | WIN/LOSE reveal | `OutcomeReveal.tsx`, `hooks/useOutcomeReveal.ts`, `utils/outcomeRevealStorage.ts`, `utils/outcomeSounds.ts` (логика в `App.tsx`) |
 | Подписка / рефералы / оплата | `SubscriptionTab.tsx`, `PaymentMemoRow.tsx`, `subscription_billing.py`, `cult_subscription_billing.py`, `ton_payments.py`, `referral_links.py`, `utils/referralShare.ts` |
 | Форма сигнала | `NewSignalModal.tsx`, `EditSignalModal.tsx`, `hooks/useAdminTrackerSnapshot.ts`, `SignalLevelsFields.tsx`, `StopOffsetSlider.tsx`, `hooks/useSignalLevelFields.ts`, `hooks/useDailyStopSync.ts`, `utils/signalForm.ts`, `utils/signalLevels.ts`, `utils/dailyStopLimit.ts` |
-| Тема | `theme.css`, `ThemeToggle.tsx`, `utils/theme.ts` |
+| Тема / два мира | `theme.css`, `punk-theme.css`, `ThemeToggle.tsx`, `utils/theme.ts`, `data/punkCopy.ts`, `hooks/useThemedCopy.ts`, `utils/punkCodename.ts`, `hooks/useAuthorProfile.ts`, `MysteryAvatar.tsx`, `utils/punkAvatar.ts`, `utils/punkTheme.ts` |
 | Логотипы CTA | `BrandLogos.tsx`, `public/brands/` |
 | P/L на ленте | `utils/signalPnl.ts`, `utils/mergeFeedSignals.ts` |
 | Права на сигнал | `utils/signalActions.ts` (`canCloseAtMarketSignal`, …) |
@@ -695,9 +701,13 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 70. **Copy-fee защита** — `assert_can_disconnect_copy`: нельзя сбросить API при долге комиссии
 71. **CULT вступление** — `CultCandidateJoinPanel`; админы в ТОП не видят CTA; blockers + обратная связь на «Вступить»
 72. **Поддержка** — убрана подсказка про reply в чате; `TELEGRAM_INIT_DATA_MAX_AGE_SECONDS`
+73. **Панк-тема МА** — вместо светлой темы; неон, Tektur/Rajdhani, `punk-theme.css`
+74. **Два мира** — бренд **МА·СЕТЬ** vs Volnovoi Cult; полный themed copy (`useThemedCopy`)
+75. **Панк-аватары и коды** — MysteryAvatar по рангу; панк-имена (`punkCodename`); глич вкладок в МА
+76. **Форма сигнала** — `useGuardedSubmit`: защита от повторной отправки
 
 ---
 
 ## Быстрое напоминание для AI
 
-> **prop-signals-miniapp** — FastAPI + React **Volnovoi Cult** Mini App на Amvera (SQLite, `/data`). Админы публикуют сигналы **#N** в ленту; **кандидаты CULT** — отдельный поток ($20/30д + Bybit). **Супер-админ** — ротация трейдеров, purge. Активные сигналы — по подписке; win/lose + трекер + ТОП — бесплатно. **Лимит дня:** 3 сделки **или** 2% стопа (MSK). **volnovoi** + Bybit copy (**20% прибыли**, memo `VC-…`). Оплата: TXID + персональный memo. Purge при деплое: **`.purged_all_published_jun2026_v9`**. Полный контекст — этот файл.
+> **prop-signals-miniapp** — FastAPI + React Mini App на Amvera (SQLite, `/data`). **Два UI-мира:** **ТЕ** (Volnovoi Cult) и **МА** (МА·СЕТЬ, панк-копирайт, кодовые имена, глич). Админы публикуют сигналы **#N**; **кандидаты CULT** — $20/30д + Bybit. **Супер-админ** — ротация, purge. Активные сигналы — по подписке; win/lose + трекер + ТОП — бесплатно. **Лимит дня:** 3 сделки **или** 2% стопа (MSK). **volnovoi** + Bybit copy (**20%**, memo `VC-…`). Purge: **`.purged_all_published_jun2026_v9`**. Полный контекст — этот файл.
