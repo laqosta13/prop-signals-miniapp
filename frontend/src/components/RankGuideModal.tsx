@@ -1,5 +1,13 @@
 import { createPortal } from "react-dom";
 import { RANK_GUIDE_INTRO, RANK_GUIDE_POOL, RANK_GUIDE_TITLE } from "../data/appCopy";
+import { useAppTheme } from "../hooks/useAppTheme";
+import {
+  isPunkTheme,
+  PUNK_RANK_GUIDE_INTRO,
+  PUNK_RANK_GUIDE_POOL,
+  PUNK_RANK_GUIDE_TITLE,
+  resolveRankName,
+} from "../utils/punkTheme";
 import {
   RANK_RULES,
   RANK_TIERS,
@@ -16,6 +24,12 @@ type Props = {
 };
 
 export function RankGuideModal({ onClose, highlightRankId }: Props) {
+  const theme = useAppTheme();
+  const punk = isPunkTheme(theme);
+  const guideTitle = punk ? PUNK_RANK_GUIDE_TITLE : RANK_GUIDE_TITLE;
+  const guideIntro = punk ? PUNK_RANK_GUIDE_INTRO : RANK_GUIDE_INTRO;
+  const guidePool = punk ? PUNK_RANK_GUIDE_POOL : RANK_GUIDE_POOL;
+
   return createPortal(
     <div
       className="modal-backdrop modal-backdrop--rank"
@@ -24,13 +38,13 @@ export function RankGuideModal({ onClose, highlightRankId }: Props) {
       aria-labelledby="rank-guide-title"
       onClick={onClose}
     >
-      <div className="rank-guide-sheet" onClick={(e) => e.stopPropagation()}>
+      <div className={`rank-guide-sheet${punk ? " rank-guide-sheet--punk" : ""}`} onClick={(e) => e.stopPropagation()}>
         <button type="button" className="modal-close" onClick={onClose} aria-label="Закрыть">
           ×
         </button>
-        <h2 id="rank-guide-title">{RANK_GUIDE_TITLE}</h2>
-        <p className="rank-guide-sheet__intro">{RANK_GUIDE_INTRO}</p>
-        <p className="rank-guide-sheet__pool">{RANK_GUIDE_POOL}</p>
+        <h2 id="rank-guide-title">{guideTitle}</h2>
+        <p className="rank-guide-sheet__intro">{guideIntro}</p>
+        <p className="rank-guide-sheet__pool">{guidePool}</p>
         <ul className="rank-guide__tiers rank-guide__tiers--modal">
           {RANK_TIERS.map((tier) => {
             const st = rankStyle(tier.id);
@@ -42,7 +56,7 @@ export function RankGuideModal({ onClose, highlightRankId }: Props) {
               >
                 <span className="rank-guide__tier-pill" style={{ background: st.bg, color: st.color }}>
                   {st.iconId && <RankIcon id={st.iconId} size={18} className="rank-guide__tier-icon" />}
-                  {tier.name}
+                  {resolveRankName(tier.id, tier.name, theme)}
                 </span>
                 <div className="rank-guide__tier-meta">
                   <span className="rank-guide__tier-range">неделя {tier.rangeLabel}</span>

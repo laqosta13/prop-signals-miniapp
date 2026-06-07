@@ -1,5 +1,7 @@
 import { useState, type MouseEvent } from "react";
 import type { TraderRank } from "../api";
+import { useAppTheme } from "../hooks/useAppTheme";
+import { isPunkTheme, resolveRankName } from "../utils/punkTheme";
 import { rankPillExtraClass, rankStyle } from "../utils/ranks";
 import { RankGuideModal } from "./RankGuideModal";
 import { RankIcon } from "./RankIcon";
@@ -17,20 +19,22 @@ type Props = {
 };
 
 export function RankBadge({ rank, compact, featured, card, interactive = true }: Props) {
+  const theme = useAppTheme();
   const [guideOpen, setGuideOpen] = useState(false);
   const st = rankStyle(rank.current_rank_id);
+  const rankName = resolveRankName(rank.current_rank_id, rank.current_rank_name, theme);
   const isCard = !!card;
   const isFeatured = !isCard && (featured ?? !compact);
 
   const pill = (
     <span
-      className={`rank-badge__pill ${rankPillExtraClass(rank.current_rank_id, isFeatured)}${isCard ? " rank-badge__pill--card" : ""}`.trim()}
+      className={`rank-badge__pill ${rankPillExtraClass(rank.current_rank_id, isFeatured)}${isCard ? " rank-badge__pill--card" : ""}${isPunkTheme(theme) ? " rank-badge__pill--punk" : ""}`.trim()}
       style={{ background: st.bg, color: st.color }}
     >
       {st.iconId && (
         <RankIcon id={st.iconId} size={isFeatured ? 20 : isCard ? 18 : 16} className="rank-badge__icon" />
       )}
-      <span className="rank-badge__name">{rank.current_rank_name}</span>
+      <span className="rank-badge__name">{rankName}</span>
       {rank.shield_active && (
         <span className="rank-badge__shield" title="Страховка">
           🛡
@@ -56,7 +60,7 @@ export function RankBadge({ rank, compact, featured, card, interactive = true }:
       type="button"
       className={`rank-badge rank-badge--btn${isFeatured ? " rank-badge--featured" : ""}${isCard ? " rank-badge--card" : ""}`}
       onClick={openGuide}
-      aria-label={`Ранг ${rank.current_rank_name}. Описание рангов`}
+      aria-label={`Ранг ${rankName}. Описание рангов`}
     >
       {pill}
       {warn}

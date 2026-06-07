@@ -1,5 +1,8 @@
 import { useState } from "react";
+import { useAppTheme } from "../hooks/useAppTheme";
 import { initialsFromAuthor, mediaUrl } from "../utils";
+import { isPunkTheme } from "../utils/punkTheme";
+import { MysteryAvatar } from "./MysteryAvatar";
 
 type Props = {
   url: string | null | undefined;
@@ -10,9 +13,15 @@ type Props = {
 };
 
 export function Avatar({ url, displayName, username, size = 40 }: Props) {
+  const theme = useAppTheme();
   const [broken, setBroken] = useState(false);
   const initials = initialsFromAuthor(displayName, username);
   const src = mediaUrl(url);
+  const label = displayName || username || "Оператор";
+
+  if (isPunkTheme(theme)) {
+    return <MysteryAvatar size={size} label={label} />;
+  }
 
   if (src && !broken) {
     return (

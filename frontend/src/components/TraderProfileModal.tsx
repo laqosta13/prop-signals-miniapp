@@ -3,6 +3,8 @@ import type { Trader, TraderRank } from "../api";
 import { activateRankShield, confirmMyRank, fetchTraderRank } from "../api";
 import { authorProfile, formatUsd } from "../utils";
 import { isVolnovoiTrader, VOLNOVOI_SUBTITLE } from "../utils/volnovoi";
+import { useAppTheme } from "../hooks/useAppTheme";
+import { resolveRankName } from "../utils/punkTheme";
 import { rankStyle } from "../utils/ranks";
 import { Avatar } from "./Avatar";
 import { RankBadge } from "./RankBadge";
@@ -16,6 +18,7 @@ type Props = {
 };
 
 export function TraderProfileModal({ trader, isMe, isAdmin, onClose }: Props) {
+  const theme = useAppTheme();
   const aggregate = isVolnovoiTrader(trader);
   const [rank, setRank] = useState<TraderRank | null>(trader.trader_rank ?? null);
   const [busy, setBusy] = useState(false);
@@ -129,7 +132,7 @@ export function TraderProfileModal({ trader, isMe, isAdmin, onClose }: Props) {
                     {h.weekly_pct >= 0 ? "+" : ""}
                     {h.weekly_pct.toFixed(1)}%
                   </span>
-                  <span>{h.rank_name}</span>
+                  <span>{resolveRankName(h.rank_id, h.rank_name, theme)}</span>
                   <span className="rank-history__status">{h.confirmed ? "✓" : "—"}</span>
                 </li>
               ))}
