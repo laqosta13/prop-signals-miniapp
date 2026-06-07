@@ -41,6 +41,8 @@ export function CultCandidateCard({
         url={candidate.avatar_url}
         displayName={candidate.display_name}
         username={candidate.username}
+        telegramId={candidate.telegram_user_id}
+        rankId={candidate.trader_rank?.current_rank_id}
         size={44}
       />
       <div className="top-body">

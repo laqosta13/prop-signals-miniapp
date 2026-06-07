@@ -30,13 +30,25 @@ export function getStoredTheme(): Theme {
   return "dark";
 }
 
-export function applyTheme(theme: Theme): void {
+function triggerThemeGlitch(): void {
+  const root = document.documentElement;
+  root.classList.remove("theme-glitch");
+  void root.offsetWidth;
+  root.classList.add("theme-glitch");
+  window.setTimeout(() => root.classList.remove("theme-glitch"), 720);
+}
+
+export function applyTheme(theme: Theme, options?: { glitch?: boolean }): void {
+  const prev = document.documentElement.getAttribute("data-theme") as Theme | null;
   document.documentElement.setAttribute("data-theme", theme);
   document.documentElement.style.colorScheme = "dark";
   try {
     localStorage.setItem(STORAGE_KEY, theme);
   } catch {
     /* ignore */
+  }
+  if (options?.glitch !== false && prev && prev !== theme) {
+    triggerThemeGlitch();
   }
   emitThemeChange();
 }

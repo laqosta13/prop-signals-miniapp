@@ -23,14 +23,8 @@ import { TraderRosterActions, type TraderRosterPlacement } from "./TraderRosterA
 import { VolnovoiCopyPanel } from "./VolnovoiCopyPanel";
 import { VolnovoiMarketingBadge } from "./VolnovoiMarketingBadge";
 import { authorProfile } from "../utils";
-import {
-  TOP_CANDIDATES_EMPTY,
-  TOP_EMPTY,
-  TOP_INTRO,
-  TOP_LABEL_CANDIDATES,
-  TOP_LABEL_FIRED,
-  TOP_LABEL_TRADERS,
-} from "../data/appCopy";
+import { TOP_INTRO } from "../data/appCopy";
+import { useThemedCopy } from "../hooks/useThemedCopy";
 import { isVolnovoiTrader, VOLNOVOI_SUBTITLE } from "../utils/volnovoi";
 import { Avatar } from "./Avatar";
 import { TopPlaceMedal } from "./TopPlaceMedal";
@@ -75,7 +69,14 @@ function TopTraderCard({
       >
         <button type="button" className="top-card__head-btn" onClick={onOpen}>
           <div className="top-card__head">
-            <Avatar url={trader.avatar_url} displayName={trader.display_name} username={trader.username} size={44} />
+            <Avatar
+              url={trader.avatar_url}
+              displayName={trader.display_name}
+              username={trader.username}
+              telegramId={trader.telegram_id}
+              rankId={trader.trader_rank?.current_rank_id}
+              size={44}
+            />
             <div className="top-body">
               <div className="top-name-row">
                 <div className="top-name-line">
@@ -152,6 +153,7 @@ export function LeaderboardTab({
   onCultCandidatesChange,
   onRosterChange,
 }: Props) {
+  const copy = useThemedCopy();
   const [profileTrader, setProfileTrader] = useState<Trader | null>(null);
   const [signalModalOpen, setSignalModalOpen] = useState(false);
   const [closedTradeDetail, setClosedTradeDetail] = useState<Signal | null>(null);
@@ -224,12 +226,12 @@ export function LeaderboardTab({
     cultCandidates.length > 0 || channelCandidates.length > 0 || isAdmin || myId != null;
   const showFiredBlock = firedList.length > 0;
 
-  if (loading) return <p className="meta">Загрузка…</p>;
+  if (loading) return <p className="meta">{copy.loading}</p>;
 
   return (
     <>
       {!traders.length && !firedList.length && !cultCandidates.length && !cultChannels.length && (
-        <p className="meta">{TOP_EMPTY}</p>
+        <p className="meta">{copy.topEmpty}</p>
       )}
 
       <p className="meta top-marketplace-intro">{TOP_INTRO}</p>
@@ -237,7 +239,7 @@ export function LeaderboardTab({
 
       {showTradersBlock && (
         <section className="top-cult-block top-cult-block--traders">
-          <p className="top-cult-label top-cult-label--traders">{TOP_LABEL_TRADERS}</p>
+          <p className="top-cult-label top-cult-label--traders">{copy.topLabelTraders}</p>
           {volnovoi && (
             <ol className="top-list top-list--solo">
               <TopTraderCard trader={volnovoi} onOpen={() => setProfileTrader(volnovoi)} />
@@ -263,7 +265,7 @@ export function LeaderboardTab({
 
       {showCandidatesBlock && (
         <section className="top-cult-block top-cult-block--candidates">
-          <p className="top-cult-label top-cult-label--candidates">{TOP_LABEL_CANDIDATES}</p>
+          <p className="top-cult-label top-cult-label--candidates">{copy.topLabelCandidates}</p>
           {myId != null && (
             <CultCandidateJoinPanel onJoined={onCultCandidatesChange} />
           )}
@@ -300,7 +302,7 @@ export function LeaderboardTab({
             </ol>
           )}
           {cultCandidates.length === 0 && channelCandidates.length === 0 && !isAdmin && (
-            <p className="meta">{TOP_CANDIDATES_EMPTY}</p>
+            <p className="meta">{copy.topCandidatesEmpty}</p>
           )}
           {isSuperAdmin && <CultChannelAdminPanel channels={cultChannels} onChange={onCultChannelsChange} />}
         </section>
@@ -325,7 +327,7 @@ export function LeaderboardTab({
 
       {showFiredBlock && (
         <section className="top-cult-block top-cult-block--fired">
-          <p className="top-cult-label top-cult-label--fired">{TOP_LABEL_FIRED}</p>
+          <p className="top-cult-label top-cult-label--fired">{copy.topLabelFired}</p>
           <ol className="top-list">
             {firedList.map((trader) => (
               <TopTraderCard

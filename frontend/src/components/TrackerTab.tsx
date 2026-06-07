@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { ChallengeDashboard, Signal } from "../api";
 import { HASHHEDGE_RULES } from "../data/hashhedgeRules";
+import { useThemedCopy } from "../hooks/useThemedCopy";
 import { authorProfile, formatTakeProfits, formatUsd, mediaUrl, mskDayBoundsMs, parseApiDate } from "../utils";
 import { signalRealizedPnl } from "../utils/signalPnl";
 import { Avatar } from "./Avatar";
@@ -17,6 +18,7 @@ type Props = {
 };
 
 export function TrackerTab({ trackers, signals, myId, canPublishMainFeed, onSettings, onCreateTracker }: Props) {
+  const copy = useThemedCopy();
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [tradesOpen, setTradesOpen] = useState<Record<number, boolean>>({});
 
@@ -56,12 +58,16 @@ export function TrackerTab({ trackers, signals, myId, canPublishMainFeed, onSett
       <HashHedgeRulesTable rules={HASHHEDGE_RULES} />
       <section className="tracker-global-limit">
         <div className="tracker-global-limit__head">
-          <p className="tracker-global-limit__title">ЛИМИТ ДНЯ ДЛЯ ВСЕХ ТРЕЙДЕРОВ</p>
+          <p className="tracker-global-limit__title">{copy.trackerDailyLimit}</p>
           <strong>{dayLossLimitPct}%</strong>
         </div>
         <div className="tracker-global-limit__row">
-          <span>Потери за день: {formatUsd(todayLossUsd)}</span>
-          <span>Лимит: {formatUsd(dayLimitUsd)}</span>
+          <span>
+            {copy.trackerDailyLoss}: {formatUsd(todayLossUsd)}
+          </span>
+          <span>
+            {copy.trackerLimit}: {formatUsd(dayLimitUsd)}
+          </span>
         </div>
         <div className="progress thin">
           <span className="progress__fill" style={{ width: `${dayRemainingPct}%` }} />
@@ -77,13 +83,13 @@ export function TrackerTab({ trackers, signals, myId, canPublishMainFeed, onSett
             <span className="tracker-add-btn__plus" aria-hidden>
               +
             </span>
-            <span className="tracker-add-btn__text">Добавить трекер Hash Hedge</span>
+            <span className="tracker-add-btn__text">{copy.trackerAdd}</span>
           </button>
         </section>
       )}
 
       {!trackers.length && !canPublishMainFeed && (
-        <p className="meta tracker-empty">Трекеры трейдеров появятся после настройки.</p>
+        <p className="meta tracker-empty">{copy.trackerEmpty}</p>
       )}
 
       {trackers.map((d) => {
@@ -103,17 +109,23 @@ export function TrackerTab({ trackers, signals, myId, canPublishMainFeed, onSett
         return (
           <section key={d.owner_telegram_id} className="tracker-block">
             <header className="tracker-block__head">
-              <Avatar url={d.owner_avatar_url} displayName={d.owner_display_name} username={d.owner_username} size={40} />
+              <Avatar
+                url={d.owner_avatar_url}
+                displayName={d.owner_display_name}
+                username={d.owner_username}
+                telegramId={d.owner_telegram_id}
+                size={40}
+              />
               <div>
                 <p className="tracker-block__name">{authorProfile(d.owner_display_name, d.owner_username).title}</p>
                 <p className="tracker-block__sub">
-                  Этап {d.stage} · плечо {d.max_leverage}
+                  {copy.formatTrackerStageLev(d.stage, d.max_leverage)}
                 </p>
               </div>
             </header>
 
             <div className="tracker-hero">
-              <p className="label">Баланс</p>
+              <p className="label">{copy.trackerBalance}</p>
               <h2>{formatUsd(d.balance)}</h2>
               <p className={`hero-pct ${d.profit_pct >= 0 ? "up" : "down"}`}>
                 {d.profit_pct >= 0 ? "+" : ""}
@@ -125,9 +137,11 @@ export function TrackerTab({ trackers, signals, myId, canPublishMainFeed, onSett
                 </div>
               )}
               <div className="tracker-hero__row">
-                <span>Старт {formatUsd(d.account_size)}</span>
                 <span>
-                  Цель {profitUnlimited ? "∞" : formatUsd(d.goal_balance)} (
+                  {copy.trackerStart} {formatUsd(d.account_size)}
+                </span>
+                <span>
+                  {copy.trackerTarget} {profitUnlimited ? "∞" : formatUsd(d.goal_balance)} (
                   {profitUnlimited ? "∞" : `${d.profit_target_pct}%`})
                 </span>
               </div>
@@ -135,7 +149,7 @@ export function TrackerTab({ trackers, signals, myId, canPublishMainFeed, onSett
 
             <div className="metric-row">
               <div className="metric-card">
-                <span className="label">Просадка</span>
+                <span className="label">{copy.trackerDrawdown}</span>
                 <strong>
                   {d.drawdown_pct.toFixed(1)}% / {d.max_drawdown_pct}%
                 </strong>
@@ -144,7 +158,7 @@ export function TrackerTab({ trackers, signals, myId, canPublishMainFeed, onSett
                 </div>
               </div>
               <div className="metric-card">
-                <span className="label">Лимит дня</span>
+                <span className="label">{copy.trackerDaily}</span>
                 <strong>{formatUsd(d.daily_remaining_usd)}</strong>
                 <div className="progress thin">
                   <span className="progress__fill" style={{ width: `${day}%` }} />
@@ -154,7 +168,7 @@ export function TrackerTab({ trackers, signals, myId, canPublishMainFeed, onSett
 
             {d.prop_screenshot_url && (
               <div className="tracker-prop">
-                <p className="label">Сверка с пропом</p>
+                <p className="label">{copy.trackerRecon}</p>
                 <button
                   type="button"
                   className="tracker-prop__shot"
@@ -167,13 +181,13 @@ export function TrackerTab({ trackers, signals, myId, canPublishMainFeed, onSett
 
             <div className="stats-row">
               <div className="stat">
-                <span>Торговые дни</span>
+                <span>{copy.trackerDays}</span>
                 <strong>
                   {d.trading_days} / {minDaysLabel}
                 </strong>
               </div>
               <div className="stat">
-                <span>Сделок</span>
+                <span>{copy.trackerTrades}</span>
                 <strong>{d.trades_count}</strong>
               </div>
               <div className="stat">
@@ -191,7 +205,7 @@ export function TrackerTab({ trackers, signals, myId, canPublishMainFeed, onSett
 
             {canEdit && (
               <button type="button" className="ghost-btn" onClick={() => onSettings(d)}>
-                Настройки
+                {copy.trackerSettings}
               </button>
             )}
 
@@ -203,7 +217,7 @@ export function TrackerTab({ trackers, signals, myId, canPublishMainFeed, onSett
                   onClick={() => toggleTrades(d.owner_telegram_id)}
                   aria-expanded={tradesExpanded}
                 >
-                  <span>Сделки · {recent.length}</span>
+                  <span>{copy.formatTrackerTradesTab(recent.length)}</span>
                   <span className="tracker-trades__chevron" aria-hidden>
                     {tradesExpanded ? "▾" : "▸"}
                   </span>

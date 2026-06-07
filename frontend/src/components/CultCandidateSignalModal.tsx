@@ -3,6 +3,7 @@ import WebApp from "@twa-dev/sdk";
 import { createCultCandidateSignal, type UploadProgress } from "../api";
 import { useCandidateSignalFormTracker } from "../hooks/useCandidateSignalFormTracker";
 import { useGuardedSubmit } from "../hooks/useGuardedSubmit";
+import { useThemedCopy } from "../hooks/useThemedCopy";
 import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
 import { useSignalMarketPriceInit } from "../hooks/useSignalMarketPriceInit";
 import { buildSignalFormData } from "../utils/buildSignalFormData";
@@ -58,6 +59,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
   directionRef.current = direction;
   const wasOpenRef = useRef(false);
 
+  const copy = useThemedCopy();
   const { tryAcquire, release } = useGuardedSubmit();
   const tracker = useCandidateSignalFormTracker(open, { risk, setRisk }, { leverage, setLeverage });
   const balance = tracker.balanceForNominal();
@@ -186,8 +188,8 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
 
   return (
     <SignalFormShell
-      title="Новый сигнал"
-      subtitle="В карточку"
+      title={copy.signalNew}
+      subtitle={copy.signalToCard}
       onClose={handleClose}
       onBackdropClick={handleClose}
       onSubmit={submit}
@@ -207,7 +209,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
         maxStakePct={tracker.maxStakePct}
       />
 
-      <SignalFormSection title="Сделка">
+      <SignalFormSection title={copy.signalDeal}>
         <SignalFormDealSection
           symbol={symbol}
           onSymbolChange={setSymbol}
@@ -216,7 +218,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
         />
       </SignalFormSection>
 
-      <SignalFormSection title="Уровни">
+      <SignalFormSection title={copy.signalLevels}>
         <SignalLevelsFields
           entry={entry}
           direction={direction}
@@ -237,7 +239,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
         />
       </SignalFormSection>
 
-      <SignalFormSection title="Размер позиции">
+      <SignalFormSection title={copy.signalPosition}>
         <SignalFormPositionCard
           leverage={leverage}
           onLeverageChange={(lev) => {
@@ -265,7 +267,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
         />
       </SignalFormSection>
 
-      <SignalFormSection title="Комментарий">
+      <SignalFormSection title={copy.signalComment}>
         <SignalMediaPicker
           screenshot={screenshot}
           video={video}
@@ -282,7 +284,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
           value={comment}
           onChange={setComment}
           disabled={submitting}
-          placeholder="Краткий разбор сделки…"
+          placeholder={copy.signalCommentPh}
         />
       </SignalFormSection>
 
@@ -292,8 +294,8 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
         uploadProgress={uploadProgress}
         hasVideo={!!video}
         disabled={submitting || priceLoading || formBlocked}
-        publishLabel="Опубликовать"
-        saveLabel="Публикация…"
+        publishLabel={copy.signalPublish}
+        saveLabel={copy.signalPublishing}
       />
     </SignalFormShell>
   );

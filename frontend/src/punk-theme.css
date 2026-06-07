@@ -1,5 +1,100 @@
 /* ── VOLNOVOI CULT · Punk theme (cyber-neon) ─────────────── */
 
+@keyframes theme-glitch-flash {
+  0% {
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.85;
+  }
+  16% {
+    opacity: 0.15;
+  }
+  24% {
+    opacity: 0.7;
+  }
+  36% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes theme-glitch-shift {
+  0%,
+  100% {
+    transform: translate(0);
+    filter: none;
+  }
+  12% {
+    transform: translate(-3px, 1px);
+    filter: hue-rotate(90deg) saturate(1.4);
+  }
+  24% {
+    transform: translate(4px, -2px);
+    filter: hue-rotate(-40deg) contrast(1.2);
+  }
+  36% {
+    transform: translate(-2px, 2px);
+    filter: hue-rotate(120deg);
+  }
+  48% {
+    transform: translate(2px, 0);
+    filter: none;
+  }
+}
+
+html.theme-glitch body {
+  animation: theme-glitch-shift 0.68s steps(5) 1;
+}
+
+html.theme-glitch::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(188, 19, 254, 0.12) 0,
+      rgba(188, 19, 254, 0.12) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    linear-gradient(90deg, rgba(57, 255, 20, 0.08), rgba(188, 19, 254, 0.1));
+  mix-blend-mode: screen;
+  animation: theme-glitch-flash 0.68s steps(4) 1;
+}
+
+[data-theme="punk"] .app-boot {
+  animation: theme-glitch-shift 2.4s steps(6) infinite;
+}
+
+[data-theme="punk"] .app-boot__title {
+  font-family: var(--font-display);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--neon-green);
+  text-shadow: var(--neon-glow-green);
+}
+
+[data-theme="punk"] .app-boot__meta {
+  font-family: var(--font-display);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--neon-purple);
+  animation: punk-neon-flicker 1.8s ease-in-out infinite;
+}
+
+[data-theme="punk"] .html-boot {
+  font-family: var(--font-display);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--neon-purple);
+}
+
 @keyframes punk-neon-flicker {
   0%,
   100% {
@@ -435,6 +530,159 @@
   animation: punk-hood-pulse 3.6s ease-in-out infinite;
 }
 
+[data-theme="punk"] .avatar--mystery-variant-1 .avatar__mystery-hood {
+  border-radius: 48% 48% 40% 40%;
+}
+
+[data-theme="punk"] .avatar--mystery-variant-2 .avatar__mystery-hood {
+  inset: -10% -4% auto;
+}
+
+[data-theme="punk"] .avatar--mystery-variant-3 .avatar__mystery-face {
+  padding-top: 22%;
+}
+
+[data-theme="punk"] .avatar--mystery-variant-4 .avatar__mystery-eye--left {
+  transform: scaleX(0.65);
+}
+
+[data-theme="punk"] .avatar--mystery-tier-1 .avatar__mystery-eye,
+[data-theme="punk"] .avatar--mystery-tier-2 .avatar__mystery-eye {
+  background: #6ee7b7;
+  box-shadow: 0 0 6px rgba(110, 231, 183, 0.6);
+}
+
+[data-theme="punk"] .avatar--mystery-tier-3 .avatar__mystery-eye,
+[data-theme="punk"] .avatar--mystery-tier-4 .avatar__mystery-eye {
+  background: #a3e635;
+  box-shadow: 0 0 7px rgba(163, 230, 53, 0.65);
+}
+
+[data-theme="punk"] .avatar--mystery-tier-5 .avatar__mystery-eye,
+[data-theme="punk"] .avatar--mystery-tier-6 .avatar__mystery-eye {
+  background: #fbbf24;
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.7);
+}
+
+[data-theme="punk"] .avatar--mystery-tier-7 .avatar__mystery-eye,
+[data-theme="punk"] .avatar--mystery-tier-8 .avatar__mystery-eye {
+  background: #ff2a6d;
+  box-shadow: 0 0 10px rgba(255, 42, 109, 0.75);
+}
+
+[data-theme="punk"] .avatar--mystery-tier-9 .avatar__mystery-eye,
+[data-theme="punk"] .avatar--mystery-tier-10 .avatar__mystery-eye {
+  background: #bc13fe;
+  box-shadow: 0 0 12px rgba(188, 19, 254, 0.85);
+}
+
+[data-theme="punk"] .avatar__mystery-mouth {
+  position: absolute;
+  bottom: 22%;
+  left: 50%;
+  width: 38%;
+  height: 2px;
+  transform: translateX(-50%);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+[data-theme="punk"] .avatar--mystery-tier-6 .avatar__mystery-mouth,
+[data-theme="punk"] .avatar--mystery-tier-7 .avatar__mystery-mouth {
+  height: 3px;
+  background: rgba(255, 42, 109, 0.55);
+  box-shadow: 0 0 6px rgba(255, 42, 109, 0.4);
+}
+
+[data-theme="punk"] .avatar--mystery-tier-8 .avatar__mystery-mouth,
+[data-theme="punk"] .avatar--mystery-tier-9 .avatar__mystery-mouth,
+[data-theme="punk"] .avatar--mystery-tier-10 .avatar__mystery-mouth {
+  width: 44%;
+  height: 4px;
+  clip-path: polygon(8% 100%, 35% 0, 65% 0, 92% 100%);
+  background: #ff2a6d;
+  box-shadow: 0 0 8px rgba(255, 42, 109, 0.55);
+}
+
+[data-theme="punk"] .avatar__mystery-horns {
+  position: absolute;
+  top: 2%;
+  left: 50%;
+  width: 72%;
+  height: 28%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+[data-theme="punk"] .avatar__mystery-horns::before,
+[data-theme="punk"] .avatar__mystery-horns::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 22%;
+  height: 100%;
+  background: linear-gradient(180deg, rgba(188, 19, 254, 0.9), rgba(5, 5, 5, 0.2));
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  filter: drop-shadow(0 0 4px rgba(188, 19, 254, 0.6));
+}
+
+[data-theme="punk"] .avatar__mystery-horns::before {
+  left: 8%;
+  transform: rotate(-18deg);
+}
+
+[data-theme="punk"] .avatar__mystery-horns::after {
+  right: 8%;
+  transform: rotate(18deg);
+}
+
+[data-theme="punk"] .avatar__mystery-crown {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 50%;
+  height: 18%;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, var(--neon-green), transparent);
+  clip-path: polygon(0 100%, 20% 0, 40% 70%, 50% 0, 60% 70%, 80% 0, 100% 100%);
+  opacity: 0.75;
+  filter: drop-shadow(0 0 6px rgba(57, 255, 20, 0.5));
+}
+
+[data-theme="punk"] .avatar__mystery-third-eye {
+  position: absolute;
+  top: 18%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: var(--neon-purple);
+  box-shadow: 0 0 10px rgba(188, 19, 254, 0.8);
+}
+
+[data-theme="punk"] .avatar__mystery-scar {
+  position: absolute;
+  inset: 18% 22% 28%;
+  border-left: 2px solid rgba(255, 42, 109, 0.55);
+  transform: rotate(22deg);
+  pointer-events: none;
+}
+
+[data-theme="punk"] .avatar__mystery-aura {
+  position: absolute;
+  inset: -15%;
+  border-radius: 50%;
+  border: 1px solid rgba(188, 19, 254, 0.25);
+  box-shadow: 0 0 18px rgba(188, 19, 254, 0.2);
+  pointer-events: none;
+  animation: punk-neon-pulse 2.8s ease-in-out infinite;
+}
+
+[data-theme="punk"] .avatar--mystery-tier-9 .avatar__mystery-aura,
+[data-theme="punk"] .avatar--mystery-tier-10 .avatar__mystery-aura {
+  border-color: rgba(255, 42, 109, 0.35);
+  box-shadow: 0 0 22px rgba(255, 42, 109, 0.25);
+}
+
 [data-theme="punk"] .avatar__mystery-hood {
   position: absolute;
   inset: -8% -6% auto;
@@ -537,7 +785,14 @@
   [data-theme="punk"] .volnovoi-marketing__badge--up,
   [data-theme="punk"] .avatar--mystery,
   [data-theme="punk"] .avatar__mystery-eye,
-  [data-theme="punk"] .avatar__mystery-scan {
+  [data-theme="punk"] .avatar__mystery-scan,
+  [data-theme="punk"] .app-boot,
+  html.theme-glitch body {
     animation: none;
+  }
+
+  html.theme-glitch::after {
+    animation: none;
+    opacity: 0;
   }
 }

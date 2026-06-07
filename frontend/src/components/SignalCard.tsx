@@ -12,6 +12,7 @@ import {
 import { formatSignedMovePct } from "../utils/signalChartLevels";
 import { useSignalLivePnl } from "../hooks/useSignalLivePnl";
 import { canEditOrDeleteSignal, canCloseAtMarketSignal, canSupplementSignal } from "../utils/signalActions";
+import { localizeOutcomeLabel, useThemedCopy } from "../hooks/useThemedCopy";
 import { signalOutcomeDisplay } from "../utils/signalChartLevels";
 import { Avatar } from "./Avatar";
 import { CoinLogo } from "./CoinLogo";
@@ -47,6 +48,7 @@ export function SignalCard({
   closing,
   onPatch,
 }: Props) {
+  const copy = useThemedCopy();
   const [views, setViews] = useState(s.views_count);
   const [likes, setLikes] = useState(s.likes_count);
   const [liked, setLiked] = useState(s.liked_by_me);
@@ -108,7 +110,7 @@ export function SignalCard({
     s.stop_loss,
     s.take_profits,
   );
-  const statusBadge = outcome.label;
+  const statusBadge = localizeOutcomeLabel(outcome.label, copy);
   const statusClass = outcome.className;
   const author = authorProfile(s.author_display_name, s.author_username);
   const rr = calcRR(entry === "—" ? null : entry, s.stop_loss, s.take_profits);
@@ -144,7 +146,13 @@ export function SignalCard({
 
       <header className="signal-card__top">
         <div className="signal-card__identity">
-          <Avatar url={s.author_avatar_url} displayName={s.author_display_name} username={s.author_username} size={40} />
+          <Avatar
+            url={s.author_avatar_url}
+            displayName={s.author_display_name}
+            username={s.author_username}
+            rankId={s.author_rank?.current_rank_id}
+            size={40}
+          />
           <div className="signal-card__who">
             <div className="signal-card__name-row">
               <p className="signal-card__name">{author.title}</p>
@@ -154,7 +162,7 @@ export function SignalCard({
               <span className="signal-number">#{s.number}</span>
               <CoinLogo symbol={s.symbol} size={22} showLabel className="signal-ticker" />
               <span className={`dir-badge ${isLong ? "long" : "short"}`}>
-                {isLong ? "↑ LONG" : "↓ SHORT"}
+                {isLong ? copy.cardLong : copy.cardShort}
               </span>
             </div>
           </div>
@@ -187,12 +195,12 @@ export function SignalCard({
         <div className="signal-card__admin-bar">
           {onEdit && (
             <button type="button" className="edit-btn" onClick={() => onEdit(s)}>
-              Изменить
+              {copy.cardEdit}
             </button>
           )}
           {onDelete && (
             <button type="button" className="delete-btn" disabled={deleting} onClick={() => onDelete(s.id)}>
-              Удалить
+              {copy.cardDelete}
             </button>
           )}
         </div>
@@ -202,15 +210,15 @@ export function SignalCard({
 
       <div className="signal-card__params" aria-label="Условия входа">
         <div className="signal-param">
-          <span className="signal-param__label">Вход</span>
+          <span className="signal-param__label">{copy.cardEntry}</span>
           <span className="signal-param__value">{stake}%</span>
         </div>
         <div className="signal-param">
-          <span className="signal-param__label">Трекер</span>
+          <span className="signal-param__label">{copy.cardTracker}</span>
           <span className="signal-param__value">{trackerUsd > 0 ? formatUsd(trackerUsd) : "—"}</span>
         </div>
         <div className="signal-param">
-          <span className="signal-param__label">Плечо</span>
+          <span className="signal-param__label">{copy.cardLeverage}</span>
           <span className="signal-param__value">{s.leverage ?? 1}x</span>
         </div>
         <div className="signal-param">
@@ -315,7 +323,7 @@ export function SignalCard({
                 disabled={closing}
                 onClick={() => onCloseAtMarket(s.id)}
               >
-                Закрыть по рынку
+                {copy.cardCloseMarket}
               </button>
             )}
           </div>

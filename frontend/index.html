@@ -22,7 +22,14 @@
   </head>
   <body>
     <div id="root">
-      <p class="html-boot" aria-live="polite">Загрузка…</p>
+      <p class="html-boot" aria-live="polite"></p>
+      <script>
+        try {
+          var boot = document.querySelector(".html-boot");
+          var t = localStorage.getItem("hh-theme");
+          if (boot) boot.textContent = t === "punk" || t === "light" ? "СИНХРОНИЗАЦИЯ СЕТИ…" : "Загрузка…";
+        } catch (e) {}
+      </script>
     </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

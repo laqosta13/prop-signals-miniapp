@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { closeSignalAtMarket, deleteSignal, type ChallengeDashboard, type Signal } from "../api";
-import { FEED_LABEL_ACTIVE, FEED_LABEL_CLOSED, testModeBannerText } from "../data/appCopy";
+import { testModeBannerText } from "../data/appCopy";
+import { useThemedCopy } from "../hooks/useThemedCopy";
 import { formatDateTimeMsk } from "../utils";
 import { canViewActiveSignals, visibleFeedSignals } from "../utils/signalActions";
 import { splitFeedSignals } from "../utils/sortFeedSignals";
@@ -49,6 +50,7 @@ export function FeedTab({
   testModeUntil = null,
   testModeDaysLeft = 0,
 }: Props) {
+  const copy = useThemedCopy();
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [closingId, setClosingId] = useState<number | null>(null);
   const feedTrader = isAdmin || canPublishMainFeed;
@@ -129,14 +131,14 @@ export function FeedTab({
           </button>
         </div>
       )}
-      {loading && <p className="meta">Загрузка…</p>}
+      {loading && <p className="meta">{copy.loading}</p>}
       {!loading && visible.length === 0 && (
         <p className="meta">{hasActiveAccess ? "Пока нет сигналов." : "Пока нет отработанных сигналов."}</p>
       )}
 
       {showActiveBlock && !loading && (
-        <section className="feed-block feed-block--active" aria-label={FEED_LABEL_ACTIVE}>
-          <h2 className="feed-block__label feed-block__label--active">{FEED_LABEL_ACTIVE}</h2>
+        <section className="feed-block feed-block--active" aria-label={copy.feedLabelActive}>
+          <h2 className="feed-block__label feed-block__label--active">{copy.feedLabelActive}</h2>
           {activeSignals.length > 0 ? (
             renderCards(activeSignals)
           ) : (
@@ -148,9 +150,9 @@ export function FeedTab({
       {showClosedBlock && !loading && (
         <section
           className={`feed-block feed-block--closed${showActiveBlock ? " feed-block--closed-after-active" : ""}`}
-          aria-label={FEED_LABEL_CLOSED}
+          aria-label={copy.feedLabelClosed}
         >
-          <h2 className="feed-block__label feed-block__label--closed">{FEED_LABEL_CLOSED}</h2>
+          <h2 className="feed-block__label feed-block__label--closed">{copy.feedLabelClosed}</h2>
           {renderCards(closedSignals)}
         </section>
       )}

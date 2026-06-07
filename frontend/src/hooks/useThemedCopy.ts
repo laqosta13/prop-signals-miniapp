@@ -1,0 +1,331 @@
+import {
+  FEED_LABEL_ACTIVE,
+  FEED_LABEL_CLOSED,
+  PRODUCT_NAME,
+  PRODUCT_TAGLINE,
+  TAB_SUBTITLES,
+  TOP_CANDIDATES_EMPTY,
+  TOP_EMPTY,
+  TOP_LABEL_CANDIDATES,
+  TOP_LABEL_FIRED,
+  TOP_LABEL_TRADERS,
+} from "../data/appCopy";
+import * as P from "../data/punkCopy";
+import { isPunkTheme, PUNK_RANK_GUIDE_INTRO, PUNK_RANK_GUIDE_POOL, PUNK_RANK_GUIDE_TITLE } from "../utils/punkTheme";
+import type { Theme } from "../utils/theme";
+import { useAppTheme } from "./useAppTheme";
+
+export type ThemedCopy = {
+  punk: boolean;
+  productName: string;
+  productTagline: string;
+  bootTitle: string;
+  bootMeta: string;
+  loading: string;
+  nav: Record<"feed" | "tracker" | "top" | "reviews" | "news" | "pay", string>;
+  tabTitles: Record<"feed" | "tracker" | "top" | "reviews" | "news" | "pay", string>;
+  tabSubtitles: Record<"feed" | "tracker" | "top" | "reviews" | "news" | "pay", string>;
+  feedKicker: string;
+  feedWordCrypto: string;
+  feedWordDeals: string;
+  feedWordDealsSingle: string;
+  feedInMarket: string;
+  feedAwaiting: string;
+  feedLabelActive: string;
+  feedLabelClosed: string;
+  topLabelTraders: string;
+  topLabelCandidates: string;
+  topLabelFired: string;
+  topEmpty: string;
+  topCandidatesEmpty: string;
+  signalEntry: string;
+  signalStop: string;
+  signalTarget: string;
+  signalLeverage: string;
+  signalStake: string;
+  signalBalance: string;
+  signalNominal: string;
+  signalDeal: string;
+  signalLevels: string;
+  signalPosition: string;
+  signalComment: string;
+  signalNew: string;
+  signalToFeed: string;
+  signalToCard: string;
+  signalPublish: string;
+  signalPublishing: string;
+  signalSave: string;
+  signalTicker: string;
+  signalLong: string;
+  signalShort: string;
+  signalLimits: string;
+  signalTrades: string;
+  signalStopChip: string;
+  signalPool: string;
+  signalInMarket: string;
+  signalCommentPh: string;
+  signalMedia: string;
+  trackerDailyLimit: string;
+  trackerDailyLoss: string;
+  trackerLimit: string;
+  trackerRemaining: string;
+  trackerAdd: string;
+  trackerEmpty: string;
+  trackerBalance: string;
+  trackerStart: string;
+  trackerTarget: string;
+  trackerDrawdown: string;
+  trackerDaily: string;
+  trackerRecon: string;
+  trackerDays: string;
+  trackerTrades: string;
+  trackerSettings: string;
+  rankGuideTitle: string;
+  rankGuideIntro: string;
+  rankGuidePool: string;
+  rankRules: readonly string[];
+  rankUnderstood: string;
+  rankConfirmTitle: string;
+  rankConfirmBtn: string;
+  rankConfirmWeek: string;
+  themeToggleDark: string;
+  themeTogglePunk: string;
+  outcomeWaiting: string;
+  outcomeActive: string;
+  outcomeMarket: string;
+  outcomeTarget: string;
+  outcomeStop: string;
+  cardEntry: string;
+  cardTracker: string;
+  cardLeverage: string;
+  cardLong: string;
+  cardShort: string;
+  cardEdit: string;
+  cardDelete: string;
+  cardCloseMarket: string;
+  cardTrade: string;
+  formatTrackerStageLev: (stage: number, leverage: number) => string;
+  formatTrackerTradesTab: (count: number) => string;
+};
+
+function buildCopy(theme: Theme): ThemedCopy {
+  const punk = isPunkTheme(theme);
+  if (!punk) {
+    return {
+      punk: false,
+      productName: PRODUCT_NAME,
+      productTagline: PRODUCT_TAGLINE,
+      bootTitle: PRODUCT_NAME,
+      bootMeta: "Загрузка…",
+      loading: "Загрузка…",
+      nav: { feed: "Лента", tracker: "Трекер", top: "ТОП", reviews: "Отзывы", news: "Новости", pay: "Подписка" },
+      tabTitles: { feed: "", tracker: "Трекер", top: "ТОП", reviews: "Отзывы", news: "Новости", pay: "Подписка" },
+      tabSubtitles: { ...TAB_SUBTITLES },
+      feedKicker: "Marketplace",
+      feedWordCrypto: "крипто-",
+      feedWordDeals: "сделок",
+      feedWordDealsSingle: "крипто-сделок",
+      feedInMarket: "в рынке",
+      feedAwaiting: "ожидание входа",
+      feedLabelActive: FEED_LABEL_ACTIVE,
+      feedLabelClosed: FEED_LABEL_CLOSED,
+      topLabelTraders: TOP_LABEL_TRADERS,
+      topLabelCandidates: TOP_LABEL_CANDIDATES,
+      topLabelFired: TOP_LABEL_FIRED,
+      topEmpty: TOP_EMPTY,
+      topCandidatesEmpty: TOP_CANDIDATES_EMPTY,
+      signalEntry: "Вход",
+      signalStop: "Стоп",
+      signalTarget: "Цель 1:3",
+      signalLeverage: "Плечо",
+      signalStake: "Доля входа",
+      signalBalance: "Баланс",
+      signalNominal: "Номинал",
+      signalDeal: "Сделка",
+      signalLevels: "Уровни",
+      signalPosition: "Размер позиции",
+      signalComment: "Комментарий",
+      signalNew: "Новый сигнал",
+      signalToFeed: "В ленту",
+      signalToCard: "В карточку",
+      signalPublish: "Опубликовать",
+      signalPublishing: "Публикация…",
+      signalSave: "Сохранение…",
+      signalTicker: "Тикер",
+      signalLong: "Long",
+      signalShort: "Short",
+      signalLimits: "Лимиты…",
+      signalTrades: "Сделки",
+      signalStopChip: "Стоп",
+      signalPool: "Пул",
+      signalInMarket: "В рынке",
+      signalCommentPh: "Краткий разбор сделки…",
+      signalMedia: "Скрин или видео",
+      trackerDailyLimit: "ЛИМИТ ДНЯ ДЛЯ ВСЕХ ТРЕЙДЕРОВ",
+      trackerDailyLoss: "Потери за день",
+      trackerLimit: "Лимит",
+      trackerRemaining: "Остаток … из общей базы",
+      trackerAdd: "Добавить трекер Hash Hedge",
+      trackerEmpty: "Трекеры трейдеров появятся после подключения.",
+      trackerBalance: "Баланс",
+      trackerStart: "Старт",
+      trackerTarget: "Цель",
+      trackerDrawdown: "Просадка",
+      trackerDaily: "Лимит дня",
+      trackerRecon: "Сверка с пропом",
+      trackerDays: "Торговые дни",
+      trackerTrades: "Сделок",
+      trackerSettings: "Настройки",
+      rankGuideTitle: "Система рангов",
+      rankGuideIntro: "Недельный результат → ранг. Выше ранг — больше % входа и плечо в сигнале.",
+      rankGuidePool: "Общий пул входа: если два трейдера заняли 100%, третий в эту сделку не войдёт.",
+      rankRules: [
+        "Недельный % по закрытым сделкам → ранг.",
+        "Подтвердите итог до вс 23:59 МСК.",
+        "Минусовая неделя: −1 ранг; две подряд: −2; без подтверждения: ещё −1.",
+        "Страховка — 1 раз в месяц, минус не снижает ранг.",
+        "Топ-ранги — до 100% входа и плечо до 5×.",
+        "Ниже «Китяры» — плечо 1×; дальше +1× за ранг.",
+      ],
+      rankUnderstood: "Понятно",
+      rankConfirmTitle: "Подтверди свой ранг",
+      rankConfirmBtn: "Подтвердить результат",
+      rankConfirmWeek: "за неделю",
+      themeToggleDark: "Тёмная тема",
+      themeTogglePunk: "Панк-тема",
+      outcomeWaiting: "Ожидание входа",
+      outcomeActive: "Активен",
+      outcomeMarket: "По рынку",
+      outcomeTarget: "Цель достигнута",
+      outcomeStop: "Стоп",
+      cardEntry: "Вход",
+      cardTracker: "Трекер",
+      cardLeverage: "Плечо",
+      cardLong: "↑ LONG",
+      cardShort: "↓ SHORT",
+      cardEdit: "Изменить",
+      cardDelete: "Удалить",
+      cardCloseMarket: "Закрыть по рынку",
+      cardTrade: "+ Сделка",
+      formatTrackerStageLev: (stage, leverage) => `Этап ${stage} · плечо ${leverage}`,
+      formatTrackerTradesTab: (count) => `Сделки · ${count}`,
+    };
+  }
+
+  return {
+    punk: true,
+    productName: P.PUNK_PRODUCT_NAME,
+    productTagline: P.PUNK_PRODUCT_TAGLINE,
+    bootTitle: P.PUNK_BOOT_TITLE,
+    bootMeta: P.PUNK_BOOT_META,
+    loading: P.PUNK_LOADING,
+    nav: { ...P.PUNK_NAV },
+    tabTitles: { ...P.PUNK_TAB_TITLES },
+    tabSubtitles: { ...P.PUNK_TAB_SUBTITLES },
+    feedKicker: P.PUNK_FEED_KICKER,
+    feedWordCrypto: P.PUNK_FEED_WORD_CRYPTO,
+    feedWordDeals: P.PUNK_FEED_WORD_DEALS,
+    feedWordDealsSingle: P.PUNK_FEED_WORD_DEALS_SINGLE,
+    feedInMarket: P.PUNK_FEED_IN_MARKET,
+    feedAwaiting: P.PUNK_FEED_AWAITING,
+    feedLabelActive: P.PUNK_FEED_LABEL_ACTIVE,
+    feedLabelClosed: P.PUNK_FEED_LABEL_CLOSED,
+    topLabelTraders: P.PUNK_TOP_LABEL_TRADERS,
+    topLabelCandidates: P.PUNK_TOP_LABEL_CANDIDATES,
+    topLabelFired: P.PUNK_TOP_LABEL_FIRED,
+    topEmpty: P.PUNK_TOP_EMPTY,
+    topCandidatesEmpty: P.PUNK_TOP_CANDIDATES_EMPTY,
+    signalEntry: P.PUNK_SIGNAL_ENTRY,
+    signalStop: P.PUNK_SIGNAL_STOP,
+    signalTarget: P.PUNK_SIGNAL_TARGET,
+    signalLeverage: P.PUNK_SIGNAL_LEVERAGE,
+    signalStake: P.PUNK_SIGNAL_STAKE,
+    signalBalance: P.PUNK_SIGNAL_BALANCE,
+    signalNominal: P.PUNK_SIGNAL_NOMINAL,
+    signalDeal: P.PUNK_SIGNAL_DEAL,
+    signalLevels: P.PUNK_SIGNAL_LEVELS,
+    signalPosition: P.PUNK_SIGNAL_POSITION,
+    signalComment: P.PUNK_SIGNAL_COMMENT,
+    signalNew: P.PUNK_SIGNAL_NEW,
+    signalToFeed: P.PUNK_SIGNAL_TO_FEED,
+    signalToCard: P.PUNK_SIGNAL_TO_CARD,
+    signalPublish: P.PUNK_SIGNAL_PUBLISH,
+    signalPublishing: P.PUNK_SIGNAL_PUBLISHING,
+    signalSave: P.PUNK_SIGNAL_SAVE,
+    signalTicker: P.PUNK_SIGNAL_TICKER,
+    signalLong: P.PUNK_SIGNAL_LONG,
+    signalShort: P.PUNK_SIGNAL_SHORT,
+    signalLimits: P.PUNK_SIGNAL_LIMITS,
+    signalTrades: P.PUNK_SIGNAL_TRADES,
+    signalStopChip: P.PUNK_SIGNAL_STOP_CHIP,
+    signalPool: P.PUNK_SIGNAL_POOL,
+    signalInMarket: P.PUNK_SIGNAL_IN_MARKET,
+    signalCommentPh: P.PUNK_SIGNAL_COMMENT_PH,
+    signalMedia: P.PUNK_SIGNAL_MEDIA,
+    trackerDailyLimit: P.PUNK_TRACKER_DAILY_LIMIT,
+    trackerDailyLoss: P.PUNK_TRACKER_DAILY_LOSS,
+    trackerLimit: P.PUNK_TRACKER_LIMIT,
+    trackerRemaining: P.PUNK_TRACKER_REMAINING,
+    trackerAdd: P.PUNK_TRACKER_ADD,
+    trackerEmpty: P.PUNK_TRACKER_EMPTY,
+    trackerBalance: P.PUNK_TRACKER_BALANCE,
+    trackerStart: P.PUNK_TRACKER_START,
+    trackerTarget: P.PUNK_TRACKER_TARGET,
+    trackerDrawdown: P.PUNK_TRACKER_DRAWDOWN,
+    trackerDaily: P.PUNK_TRACKER_DAILY,
+    trackerRecon: P.PUNK_TRACKER_RECON,
+    trackerDays: P.PUNK_TRACKER_DAYS,
+    trackerTrades: P.PUNK_TRACKER_TRADES,
+    trackerSettings: P.PUNK_TRACKER_SETTINGS,
+    rankGuideTitle: PUNK_RANK_GUIDE_TITLE,
+    rankGuideIntro: PUNK_RANK_GUIDE_INTRO,
+    rankGuidePool: PUNK_RANK_GUIDE_POOL,
+    rankRules: P.PUNK_RANK_RULES,
+    rankUnderstood: P.PUNK_RANK_GUIDE_UNDERSTOOD,
+    rankConfirmTitle: P.PUNK_RANK_CONFIRM_TITLE,
+    rankConfirmBtn: P.PUNK_RANK_CONFIRM_BTN,
+    rankConfirmWeek: P.PUNK_RANK_CONFIRM_WEEK,
+    themeToggleDark: P.PUNK_THEME_TOGGLE_DARK,
+    themeTogglePunk: P.PUNK_THEME_TOGGLE_PUNK,
+    outcomeWaiting: P.PUNK_OUTCOME_WAITING,
+    outcomeActive: P.PUNK_OUTCOME_ACTIVE,
+    outcomeMarket: P.PUNK_OUTCOME_MARKET,
+    outcomeTarget: P.PUNK_OUTCOME_TARGET,
+    outcomeStop: P.PUNK_OUTCOME_STOP,
+    cardEntry: P.PUNK_CARD_ENTRY,
+    cardTracker: P.PUNK_CARD_TRACKER,
+    cardLeverage: P.PUNK_CARD_LEVERAGE,
+    cardLong: P.PUNK_CARD_LONG,
+    cardShort: P.PUNK_CARD_SHORT,
+    cardEdit: P.PUNK_CARD_EDIT,
+    cardDelete: P.PUNK_CARD_DELETE,
+    cardCloseMarket: P.PUNK_CARD_CLOSE_MARKET,
+    cardTrade: P.PUNK_CARD_TRADE,
+    formatTrackerStageLev: P.PUNK_TRACKER_STAGE_LEV,
+    formatTrackerTradesTab: P.PUNK_TRACKER_TRADES_TAB,
+  };
+}
+
+const COPY_CACHE: Partial<Record<Theme, ThemedCopy>> = {};
+
+export function themedCopyFor(theme: Theme): ThemedCopy {
+  if (!COPY_CACHE[theme]) COPY_CACHE[theme] = buildCopy(theme);
+  return COPY_CACHE[theme]!;
+}
+
+export function useThemedCopy(): ThemedCopy {
+  const theme = useAppTheme();
+  return themedCopyFor(theme);
+}
+
+export function localizeOutcomeLabel(label: string, copy: ThemedCopy): string {
+  if (!copy.punk) return label;
+  const map: Record<string, string> = {
+    "Ожидание входа": copy.outcomeWaiting,
+    "Активен": copy.outcomeActive,
+    "По рынку": copy.outcomeMarket,
+    "Цель достигнута": copy.outcomeTarget,
+    "Стоп": copy.outcomeStop,
+  };
+  return map[label] ?? label;
+}

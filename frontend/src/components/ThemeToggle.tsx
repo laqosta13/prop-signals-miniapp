@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useThemedCopy } from "../hooks/useThemedCopy";
 import { getStoredTheme, subscribeTheme, toggleTheme, type Theme } from "../utils/theme";
 
 export function ThemeToggle() {
@@ -10,6 +11,7 @@ export function ThemeToggle() {
     setTheme(toggleTheme());
   };
 
+  const copy = useThemedCopy();
   const isPunk = theme === "punk";
 
   return (
@@ -17,8 +19,8 @@ export function ThemeToggle() {
       type="button"
       className="theme-toggle"
       onClick={onToggle}
-      aria-label={isPunk ? "Тёмная тема" : "Панк-тема"}
-      title={isPunk ? "Тёмная тема" : "Панк-тема"}
+      aria-label={isPunk ? copy.themeToggleDark : copy.themeTogglePunk}
+      title={isPunk ? copy.themeToggleDark : copy.themeTogglePunk}
     >
       <span className={`theme-toggle__track${isPunk ? " theme-toggle__track--punk" : ""}`}>
         <span className="theme-toggle__rest" aria-hidden>

@@ -1,3 +1,4 @@
+import { useThemedCopy } from "../hooks/useThemedCopy";
 import { StopOffsetSlider } from "./StopOffsetSlider";
 import { parseEntryPrice } from "../utils/signalLevels";
 
@@ -40,6 +41,7 @@ export function SignalLevelsFields({
   rankMaxStakePct = 0,
   dailyStopBlocked = false,
 }: Props) {
+  const copy = useThemedCopy();
   const trackerMode =
     dailyRemainingPct !== undefined &&
     stakePct !== undefined &&
@@ -51,7 +53,7 @@ export function SignalLevelsFields({
   return (
     <div className="signal-form__levels">
       <div className="signal-form__level signal-form__level--entry">
-        <label className="signal-form__level-label">Вход</label>
+        <label className="signal-form__level-label">{copy.signalEntry}</label>
         <input
           className="signal-form__level-input"
           value={entry}
@@ -62,7 +64,7 @@ export function SignalLevelsFields({
         />
       </div>
       <div className="signal-form__level signal-form__level--stop">
-        <label className="signal-form__level-label">Стоп</label>
+        <label className="signal-form__level-label">{copy.signalStop}</label>
         <input
           className="signal-form__level-input"
           value={stop}
@@ -74,7 +76,7 @@ export function SignalLevelsFields({
         />
       </div>
       <div className="signal-form__level signal-form__level--target">
-        <label className="signal-form__level-label">Цель 1:3</label>
+        <label className="signal-form__level-label">{copy.signalTarget}</label>
         <input
           className="signal-form__level-input"
           value={target}

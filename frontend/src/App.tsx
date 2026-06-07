@@ -24,7 +24,7 @@ import { ThemeToggle } from "./components/ThemeToggle";
 import { mergeFeedSignals } from "./utils/mergeFeedSignals";
 import { sortFeedSignals } from "./utils/sortFeedSignals";
 import { isSignalAwaitingEntry, isSignalInMarket } from "./utils/signalActions";
-import { PRODUCT_TAGLINE, TAB_SUBTITLES } from "./data/appCopy";
+import { useThemedCopy } from "./hooks/useThemedCopy";
 import { hasAcceptedDisclaimer, markDisclaimerAccepted } from "./utils/disclaimerStorage";
 
 const TrackerTab = lazy(() => import("./components/TrackerTab").then((m) => ({ default: m.TrackerTab })));
@@ -49,23 +49,7 @@ type Tab = "feed" | "tracker" | "top" | "reviews" | "news" | "pay";
 
 const FEED_POLL_MS = 15_000;
 
-const TITLES: Record<Tab, { title: string; sub: string }> = {
-  feed: { title: "", sub: "" },
-  tracker: { title: "Трекер", sub: TAB_SUBTITLES.tracker },
-  top: { title: "ТОП", sub: TAB_SUBTITLES.top },
-  reviews: { title: "Отзывы", sub: TAB_SUBTITLES.reviews },
-  news: { title: "Новости", sub: TAB_SUBTITLES.news },
-  pay: { title: "Подписка", sub: TAB_SUBTITLES.pay },
-};
-
-const NAV: { id: Tab; label: string }[] = [
-  { id: "feed", label: "Лента" },
-  { id: "tracker", label: "Трекер" },
-  { id: "top", label: "ТОП" },
-  { id: "reviews", label: "Отзывы" },
-  { id: "news", label: "Новости" },
-  { id: "pay", label: "Подписка" },
-];
+const NAV_TABS: Tab[] = ["feed", "tracker", "top", "reviews", "news", "pay"];
 
 function NavIcon({ tab }: { tab: Tab }) {
   if (tab === "feed") {
@@ -117,6 +101,7 @@ function NavIcon({ tab }: { tab: Tab }) {
 }
 
 export default function App() {
+  const copy = useThemedCopy();
   const [tab, setTab] = useState<Tab>("feed");
   const [signals, setSignals] = useState<Signal[]>([]);
   const [traders, setTraders] = useState<Trader[]>([]);
@@ -417,7 +402,7 @@ export default function App() {
 
   const onNewsSaved = () => setNewsRefreshKey((k) => k + 1);
 
-  const head = TITLES[tab];
+  const head = { title: copy.tabTitles[tab], sub: copy.tabSubtitles[tab] };
   const inMarketSignalCount = useMemo(
     () => signals.filter(isSignalInMarket).length,
     [signals],
@@ -427,8 +412,8 @@ export default function App() {
     [signals],
   );
   const feedStatsLabel = [
-    inMarketSignalCount > 0 ? `${inMarketSignalCount} в рынке` : null,
-    awaitingEntrySignalCount > 0 ? `${awaitingEntrySignalCount} ожидание входа` : null,
+    inMarketSignalCount > 0 ? `${inMarketSignalCount} ${copy.feedInMarket}` : null,
+    awaitingEntrySignalCount > 0 ? `${awaitingEntrySignalCount} ${copy.feedAwaiting}` : null,
   ]
     .filter(Boolean)
     .join(", ");
@@ -445,8 +430,8 @@ export default function App() {
     <div className={`app${loading ? " app--booting" : ""}`}>
       {loading && (
         <div className="app-boot" role="status" aria-live="polite">
-          <p className="app-boot__title">Volnovoi Cult</p>
-          <p className="app-boot__meta">Загрузка…</p>
+          <p className="app-boot__title">{copy.bootTitle}</p>
+          <p className="app-boot__meta">{copy.bootMeta}</p>
         </div>
       )}
       <header className={`topbar${tab === "feed" ? " topbar--feed" : ""}`}>
@@ -454,38 +439,38 @@ export default function App() {
           {tab === "feed" ? (
             <p
               className="topbar__marketplace"
-              aria-label={feedStatsLabel ? `${PRODUCT_TAGLINE}, ${feedStatsLabel}` : PRODUCT_TAGLINE}
+              aria-label={feedStatsLabel ? `${copy.productTagline}, ${feedStatsLabel}` : copy.productTagline}
             >
-              <span className="topbar__marketplace-kicker">Marketplace</span>
+              <span className="topbar__marketplace-kicker">{copy.feedKicker}</span>
               <span
                 className={`topbar__marketplace-body${splitFeedStats ? "" : " topbar__marketplace-body--single"}`}
               >
                 {splitFeedStats ? (
                   <>
                     <span className="topbar__marketplace-row">
-                      <span className="topbar__marketplace-word">крипто-</span>
+                      <span className="topbar__marketplace-word">{copy.feedWordCrypto}</span>
                       <span className="topbar__marketplace-live" aria-hidden>
                         <span className="topbar__marketplace-count">{inMarketSignalCount}</span>
-                        <span className="topbar__marketplace-live-label">в рынке</span>
+                        <span className="topbar__marketplace-live-label">{copy.feedInMarket}</span>
                       </span>
                     </span>
                     <span className="topbar__marketplace-row">
-                      <span className="topbar__marketplace-word">сделок</span>
+                      <span className="topbar__marketplace-word">{copy.feedWordDeals}</span>
                       <span className="topbar__marketplace-live topbar__marketplace-live--awaiting" aria-hidden>
                         <span className="topbar__marketplace-count topbar__marketplace-count--awaiting">
                           {awaitingEntrySignalCount}
                         </span>
-                        <span className="topbar__marketplace-live-label">ожидание входа</span>
+                        <span className="topbar__marketplace-live-label">{copy.feedAwaiting}</span>
                       </span>
                     </span>
                   </>
                 ) : (
                   <span className="topbar__marketplace-row">
-                    <span className="topbar__marketplace-word">крипто-сделок</span>
+                    <span className="topbar__marketplace-word">{copy.feedWordDealsSingle}</span>
                     {inMarketSignalCount > 0 && (
                       <span className="topbar__marketplace-live" aria-hidden>
                         <span className="topbar__marketplace-count">{inMarketSignalCount}</span>
-                        <span className="topbar__marketplace-live-label">в рынке</span>
+                        <span className="topbar__marketplace-live-label">{copy.feedInMarket}</span>
                       </span>
                     )}
                     {awaitingEntrySignalCount > 0 && (
@@ -493,7 +478,7 @@ export default function App() {
                         <span className="topbar__marketplace-count topbar__marketplace-count--awaiting">
                           {awaitingEntrySignalCount}
                         </span>
-                        <span className="topbar__marketplace-live-label">ожидание входа</span>
+                        <span className="topbar__marketplace-live-label">{copy.feedAwaiting}</span>
                       </span>
                     )}
                   </span>
@@ -572,7 +557,7 @@ export default function App() {
             testModeDaysLeft={testModeDaysLeft}
           />
         )}
-        <Suspense fallback={<p className="meta">Загрузка…</p>}>
+        <Suspense fallback={<p className="meta">{copy.loading}</p>}>
           {tab === "tracker" && (
             <TrackerTab
               trackers={trackers}
@@ -636,12 +621,12 @@ export default function App() {
       )}
 
       <nav className="bottom-nav">
-        {NAV.map(({ id, label }) => (
+        {NAV_TABS.map((id) => (
           <button key={id} type="button" className={tab === id ? "on" : ""} onClick={() => setTab(id)}>
             <span className="ico">
               <NavIcon tab={id} />
             </span>
-            {label}
+            {copy.nav[id]}
           </button>
         ))}
       </nav>

@@ -1,3 +1,4 @@
+import { useThemedCopy } from "../../hooks/useThemedCopy";
 import { LeveragePicker } from "../LeveragePicker";
 import { RiskPercentSlider } from "../RiskPercentSlider";
 
@@ -28,19 +29,20 @@ export function SignalFormPositionCard({
   stakePct,
   lev,
 }: Props) {
+  const copy = useThemedCopy();
   const hasBalance = balanceUsd > 0;
 
   return (
     <div className="signal-form__position">
       <div className="signal-form__position-stats">
         <div className="signal-form__stat">
-          <span className="signal-form__stat-k">Баланс</span>
+          <span className="signal-form__stat-k">{copy.signalBalance}</span>
           <span className="signal-form__stat-v" title={hasBalance ? `$${balanceUsd}` : undefined}>
             {hasBalance ? `$${Math.round(balanceUsd).toLocaleString("en-US")}` : "—"}
           </span>
         </div>
         <div className="signal-form__stat signal-form__stat--accent">
-          <span className="signal-form__stat-k">Номинал</span>
+          <span className="signal-form__stat-k">{copy.signalNominal}</span>
           <span className="signal-form__stat-v" title={hasBalance ? `$${stakeUsd}` : undefined}>
             {hasBalance
               ? `$${stakeUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}`
@@ -48,7 +50,7 @@ export function SignalFormPositionCard({
           </span>
         </div>
         <div className="signal-form__stat">
-          <span className="signal-form__stat-k">Вход</span>
+          <span className="signal-form__stat-k">{copy.signalEntry}</span>
           <span className="signal-form__stat-v signal-form__stat-v--dim">
             {stakePct}%×{lev}x
           </span>
@@ -56,7 +58,7 @@ export function SignalFormPositionCard({
       </div>
 
       <div className="signal-form__position-row">
-        <span className="signal-form__inline-label">Плечо</span>
+        <span className="signal-form__inline-label">{copy.signalLeverage}</span>
         <LeveragePicker
           leverage={leverage}
           onLeverageChange={onLeverageChange}
@@ -69,7 +71,7 @@ export function SignalFormPositionCard({
         onChange={onRiskChange}
         max={maxStakePct}
         disabled={disabled}
-        label="Вход"
+        label={copy.signalEntry}
       />
     </div>
   );

@@ -69,7 +69,14 @@ export function TraderProfileModal({ trader, isMe, isAdmin, onClose }: Props) {
           ×
         </button>
         <div className="trader-profile-sheet__head">
-          <Avatar url={trader.avatar_url} displayName={trader.display_name} username={trader.username} size={56} />
+          <Avatar
+            url={trader.avatar_url}
+            displayName={trader.display_name}
+            username={trader.username}
+            telegramId={trader.telegram_id}
+            rankId={rank?.current_rank_id}
+            size={56}
+          />
           <div className="trader-profile-sheet__who">
             <div className="trader-profile-sheet__name-row">
               <p className="trader-profile-sheet__name">{profile.title}</p>

@@ -3,6 +3,7 @@ import WebApp from "@twa-dev/sdk";
 import { createSignalWithMedia } from "../api";
 import type { UploadProgress } from "../api";
 import { useGuardedSubmit } from "../hooks/useGuardedSubmit";
+import { useThemedCopy } from "../hooks/useThemedCopy";
 import { useSignalFormTracker } from "../hooks/useSignalFormTracker";
 import { useSignalLevelFields } from "../hooks/useSignalLevelFields";
 import { useSignalMarketPriceInit } from "../hooks/useSignalMarketPriceInit";
@@ -59,6 +60,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
   directionRef.current = direction;
   const wasOpenRef = useRef(false);
 
+  const copy = useThemedCopy();
   const { tryAcquire, release } = useGuardedSubmit();
   const tracker = useSignalFormTracker(open, { risk, setRisk }, { leverage, setLeverage });
 
@@ -165,8 +167,8 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
 
   return (
     <SignalFormShell
-      title="Новый сигнал"
-      subtitle="В ленту"
+      title={copy.signalNew}
+      subtitle={copy.signalToFeed}
       onClose={handleClose}
       onBackdropClick={handleClose}
       onSubmit={submit}
@@ -186,7 +188,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
         maxStakePct={tracker.maxStakePct}
       />
 
-      <SignalFormSection title="Сделка">
+      <SignalFormSection title={copy.signalDeal}>
         <SignalFormDealSection
           symbol={symbol}
           onSymbolChange={setSymbol}
@@ -195,7 +197,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
         />
       </SignalFormSection>
 
-      <SignalFormSection title="Уровни">
+      <SignalFormSection title={copy.signalLevels}>
         <SignalLevelsFields
           entry={entry}
           direction={direction}
@@ -216,7 +218,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
         />
       </SignalFormSection>
 
-      <SignalFormSection title="Размер позиции">
+      <SignalFormSection title={copy.signalPosition}>
         <SignalFormPositionCard
           leverage={leverage}
           onLeverageChange={(lev) => {
@@ -244,7 +246,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
         />
       </SignalFormSection>
 
-      <SignalFormSection title="Комментарий">
+      <SignalFormSection title={copy.signalComment}>
         <SignalMediaPicker
           screenshot={screenshot}
           video={video}
@@ -255,13 +257,13 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
             setShotPreview(file ? URL.createObjectURL(file) : null);
           }}
           onVideo={setVideo}
-          label="Скрин или видео"
+          label={copy.signalMedia}
         />
         <SignalFormCommentSection
           value={comment}
           onChange={setComment}
           disabled={submitting}
-          placeholder="Краткий разбор сделки…"
+          placeholder={copy.signalCommentPh}
         />
       </SignalFormSection>
 
@@ -271,8 +273,8 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
         uploadProgress={uploadProgress}
         hasVideo={!!video}
         disabled={submitting || priceLoading || formBlocked}
-        publishLabel="Опубликовать"
-        saveLabel="Публикация…"
+        publishLabel={copy.signalPublish}
+        saveLabel={copy.signalPublishing}
       />
     </SignalFormShell>
   );

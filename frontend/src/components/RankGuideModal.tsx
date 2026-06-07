@@ -1,15 +1,8 @@
 import { createPortal } from "react-dom";
-import { RANK_GUIDE_INTRO, RANK_GUIDE_POOL, RANK_GUIDE_TITLE } from "../data/appCopy";
 import { useAppTheme } from "../hooks/useAppTheme";
+import { useThemedCopy } from "../hooks/useThemedCopy";
+import { resolveRankName } from "../utils/punkTheme";
 import {
-  isPunkTheme,
-  PUNK_RANK_GUIDE_INTRO,
-  PUNK_RANK_GUIDE_POOL,
-  PUNK_RANK_GUIDE_TITLE,
-  resolveRankName,
-} from "../utils/punkTheme";
-import {
-  RANK_RULES,
   RANK_TIERS,
   rankMaxLeverage,
   rankMaxStakePct,
@@ -25,10 +18,7 @@ type Props = {
 
 export function RankGuideModal({ onClose, highlightRankId }: Props) {
   const theme = useAppTheme();
-  const punk = isPunkTheme(theme);
-  const guideTitle = punk ? PUNK_RANK_GUIDE_TITLE : RANK_GUIDE_TITLE;
-  const guideIntro = punk ? PUNK_RANK_GUIDE_INTRO : RANK_GUIDE_INTRO;
-  const guidePool = punk ? PUNK_RANK_GUIDE_POOL : RANK_GUIDE_POOL;
+  const copy = useThemedCopy();
 
   return createPortal(
     <div
@@ -38,13 +28,13 @@ export function RankGuideModal({ onClose, highlightRankId }: Props) {
       aria-labelledby="rank-guide-title"
       onClick={onClose}
     >
-      <div className={`rank-guide-sheet${punk ? " rank-guide-sheet--punk" : ""}`} onClick={(e) => e.stopPropagation()}>
+      <div className={`rank-guide-sheet${copy.punk ? " rank-guide-sheet--punk" : ""}`} onClick={(e) => e.stopPropagation()}>
         <button type="button" className="modal-close" onClick={onClose} aria-label="Закрыть">
           ×
         </button>
-        <h2 id="rank-guide-title">{guideTitle}</h2>
-        <p className="rank-guide-sheet__intro">{guideIntro}</p>
-        <p className="rank-guide-sheet__pool">{guidePool}</p>
+        <h2 id="rank-guide-title">{copy.rankGuideTitle}</h2>
+        <p className="rank-guide-sheet__intro">{copy.rankGuideIntro}</p>
+        <p className="rank-guide-sheet__pool">{copy.rankGuidePool}</p>
         <ul className="rank-guide__tiers rank-guide__tiers--modal">
           {RANK_TIERS.map((tier) => {
             const st = rankStyle(tier.id);
@@ -75,12 +65,12 @@ export function RankGuideModal({ onClose, highlightRankId }: Props) {
           </p>
         )}
         <ul className="rank-guide__rules">
-          {RANK_RULES.map((rule) => (
+          {copy.rankRules.map((rule) => (
             <li key={rule}>{rule}</li>
           ))}
         </ul>
         <button type="button" className="submit-btn" onClick={onClose}>
-          Понятно
+          {copy.rankUnderstood}
         </button>
       </div>
     </div>,

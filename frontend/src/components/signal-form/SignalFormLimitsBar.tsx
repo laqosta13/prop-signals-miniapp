@@ -1,4 +1,5 @@
 import { useMskDayCountdown } from "../../hooks/useMskDayCountdown";
+import { useThemedCopy } from "../../hooks/useThemedCopy";
 import {
   dailyLimitBlockedMessage,
   SIGNAL_DAILY_STOP_LIMIT_PCT,
@@ -35,12 +36,13 @@ export function SignalFormLimitsBar({
   stakePoolBlocked = false,
   maxStakePct = 0,
 }: Props) {
+  const copy = useThemedCopy();
   const { label: resetIn } = useMskDayCountdown(active && !loading);
 
   if (loading) {
     return (
       <aside className="signal-form__limits signal-form__limits--loading" aria-busy="true">
-        Лимиты…
+        {copy.signalLimits}
       </aside>
     );
   }
@@ -52,14 +54,14 @@ export function SignalFormLimitsBar({
     <aside className="signal-form__limits" aria-label="Лимиты дня">
       <div className="signal-form__chips">
         <div className="signal-form__chip">
-          <span className="signal-form__chip-k">Сделки</span>
+          <span className="signal-form__chip-k">{copy.signalTrades}</span>
           <span className="signal-form__chip-v">
             {dailyTradesRemaining}
             <span className="signal-form__chip-dim">/{dailyTradesLimit}</span>
           </span>
         </div>
         <div className="signal-form__chip">
-          <span className="signal-form__chip-k">Стоп</span>
+          <span className="signal-form__chip-k">{copy.signalStopChip}</span>
           <span className="signal-form__chip-v">
             {formatPoolChipPct(dailyRemaining ?? 0)}
             <span className="signal-form__chip-dim">/{SIGNAL_DAILY_STOP_LIMIT_PCT}%</span>
@@ -69,14 +71,14 @@ export function SignalFormLimitsBar({
           ) : null}
         </div>
         <div className="signal-form__chip">
-          <span className="signal-form__chip-k">Пул</span>
+          <span className="signal-form__chip-k">{copy.signalPool}</span>
           <span className="signal-form__chip-v">
             {formatPoolChipPct(poolFree)}
             <span className="signal-form__chip-dim">/{STAKE_POOL_TOTAL_PCT}%</span>
           </span>
         </div>
         <div className="signal-form__chip signal-form__chip--wide">
-          <span className="signal-form__chip-k">В рынке</span>
+          <span className="signal-form__chip-k">{copy.signalInMarket}</span>
           <span className="signal-form__chip-v">
             {formatPoolChipPct(inMarket)}
             <span className="signal-form__chip-dim">% входа</span>
