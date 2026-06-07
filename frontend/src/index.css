@@ -2816,7 +2816,7 @@
 }
 
 .top-rank--medal {
-  min-width: 44px;
+  min-width: 41px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2830,20 +2830,17 @@
   line-height: 0;
 }
 
-.top-place-medal svg {
+.top-place-medal img {
   display: block;
+  width: 41px;
+  height: 52px;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
-.top-place-medal--1 svg {
-  filter: drop-shadow(0 0 8px rgba(255, 196, 40, 0.85)) drop-shadow(0 0 2px rgba(255, 240, 160, 0.9));
-}
-
-.top-place-medal--2 svg {
-  filter: drop-shadow(0 0 7px rgba(186, 210, 235, 0.8)) drop-shadow(0 0 2px rgba(255, 255, 255, 0.75));
-}
-
-.top-place-medal--3 svg {
-  filter: drop-shadow(0 0 7px rgba(210, 130, 70, 0.8)) drop-shadow(0 0 2px rgba(255, 200, 140, 0.7));
+.top-place-medal--1 img {
+  filter: drop-shadow(0 0 6px rgba(255, 196, 40, 0.55));
 }
 
 .top-rank--aggregate {
