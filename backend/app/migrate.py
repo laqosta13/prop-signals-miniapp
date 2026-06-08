@@ -459,6 +459,7 @@ def run_migrations(engine: Engine) -> None:
     _seed_volnovoi_cult_launch_news_v1(engine)
     _seed_volnovoi_cult_launch_news_v2(engine)
     _backfill_pinned_launch_news_v1(engine)
+    _purge_all_published_startup_v1(engine)
 
 
 def _seed_launch_news(
@@ -1114,6 +1115,28 @@ def _disable_bybit_testnet_v1(engine: Engine) -> None:
         conn.execute(text("UPDATE user_bybit_settings SET testnet = 0"))
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.touch()
+
+
+def _purge_all_published_startup_v1(engine: Engine) -> None:
+    """Одноразово при следующем запуске: сигналы, CULT, отзывы, новости (кроме pinned)."""
+    marker = _marker_path(engine, ".purged_all_published_startup_v1")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".purged_all_published_startup_v1"
+    if marker.exists():
+        return
+    from app.database import SessionLocal
+    from app.data_cleanup import purge_all_published_content
+
+    db = SessionLocal()
+    try:
+        purge_all_published_content(db)
+        db.commit()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
 
 
 def _purge_all_published_may2026_v3(engine: Engine) -> None:
