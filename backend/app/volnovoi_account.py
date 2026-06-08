@@ -92,8 +92,9 @@ def volnovoi_daily_stats(signals: list[Signal]) -> list[TraderDayStat]:
     ][:90]
 
 
-def volnovoi_rank_read(weekly_pct: float) -> TraderRankRead:
-    rank_id = get_rank_by_pct(weekly_pct)
+def volnovoi_rank_read(weekly_pct: float, rating_pct: float) -> TraderRankRead:
+    """Ранг volnovoi онлайн по суммарному % портфеля (каждая закрытая сделка)."""
+    rank_id = get_rank_by_pct(rating_pct)
     return TraderRankRead(
         current_rank_id=rank_id,
         current_rank_name=rank_name(rank_id),
@@ -104,7 +105,7 @@ def volnovoi_rank_read(weekly_pct: float) -> TraderRankRead:
         shield_used_this_month=False,
         shield_active=False,
         rank_applied_this_week=False,
-        pending_rank_penalty=weekly_pct < 0,
+        pending_rank_penalty=rating_pct < 0,
         rank_history=[],
     )
 
@@ -152,6 +153,6 @@ def build_volnovoi_read(db: Session) -> TraderRead | None:
         win_rate=wr,
         avatar_url=VOLNOVOI_AVATAR_URL,
         daily_stats=volnovoi_daily_stats(signals),
-        trader_rank=volnovoi_rank_read(weekly) if total else None,
+        trader_rank=volnovoi_rank_read(weekly, rating) if total else None,
         is_aggregate=True,
     )

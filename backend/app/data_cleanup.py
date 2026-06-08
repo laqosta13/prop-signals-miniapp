@@ -64,6 +64,13 @@ def _purge_signals_media_and_rows(db: Session) -> None:
     db.execute(delete(Signal))
 
 
+def _purge_reviews_only(db: Session) -> None:
+    for row in db.scalars(select(Review)):
+        delete_media_files(row.image_path)
+    _clear_media_subdir("reviews")
+    db.execute(delete(Review))
+
+
 def _purge_news_and_reviews(db: Session) -> None:
     pinned_ids = {
         post.id for post in db.scalars(select(NewsPost).where(NewsPost.pinned.is_(True)))
@@ -78,10 +85,7 @@ def _purge_news_and_reviews(db: Session) -> None:
             if item.is_dir() and item.name.isdigit() and int(item.name) not in pinned_ids:
                 shutil.rmtree(item, ignore_errors=True)
 
-    for row in db.scalars(select(Review)):
-        delete_media_files(row.image_path)
-    _clear_media_subdir("reviews")
-    db.execute(delete(Review))
+    _purge_reviews_only(db)
 
 
 def _reset_trader_leaderboard(db: Session, *, reset_ranks: bool = False) -> None:
@@ -153,6 +157,17 @@ def purge_all_published_content(db: Session) -> None:
     _purge_cult_channel_content(db)
     _purge_cult_candidate_stats(db)
     _purge_news_and_reviews(db)
+    _reset_trader_leaderboard(db, reset_ranks=True)
+    _reset_admin_trackers(db)
+    _reset_trader_roster_overrides(db)
+
+
+def purge_published_except_news(db: Session) -> None:
+    """Сигналы, CULT, отзывы; новости не трогаем; рейтинг, трекеры и ротация — сброс."""
+    _purge_signals_media_and_rows(db)
+    _purge_cult_channel_content(db)
+    _purge_cult_candidate_stats(db)
+    _purge_reviews_only(db)
     _reset_trader_leaderboard(db, reset_ranks=True)
     _reset_admin_trackers(db)
     _reset_trader_roster_overrides(db)
