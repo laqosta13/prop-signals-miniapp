@@ -115,6 +115,13 @@
   margin-top: 1px;
 }
 
+.topbar__marketplace-logo-img {
+  display: block;
+  line-height: 0;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
 .topbar__marketplace-copy {
   display: flex;
   flex-direction: column;
@@ -223,10 +230,6 @@
   min-width: 0;
 }
 
-.topbar__marketplace-body--single .topbar__marketplace-word {
-  white-space: nowrap;
-}
-
 .topbar__marketplace-row {
   display: flex;
   align-items: baseline;
@@ -236,10 +239,23 @@
 
 .topbar__feed-stats {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 6px;
   margin-top: 3px;
+}
+
+.topbar__marketplace .topbar__feed-stats {
+  gap: 5px;
+}
+
+.topbar__marketplace .topbar__feed-chip {
+  font-size: 0.58rem;
+  padding: 2px 6px 2px 5px;
+}
+
+.topbar__marketplace .topbar__feed-chip-count {
+  font-size: 0.68rem;
 }
 
 .topbar__feed-chip {
@@ -301,6 +317,7 @@
   font-weight: 900;
   letter-spacing: -0.03em;
   line-height: 1.1;
+  white-space: nowrap;
   background: linear-gradient(105deg, var(--text) 0%, var(--purple) 48%, #3dff8a 100%);
   -webkit-background-clip: text;
   background-clip: text;

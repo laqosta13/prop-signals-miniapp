@@ -432,7 +432,6 @@ export default function App() {
   ]
     .filter(Boolean)
     .join(", ");
-  const splitFeedStats = inMarketSignalCount > 0 && awaitingEntrySignalCount > 0;
   const showDisclaimer = disclaimerReady && !disclaimerAccepted && !loading;
 
   const acceptDisclaimer = () => {
@@ -483,23 +482,10 @@ export default function App() {
                   {copy.feedSubKicker ? (
                     <span className="topbar__marketplace-sub">{copy.feedSubKicker}</span>
                   ) : null}
-                  <span
-                    className={`topbar__marketplace-body${splitFeedStats ? "" : " topbar__marketplace-body--single"}`}
-                  >
-                    {splitFeedStats ? (
-                      <>
-                        <span className="topbar__marketplace-row">
-                          <span className="topbar__marketplace-word">{copy.feedWordCrypto}</span>
-                        </span>
-                        <span className="topbar__marketplace-row">
-                          <span className="topbar__marketplace-word">{copy.feedWordDeals}</span>
-                        </span>
-                      </>
-                    ) : (
-                      <span className="topbar__marketplace-row">
-                        <span className="topbar__marketplace-word">{copy.feedWordDealsSingle}</span>
-                      </span>
-                    )}
+                  <span className="topbar__marketplace-body">
+                    <span className="topbar__marketplace-row">
+                      <span className="topbar__marketplace-word">{copy.feedWordDealsSingle}</span>
+                    </span>
                     <FeedHeaderStats
                       inMarketCount={inMarketSignalCount}
                       awaitingCount={awaitingEntrySignalCount}

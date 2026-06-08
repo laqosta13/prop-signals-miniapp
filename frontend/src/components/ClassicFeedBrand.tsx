@@ -1,5 +1,4 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { VcSplitLogo } from "./VcSplitLogo";
 
 type Props = {
   children: ReactNode;
@@ -27,7 +26,14 @@ export function ClassicFeedBrand({ children }: Props) {
 
   return (
     <span className="topbar__marketplace-brand">
-      <VcSplitLogo size={logoSize} className="topbar__marketplace-logo" />
+      <img
+        src="/brands/vc-logo.png"
+        alt=""
+        className="topbar__marketplace-logo topbar__marketplace-logo-img"
+        width={logoSize}
+        height={logoSize}
+        draggable={false}
+      />
       <span ref={copyRef} className="topbar__marketplace-copy">
         {children}
       </span>
