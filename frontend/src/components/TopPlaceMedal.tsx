@@ -108,7 +108,7 @@ function PunkPlaceFrame({ place, uid }: { place: Place; uid: string }) {
       ? ["#fff9b0", "#ffb800"]
       : place === 2
         ? ["#b8ffff", "#00e5ff"]
-        : ["#ff9a5a", "#bc13fe"];
+        : ["#ff9a5a", "#ff2a6d"];
   return (
     <svg className="top-place-medal__frame" viewBox="0 0 32 32" aria-hidden>
       <defs>

@@ -25,15 +25,15 @@ const DARK: ChartPalette = {
 };
 
 const PUNK: ChartPalette = {
-  background: "#080810",
-  text: "#bc13fe",
-  upColor: "#39FF14",
+  background: "#0a0c10",
+  text: "#5a8a96",
+  upColor: "#05ffa1",
   downColor: "#ff2a6d",
-  wickUp: "#39FF14",
+  wickUp: "#05ffa1",
   wickDown: "#ff2a6d",
   stop: "#ff2a6d",
-  target: "#BC13FE",
-  entryWaiting: "#6b7280",
+  target: "#00f0ff",
+  entryWaiting: "#6a8a96",
 };
 
 export function chartPaletteFor(theme: Theme): ChartPalette {

@@ -24,18 +24,18 @@ export const RANK_STYLES: Record<number, RankStyle> = {
   8: { bg: "#222222", color: "#888888", iconId: "zero" },
 };
 
-/** Неоновая палитра рангов для темы МА. */
+/** CP2077-палитра рангов для темы МА. */
 export const PUNK_RANK_STYLES: Record<number, RankStyle> = {
-  10: { bg: "#0a0614", color: "#39ff14", iconId: "pyramid-eye", tier: "apex" },
-  9: { bg: "#0a0614", color: "#bc13fe", iconId: "satoshi", tier: "elite" },
-  1: { bg: "#100818", color: "#39ff14", iconId: "crown", tier: "legend" },
-  2: { bg: "#0e0818", color: "#ff2bd6", iconId: "wolf" },
-  3: { bg: "#0c0818", color: "#bc13fe", iconId: "chart-down" },
-  4: { bg: "#080c12", color: "#39ff14", iconId: "kittyra" },
-  5: { bg: "#080c12", color: "#00f0ff", iconId: "clover" },
-  6: { bg: "#0a1018", color: "#5eb3ff", iconId: "wave" },
-  7: { bg: "#0a1018", color: "#39ff14", iconId: "bolt" },
-  8: { bg: "#141414", color: "#6a6a6a", iconId: "zero" },
+  10: { bg: "#0d1018", color: "#fcee0a", iconId: "pyramid-eye", tier: "apex" },
+  9: { bg: "#0d1018", color: "#00f0ff", iconId: "satoshi", tier: "elite" },
+  1: { bg: "#101418", color: "#fcee0a", iconId: "crown", tier: "legend" },
+  2: { bg: "#0e1218", color: "#ff2a6d", iconId: "wolf" },
+  3: { bg: "#0c1018", color: "#00f0ff", iconId: "chart-down" },
+  4: { bg: "#0a0e14", color: "#05ffa1", iconId: "kittyra" },
+  5: { bg: "#0a0e14", color: "#00f0ff", iconId: "clover" },
+  6: { bg: "#0a1018", color: "#7b5cff", iconId: "wave" },
+  7: { bg: "#0a1018", color: "#05ffa1", iconId: "bolt" },
+  8: { bg: "#141414", color: "#6a8a96", iconId: "zero" },
 };
 
 export function rankStyle(rankId: number): RankStyle {
