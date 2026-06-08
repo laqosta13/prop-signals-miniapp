@@ -501,32 +501,26 @@ export default function App() {
                       <>
                         <span className="topbar__marketplace-row">
                           <span className="topbar__marketplace-word">{copy.feedWordCrypto}</span>
-                          <span className="topbar__marketplace-live" aria-hidden>
-                            <span className="topbar__marketplace-count">{inMarketSignalCount}</span>
-                            <span className="topbar__marketplace-live-label">{copy.feedInMarket}</span>
-                          </span>
                         </span>
                         <span className="topbar__marketplace-row">
                           <span className="topbar__marketplace-word">{copy.feedWordDeals}</span>
-                          <span className="topbar__marketplace-live topbar__marketplace-live--awaiting" aria-hidden>
-                            <span className="topbar__marketplace-count topbar__marketplace-count--awaiting">
-                              {awaitingEntrySignalCount}
-                            </span>
-                            <span className="topbar__marketplace-live-label">{copy.feedAwaiting}</span>
-                          </span>
                         </span>
                       </>
                     ) : (
                       <span className="topbar__marketplace-row">
                         <span className="topbar__marketplace-word">{copy.feedWordDealsSingle}</span>
+                      </span>
+                    )}
+                    {(inMarketSignalCount > 0 || awaitingEntrySignalCount > 0) && (
+                      <span className="topbar__marketplace-stats" aria-hidden>
                         {inMarketSignalCount > 0 && (
-                          <span className="topbar__marketplace-live" aria-hidden>
+                          <span className="topbar__marketplace-live">
                             <span className="topbar__marketplace-count">{inMarketSignalCount}</span>
                             <span className="topbar__marketplace-live-label">{copy.feedInMarket}</span>
                           </span>
                         )}
                         {awaitingEntrySignalCount > 0 && (
-                          <span className="topbar__marketplace-live topbar__marketplace-live--awaiting" aria-hidden>
+                          <span className="topbar__marketplace-live topbar__marketplace-live--awaiting">
                             <span className="topbar__marketplace-count topbar__marketplace-count--awaiting">
                               {awaitingEntrySignalCount}
                             </span>

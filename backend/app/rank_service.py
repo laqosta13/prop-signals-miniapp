@@ -101,6 +101,8 @@ def ensure_rank_fields(trader: Trader) -> None:
 def add_weekly_pct(trader: Trader, delta_pct: float) -> None:
     ensure_rank_fields(trader)
     trader.weekly_pct = round((trader.weekly_pct or 0.0) + delta_pct, 2)
+    if not trader.rank_applied_this_week:
+        trader.is_confirmed = False
 
 
 def _apply_rank_change(trader: Trader, new_rank_id: int) -> None:
@@ -110,7 +112,7 @@ def _apply_rank_change(trader: Trader, new_rank_id: int) -> None:
 def apply_penalty(trader: Trader, steps: int = 1) -> None:
     ensure_rank_fields(trader)
     cur = trader.current_rank_id or DEFAULT_RANK_ID
-    _apply_rank_change(trader, cur + steps)
+    _apply_rank_change(trader, rank_steps_worse(cur, steps))
 
 
 def apply_weekly_rank(trader: Trader, weekly_pct: float) -> int:
@@ -122,7 +124,10 @@ def apply_weekly_rank(trader: Trader, weekly_pct: float) -> int:
 
     if weekly_pct < 0 and not shield_skip:
         penalty = 2 if (trader.consecutive_loss_weeks or 0) >= 1 else 1
-        new_rank = rank_steps_worse(cur, penalty)
+        stepped = rank_steps_worse(cur, penalty)
+        perf_id = get_rank_by_pct(weekly_pct)
+        # Минусовая неделя: −1/−2 ранг, но не выше уровня, чем позволяет % недели.
+        new_rank = perf_id if better_rank(stepped, perf_id) else stepped
     elif weekly_pct < 0 and shield_skip:
         trader.shield_active = False
         new_rank = cur
@@ -162,7 +167,8 @@ def append_week_history(trader: Trader, *, confirmed: bool) -> None:
 
 def reset_week_state(trader: Trader) -> None:
     trader.weekly_pct = 0.0
-    trader.is_confirmed = False
+    # Новая неделя без сделок — подтверждать нечего (избегаем модалки «0%» в понедельник).
+    trader.is_confirmed = True
     trader.rank_applied_this_week = False
     trader.confirm_deadline = next_sunday_deadline()
 
@@ -172,7 +178,12 @@ def confirm_rank(trader: Trader) -> None:
     if trader.rank_applied_this_week:
         trader.is_confirmed = True
         return
-    apply_weekly_rank(trader, trader.weekly_pct or 0.0)
+    weekly = trader.weekly_pct or 0.0
+    if weekly == 0.0:
+        # Пустая неделя — не фиксируем ранг (иначе блокирует пересчёт в понедельник).
+        trader.is_confirmed = True
+        return
+    apply_weekly_rank(trader, weekly)
     trader.is_confirmed = True
 
 
@@ -202,7 +213,9 @@ def process_monday_rollover(db: Session) -> int:
 
         weekly = t.weekly_pct or 0.0
         if not t.is_confirmed:
-            apply_penalty(t, 1)
+            if weekly != 0.0:
+                apply_weekly_rank(t, weekly)
+                apply_penalty(t, 1)
             append_week_history(t, confirmed=False)
         elif not t.rank_applied_this_week:
             apply_weekly_rank(t, weekly)
@@ -244,5 +257,7 @@ def needs_confirm_prompt(trader: Trader) -> bool:
         return False
     deadline = trader.confirm_deadline
     if deadline and _utc_now() > deadline.astimezone(timezone.utc):
+        return False
+    if (trader.weekly_pct or 0.0) == 0.0:
         return False
     return True

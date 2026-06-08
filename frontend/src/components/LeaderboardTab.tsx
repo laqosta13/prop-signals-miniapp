@@ -109,14 +109,22 @@ function TopTraderCard({
                 {trader.rating_percent.toFixed(2)}%
               </p>
               <p className="top-meta">
-                {fired && trader.trader_rank != null ? (
+                {trader.trader_rank != null ? (
                   <>
                     Неделя: {trader.trader_rank.weekly_pct >= 0 ? "+" : ""}
-                    {trader.trader_rank.weekly_pct.toFixed(1)}% · минус. подряд:{" "}
-                    {trader.trader_rank.consecutive_loss_weeks >= 2
-                      ? trader.trader_rank.consecutive_loss_weeks
-                      : trader.trader_rank.consecutive_loss_weeks + (trader.trader_rank.weekly_pct < 0 ? 1 : 0)}{" "}
-                    · W {trader.wins} · L {trader.losses}
+                    {trader.trader_rank.weekly_pct.toFixed(1)}%
+                    {fired ? (
+                      <>
+                        {" "}
+                        · минус. подряд:{" "}
+                        {trader.trader_rank.consecutive_loss_weeks >= 2
+                          ? trader.trader_rank.consecutive_loss_weeks
+                          : trader.trader_rank.consecutive_loss_weeks +
+                            (trader.trader_rank.weekly_pct < 0 ? 1 : 0)}
+                      </>
+                    ) : null}
+                    {" · "}W {trader.wins} · L {trader.losses}
+                    {!fired ? <> · WR {trader.win_rate}%</> : null}
                   </>
                 ) : (
                   <>W {trader.wins} · L {trader.losses} · WR {trader.win_rate}%</>
