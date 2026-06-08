@@ -42,8 +42,14 @@ export function SignalFormSubmitFooter({
           progress={uploadProgress}
           label={uploadProgressLabel(hasVideo, uploadProgress.phase)}
         />
+      ) : submitting ? (
+        <p className="signal-form__busy" role="status" aria-live="polite">
+          <span className="signal-form__busy-spinner" aria-hidden />
+          {saveLabel}
+        </p>
       ) : null}
       <button type="submit" className="submit-btn signal-form__submit" disabled={disabled}>
+        {submitting ? <span className="signal-form__submit-spinner" aria-hidden /> : null}
         {buttonLabel}
       </button>
     </>

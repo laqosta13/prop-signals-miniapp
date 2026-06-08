@@ -6,11 +6,19 @@ import { symbolBase } from "../../utils/coinSymbol";
 type Props = {
   symbol: string;
   onSymbolChange: (value: string) => void;
+  /** Подсказки только после ручного ввода (не при дефолтном BTCUSDT при открытии). */
+  suggestOnInput?: boolean;
   direction: "long" | "short";
   onDirectionChange: (dir: "long" | "short") => void;
 };
 
-export function SignalFormDealSection({ symbol, onSymbolChange, direction, onDirectionChange }: Props) {
+export function SignalFormDealSection({
+  symbol,
+  onSymbolChange,
+  suggestOnInput = false,
+  direction,
+  onDirectionChange,
+}: Props) {
   const listId = useId();
   const wrapRef = useRef<HTMLDivElement>(null);
   const reqRef = useRef(0);
@@ -19,6 +27,13 @@ export function SignalFormDealSection({ symbol, onSymbolChange, direction, onDir
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (!suggestOnInput) {
+      setSuggestions([]);
+      setSuggestOpen(false);
+      setLoading(false);
+      return;
+    }
+
     const q = symbol.trim().toUpperCase();
     if (q.length < 1) {
       setSuggestions([]);
@@ -47,7 +62,7 @@ export function SignalFormDealSection({ symbol, onSymbolChange, direction, onDir
     }, 180);
 
     return () => clearTimeout(t);
-  }, [symbol]);
+  }, [symbol, suggestOnInput]);
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {

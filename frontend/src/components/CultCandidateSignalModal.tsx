@@ -40,6 +40,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
   const [video, setVideo] = useState<File | null>(null);
   const [shotPreview, setShotPreview] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const [symbolEdited, setSymbolEdited] = useState(false);
   const {
     direction,
     entry,
@@ -124,6 +125,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
       setSubmitting(false);
       setUploadProgress(null);
       setSymbol(DEFAULT_SYMBOL);
+      setSymbolEdited(false);
       setLeverage("1");
       setRisk("10");
       setComment("");
@@ -151,13 +153,14 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
 
     setSubmitting(true);
     setError(null);
-    const side = direction === "short" ? "SHORT" : "LONG";
-    const ok = await confirmAction(
-      `Открыть ${symbol.trim().toUpperCase()} ${side} в карточке?\nВход ${risk}% · ${parseLeverage(leverage)}×`,
-    );
-    if (!ok) return;
-
+    let published = false;
     try {
+      const side = direction === "short" ? "SHORT" : "LONG";
+      const ok = await confirmAction(
+        `Открыть ${symbol.trim().toUpperCase()} ${side} в карточке?\nВход ${risk}% · ${parseLeverage(leverage)}×`,
+      );
+      if (!ok) return;
+
       const fd = buildSignalFormData({
         symbol,
         direction,
@@ -174,15 +177,18 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
       const trackUpload = uploadBytes > 0;
       setUploadProgress(trackUpload ? initialUploadProgress(uploadBytes) : null);
       await createCultCandidateSignal(fd, trackUpload ? (p) => setUploadProgress(p) : undefined);
+      published = true;
       WebApp.HapticFeedback.notificationOccurred("success");
       onCreated();
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка");
     } finally {
-      release();
-      setSubmitting(false);
-      setUploadProgress(null);
+      if (!published) {
+        release();
+        setSubmitting(false);
+        setUploadProgress(null);
+      }
     }
   };
 
@@ -193,6 +199,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
       onClose={handleClose}
       onBackdropClick={handleClose}
       onSubmit={submit}
+      busy={submitting}
     >
       <SignalFormLimitsBar
         active
@@ -212,7 +219,11 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
       <SignalFormSection title={copy.signalDeal}>
         <SignalFormDealSection
           symbol={symbol}
-          onSymbolChange={setSymbol}
+          suggestOnInput={symbolEdited}
+          onSymbolChange={(value) => {
+            setSymbolEdited(true);
+            setSymbol(value);
+          }}
           direction={direction}
           onDirectionChange={setDirection}
         />

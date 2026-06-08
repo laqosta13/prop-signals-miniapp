@@ -39,6 +39,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
   const [removeScreenshot, setRemoveScreenshot] = useState(false);
   const [removeVideo, setRemoveVideo] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const [symbolEdited, setSymbolEdited] = useState(false);
   const levelsInitRef = useRef<number | null>(null);
   const {
     direction,
@@ -90,6 +91,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
       return;
     }
     setSymbol(signal.symbol);
+    setSymbolEdited(false);
     setLeverage(String(parseLeverage(String(signal.leverage ?? 1))));
     setRisk(String(signal.risk_percent ?? signal.points_percent ?? 10));
     setComment(signal.comment || "");
@@ -122,6 +124,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
 
     setSubmitting(true);
     setError(null);
+    let saved = false;
     try {
       const fd = buildSignalFormData({
         symbol,
@@ -142,15 +145,18 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
       const trackUpload = uploadBytes > 0;
       setUploadProgress(trackUpload ? initialUploadProgress(uploadBytes) : null);
       await updateSignalWithMedia(signal.id, fd, trackUpload ? (p) => setUploadProgress(p) : undefined);
+      saved = true;
       WebApp.HapticFeedback.notificationOccurred("success");
       onUpdated();
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка");
     } finally {
-      release();
-      setSubmitting(false);
-      setUploadProgress(null);
+      if (!saved) {
+        release();
+        setSubmitting(false);
+        setUploadProgress(null);
+      }
     }
   };
 
@@ -161,6 +167,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
       onClose={handleClose}
       onBackdropClick={handleClose}
       onSubmit={submit}
+      busy={submitting}
     >
       <SignalFormLimitsBar
         active
@@ -180,7 +187,11 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
       <SignalFormSection title="Сделка">
         <SignalFormDealSection
           symbol={symbol}
-          onSymbolChange={setSymbol}
+          suggestOnInput={symbolEdited}
+          onSymbolChange={(value) => {
+            setSymbolEdited(true);
+            setSymbol(value);
+          }}
           direction={direction}
           onDirectionChange={setDirection}
         />

@@ -22,6 +22,7 @@ import {
 import { FeedTab } from "./components/FeedTab";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { ClassicFeedBrand } from "./components/ClassicFeedBrand";
+import { FeedHeaderStats } from "./components/FeedHeaderStats";
 import { VcSplitLogo } from "./components/VcSplitLogo";
 import { mergeFeedSignals } from "./utils/mergeFeedSignals";
 import { sortFeedSignals } from "./utils/sortFeedSignals";
@@ -464,24 +465,12 @@ export default function App() {
                 <span className="topbar__feed-punk-copy">
                   <span className="topbar__feed-punk-brand">{copy.feedKicker}</span>
                   <span className="topbar__feed-punk-headline">{copy.feedHeadline}</span>
-                  {(inMarketSignalCount > 0 || awaitingEntrySignalCount > 0) && (
-                    <span className="topbar__feed-punk-stats" aria-hidden>
-                      {inMarketSignalCount > 0 && (
-                        <span className="topbar__feed-punk-chip topbar__feed-punk-chip--live">
-                          <span className="topbar__feed-punk-chip-dot" />
-                          <span className="topbar__feed-punk-chip-count">{inMarketSignalCount}</span>
-                          <span className="topbar__feed-punk-chip-label">{copy.feedInMarket}</span>
-                        </span>
-                      )}
-                      {awaitingEntrySignalCount > 0 && (
-                        <span className="topbar__feed-punk-chip topbar__feed-punk-chip--queue">
-                          <span className="topbar__feed-punk-chip-dot" />
-                          <span className="topbar__feed-punk-chip-count">{awaitingEntrySignalCount}</span>
-                          <span className="topbar__feed-punk-chip-label">{copy.feedAwaiting}</span>
-                        </span>
-                      )}
-                    </span>
-                  )}
+                  <FeedHeaderStats
+                    inMarketCount={inMarketSignalCount}
+                    awaitingCount={awaitingEntrySignalCount}
+                    inMarketLabel={copy.feedInMarket}
+                    awaitingLabel={copy.feedAwaiting}
+                  />
                 </span>
               </p>
             ) : (
@@ -511,24 +500,12 @@ export default function App() {
                         <span className="topbar__marketplace-word">{copy.feedWordDealsSingle}</span>
                       </span>
                     )}
-                    {(inMarketSignalCount > 0 || awaitingEntrySignalCount > 0) && (
-                      <span className="topbar__marketplace-stats" aria-hidden>
-                        {inMarketSignalCount > 0 && (
-                          <span className="topbar__marketplace-live">
-                            <span className="topbar__marketplace-count">{inMarketSignalCount}</span>
-                            <span className="topbar__marketplace-live-label">{copy.feedInMarket}</span>
-                          </span>
-                        )}
-                        {awaitingEntrySignalCount > 0 && (
-                          <span className="topbar__marketplace-live topbar__marketplace-live--awaiting">
-                            <span className="topbar__marketplace-count topbar__marketplace-count--awaiting">
-                              {awaitingEntrySignalCount}
-                            </span>
-                            <span className="topbar__marketplace-live-label">{copy.feedAwaiting}</span>
-                          </span>
-                        )}
-                      </span>
-                    )}
+                    <FeedHeaderStats
+                      inMarketCount={inMarketSignalCount}
+                      awaitingCount={awaitingEntrySignalCount}
+                      inMarketLabel={copy.feedInMarket}
+                      awaitingLabel={copy.feedAwaiting}
+                    />
                   </span>
                 </ClassicFeedBrand>
               </p>
