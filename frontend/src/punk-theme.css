@@ -174,8 +174,6 @@ html.theme-glitch::after {
 [data-theme="punk"] h2,
 [data-theme="punk"] h3,
 [data-theme="punk"] .topbar h1,
-[data-theme="punk"] .topbar__marketplace-word,
-[data-theme="punk"] .topbar__marketplace-kicker,
 [data-theme="punk"] .feed-block__label,
 [data-theme="punk"] .top-cult-label,
 [data-theme="punk"] .modal__head h2,
@@ -200,20 +198,14 @@ html.theme-glitch::after {
 
 /* ── Feed header (neon) ──────────────────────────────────── */
 
-[data-theme="punk"] .topbar__feed-punk {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  min-width: 0;
+[data-theme="punk"] .topbar__marketplace-brand {
   position: relative;
 }
 
-[data-theme="punk"] .topbar__feed-punk::after {
+[data-theme="punk"] .topbar__marketplace-brand::after {
   content: "";
   position: absolute;
-  left: 46px;
+  left: calc(var(--feed-logo-size, 34px) + 6px + var(--feed-logo-pull));
   right: 0;
   bottom: -2px;
   height: 1px;
@@ -222,44 +214,16 @@ html.theme-glitch::after {
   pointer-events: none;
 }
 
-[data-theme="punk"] .topbar__feed-punk-logo {
-  flex-shrink: 0;
-  margin-left: var(--feed-logo-pull);
-}
-
-[data-theme="punk"] .topbar__feed-punk-copy {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-[data-theme="punk"] .topbar__feed-punk-brand {
+[data-theme="punk"] .topbar__marketplace-kicker {
   font-family: var(--font-display);
-  font-size: 0.64rem;
-  font-weight: 800;
-  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--neon-green);
   text-shadow: var(--neon-glow-green);
-  line-height: 1.1;
 }
 
-[data-theme="punk"] .topbar__feed-punk-headline {
+[data-theme="punk"] .topbar__marketplace-word {
   font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
   text-transform: uppercase;
-  line-height: 1.1;
-  white-space: nowrap;
-  overflow: visible;
-  background: linear-gradient(100deg, #fff 0%, var(--neon-purple) 45%, var(--neon-green) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 8px rgba(188, 19, 254, 0.4));
 }
 
 [data-theme="punk"] .topbar__feed-stats {
@@ -311,11 +275,6 @@ html.theme-glitch::after {
 [data-theme="punk"] .topbar__feed-chip--queue .topbar__feed-chip-label {
   color: var(--neon-purple);
   text-shadow: 0 0 6px rgba(188, 19, 254, 0.45);
-}
-
-[data-theme="punk"] .topbar__marketplace-kicker {
-  color: var(--neon-green);
-  text-shadow: var(--neon-glow-green);
 }
 
 [data-theme="punk"] .vc-split-logo--punk .vc-split-logo__punk {

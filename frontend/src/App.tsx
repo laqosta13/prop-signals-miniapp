@@ -23,7 +23,6 @@ import { FeedTab } from "./components/FeedTab";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { ClassicFeedBrand } from "./components/ClassicFeedBrand";
 import { FeedHeaderStats } from "./components/FeedHeaderStats";
-import { VcSplitLogo } from "./components/VcSplitLogo";
 import { mergeFeedSignals } from "./utils/mergeFeedSignals";
 import { sortFeedSignals } from "./utils/sortFeedSignals";
 import { isSignalAwaitingEntry, isSignalInMarket } from "./utils/signalActions";
@@ -451,19 +450,27 @@ export default function App() {
       <header className={`topbar${tab === "feed" ? " topbar--feed" : ""}`}>
         <div className="topbar__titles">
           {tab === "feed" ? (
-            copy.punk ? (
-              <p
-                className="topbar__feed-punk"
-                aria-label={
-                  feedStatsLabel
-                    ? `${copy.feedKicker}, ${copy.feedHeadline}, ${feedStatsLabel}`
-                    : `${copy.feedKicker}, ${copy.feedHeadline}`
-                }
-              >
-                <VcSplitLogo size={36} className="topbar__feed-punk-logo" />
-                <span className="topbar__feed-punk-copy">
-                  <span className="topbar__feed-punk-brand">{copy.feedKicker}</span>
-                  <span className="topbar__feed-punk-headline">{copy.feedHeadline}</span>
+            <p
+              className="topbar__marketplace"
+              aria-label={
+                feedStatsLabel
+                  ? `${copy.feedKicker}, ${copy.feedHeadline || copy.feedWordDealsSingle}, ${feedStatsLabel}`
+                  : copy.feedHeadline
+                    ? `${copy.feedKicker}, ${copy.feedHeadline}`
+                    : copy.productTagline
+              }
+            >
+              <ClassicFeedBrand>
+                <span className="topbar__marketplace-kicker">{copy.feedKicker}</span>
+                {copy.feedSubKicker ? (
+                  <span className="topbar__marketplace-sub">{copy.feedSubKicker}</span>
+                ) : null}
+                <span className="topbar__marketplace-body">
+                  <span className="topbar__marketplace-row">
+                    <span className="topbar__marketplace-word">
+                      {copy.feedHeadline || copy.feedWordDealsSingle}
+                    </span>
+                  </span>
                   <FeedHeaderStats
                     inMarketCount={inMarketSignalCount}
                     awaitingCount={awaitingEntrySignalCount}
@@ -471,31 +478,8 @@ export default function App() {
                     awaitingLabel={copy.feedAwaiting}
                   />
                 </span>
-              </p>
-            ) : (
-              <p
-                className="topbar__marketplace"
-                aria-label={feedStatsLabel ? `${copy.productTagline}, ${feedStatsLabel}` : copy.productTagline}
-              >
-                <ClassicFeedBrand>
-                  <span className="topbar__marketplace-kicker">{copy.feedKicker}</span>
-                  {copy.feedSubKicker ? (
-                    <span className="topbar__marketplace-sub">{copy.feedSubKicker}</span>
-                  ) : null}
-                  <span className="topbar__marketplace-body">
-                    <span className="topbar__marketplace-row">
-                      <span className="topbar__marketplace-word">{copy.feedWordDealsSingle}</span>
-                    </span>
-                    <FeedHeaderStats
-                      inMarketCount={inMarketSignalCount}
-                      awaitingCount={awaitingEntrySignalCount}
-                      inMarketLabel={copy.feedInMarket}
-                      awaitingLabel={copy.feedAwaiting}
-                    />
-                  </span>
-                </ClassicFeedBrand>
-              </p>
-            )
+              </ClassicFeedBrand>
+            </p>
           ) : (
             <>
               <h1>{head.title}</h1>

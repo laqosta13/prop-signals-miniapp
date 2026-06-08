@@ -1,89 +1,11 @@
 import type { Theme } from "./theme";
 import { isPunkTheme } from "./punkTheme";
 import { authorProfile } from "../utils";
-
-const EPITHETS = [
-  "NEON",
-  "VOID",
-  "SHADOW",
-  "GHOST",
-  "CRIMSON",
-  "FROST",
-  "VENOM",
-  "ZERO",
-  "DARK",
-  "CYBER",
-  "ROGUE",
-  "STATIC",
-  "GLITCH",
-  "COLD",
-  "DEAD",
-  "BLACK",
-  "IRON",
-  "TOXIC",
-  "RUST",
-  "DEEP",
-  "НЕОНОВЫЙ",
-  "ТЕНЕВОЙ",
-  "КРАХОВОЙ",
-  "ПУСТОЙ",
-  "СЕТЕВОЙ",
-  "МРАЧНЫЙ",
-  "ЛЕДЯНОЙ",
-  "ЯДОВИТЫЙ",
-  "БИТЫЙ",
-  "ДИКИЙ",
-  "СКРЫТЫЙ",
-  "КИБЕР",
-  "МЁРТВЫЙ",
-  "БЕЗЛИКИЙ",
-  "ШУМНОЙ",
-] as const;
-
-const NOUNS = [
-  "WOLF",
-  "NODE",
-  "PULSE",
-  "CORE",
-  "DRIFT",
-  "BYTE",
-  "FLUX",
-  "GRID",
-  "REAPER",
-  "BLADE",
-  "SPARK",
-  "CIPHER",
-  "DAEMON",
-  "PHANTOM",
-  "SIGNAL",
-  "VECTOR",
-  "PRISM",
-  "SHARD",
-  "LOOP",
-  "FRAME",
-  "ВОЛК",
-  "ПРИЗРАК",
-  "ПУЛЬС",
-  "УЗЕЛ",
-  "КОД",
-  "СКАН",
-  "ШПИОН",
-  "ДРОН",
-  "КРАКЕН",
-  "КЛИН",
-  "ИСКРА",
-  "ШИФР",
-  "ФАНТОМ",
-  "СИГНАЛ",
-  "ВЕКТОР",
-  "ОСКОЛОК",
-  "ПЕТЛЯ",
-  "КАДР",
-  "СТАЛКЕР",
-  "ПРОТОКОЛ",
-] as const;
-
-const HEX = "0123456789ABCDEF";
+import {
+  CYBERPUNK_2077_NAMES,
+  VOLNOVOI_CYBERPUNK_NAME,
+} from "../data/cyberpunk2077Names";
+import { VOLNOVOI_TELEGRAM_ID } from "./volnovoi";
 
 function fnv1a(seed: string): number {
   let h = 2166136261;
@@ -92,10 +14,6 @@ function fnv1a(seed: string): number {
     h = Math.imul(h, 16777619);
   }
   return h >>> 0;
-}
-
-function pick<T>(arr: readonly T[], hash: number, salt: number): T {
-  return arr[(hash + salt) % arr.length]!;
 }
 
 export function authorIdentitySeed(
@@ -109,38 +27,24 @@ export function authorIdentitySeed(
   return "anon";
 }
 
-/** Стабильный панк-псевдоним — один оператор всегда с одним именем в мире МА. */
+export function initialsFromCodename(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0]![0] + parts[1]![0]).toUpperCase();
+  return name.trim().slice(0, 2).toUpperCase() || "?";
+}
+
+/** Стабильный псевдоним из вселенной CP2077 — один оператор всегда с одним именем в МА. */
 export function punkCodename(seed: string | number): string {
   const key = String(seed);
-  const h0 = fnv1a(key);
-  const h1 = fnv1a(`${key}:1`);
-  const h2 = fnv1a(`${key}:2`);
-  const h3 = fnv1a(`${key}:3`);
-
-  const epithet = pick(EPITHETS, h0, 0);
-  const noun = pick(NOUNS, h1, 7);
-  const num = 10 + (h2 % 90);
-  const tag = `${HEX[(h3 >> 4) % 16]}${HEX[h3 % 16]}${HEX[(h3 >> 8) % 16]}`;
-  const format = h2 % 8;
-
-  switch (format) {
-    case 0:
-      return `${epithet} ${noun}`;
-    case 1:
-      return `${epithet}·${noun}`;
-    case 2:
-      return `${noun}-${num}`;
-    case 3:
-      return `${epithet}-${num}`;
-    case 4:
-      return `NODE-${num}`;
-    case 5:
-      return `${epithet} ${noun} ${num}`;
-    case 6:
-      return `${noun} ${epithet}`;
-    default:
-      return `OP-${tag}`;
+  if (
+    key === String(VOLNOVOI_TELEGRAM_ID) ||
+    key === `tg:${VOLNOVOI_TELEGRAM_ID}`
+  ) {
+    return VOLNOVOI_CYBERPUNK_NAME;
   }
+
+  const h = fnv1a(key);
+  return CYBERPUNK_2077_NAMES[h % CYBERPUNK_2077_NAMES.length]!;
 }
 
 export function resolvePunkCodename(
