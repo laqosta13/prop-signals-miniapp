@@ -4,6 +4,8 @@
 [data-theme="dark"] {
   color-scheme: dark;
   --bottom-nav-h: 118px;
+  --app-side-pad: 16px;
+  --feed-logo-pull: -5px;
 
   --bg: #07080d;
   --bg-mesh-1: rgba(99, 102, 241, 0.18);
