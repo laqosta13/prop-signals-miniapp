@@ -278,10 +278,11 @@ async def _send_photo(chat_id: int, image_path: Path, caption: str) -> bool:
         return await _send_message(chat_id, caption)
 
 
-async def notify_subscribers(text: str, subscriber_ids: list[int], *, photo_rel_path: str | None = None) -> None:
+async def notify_subscribers(text: str, subscriber_ids: list[int], *, photo_rel_path: str | None = None) -> int:
+    """Возвращает число успешно доставленных push."""
     if not subscriber_ids:
         logger.info("Нет подписчиков для уведомления")
-        return
+        return 0
     photo_file: Path | None = None
     if photo_rel_path:
         candidate = media_root() / photo_rel_path
@@ -300,6 +301,7 @@ async def notify_subscribers(text: str, subscriber_ids: list[int], *, photo_rel_
         logger.warning("Уведомления: доставлено %s, ошибок %s (часто: не нажали /start в боте)", ok, fail)
     else:
         logger.info("Уведомления: доставлено %s", ok)
+    return ok
 
 
 def format_new_signal_message(signal: Signal) -> str:

@@ -96,7 +96,7 @@ async def check_active_signals_once() -> tuple[int, bool]:
                         hit.price,
                     )
                     await after_limit_entry_filled(db, signal)
-                    continue
+                    db.refresh(signal)
 
                 if signal.entry_notified_at is None:
                     await notify_entry_filled_if_needed(db, signal)

@@ -3018,49 +3018,65 @@
   color: var(--purple);
 }
 
-.top-place-chip {
+/* ── Топ-3: классические медали (ТЕ) ─────────────────────── */
+
+.top-place-medal {
+  position: relative;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 8px;
-  font-size: 0.74rem;
-  font-weight: 800;
+  width: 30px;
+  height: 30px;
+  line-height: 1;
+}
+
+.top-place-medal__frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+.top-place-medal__digit {
+  position: relative;
+  z-index: 1;
+  font-size: 0.82rem;
+  font-weight: 900;
   font-variant-numeric: tabular-nums;
   line-height: 1;
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
 }
 
-.top-place-chip--1 {
-  background: linear-gradient(155deg, #fff6c8 0%, #ffd84d 38%, #d4a017 72%, #9a7209 100%);
-  border-color: rgba(255, 228, 120, 0.55);
-  box-shadow:
-    0 2px 10px rgba(255, 196, 40, 0.42),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  text-shadow: 0 1px 0 rgba(80, 50, 0, 0.25);
+.top-place-medal--classic.top-place-medal--1 {
+  filter: drop-shadow(0 2px 6px rgba(212, 160, 23, 0.45));
 }
 
-.top-place-chip--2 {
-  background: linear-gradient(155deg, #ffffff 0%, #e2e9f0 36%, #a8b6c6 70%, #5f7386 100%);
-  color: #15202b;
-  border-color: rgba(255, 255, 255, 0.55);
-  box-shadow:
-    0 2px 10px rgba(130, 155, 180, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65);
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+.top-place-medal--classic.top-place-medal--1 .top-place-medal__digit {
+  margin-top: 3px;
+  color: #3d2800;
+  text-shadow: 0 1px 0 rgba(255, 248, 210, 0.9);
 }
 
-.top-place-chip--3 {
-  background: linear-gradient(155deg, #f8d4a8 0%, #e09855 40%, #b87333 72%, #7a4a1f 100%);
-  border-color: rgba(255, 190, 130, 0.45);
-  box-shadow:
-    0 2px 10px rgba(184, 115, 51, 0.38),
-    inset 0 1px 0 rgba(255, 255, 255, 0.28);
-  text-shadow: 0 1px 0 rgba(60, 30, 10, 0.2);
+.top-place-medal--classic.top-place-medal--2 {
+  filter: drop-shadow(0 2px 6px rgba(120, 145, 175, 0.38));
+}
+
+.top-place-medal--classic.top-place-medal--2 .top-place-medal__digit {
+  color: #1a2838;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.top-place-medal--classic.top-place-medal--3 {
+  filter: drop-shadow(0 2px 6px rgba(184, 115, 51, 0.4));
+}
+
+.top-place-medal--classic.top-place-medal--3 .top-place-medal__digit {
+  margin-top: 2px;
+  color: #3a1e08;
+  text-shadow: 0 1px 0 rgba(255, 220, 180, 0.65);
 }
 
 .top-rank--aggregate {

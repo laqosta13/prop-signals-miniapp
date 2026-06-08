@@ -389,8 +389,8 @@ export default function App() {
       const me = await setNotifications({ notify_enabled: !notifyEnabled });
       setNotifyEnabled(me.notify_enabled);
       setNotifyPushActive(me.notify_push_active);
-    } catch {
-      /* */
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Не удалось сохранить уведомления");
     }
   };
 

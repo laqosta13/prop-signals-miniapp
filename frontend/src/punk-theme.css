@@ -423,47 +423,52 @@ html.theme-glitch [data-theme="punk"] .vc-split-logo--punk .vc-split-logo__punk 
   background: linear-gradient(135deg, rgba(188, 19, 254, 0.06), rgba(57, 255, 20, 0.04));
 }
 
-[data-theme="punk"] .top-place-chip {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
+/* ── Топ-3: неоновые гексы (МА) ──────────────────────────── */
+
+[data-theme="punk"] .top-place-medal {
+  width: 32px;
+  height: 32px;
+}
+
+[data-theme="punk"] .top-place-medal__digit {
   font-family: var(--font-display);
-  font-size: 0.7rem;
-  letter-spacing: 0.04em;
-  border-width: 1px;
-  border-style: solid;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
 }
 
-[data-theme="punk"] .top-place-chip--1 {
-  color: #120c00;
-  background: linear-gradient(155deg, #fffce0 0%, #ffe566 42%, #d4a017 78%, #8b6508 100%);
-  border-color: rgba(255, 220, 60, 0.75);
-  box-shadow:
-    0 0 14px rgba(255, 210, 40, 0.65),
-    inset 0 0 10px rgba(255, 255, 180, 0.35);
-  text-shadow: 0 0 8px rgba(255, 230, 100, 0.9);
-  animation: punk-neon-flicker 3.6s ease-in-out infinite;
+[data-theme="punk"] .top-place-medal--punk.top-place-medal--1 {
+  filter: drop-shadow(0 0 8px rgba(255, 200, 40, 0.75));
+  animation: punk-neon-flicker 3.2s ease-in-out infinite;
 }
 
-[data-theme="punk"] .top-place-chip--2 {
-  color: #0a1218;
-  background: linear-gradient(155deg, #f4fbff 0%, #c8d8e8 42%, #7a92a8 78%, #3d5162 100%);
-  border-color: rgba(160, 210, 255, 0.6);
-  box-shadow:
-    0 0 12px rgba(120, 190, 255, 0.5),
-    inset 0 0 8px rgba(220, 240, 255, 0.3);
-  text-shadow: 0 0 6px rgba(180, 220, 255, 0.75);
+[data-theme="punk"] .top-place-medal--punk.top-place-medal--1 .top-place-medal__digit {
+  color: #fff6b0;
+  text-shadow:
+    0 0 8px rgba(255, 220, 60, 1),
+    0 0 14px rgba(255, 180, 0, 0.65);
 }
 
-[data-theme="punk"] .top-place-chip--3 {
-  color: #160a04;
-  background: linear-gradient(155deg, #ffd9a8 0%, #e09048 42%, #b05e28 76%, #6b3818 100%);
-  border-color: rgba(255, 150, 70, 0.55);
-  box-shadow:
-    0 0 12px rgba(220, 120, 50, 0.48),
-    0 0 4px rgba(188, 19, 254, 0.22),
-    inset 0 0 6px rgba(255, 200, 140, 0.25);
-  text-shadow: 0 0 6px rgba(255, 160, 80, 0.65);
+[data-theme="punk"] .top-place-medal--punk.top-place-medal--2 {
+  filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.55));
+}
+
+[data-theme="punk"] .top-place-medal--punk.top-place-medal--2 .top-place-medal__digit {
+  color: #d8ffff;
+  text-shadow:
+    0 0 8px rgba(0, 229, 255, 0.9),
+    0 0 12px rgba(120, 220, 255, 0.55);
+}
+
+[data-theme="punk"] .top-place-medal--punk.top-place-medal--3 {
+  filter: drop-shadow(0 0 8px rgba(188, 19, 254, 0.5));
+}
+
+[data-theme="punk"] .top-place-medal--punk.top-place-medal--3 .top-place-medal__digit {
+  color: #ffd0a8;
+  text-shadow:
+    0 0 8px rgba(255, 120, 60, 0.85),
+    0 0 10px rgba(188, 19, 254, 0.55);
 }
 
 /* ── Buttons ─────────────────────────────────────────────── */

@@ -246,8 +246,15 @@ async def close_signal_and_notify(
     if getattr(signal, "is_cult_candidate", False):
         return
     ids = subscriber_ids_for_notify(db)
-    if ids:
-        await notify_subscribers(format_closed_signal_message(signal, market_close=market_close), ids)
+    num = signal.number if signal.number is not None else signal.id
+    if not ids:
+        logger.warning("Close push #%s: нет получателей (notify_enabled + подписка)", num)
+        return
+    delivered = await notify_subscribers(format_closed_signal_message(signal, market_close=market_close), ids)
+    if delivered == 0:
+        logger.warning("Close push #%s: ни одному из %s подписчиков не доставлено", num, len(ids))
+    else:
+        logger.info("Close push #%s → %s/%s подписчиков", num, delivered, len(ids))
 
 
 async def close_signal_at_market(db: Session, signal: Signal, *, notify: bool = True) -> None:
@@ -302,22 +309,23 @@ async def notify_entry_filled_if_needed(db: Session, signal: Signal) -> bool:
     """Push «В РЫНКЕ» один раз после срабатывания лимитки."""
     if signal.entry_filled_at is None or signal.entry_notified_at is not None:
         return False
+    num = signal.number if signal.number is not None else signal.id
     ids = subscriber_ids_for_notify(db)
-    if ids:
-        await notify_subscribers(format_entry_filled_message(signal), ids)
-        logger.info(
-            "Entry push #%s → %s subscribers",
-            signal.number if signal.number is not None else signal.id,
+    if not ids:
+        logger.warning("Entry push #%s: нет получателей (notify_enabled + подписка)", num)
+        return False
+    delivered = await notify_subscribers(format_entry_filled_message(signal), ids)
+    if delivered == 0:
+        logger.warning(
+            "Entry push #%s: ни одному из %s подписчиков не доставлено — повторим в мониторе",
+            num,
             len(ids),
         )
-    else:
-        logger.info(
-            "Entry push #%s: no subscribers (notify_enabled + subscription)",
-            signal.number if signal.number is not None else signal.id,
-        )
+        return False
     signal.entry_notified_at = datetime.now(timezone.utc)
     db.commit()
-    return bool(ids)
+    logger.info("Entry push #%s → %s/%s подписчиков", num, delivered, len(ids))
+    return True
 
 
 async def after_limit_entry_filled(db: Session, signal: Signal, *, notify: bool = True) -> None:
