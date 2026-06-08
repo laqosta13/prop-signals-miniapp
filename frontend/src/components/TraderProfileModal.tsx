@@ -11,6 +11,7 @@ import { resolveRankStyle } from "../utils/ranks";
 import { Avatar } from "./Avatar";
 import { RankBadge } from "./RankBadge";
 import { VolnovoiMarketingBadge } from "./VolnovoiMarketingBadge";
+import { VolnovoiStylePanel } from "./VolnovoiStylePanel";
 
 type Props = {
   trader: Trader;
@@ -91,6 +92,10 @@ export function TraderProfileModal({ trader, isMe, isAdmin, onClose }: Props) {
 
         {aggregate && (
           <VolnovoiMarketingBadge trader={trader} className="volnovoi-marketing--profile" />
+        )}
+
+        {!aggregate && trader.volnovoi_style && (
+          <VolnovoiStylePanel style={trader.volnovoi_style} />
         )}
 
         {aggregate && (

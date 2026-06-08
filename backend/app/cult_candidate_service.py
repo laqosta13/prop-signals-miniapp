@@ -354,6 +354,8 @@ def _candidate_read(
     trader = db.get(Trader, row.telegram_user_id)
     total = (row.wins or 0) + (row.losses or 0)
     wr = round((row.wins or 0) / total * 100, 1) if total else 0.0
+    from app.trading_style import build_volnovoi_style
+
     return CultCandidateRead(
         telegram_user_id=row.telegram_user_id,
         display_name=row.display_name,
@@ -369,6 +371,7 @@ def _candidate_read(
         active_signals=active.get(row.telegram_user_id, []),
         closed_signals=closed.get(row.telegram_user_id, []),
         trader_rank=trader_rank_read(trader, include_history=False) if trader else None,
+        volnovoi_style=build_volnovoi_style(db, row.telegram_user_id, cult_candidate=True),
         is_me=is_me,
     )
 

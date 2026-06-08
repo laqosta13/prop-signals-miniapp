@@ -22,6 +22,7 @@ import { TraderProfileModal } from "./TraderProfileModal";
 import { TraderRosterActions, type TraderRosterPlacement } from "./TraderRosterActions";
 import { VolnovoiCopyPanel } from "./VolnovoiCopyPanel";
 import { VolnovoiMarketingBadge } from "./VolnovoiMarketingBadge";
+import { VolnovoiStylePanel } from "./VolnovoiStylePanel";
 import { useAuthorProfile } from "../hooks/useAuthorProfile";
 import { useThemedCopy } from "../hooks/useThemedCopy";
 import { isVolnovoiTrader } from "../utils/volnovoi";
@@ -133,6 +134,10 @@ function TopTraderCard({
             </div>
           </div>
         </button>
+
+        {!aggregate && trader.volnovoi_style && (
+          <VolnovoiStylePanel style={trader.volnovoi_style} />
+        )}
 
         {trader.daily_stats.length > 0 && <EquityCurve dailyStats={trader.daily_stats} />}
 

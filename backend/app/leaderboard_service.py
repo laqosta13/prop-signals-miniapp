@@ -113,7 +113,7 @@ def _traders_leaderboard_rows(db: Session, ids: list[int]) -> list[TraderRead]:
         ensure_rank_fields(t)
         total = (t.wins or 0) + (t.losses or 0)
         wr = round((t.wins or 0) / total * 100, 1) if total else 0.0
-        result.append(trader_to_read(t, rank, wr, daily.get(t.telegram_id, [])))
+        result.append(trader_to_read(t, rank, wr, daily.get(t.telegram_id, []), db=db))
     return result
 
 

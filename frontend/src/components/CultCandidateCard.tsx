@@ -8,6 +8,7 @@ import { EquityCurve } from "./EquityCurve";
 import { RankBadge } from "./RankBadge";
 import { TopPlaceMedal } from "./TopPlaceMedal";
 import { TraderRosterActions } from "./TraderRosterActions";
+import { VolnovoiStylePanel } from "./VolnovoiStylePanel";
 
 type Props = {
   candidate: CultCandidate;
@@ -110,6 +111,10 @@ export function CultCandidateCard({
           >
             {headContent}
           </button>
+        )}
+
+        {candidate.volnovoi_style && (
+          <VolnovoiStylePanel style={candidate.volnovoi_style} stopPropagation />
         )}
 
         {expanded && candidate.active_signals.length > 0 && (

@@ -175,6 +175,17 @@ class TraderRankRead(BaseModel):
     rank_history: list[RankHistoryEntryRead] = []
 
 
+class VolnovoiStyleRead(BaseModel):
+    ready: bool = False
+    sample_size: int = 0
+    archetype: str = "forming"
+    title: str = "Стиль качается"
+    tags: list[str] = []
+    headline: str = "Стиль качается"
+    description: str = ""
+    stats_line: str = ""
+
+
 class TraderRead(BaseModel):
     telegram_id: int
     username: str | None
@@ -188,6 +199,7 @@ class TraderRead(BaseModel):
     avatar_url: str | None = None
     daily_stats: list[TraderDayStat] = []
     trader_rank: TraderRankRead | None = None
+    volnovoi_style: VolnovoiStyleRead | None = None
     is_aggregate: bool = False
 
     model_config = {"from_attributes": True}
@@ -255,6 +267,7 @@ class CultCandidateRead(BaseModel):
     active_signals: list[CultCandidateActiveSignalRead] = []
     closed_signals: list[CultCandidateClosedSignalRead] = []
     trader_rank: TraderRankRead | None = None
+    volnovoi_style: VolnovoiStyleRead | None = None
     is_me: bool = False
 
 

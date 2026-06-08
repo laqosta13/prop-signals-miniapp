@@ -127,6 +127,17 @@ export type RankHistoryEntry = {
   confirmed: boolean;
 };
 
+export type VolnovoiStyle = {
+  ready: boolean;
+  sample_size: number;
+  archetype: string;
+  title: string;
+  tags: string[];
+  headline: string;
+  description: string;
+  stats_line: string;
+};
+
 export type TraderRank = {
   current_rank_id: number;
   current_rank_name: string;
@@ -154,6 +165,7 @@ export type Trader = {
   avatar_url: string | null;
   daily_stats: TraderDayStat[];
   trader_rank: TraderRank | null;
+  volnovoi_style?: VolnovoiStyle | null;
   is_aggregate?: boolean;
 };
 
@@ -229,6 +241,7 @@ export type CultCandidate = {
   active_signals: CultCandidateActiveSignal[];
   closed_signals: CultCandidateClosedSignal[];
   trader_rank: TraderRank | null;
+  volnovoi_style?: VolnovoiStyle | null;
   is_me: boolean;
 };
 

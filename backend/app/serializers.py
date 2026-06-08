@@ -123,8 +123,18 @@ def trader_rank_read(t: Trader, *, include_history: bool = False) -> TraderRankR
 
 
 def trader_to_read(
-    t: Trader, rank: int, win_rate: float, daily_stats: list[TraderDayStat] | None = None
+    t: Trader,
+    rank: int,
+    win_rate: float,
+    daily_stats: list[TraderDayStat] | None = None,
+    *,
+    db: Session | None = None,
 ) -> TraderRead:
+    style = None
+    if db is not None:
+        from app.trading_style import build_volnovoi_style
+
+        style = build_volnovoi_style(db, t.telegram_id, cult_candidate=False)
     return TraderRead(
         telegram_id=t.telegram_id,
         username=t.username,
@@ -138,6 +148,7 @@ def trader_to_read(
         avatar_url=trader_avatar_url(t),
         daily_stats=daily_stats or [],
         trader_rank=trader_rank_read(t),
+        volnovoi_style=style,
         is_aggregate=False,
     )
 
