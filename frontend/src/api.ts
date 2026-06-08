@@ -199,6 +199,7 @@ export type CultCandidateFormSnapshot = {
   daily_stop_remaining_rank_pct: number;
   stake_pool_used_pct: number;
   stake_pool_remaining_pct: number;
+  rank_entry_locked?: boolean;
   max_stake_pct: number;
 };
 
@@ -296,6 +297,7 @@ export type ChallengeDashboard = {
   rank_max_leverage: number;
   stake_pool_used_pct: number;
   stake_pool_remaining_pct: number;
+  rank_entry_locked?: boolean;
   max_stake_pct: number;
 };
 

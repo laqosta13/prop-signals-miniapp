@@ -124,7 +124,6 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
 
     setSubmitting(true);
     setError(null);
-    let saved = false;
     try {
       const fd = buildSignalFormData({
         symbol,
@@ -145,18 +144,15 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
       const trackUpload = uploadBytes > 0;
       setUploadProgress(trackUpload ? initialUploadProgress(uploadBytes) : null);
       await updateSignalWithMedia(signal.id, fd, trackUpload ? (p) => setUploadProgress(p) : undefined);
-      saved = true;
       WebApp.HapticFeedback.notificationOccurred("success");
-      onUpdated();
       onClose();
+      void onUpdated();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка");
     } finally {
-      if (!saved) {
-        release();
-        setSubmitting(false);
-        setUploadProgress(null);
-      }
+      release();
+      setSubmitting(false);
+      setUploadProgress(null);
     }
   };
 
@@ -181,6 +177,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
         dailyBlocked={tracker.dailyLimit.blocked}
         dailyBlockReason={tracker.dailyLimit.reason}
         stakePoolBlocked={tracker.stakePoolBlocked}
+        rankMaxStakePct={tracker.rankMaxStakePct}
         maxStakePct={tracker.maxStakePct}
       />
 

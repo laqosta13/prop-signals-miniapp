@@ -17,6 +17,7 @@ export type TrackerSnapshot = {
   dailyStopRemainingRankPct: number;
   stakePoolUsedPct: number;
   stakePoolRemainingPct: number;
+  rankEntryLocked: boolean;
   maxStakePct: number;
 };
 
@@ -51,6 +52,7 @@ export function useAdminTrackerSnapshot(enabled: boolean, excludeSignalId?: numb
             dailyStopRemainingRankPct: d.daily_stop_remaining_rank_pct ?? 2,
             stakePoolUsedPct: d.stake_pool_used_pct,
             stakePoolRemainingPct: d.stake_pool_remaining_pct,
+            rankEntryLocked: d.rank_entry_locked ?? false,
             maxStakePct: d.max_stake_pct,
           });
         }

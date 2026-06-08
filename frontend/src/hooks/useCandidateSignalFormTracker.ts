@@ -55,7 +55,11 @@ export function useCandidateSignalFormTracker(
 
   const maxStakePct = trackerSnap?.max_stake_pct ?? 100;
   const rankMaxLeverage = trackerSnap?.rank_max_leverage ?? 1;
-  const stakePoolBlocked = enabled && !trackerLoading && maxStakePct <= 0;
+  const rankEntryLocked = trackerSnap?.rank_entry_locked ?? false;
+  const rankEntryBlocksNew =
+    rankEntryLocked && excludeSignalId == null;
+  const stakePoolBlocked =
+    enabled && !trackerLoading && (rankEntryBlocksNew || maxStakePct <= 0);
   const stakePct = parseRiskPercent(stake.risk);
   const lev = Math.min(parseLeverage(leverageSync.leverage), rankMaxLeverage);
 
@@ -114,6 +118,8 @@ export function useCandidateSignalFormTracker(
     maxStakePct,
     rankMaxLeverage,
     stakePoolBlocked,
+    rankEntryLocked,
+    rankEntryBlocksNew,
     stakePct,
     lev,
     rankNominal,

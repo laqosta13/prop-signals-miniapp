@@ -207,7 +207,12 @@ def build_dashboard(
     from app.signal_stake_pool import stake_pool_snapshot
 
     ensure_rank_fields(trader)
-    pool = stake_pool_snapshot(db, trader, exclude_signal_id=exclude_signal_id)
+    pool = stake_pool_snapshot(
+        db,
+        trader,
+        author_telegram_id=owner_id,
+        exclude_signal_id=exclude_signal_id,
+    )
     rank_cap = float(pool["rank_max_stake_pct"])
     stop_state = admin_daily_stop_form_state(
         db,
@@ -253,6 +258,7 @@ def build_dashboard(
         rank_max_leverage=int(pool["rank_max_leverage"]),
         stake_pool_used_pct=float(pool["stake_pool_used_pct"]),
         stake_pool_remaining_pct=float(pool["stake_pool_remaining_pct"]),
+        rank_entry_locked=bool(pool.get("rank_entry_locked")),
         max_stake_pct=float(pool["max_stake_pct"]),
     )
 

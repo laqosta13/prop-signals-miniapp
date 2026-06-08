@@ -19,6 +19,8 @@ type Props = {
   dailyBlocked?: boolean;
   dailyBlockReason?: "stop" | "trades" | null;
   stakePoolBlocked?: boolean;
+  rankEntryLocked?: boolean;
+  rankMaxStakePct?: number;
   maxStakePct?: number;
 };
 
@@ -34,6 +36,8 @@ export function SignalFormLimitsBar({
   dailyBlocked = false,
   dailyBlockReason = null,
   stakePoolBlocked = false,
+  rankEntryLocked = false,
+  rankMaxStakePct = 0,
   maxStakePct = 0,
 }: Props) {
   const copy = useThemedCopy();
@@ -97,7 +101,10 @@ export function SignalFormLimitsBar({
       ) : null}
       {stakePoolBlocked ? (
         <p className="signal-form__alert signal-form__alert--err" role="alert">
-          {stakePoolBlockedMessage(maxStakePct, poolFree)}
+          {stakePoolBlockedMessage(maxStakePct, poolFree, {
+            rankEntryLocked,
+            rankMaxStakePct,
+          })}
         </p>
       ) : null}
     </aside>

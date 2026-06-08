@@ -17,7 +17,15 @@ export function stakeSliderMarks(maxPct: number): number[] {
   return evenSliderMarks(Math.max(0, Math.min(100, maxPct)), 0, 4);
 }
 
-export function stakePoolBlockedMessage(maxStakePct: number, poolRemainingPct: number): string {
+export function stakePoolBlockedMessage(
+  maxStakePct: number,
+  poolRemainingPct: number,
+  opts?: { rankEntryLocked?: boolean; rankMaxStakePct?: number },
+): string {
+  if (opts?.rankEntryLocked) {
+    const cap = opts.rankMaxStakePct ?? 0;
+    return `Активная сделка на полном лимите входа (${formatPoolChipPct(cap)}) по рангу — дождитесь закрытия`;
+  }
   if (maxStakePct <= 0) {
     if (poolRemainingPct <= 0) return "Пул входа занят (100%)";
     return "Вход недоступен — лимит ранга или пул";

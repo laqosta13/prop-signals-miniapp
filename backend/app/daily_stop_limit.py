@@ -311,7 +311,12 @@ def validate_signal_daily_stop(
     from app.signal_stake_pool import stake_pool_snapshot
 
     trader = get_or_create_trader(db, admin_id, None)
-    snap = stake_pool_snapshot(db, trader)
+    snap = stake_pool_snapshot(
+        db,
+        trader,
+        author_telegram_id=admin_id,
+        exclude_signal_id=exclude_signal_id,
+    )
     rank_cap = float(snap["rank_max_stake_pct"])
 
     ch, _ = _admin_tracker_stats(db, admin_id)

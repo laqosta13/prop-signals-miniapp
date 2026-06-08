@@ -33,6 +33,44 @@ def _signal_stake_expr():
     )
 
 
+def signal_stake_pct(signal: Signal) -> float:
+    if signal.risk_percent is not None:
+        return float(signal.risk_percent)
+    return DEFAULT_ENTRY_STAKE_PCT
+
+
+def rank_entry_locked_message(rank_cap: float) -> str:
+    return (
+        f"Активная сделка уже на полном лимите входа ({rank_cap:g}%) по рангу — "
+        "дождитесь закрытия"
+    )
+
+
+def author_has_full_rank_entry_locked(
+    db: Session,
+    author_id: int,
+    rank_cap: float,
+    *,
+    cult: bool,
+    exclude_signal_id: int | None = None,
+) -> bool:
+    """Есть активный сигнал с суммой входа = лимиту ранга — второй публиковать нельзя."""
+    if rank_cap <= 0:
+        return False
+    q = select(Signal).where(
+        Signal.status == "active",
+        Signal.author_telegram_id == author_id,
+        Signal.is_cult_candidate.is_(cult),
+    )
+    if exclude_signal_id is not None:
+        q = q.where(Signal.id != exclude_signal_id)
+    epsilon = 0.001
+    for sig in db.scalars(q):
+        if signal_stake_pct(sig) >= rank_cap - epsilon:
+            return True
+    return False
+
+
 def active_admin_stake_used(db: Session, *, exclude_signal_id: int | None = None) -> float:
     """Сумма входа % по активным сигналам всех админов культа."""
     admin_ids = tuple(settings.all_admin_id_set)
@@ -68,14 +106,26 @@ def stake_pool_snapshot(
     db: Session,
     trader: Trader,
     *,
+    author_telegram_id: int | None = None,
     exclude_signal_id: int | None = None,
-) -> dict[str, float | int | str]:
+) -> dict[str, float | int | str | bool]:
     ensure_rank_fields(trader)
+    author_id = author_telegram_id if author_telegram_id is not None else trader.telegram_id
     rank_id = trader.current_rank_id or DEFAULT_RANK_ID
     used = active_admin_stake_used(db, exclude_signal_id=exclude_signal_id)
     remaining = round(max(0.0, STAKE_POOL_TOTAL_PCT - used), 2)
     rank_cap = rank_max_stake_pct(rank_id)
     from app.rank_constants import rank_name
+
+    rank_locked = author_has_full_rank_entry_locked(
+        db,
+        author_id,
+        rank_cap,
+        cult=False,
+        exclude_signal_id=exclude_signal_id,
+    )
+    block_new = rank_locked and exclude_signal_id is None
+    max_stake = 0.0 if block_new else round(min(rank_cap, remaining), 2)
 
     return {
         "current_rank_id": rank_id,
@@ -84,7 +134,8 @@ def stake_pool_snapshot(
         "rank_max_leverage": rank_max_leverage(rank_id),
         "stake_pool_used_pct": used,
         "stake_pool_remaining_pct": remaining,
-        "max_stake_pct": round(min(rank_cap, remaining), 2),
+        "rank_entry_locked": rank_locked,
+        "max_stake_pct": max_stake,
     }
 
 
@@ -106,10 +157,21 @@ def validate_signal_stake_pool(
         )
 
     trader = get_or_create_trader(db, author_telegram_id, None)
-    snap = stake_pool_snapshot(db, trader, exclude_signal_id=exclude_signal_id)
+    snap = stake_pool_snapshot(
+        db,
+        trader,
+        author_telegram_id=author_telegram_id,
+        exclude_signal_id=exclude_signal_id,
+    )
     rank_cap = float(snap["rank_max_stake_pct"])
     pool_left = float(snap["stake_pool_remaining_pct"])
     max_allowed = float(snap["max_stake_pct"])
+
+    if snap.get("rank_entry_locked") and exclude_signal_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=rank_entry_locked_message(rank_cap),
+        )
 
     if stake_pct > rank_cap + 0.001:
         raise HTTPException(

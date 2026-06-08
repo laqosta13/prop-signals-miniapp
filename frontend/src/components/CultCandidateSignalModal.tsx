@@ -153,7 +153,6 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
 
     setSubmitting(true);
     setError(null);
-    let published = false;
     try {
       const side = direction === "short" ? "SHORT" : "LONG";
       const ok = await confirmAction(
@@ -177,18 +176,15 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
       const trackUpload = uploadBytes > 0;
       setUploadProgress(trackUpload ? initialUploadProgress(uploadBytes) : null);
       await createCultCandidateSignal(fd, trackUpload ? (p) => setUploadProgress(p) : undefined);
-      published = true;
       WebApp.HapticFeedback.notificationOccurred("success");
-      onCreated();
       onClose();
+      void onCreated();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка");
     } finally {
-      if (!published) {
-        release();
-        setSubmitting(false);
-        setUploadProgress(null);
-      }
+      release();
+      setSubmitting(false);
+      setUploadProgress(null);
     }
   };
 
@@ -213,6 +209,8 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
         dailyBlocked={tracker.dailyLimit.blocked}
         dailyBlockReason={tracker.dailyLimit.reason}
         stakePoolBlocked={tracker.stakePoolBlocked}
+        rankEntryLocked={tracker.rankEntryBlocksNew}
+        rankMaxStakePct={tracker.rankMaxStakePct}
         maxStakePct={tracker.maxStakePct}
       />
 
