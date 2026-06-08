@@ -30,9 +30,10 @@ export function getStoredTheme(): Theme {
   return "dark";
 }
 
-/** Краткий глич-всплеск (смена темы, вкладки в панк-режиме). */
+/** Краткий глич-всплеск (смена темы, вкладки — только в панк-режиме). */
 export function triggerGlitch(): void {
   const root = document.documentElement;
+  if (root.getAttribute("data-theme") !== "punk") return;
   root.classList.remove("theme-glitch");
   void root.offsetWidth;
   root.classList.add("theme-glitch");
@@ -48,7 +49,7 @@ export function applyTheme(theme: Theme, options?: { glitch?: boolean }): void {
   } catch {
     /* ignore */
   }
-  if (options?.glitch !== false && prev && prev !== theme) {
+  if (options?.glitch !== false && prev && prev !== theme && theme === "punk") {
     triggerGlitch();
   }
   emitThemeChange();
