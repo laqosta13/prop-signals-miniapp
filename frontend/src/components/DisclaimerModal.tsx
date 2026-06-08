@@ -15,7 +15,7 @@ export function DisclaimerModal({ variant = "accept", onAccept, onClose }: Props
       role="dialog"
       aria-modal="true"
       aria-labelledby="disclaimer-title"
-      onClick={isInfo ? () => onClose() : undefined}
+      onClick={isInfo && onClose ? () => onClose() : undefined}
     >
       <div
         className="disclaimer-sheet"

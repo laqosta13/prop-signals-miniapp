@@ -47,7 +47,7 @@ def subscription_active(sub: Subscriber | None, is_admin: bool) -> bool:
         return True
     if is_test_mode_active():
         return True
-    if not settings.bot_token:
+    if settings.dev_auth_enabled and not settings.bot_token:
         return True
     return _subscription_until_active(sub)
 

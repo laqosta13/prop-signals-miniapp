@@ -19,7 +19,6 @@ import {
   REVIEW_RULES,
   REVIEW_RULES_TITLE,
   SUBSCRIPTION_INTRO,
-  SUBSCRIPTION_TRIAL_USED_MSG,
   TAB_SUBTITLES,
   TOP_CANDIDATES_EMPTY,
   TOP_EMPTY,
@@ -169,7 +168,7 @@ export type ThemedCopy = {
   cardDelete: string;
   cardCloseMarket: string;
   cardTrade: string;
-  formatTrackerStageLev: (stage: number, leverage: number) => string;
+  formatTrackerStageLev: (stage: number, leverage: string | number) => string;
   formatTrackerTradesTab: (count: number) => string;
   formatFeedShowMoreClosed: (count: number) => string;
   formatTestModeBanner: (until: string | null, daysLeft: number) => string;

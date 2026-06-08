@@ -1,10 +1,7 @@
 import {
   ACCOUNT_STOP_MIN_STEP,
-  dailyStopRemainingRankPct,
-  dailyStopRemainingUsd,
   maxPriceStopPctForStopSlider,
   maxPriceStopPctFromRankDailyBudget,
-  rankNominalForDailyStopLimit,
   rankNominalUsd,
   SIGNAL_DAILY_STOP_LIMIT_PCT,
 } from "./dailyStopLimit";
@@ -23,10 +20,6 @@ export type RankDailyStopContext = {
   leverage: number;
   dailyRemainingRankPct?: number;
 };
-
-function rankNominal(ctx: RankDailyStopContext): number {
-  return rankNominalForDailyStopLimit(ctx.balanceUsd, ctx.rankMaxStakePct);
-}
 
 /** Макс. % цены до стопа — тот же потолок, что у бегунка (с учётом плеча). */
 export function maxPriceStopPctForForm(ctx: RankDailyStopContext): number {
@@ -60,19 +53,6 @@ export function defaultPriceStopPctForForm(ctx: RankDailyStopContext): number {
 
 export function formatDefaultPriceRiskForForm(ctx: RankDailyStopContext): string {
   return formatRiskPct(defaultPriceStopPctForForm(ctx));
-}
-
-export function formatPriceRiskForForm(ctx: RankDailyStopContext): string {
-  if (ctx.balanceUsd <= 0) return formatRiskPct(DEFAULT_PRICE_STOP_FROM_ENTRY_PCT);
-  return formatRiskPct(maxPriceStopPctForForm(ctx));
-}
-
-export function dailyStopRemainingForForm(ctx: RankDailyStopContext): number {
-  return dailyStopRemainingRankPct(ctx.dailyLossUsd, rankNominal(ctx));
-}
-
-export function dailyStopBudgetRemainingUsd(ctx: RankDailyStopContext): number {
-  return dailyStopRemainingUsd(ctx.dailyLossUsd, rankNominal(ctx));
 }
 
 /** Доля входа по умолчанию: макс. по рангу и свободному пулу (сумма %, не баланс трекера). */

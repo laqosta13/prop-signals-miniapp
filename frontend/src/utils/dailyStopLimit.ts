@@ -156,11 +156,11 @@ export function priceStopSliderMarksFromDailyRemaining(
 export function priceStopSliderMarks(maxPricePct: number): number[] {
   const max = roundStopPct(Math.max(0, maxPricePct));
   if (max < ACCOUNT_STOP_MIN_STEP) return [];
-  const preset = PRICE_STOP_MARK_PRESETS.filter((m) => m <= max + 0.001);
+  const preset: number[] = PRICE_STOP_MARK_PRESETS.filter((m) => m <= max + 0.001);
   if (preset.length >= 2) {
     const last = preset[preset.length - 1];
     if (last < max - 0.009) preset.push(max);
-    return [...preset];
+    return preset;
   }
   if (max <= 0.15) return [max];
   const parts = [0.25, 0.5, 0.75, 1].map((f) => roundStopPct(max * f));

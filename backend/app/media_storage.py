@@ -12,6 +12,37 @@ VIDEO_TYPES = {"video/mp4", "video/webm", "video/quicktime"}
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 VIDEO_EXT = {".mp4", ".webm", ".mov"}
 
+_IMAGE_MAGIC: dict[str, tuple[bytes, ...]] = {
+    ".jpg": (b"\xff\xd8\xff",),
+    ".jpeg": (b"\xff\xd8\xff",),
+    ".png": (b"\x89PNG\r\n\x1a\n",),
+    ".gif": (b"GIF87a", b"GIF89a"),
+    ".webp": (b"RIFF",),
+}
+_VIDEO_MAGIC: dict[str, tuple[bytes, ...]] = {
+    ".mp4": (b"ftyp",),
+    ".mov": (b"ftyp",),
+    ".webm": (b"\x1a\x45\xdf\xa3",),
+}
+
+
+def _matches_magic(data: bytes, ext: str, magic_map: dict[str, tuple[bytes, ...]]) -> bool:
+    patterns = magic_map.get(ext)
+    if not patterns:
+        return False
+    for pat in patterns:
+        if ext == ".webp":
+            if len(data) >= 12 and data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+                return True
+            continue
+        if ext in {".mp4", ".mov"}:
+            if len(data) >= 12 and data[4:8] == pat:
+                return True
+            continue
+        if data.startswith(pat):
+            return True
+    return False
+
 
 def media_root() -> Path:
     root = Path(settings.media_root)
@@ -99,6 +130,14 @@ async def _save_upload(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Недопустимый тип: {content_type}")
 
     data = await file.read()
+    magic_map = _IMAGE_MAGIC if allowed_ext <= IMAGE_EXT else _VIDEO_MAGIC
+    if content_type == "application/octet-stream" or not content_type:
+        if not _matches_magic(data, ext, magic_map):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Содержимое файла не совпадает с расширением")
+    elif allowed_ext <= IMAGE_EXT and not _matches_magic(data, ext, _IMAGE_MAGIC):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Недопустимое изображение")
+    elif allowed_ext <= VIDEO_EXT and not _matches_magic(data, ext, _VIDEO_MAGIC):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Недопустимое видео")
     if len(data) > max_bytes:
         limit_mb = max(1, max_bytes // (1024 * 1024))
         raise HTTPException(

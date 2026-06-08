@@ -67,7 +67,8 @@ export const PUNK_TRACKER_LIMIT = "Потолок";
 export const PUNK_TRACKER_REMAINING = "Остаток из общего пула";
 export const PUNK_TRACKER_ADD = "Подключить трекер Hash Hedge";
 export const PUNK_TRACKER_EMPTY = "Трекеры операторов появятся после подключения.";
-export const PUNK_TRACKER_STAGE_LEV = (stage: number, lev: number) => `УРОВЕНЬ ${stage} · ПЛЕЧО ${lev}`;
+export const PUNK_TRACKER_STAGE_LEV = (stage: number, lev: string | number) =>
+  `УРОВЕНЬ ${stage} · ПЛЕЧО ${lev}`;
 export const PUNK_TRACKER_BALANCE = "Баланс";
 export const PUNK_TRACKER_START = "Старт";
 export const PUNK_TRACKER_TARGET = "Цель";

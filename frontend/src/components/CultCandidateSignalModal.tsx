@@ -84,6 +84,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
       dailyStopRemainingRankPct: snap.daily_stop_remaining_rank_pct,
       stakePoolUsedPct: snap.stake_pool_used_pct,
       stakePoolRemainingPct: snap.stake_pool_remaining_pct,
+      rankEntryLocked: snap.rank_entry_locked ?? false,
       maxStakePct: snap.max_stake_pct,
     };
   }, [tracker.trackerSnap]);

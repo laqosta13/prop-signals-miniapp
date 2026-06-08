@@ -521,7 +521,6 @@ export const topUpCopyDeposit = (tx_id: string) =>
 
 export const fetchLeaderboard = () => api<Trader[]>("/traders/leaderboard");
 export const fetchFiredLeaderboard = () => api<Trader[]>("/traders/fired-leaderboard");
-export const fetchRosterDemotedAdmins = () => api<Trader[]>("/traders/roster-demoted");
 
 export type TraderRosterSection = "top" | "candidate" | "fired";
 
@@ -562,39 +561,13 @@ export const joinCultCandidate = () =>
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({}),
   });
-export const patchCultCandidateMe = (display_name: string) =>
-  api<CultCandidate>("/cult-candidates/me", {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ display_name }),
-  });
 export const closeCultCandidateSignalAtMarket = (signalId: number) =>
   api<Signal>(`/cult-candidates/me/signals/${signalId}/close-market`, { method: "POST" });
 
-export const createCultCandidateSignal = (form: FormData, onProgress?: (p: UploadProgress) => void) => {
-  if (!onProgress) return sendForm<Signal>("/cult-candidates/me/signals", "POST", form);
-  return new Promise<Signal>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", `${base}/cult-candidates/me/signals`);
-    applyAuthHeaders(xhr);
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) onProgress({ loaded: e.loaded, total: e.total });
-    };
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          resolve(JSON.parse(xhr.responseText) as Signal);
-        } catch {
-          reject(new Error("Invalid response"));
-        }
-      } else {
-        reject(new Error(parseUploadError(xhr.responseText, xhr.status)));
-      }
-    };
-    xhr.onerror = () => reject(new Error(parseUploadError("Network error")));
-    xhr.send(form);
-  });
-};
+export const createCultCandidateSignal = (form: FormData, onProgress?: (p: UploadProgress) => void) =>
+  onProgress
+    ? sendFormWithProgress<Signal>("/cult-candidates/me/signals", "POST", form, onProgress)
+    : sendForm<Signal>("/cult-candidates/me/signals", "POST", form);
 export const fetchTraderRank = (telegramId: number) => api<TraderRank>(`/traders/${telegramId}/rank`);
 export const fetchRankPending = () =>
   api<{ needs_confirm: boolean; rank: TraderRank }>("/traders/me/rank-pending");

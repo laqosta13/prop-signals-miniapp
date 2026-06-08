@@ -52,7 +52,7 @@ def get_current_user(
             last_name=user.last_name,
         )
 
-    if not settings.bot_token and x_dev_telegram_user_id:
+    if settings.dev_auth_enabled and not settings.bot_token and x_dev_telegram_user_id:
         try:
             tid = int(x_dev_telegram_user_id.strip())
         except ValueError as e:
@@ -76,7 +76,7 @@ def get_current_user(
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Missing X-Telegram-Init-Data (or configure dev headers without BOT_TOKEN)",
+        detail="Missing X-Telegram-Init-Data (dev auth: DEV_AUTH_ENABLED=1 and empty BOT_TOKEN)",
     )
 
 

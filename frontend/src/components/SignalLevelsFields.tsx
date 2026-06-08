@@ -24,7 +24,7 @@ type Props = {
 
 export function SignalLevelsFields({
   entry,
-  direction,
+  direction: _direction,
   stop,
   target,
   riskPct,
