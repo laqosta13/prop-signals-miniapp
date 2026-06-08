@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { closeSignalAtMarket, deleteSignal, type ChallengeDashboard, type Signal } from "../api";
 import { useThemedCopy } from "../hooks/useThemedCopy";
@@ -7,6 +7,8 @@ import { canViewActiveSignals, visibleFeedSignals } from "../utils/signalActions
 import { splitFeedSignals } from "../utils/sortFeedSignals";
 import { PropTrackerMini } from "./PropTrackerMini";
 import { SignalCard } from "./SignalCard";
+
+const CLOSED_FEED_BATCH = 3;
 
 type Props = {
   signals: Signal[];
@@ -52,6 +54,7 @@ export function FeedTab({
   const copy = useThemedCopy();
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [closingId, setClosingId] = useState<number | null>(null);
+  const [closedVisibleCount, setClosedVisibleCount] = useState(CLOSED_FEED_BATCH);
   const feedTrader = isAdmin || canPublishMainFeed;
   const hasActiveAccess = canViewActiveSignals(subscriptionActive, feedTrader);
   const visible = visibleFeedSignals(signals, subscriptionActive, feedTrader);
@@ -59,6 +62,20 @@ export function FeedTab({
     () => splitFeedSignals(visible),
     [visible],
   );
+
+  useEffect(() => {
+    setClosedVisibleCount((prev) => {
+      if (closedSignals.length === 0) return CLOSED_FEED_BATCH;
+      return Math.min(prev, closedSignals.length);
+    });
+  }, [closedSignals.length]);
+
+  const visibleClosedSignals = useMemo(
+    () => closedSignals.slice(0, closedVisibleCount),
+    [closedSignals, closedVisibleCount],
+  );
+  const closedHiddenCount = Math.max(0, closedSignals.length - closedVisibleCount);
+  const nextClosedBatch = Math.min(CLOSED_FEED_BATCH, closedHiddenCount);
 
   const handleDelete = async (id: number) => {
     if (!confirm("Удалить этот сигнал?")) return;
@@ -152,7 +169,20 @@ export function FeedTab({
           aria-label={copy.feedLabelClosed}
         >
           <h2 className="feed-block__label feed-block__label--closed">{copy.feedLabelClosed}</h2>
-          {renderCards(closedSignals)}
+          {renderCards(visibleClosedSignals)}
+          {closedHiddenCount > 0 && (
+            <button
+              type="button"
+              className="ghost-btn feed-block__more"
+              onClick={() =>
+                setClosedVisibleCount((count) =>
+                  Math.min(count + CLOSED_FEED_BATCH, closedSignals.length),
+                )
+              }
+            >
+              {copy.formatFeedShowMoreClosed(nextClosedBatch)}
+            </button>
+          )}
         </section>
       )}
 

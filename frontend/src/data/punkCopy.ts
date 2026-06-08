@@ -48,6 +48,7 @@ export const PUNK_FEED_WORD_DEALS_SINGLE = "КРИПТО-ОПЕРАЦИЙ";
 
 export const PUNK_FEED_LABEL_ACTIVE = "АКТИВНЫЕ ОПЕРАЦИИ";
 export const PUNK_FEED_LABEL_CLOSED = "АРХИВ СЕТИ";
+export const PUNK_FORMAT_FEED_SHOW_MORE_CLOSED = (count: number) => `РАЗВЕРНУТЬ +${count}`;
 
 export const PUNK_TOP_INTRO =
   "Подпольная витрина операций. Коды и отбор — в элиту только операторы сети.";

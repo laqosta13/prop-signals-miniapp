@@ -10,6 +10,7 @@ import {
   DISCLAIMER_TITLE,
   FEED_LABEL_ACTIVE,
   FEED_LABEL_CLOSED,
+  formatFeedShowMoreClosed,
   PARTNER_BYBIT_HINT,
   PRODUCT_NAME,
   PRODUCT_PITCH,
@@ -170,6 +171,7 @@ export type ThemedCopy = {
   cardTrade: string;
   formatTrackerStageLev: (stage: number, leverage: number) => string;
   formatTrackerTradesTab: (count: number) => string;
+  formatFeedShowMoreClosed: (count: number) => string;
   formatTestModeBanner: (until: string | null, daysLeft: number) => string;
   formatSubscriptionInactiveHint: (trialDays: number, trialUsed: boolean) => string;
 };
@@ -315,6 +317,7 @@ function buildCopy(theme: Theme): ThemedCopy {
       cardTrade: "+ Сделка",
       formatTrackerStageLev: (stage, leverage) => `Этап ${stage} · плечо ${leverage}`,
       formatTrackerTradesTab: (count) => `Сделки · ${count}`,
+      formatFeedShowMoreClosed,
       formatTestModeBanner: testModeBannerText,
       formatSubscriptionInactiveHint: subscriptionInactiveHint,
     };
@@ -450,6 +453,7 @@ function buildCopy(theme: Theme): ThemedCopy {
     cardTrade: P.PUNK_CARD_TRADE,
     formatTrackerStageLev: P.PUNK_TRACKER_STAGE_LEV,
     formatTrackerTradesTab: P.PUNK_TRACKER_TRADES_TAB,
+    formatFeedShowMoreClosed: P.PUNK_FORMAT_FEED_SHOW_MORE_CLOSED,
     formatTestModeBanner: P.punkTestModeBannerText,
     formatSubscriptionInactiveHint: P.punkSubscriptionInactiveHint,
   };

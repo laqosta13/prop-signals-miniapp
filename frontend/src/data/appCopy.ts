@@ -9,6 +9,8 @@ export const PRODUCT_TAGLINE = "Marketplace крипто-сделок";
 export const FEED_LABEL_ACTIVE = "Активные сделки";
 export const FEED_LABEL_CLOSED = "Закрытые сделки";
 
+export const formatFeedShowMoreClosed = (count: number) => `Показать ещё ${count}`;
+
 export const PRODUCT_PITCH =
   "Прозрачная витрина сделок для всех участников рынка. Ранги и отбор — в топ только лучшие трейдеры и их сделки.";
 

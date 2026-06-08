@@ -26,14 +26,20 @@ export function ClassicFeedBrand({ children }: Props) {
 
   return (
     <span className="topbar__marketplace-brand">
-      <img
-        src="/brands/vc-logo.png"
-        alt=""
-        className="topbar__marketplace-logo topbar__marketplace-logo-img"
-        width={logoSize}
-        height={logoSize}
-        draggable={false}
-      />
+      <span
+        className="topbar__marketplace-logo-wrap"
+        style={{ width: logoSize, height: logoSize }}
+        aria-hidden
+      >
+        <img
+          src="/brands/vc-logo.png"
+          alt=""
+          className="topbar__marketplace-logo-img"
+          width={logoSize}
+          height={logoSize}
+          draggable={false}
+        />
+      </span>
       <span ref={copyRef} className="topbar__marketplace-copy">
         {children}
       </span>
