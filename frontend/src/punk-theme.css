@@ -45,14 +45,17 @@
   }
 }
 
-html.theme-glitch[data-theme="punk"] body {
+html.theme-glitch[data-theme="punk"] .app-view {
   animation: theme-glitch-shift 0.68s steps(5) 1;
 }
 
 html.theme-glitch[data-theme="punk"]::after {
   content: "";
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom));
   z-index: 10001;
   pointer-events: none;
   background:
@@ -1167,7 +1170,7 @@ html.theme-glitch [data-theme="punk"] .vc-split-logo--punk .vc-split-logo__punk 
   [data-theme="punk"] .avatar__mystery-eye,
   [data-theme="punk"] .avatar__mystery-scan,
   [data-theme="punk"] .app-boot,
-  html.theme-glitch[data-theme="punk"] body {
+  html.theme-glitch[data-theme="punk"] .app-view {
     animation: none;
   }
 

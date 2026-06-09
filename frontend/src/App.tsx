@@ -436,6 +436,7 @@ export default function App() {
 
   return (
     <div className={`app${loading ? " app--booting" : ""}`}>
+      <div className="app-view">
       {loading && (
         <div className="app-boot" role="status" aria-live="polite">
           <p className="app-boot__title">{copy.bootTitle}</p>
@@ -609,6 +610,7 @@ export default function App() {
           +
         </button>
       )}
+      </div>
 
       <nav className="bottom-nav">
         {NAV_TABS.map((id) => (

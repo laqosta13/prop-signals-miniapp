@@ -44,6 +44,7 @@ const CHART_KLINE_LIMIT = 1000;
 const CHART_VISIBLE_BARS = 220;
 const CHART_HISTORY_BEFORE_MS = 36 * 60 * 60 * 1000;
 const CHART_RIGHT_OFFSET_BARS = 40;
+const CHART_HEIGHT = 268;
 const CHART_LIVE_AXIS_PREFIX = "  ";
 
 type Props = {
@@ -293,10 +294,61 @@ function trailEndClass(trail: LiveTrail, frozen: boolean): string {
   return trail.side;
 }
 
+function chartPlotWidth(chart: IChartApi): number {
+  const w = chart.timeScale().width();
+  return w != null && Number.isFinite(w) && w > 0 ? w : 0;
+}
+
+function isPlotCoord(x: number, y: number, plotW: number): boolean {
+  return x >= 0 && x <= plotW && y >= 0 && y <= CHART_HEIGHT;
+}
+
+/** Обрезка отрезка по прямоугольнику области свечей (без шкалы цен). */
+function clipLineToPlot(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  plotW: number,
+): { x1: number; y1: number; x2: number; y2: number } | null {
+  let t0 = 0;
+  let t1 = 1;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const edges = [
+    [-dx, x1],
+    [dx, plotW - x1],
+    [-dy, y1],
+    [dy, CHART_HEIGHT - y1],
+  ] as const;
+  for (const [p, q] of edges) {
+    if (p === 0) {
+      if (q < 0) return null;
+    } else if (p < 0) {
+      const r = q / p;
+      if (r > t1) return null;
+      if (r > t0) t0 = r;
+    } else {
+      const r = q / p;
+      if (r < t0) return null;
+      if (r < t1) t1 = r;
+    }
+  }
+  return {
+    x1: x1 + t0 * dx,
+    y1: y1 + t0 * dy,
+    x2: x1 + t1 * dx,
+    y2: y1 + t1 * dy,
+  };
+}
+
 function syncLineLeft(chart: IChartApi, time: UTCTimestamp | null): number | null {
   if (time == null) return null;
   const x = chart.timeScale().timeToCoordinate(time);
-  return x != null && Number.isFinite(x) ? x : null;
+  if (x == null || !Number.isFinite(x)) return null;
+  const plotW = chartPlotWidth(chart);
+  if (plotW <= 0 || x < 0 || x > plotW) return null;
+  return x;
 }
 
 function candleIndexForTime(candles: ChartCandle[], time: UTCTimestamp | null): number | null {
@@ -410,6 +462,8 @@ export function SignalChart({
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
+  const [plotWidth, setPlotWidth] = useState(0);
+  const plotWidthRef = useRef(0);
   const [entryLineLeft, setEntryLineLeft] = useState<number | null>(null);
   const [closeLineLeft, setCloseLineLeft] = useState<number | null>(null);
   const [closeOverlay, setCloseOverlay] = useState<{ label: string; reason: CloseReason } | null>(null);
@@ -543,6 +597,12 @@ export function SignalChart({
         side = profit == null ? "flat" : profit ? "up" : "down";
       }
 
+      const plotW = chartPlotWidth(chart);
+      if (plotW <= 0) {
+        setLiveTrail(null);
+        return;
+      }
+
       const x1 = chart.timeScale().timeToCoordinate(entryTime);
       const y1 = series.priceToCoordinate(entryRef);
       const y2 = series.priceToCoordinate(endPrice);
@@ -559,13 +619,31 @@ export function SignalChart({
         setLiveTrail(null);
         return;
       }
-      setLiveTrail({ x1, y1, x2, y2, side, closeReason: trailCloseReason });
+
+      const clipped = clipLineToPlot(x1, y1, x2, y2, plotW);
+      if (!clipped) {
+        setLiveTrail(null);
+        return;
+      }
+      setLiveTrail({
+        x1: clipped.x1,
+        y1: clipped.y1,
+        x2: clipped.x2,
+        y2: clipped.y2,
+        side,
+        closeReason: trailCloseReason,
+      });
     },
     [direction, showEntryTrail, frozen, closedAt, status],
   );
 
   const syncOverlayLines = useCallback(
     (chart: IChartApi) => {
+      const w = chartPlotWidth(chart);
+      if (w !== plotWidthRef.current) {
+        plotWidthRef.current = w;
+        setPlotWidth(w);
+      }
       setEntryLineLeft(syncLineLeft(chart, entryCandleTimeRef.current));
       setCloseLineLeft(syncLineLeft(chart, closeCandleTimeRef.current));
       syncEntryTrail(livePriceRef.current);
@@ -583,6 +661,8 @@ export function SignalChart({
     closeCandleTimeRef.current = null;
     pinnedEntryRef.current = null;
     pinnedCloseRef.current = null;
+    plotWidthRef.current = 0;
+    setPlotWidth(0);
     setEntryLineLeft(null);
     setCloseLineLeft(null);
     setCloseOverlay(null);
@@ -635,7 +715,7 @@ export function SignalChart({
         rightOffset: CHART_RIGHT_OFFSET_BARS,
       },
       width: chartRef.current.clientWidth,
-      height: 268,
+      height: CHART_HEIGHT,
     });
     chartApi.current = chart;
     const updateOverlayLines = () => syncOverlayLinesRef.current(chart);
@@ -963,70 +1043,77 @@ export function SignalChart({
         {loading && <p className="signal-chart__loading meta">Загрузка графика…</p>}
         {err && <p className="signal-chart__err err">{err}</p>}
         <div ref={chartRef} className="signal-chart__canvas" />
-        {liveTrail && (
-          <svg className="signal-chart__live-svg" aria-hidden>
-            <line
-              className={`signal-chart__live-line signal-chart__live-line--${trailEndClass(liveTrail, frozen)}`}
-              x1={liveTrail.x1}
-              y1={liveTrail.y1}
-              x2={liveTrail.x2}
-              y2={liveTrail.y2}
-            />
-          </svg>
-        )}
-        {liveTrail && (
-          <div
-            className="signal-chart__trail-dot signal-chart__trail-dot--entry"
-            style={{ left: `${liveTrail.x1}px`, top: `${liveTrail.y1}px` }}
-            aria-hidden
-          />
-        )}
-        {liveTrail &&
-          (showTrailEndBadge ? (
+        <div
+          className="signal-chart__overlays"
+          style={plotWidth > 0 ? { width: `${plotWidth}px` } : undefined}
+        >
+          {liveTrail && (
+            <svg className="signal-chart__live-svg" aria-hidden>
+              <line
+                className={`signal-chart__live-line signal-chart__live-line--${trailEndClass(liveTrail, frozen)}`}
+                x1={liveTrail.x1}
+                y1={liveTrail.y1}
+                x2={liveTrail.x2}
+                y2={liveTrail.y2}
+              />
+            </svg>
+          )}
+          {liveTrail && isPlotCoord(liveTrail.x1, liveTrail.y1, plotWidth) && (
             <div
-              className={`signal-chart__trail-badge signal-chart__trail-badge--end signal-chart__marker-badge--${trailEndClass(
-                liveTrail,
-                frozen,
-              )}`}
-              style={{ left: `${liveTrail.x2}px`, top: `${liveTrail.y2}px` }}
-            >
-              {trailEndBadgeLabel}
-            </div>
-          ) : (
-            <div
-              className={`signal-chart__trail-dot signal-chart__trail-dot--${trailEndClass(liveTrail, frozen)}`}
-              style={{ left: `${liveTrail.x2}px`, top: `${liveTrail.y2}px` }}
+              className="signal-chart__trail-dot signal-chart__trail-dot--entry"
+              style={{ left: `${liveTrail.x1}px`, top: `${liveTrail.y1}px` }}
               aria-hidden
             />
-          ))}
-        {isLiveEntryTrail &&
-          liveTrail &&
-          pnlParticles.map((particle) => (
-            <span
-              key={particle.id}
-              className={`signal-chart__pnl-particle signal-chart__pnl-particle--${
-                particle.sign === "+" ? "up" : "down"
-              }`}
-              style={{
-                left: `${liveTrail.x2 + particle.drift}px`,
-                top: `${liveTrail.y2}px`,
-              }}
-            >
-              {particle.sign}$
-            </span>
-          ))}
-        {entryLineLeft != null && entryFilledAt && (
-          <div
-            className="signal-chart__marker-line signal-chart__marker-line--entry"
-            style={{ left: `${entryLineLeft}px` }}
-          />
-        )}
-        {closeLineLeft != null && closeOverlay && (
-          <div
-            className={`signal-chart__marker-line signal-chart__marker-line--${closeOverlay.reason}`}
-            style={{ left: `${closeLineLeft}px` }}
-          />
-        )}
+          )}
+          {liveTrail &&
+            isPlotCoord(liveTrail.x2, liveTrail.y2, plotWidth) &&
+            (showTrailEndBadge ? (
+              <div
+                className={`signal-chart__trail-badge signal-chart__trail-badge--end signal-chart__marker-badge--${trailEndClass(
+                  liveTrail,
+                  frozen,
+                )}`}
+                style={{ left: `${liveTrail.x2}px`, top: `${liveTrail.y2}px` }}
+              >
+                {trailEndBadgeLabel}
+              </div>
+            ) : (
+              <div
+                className={`signal-chart__trail-dot signal-chart__trail-dot--${trailEndClass(liveTrail, frozen)}`}
+                style={{ left: `${liveTrail.x2}px`, top: `${liveTrail.y2}px` }}
+                aria-hidden
+              />
+            ))}
+          {isLiveEntryTrail &&
+            liveTrail &&
+            isPlotCoord(liveTrail.x2, liveTrail.y2, plotWidth) &&
+            pnlParticles.map((particle) => (
+              <span
+                key={particle.id}
+                className={`signal-chart__pnl-particle signal-chart__pnl-particle--${
+                  particle.sign === "+" ? "up" : "down"
+                }`}
+                style={{
+                  left: `${liveTrail.x2 + particle.drift}px`,
+                  top: `${liveTrail.y2}px`,
+                }}
+              >
+                {particle.sign}$
+              </span>
+            ))}
+          {entryLineLeft != null && entryFilledAt && (
+            <div
+              className="signal-chart__marker-line signal-chart__marker-line--entry"
+              style={{ left: `${entryLineLeft}px` }}
+            />
+          )}
+          {closeLineLeft != null && closeOverlay && (
+            <div
+              className={`signal-chart__marker-line signal-chart__marker-line--${closeOverlay.reason}`}
+              style={{ left: `${closeLineLeft}px` }}
+            />
+          )}
+        </div>
       </div>
       <div className="signal-chart__legend">
         <span className="signal-chart__legend-item entry">
