@@ -436,13 +436,13 @@ export default function App() {
 
   return (
     <div className={`app${loading ? " app--booting" : ""}`}>
-      <div className="app-view">
       {loading && (
         <div className="app-boot" role="status" aria-live="polite">
           <p className="app-boot__title">{copy.bootTitle}</p>
           <p className="app-boot__meta">{copy.bootMeta}</p>
         </div>
       )}
+      <div className="app-view">
       <header className={`topbar${tab === "feed" ? " topbar--feed" : ""}`}>
         <div className="topbar__titles">
           {tab === "feed" ? (

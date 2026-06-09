@@ -21,6 +21,10 @@
   min-height: inherit;
 }
 
+.app--booting .app-boot {
+  visibility: visible;
+}
+
 .app--booting .app-view,
 .app--booting .topbar,
 .app--booting .content,
