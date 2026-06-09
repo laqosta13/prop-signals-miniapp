@@ -174,6 +174,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
       <SignalFormLimitsBar
         active
         loading={tracker.trackerLoading}
+        trackerConfigured={tracker.trackerConfigured}
         dailyRemaining={tracker.dailyRemaining}
         dailyStopReservedRankPct={tracker.dailyStopReservedRank}
         dailyTradesRemaining={tracker.dailyTradesRemainingCount}

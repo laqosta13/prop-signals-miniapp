@@ -136,32 +136,18 @@ def purge(db_path: Path, media: Path, admin_ids: set[int]) -> dict[str, int]:
         )
         for aid in admin_ids:
             cur.execute(
-                "SELECT telegram_user_id FROM user_challenges WHERE telegram_user_id = ?",
-                (aid,),
+                """
+                UPDATE user_challenges SET
+                  account_size = ?,
+                  balance = ?,
+                  day_start_balance = ?,
+                  stage = 1,
+                  trading_days = 0,
+                  prop_screenshot_path = NULL
+                WHERE telegram_user_id = ?
+                """,
+                (TRACKER_DEFAULT, TRACKER_DEFAULT, TRACKER_DEFAULT, aid),
             )
-            if cur.fetchone() is None:
-                cur.execute(
-                    """
-                    INSERT INTO user_challenges (
-                      telegram_user_id, account_size, balance, day_start_balance, stage, trading_days
-                    ) VALUES (?, ?, ?, ?, 1, 0)
-                    """,
-                    (aid, TRACKER_DEFAULT, TRACKER_DEFAULT, TRACKER_DEFAULT),
-                )
-            else:
-                cur.execute(
-                    """
-                    UPDATE user_challenges SET
-                      account_size = ?,
-                      balance = ?,
-                      day_start_balance = ?,
-                      stage = 1,
-                      trading_days = 0,
-                      prop_screenshot_path = NULL
-                    WHERE telegram_user_id = ?
-                    """,
-                    (TRACKER_DEFAULT, TRACKER_DEFAULT, TRACKER_DEFAULT, aid),
-                )
             tracker_dir = media / "trackers" / str(aid)
             if tracker_dir.is_dir():
                 shutil.rmtree(tracker_dir, ignore_errors=True)

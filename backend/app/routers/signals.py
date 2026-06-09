@@ -153,11 +153,7 @@ async def create_signal(
     db: Session = Depends(db_session),
     admin: TelegramUser = Depends(require_main_feed_publisher),
 ) -> SignalRead:
-    if get_challenge(db, admin.telegram_user_id) is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="tracker_not_configured",
-        )
+    ch = get_challenge(db, admin.telegram_user_id)
     tb = admin_tracker_balance(db, admin.telegram_user_id)
     acct = admin_account_size(db, admin.telegram_user_id)
     validate_signal_daily_trades(db, admin.telegram_user_id)
@@ -194,7 +190,8 @@ async def create_signal(
     )
     db.add(row)
     db.flush()
-    ensure_tracker_for_new_signal(db, row)
+    if ch is not None:
+        ensure_tracker_for_new_signal(db, row)
 
     if screenshot and screenshot.filename:
         row.media_image_path = await save_signal_image(row.id, screenshot)
@@ -242,6 +239,7 @@ async def update_signal(
 
     stake = risk_percent if risk_percent is not None and risk_percent > 0 else 10.0
     lev = leverage if leverage is not None and leverage >= 1 else 1
+    ch = get_challenge(db, admin.telegram_user_id)
     validate_signal_leverage(db, admin.telegram_user_id, int(lev))
     validate_signal_daily_stop(
         db,
@@ -266,8 +264,8 @@ async def update_signal(
         comment=comment or None,
         leverage=leverage,
         risk_percent=risk_percent,
-        tracker_balance=admin_tracker_balance(db, admin.telegram_user_id),
-        account_size=admin_account_size(db, admin.telegram_user_id),
+        tracker_balance=admin_tracker_balance(db, admin.telegram_user_id) if ch is not None else row.tracker_balance,
+        account_size=admin_account_size(db, admin.telegram_user_id) if ch is not None else row.account_size,
     )
 
     if remove_screenshot and row.media_image_path:

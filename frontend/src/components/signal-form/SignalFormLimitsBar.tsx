@@ -10,6 +10,7 @@ import { formatPoolChipPct, STAKE_POOL_TOTAL_PCT, stakePoolBlockedMessage } from
 type Props = {
   active: boolean;
   loading?: boolean;
+  trackerConfigured?: boolean;
   dailyRemaining?: number;
   dailyTradesRemaining: number;
   dailyTradesLimit?: number;
@@ -27,6 +28,7 @@ type Props = {
 export function SignalFormLimitsBar({
   active,
   loading = false,
+  trackerConfigured = true,
   dailyRemaining,
   dailyTradesRemaining,
   dailyTradesLimit = SIGNAL_DAILY_TRADE_LIMIT,
@@ -56,6 +58,9 @@ export function SignalFormLimitsBar({
 
   return (
     <aside className="signal-form__limits" aria-label="Лимиты дня">
+      {!trackerConfigured ? (
+        <p className="signal-form__limits-note meta">{copy.signalNoTrackerHint}</p>
+      ) : null}
       <div className="signal-form__chips">
         <div className="signal-form__chip">
           <span className="signal-form__chip-k">{copy.signalTrades}</span>

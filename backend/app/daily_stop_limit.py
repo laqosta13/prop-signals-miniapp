@@ -59,10 +59,12 @@ def account_risk_at_stop(
 
 
 def _admin_tracker_stats(db: Session, admin_id: int):
-    from app.challenge_service import _closed_signals, get_or_create_challenge
+    from app.challenge_service import _tracker_closed_signals, get_challenge
 
-    ch = get_or_create_challenge(db, admin_id)
-    closed = _closed_signals(db, admin_id)
+    ch = get_challenge(db, admin_id)
+    if ch is None:
+        raise ValueError("tracker_not_configured")
+    closed = _tracker_closed_signals(db, admin_id)
     rules = rules_for_stage(ch.stage)
     stats = compute_tracker_stats(
         ch,
@@ -276,7 +278,12 @@ def admin_signals_today_count(db: Session, admin_id: int) -> int:
     today_key = msk_day_key(datetime.now(timezone.utc))
     if not today_key:
         return 0
-    rows = db.scalars(select(Signal).where(Signal.author_telegram_id == admin_id)).all()
+    rows = db.scalars(
+        select(Signal).where(
+            Signal.author_telegram_id == admin_id,
+            Signal.is_cult_candidate.is_(False),
+        )
+    ).all()
     return sum(1 for s in rows if msk_day_key(s.created_at) == today_key)
 
 
@@ -307,6 +314,7 @@ def validate_signal_daily_stop(
     *,
     exclude_signal_id: int | None = None,
 ) -> None:
+    from app.challenge_service import signal_form_reference_balance
     from app.signal_service import get_or_create_trader
     from app.signal_stake_pool import stake_pool_snapshot
 
@@ -319,8 +327,7 @@ def validate_signal_daily_stop(
     )
     rank_cap = float(snap["rank_max_stake_pct"])
 
-    ch, _ = _admin_tracker_stats(db, admin_id)
-    balance = ch.balance
+    balance = signal_form_reference_balance(db, admin_id)
     stop_state = admin_daily_stop_form_state(
         db,
         admin_id,

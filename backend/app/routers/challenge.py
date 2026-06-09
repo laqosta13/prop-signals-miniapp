@@ -4,16 +4,16 @@ from sqlalchemy.orm import Session
 from app.challenge_service import (
     apply_prop_balance_sync,
     build_dashboard,
+    build_signal_form_context,
     create_challenge,
     get_challenge,
-    get_or_create_challenge,
     list_admin_trackers,
 )
 from app.signal_service import get_or_create_trader
 from app.deps import db_session, get_current_user, require_main_feed_publisher
 from app.hashhedge_rules import rules_payload
 from app.media_storage import clear_tracker_screenshot_dir, delete_media_files, save_tracker_screenshot
-from app.schemas import ChallengeDashboard, TelegramUser
+from app.schemas import ChallengeDashboard, SignalFormSnapshot, TelegramUser
 
 router = APIRouter(prefix="/challenge", tags=["challenge"])
 
@@ -38,18 +38,15 @@ def trackers(
     return rows
 
 
-@router.get("/my-tracker", response_model=ChallengeDashboard)
+@router.get("/my-tracker", response_model=SignalFormSnapshot)
 def my_tracker(
     exclude_signal_id: int | None = Query(None, ge=1),
     db: Session = Depends(db_session),
     admin: TelegramUser = Depends(require_main_feed_publisher),
-) -> ChallengeDashboard:
-    """Текущий трекер — для формы сигнала (баланс и размер счёта)."""
-    ch = get_challenge(db, admin.telegram_user_id)
-    if ch is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="tracker_not_configured")
+) -> SignalFormSnapshot:
+    """Контекст формы сигнала: ранг и пул; лимиты челленджа — только при добавленном трекере."""
     db.commit()
-    return build_dashboard(db, ch, exclude_signal_id=exclude_signal_id)
+    return build_signal_form_context(db, admin.telegram_user_id, exclude_signal_id=exclude_signal_id)
 
 
 @router.put("/settings", response_model=ChallengeDashboard)

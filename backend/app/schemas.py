@@ -271,6 +271,25 @@ class CultCandidateRead(BaseModel):
     is_me: bool = False
 
 
+class SignalFormSnapshot(BaseModel):
+    tracker_configured: bool = False
+    balance: float = 0.0
+    account_size: float = 0.0
+    daily_loss_usd: float = 0.0
+    daily_trades_count: int = 0
+    daily_trades_limit: int = 3
+    current_rank_id: int = 8
+    current_rank_name: str = "Нулёвый"
+    rank_max_stake_pct: float = 15.0
+    rank_max_leverage: int = 1
+    daily_stop_reserved_rank_pct: float = 0.0
+    daily_stop_remaining_rank_pct: float = 2.0
+    stake_pool_used_pct: float = 0.0
+    stake_pool_remaining_pct: float = 100.0
+    rank_entry_locked: bool = False
+    max_stake_pct: float = 15.0
+
+
 class CultCandidateFormSnapshot(BaseModel):
     balance: float
     account_size: float

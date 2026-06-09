@@ -35,6 +35,8 @@ import {
   RANK_AFTER_FIRST_CLOSE,
   RANK_RULES,
   ROSTER_FIRED_COOLDOWN_MSG,
+  SIGNAL_NO_TRACKER_HINT,
+  TRACKER_EXCHANGE_ONLY_HINT,
   subscriptionInactiveHint,
   testModeBannerText,
 } from "../data/appCopy";
@@ -131,6 +133,8 @@ export type ThemedCopy = {
   signalInMarket: string;
   signalCommentPh: string;
   signalMedia: string;
+  signalNoTrackerHint: string;
+  trackerExchangeOnlyHint: string;
   trackerDailyLimit: string;
   trackerDailyLoss: string;
   trackerLimit: string;
@@ -269,6 +273,8 @@ function buildCopy(theme: Theme): ThemedCopy {
       signalInMarket: "В рынке",
       signalCommentPh: "Краткий разбор сделки…",
       signalMedia: "Скрин или видео",
+      signalNoTrackerHint: SIGNAL_NO_TRACKER_HINT,
+      trackerExchangeOnlyHint: TRACKER_EXCHANGE_ONLY_HINT,
       trackerDailyLimit: "ЛИМИТ ДНЯ ДЛЯ ВСЕХ ТРЕЙДЕРОВ",
       trackerDailyLoss: "Потери за день",
       trackerLimit: "Лимит",
@@ -405,6 +411,8 @@ function buildCopy(theme: Theme): ThemedCopy {
     signalInMarket: P.PUNK_SIGNAL_IN_MARKET,
     signalCommentPh: P.PUNK_SIGNAL_COMMENT_PH,
     signalMedia: P.PUNK_SIGNAL_MEDIA,
+    signalNoTrackerHint: P.PUNK_SIGNAL_NO_TRACKER_HINT,
+    trackerExchangeOnlyHint: P.PUNK_TRACKER_EXCHANGE_ONLY_HINT,
     trackerDailyLimit: P.PUNK_TRACKER_DAILY_LIMIT,
     trackerDailyLoss: P.PUNK_TRACKER_DAILY_LOSS,
     trackerLimit: P.PUNK_TRACKER_LIMIT,

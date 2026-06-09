@@ -114,24 +114,14 @@ def _reset_admin_trackers(db: Session) -> None:
     for aid in admin_ids:
         ch = db.get(UserChallenge, aid)
         if ch is None:
-            db.add(
-                UserChallenge(
-                    telegram_user_id=aid,
-                    account_size=_TRACKER_DEFAULT,
-                    balance=_TRACKER_DEFAULT,
-                    day_start_balance=_TRACKER_DEFAULT,
-                    stage=1,
-                    trading_days=0,
-                )
-            )
-        else:
-            ch.account_size = _TRACKER_DEFAULT
-            ch.balance = _TRACKER_DEFAULT
-            ch.day_start_balance = _TRACKER_DEFAULT
-            ch.stage = 1
-            ch.trading_days = 0
-            delete_media_files(ch.prop_screenshot_path)
-            ch.prop_screenshot_path = None
+            continue
+        ch.account_size = _TRACKER_DEFAULT
+        ch.balance = _TRACKER_DEFAULT
+        ch.day_start_balance = _TRACKER_DEFAULT
+        ch.stage = 1
+        ch.trading_days = 0
+        delete_media_files(ch.prop_screenshot_path)
+        ch.prop_screenshot_path = None
         clear_tracker_screenshot_dir(aid)
 
 

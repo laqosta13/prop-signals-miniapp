@@ -274,6 +274,25 @@ export type CultCandidateMe = {
   test_mode_days_left: number;
 };
 
+export type SignalFormSnapshot = {
+  tracker_configured: boolean;
+  balance: number;
+  account_size: number;
+  daily_loss_usd: number;
+  daily_trades_count: number;
+  daily_trades_limit: number;
+  current_rank_id: number;
+  current_rank_name: string;
+  rank_max_stake_pct: number;
+  rank_max_leverage: number;
+  daily_stop_reserved_rank_pct: number;
+  daily_stop_remaining_rank_pct: number;
+  stake_pool_used_pct: number;
+  stake_pool_remaining_pct: number;
+  rank_entry_locked: boolean;
+  max_stake_pct: number;
+};
+
 export type ChallengeDashboard = {
   owner_telegram_id: number;
   owner_username: string | null;
@@ -571,9 +590,9 @@ export const createCultCandidateSignal = (form: FormData, onProgress?: (p: Uploa
 export const fetchTraderRank = (telegramId: number) => api<TraderRank>(`/traders/${telegramId}/rank`);
 export const fetchChallengeTrackers = () => api<ChallengeDashboard[]>("/challenge/trackers");
 
-/** Трекер текущего админа (баланс + счёт) — для формы сигнала. */
+/** Контекст формы сигнала: ранг и пул; лимиты челленджа — только при добавленном трекере. */
 export const fetchMyTracker = (excludeSignalId?: number) =>
-  api<ChallengeDashboard>(
+  api<SignalFormSnapshot>(
     excludeSignalId != null
       ? `/challenge/my-tracker?exclude_signal_id=${excludeSignalId}`
       : "/challenge/my-tracker",

@@ -21,13 +21,16 @@ def can_have_tracker(db: Session, telegram_id: int) -> bool:
     return is_main_feed_publisher(db, telegram_id)
 
 
+DEFAULT_SIGNAL_FORM_ACCOUNT_SIZE = 10_000.0
+
+
 def _new_challenge_row(admin_id: int) -> UserChallenge:
     return UserChallenge(
         telegram_user_id=admin_id,
-        account_size=10_000.0,
+        account_size=DEFAULT_SIGNAL_FORM_ACCOUNT_SIZE,
         stage=1,
-        balance=10_000.0,
-        day_start_balance=10_000.0,
+        balance=DEFAULT_SIGNAL_FORM_ACCOUNT_SIZE,
+        day_start_balance=DEFAULT_SIGNAL_FORM_ACCOUNT_SIZE,
         trading_days=0,
     )
 
@@ -61,34 +64,36 @@ def create_challenge(db: Session, admin_id: int) -> UserChallenge:
     return row
 
 
-def get_or_create_challenge(db: Session, admin_id: int) -> UserChallenge:
-    """Env-админы — автосоздание; трейдеры из ТОП (ростер) — только после явной настройки."""
-    if not can_have_tracker(db, admin_id):
-        raise ValueError("not an admin")
-    row = db.get(UserChallenge, admin_id)
-    if row is None:
-        if admin_id not in settings.all_admin_id_set:
-            raise ValueError("tracker_not_configured")
-        row = _new_challenge_row(admin_id)
-        db.add(row)
-        db.flush()
-    return row
+def signal_form_reference_balance(db: Session, admin_id: int) -> float:
+    """База для лимитов формы: баланс трекера или стандартный размер счёта."""
+    ch = get_challenge(db, admin_id)
+    if ch is not None:
+        bal = ch.balance or 0.0
+        return bal if bal > 0 else (ch.account_size or DEFAULT_SIGNAL_FORM_ACCOUNT_SIZE)
+    return DEFAULT_SIGNAL_FORM_ACCOUNT_SIZE
 
 
-def admin_tracker_balance(db: Session, admin_id: int) -> float:
+def signal_linked_to_tracker(signal: Signal) -> bool:
+    """Сигнал опубликован с привязкой к трекеру Hash Hedge."""
+    if signal.tracker_balance is not None and signal.tracker_balance > 0:
+        return True
+    return signal.account_size is not None and signal.account_size > 0
+
+
+def _tracker_closed_signals(db: Session, owner_id: int) -> list[Signal]:
+    return [s for s in _closed_signals(db, owner_id) if signal_linked_to_tracker(s)]
+
+
+def admin_tracker_balance(db: Session, admin_id: int) -> float | None:
     """Текущий баланс трекера на момент публикации сигнала."""
     ch = get_challenge(db, admin_id)
-    if ch is None:
-        raise ValueError("tracker_not_configured")
-    return ch.balance
+    return None if ch is None else ch.balance
 
 
-def admin_account_size(db: Session, admin_id: int) -> float:
+def admin_account_size(db: Session, admin_id: int) -> float | None:
     """Размер счёта Hash Hedge — база для номинала позиции и P/L."""
     ch = get_challenge(db, admin_id)
-    if ch is None:
-        raise ValueError("tracker_not_configured")
-    return ch.account_size
+    return None if ch is None else ch.account_size
 
 
 def ensure_tracker_for_new_signal(db: Session, signal: Signal) -> None:
@@ -116,13 +121,13 @@ def _closed_signals(db: Session, owner_id: int) -> list[Signal]:
 
 
 def _sync_trading_days(db: Session, ch: UserChallenge) -> None:
-    closed = _closed_signals(db, ch.telegram_user_id)
+    closed = _tracker_closed_signals(db, ch.telegram_user_id)
     ch.trading_days = len({msk_day_key(s.closed_at) for s in closed if msk_day_key(s.closed_at)})
 
 
 def apply_prop_balance_sync(db: Session, ch: UserChallenge, new_balance: float) -> None:
     """Сверка с пропом: balance = проп; старт (account_size) и цель не меняются."""
-    closed = _closed_signals(db, ch.telegram_user_id)
+    closed = _tracker_closed_signals(db, ch.telegram_user_id)
     bal = round(new_balance, 2)
     if not closed:
         ch.account_size = bal
@@ -139,19 +144,21 @@ def apply_prop_balance_sync(db: Session, ch: UserChallenge, new_balance: float) 
 
 
 def rebuild_tracker_balances_from_signals(db: Session, admin_ids: list[int]) -> None:
-    """Баланс трекера = стартовый депозит + сумма realized_pnl закрытых сигналов."""
+    """Баланс трекера = стартовый депозит + сумма realized_pnl закрытых сигналов с привязкой к трекеру."""
     from app.trader_stats import closed_signal_pnl_usd
 
     for aid in admin_ids:
-        ch = get_or_create_challenge(db, aid)
-        closed = _closed_signals(db, aid)
+        ch = get_challenge(db, aid)
+        if ch is None:
+            continue
+        closed = _tracker_closed_signals(db, aid)
         total_pnl = round(sum(closed_signal_pnl_usd(s) for s in closed), 2)
         ch.balance = round(ch.account_size + total_pnl, 2)
         _sync_trading_days(db, ch)
 
 
 def apply_signal_to_tracker(db: Session, signal: Signal) -> None:
-    if signal.realized_pnl is None:
+    if signal.realized_pnl is None or not signal_linked_to_tracker(signal):
         return
     ch = get_challenge(db, signal.author_telegram_id)
     if ch is None:
@@ -174,7 +181,7 @@ def build_dashboard(
     start, balance = ch.account_size, ch.balance
     profit_pct = ((balance - start) / start * 100.0) if start > 0 else 0.0
 
-    closed = _closed_signals(db, owner_id)
+    closed = _tracker_closed_signals(db, owner_id)
     stats = compute_tracker_stats(
         ch,
         closed,
@@ -286,3 +293,78 @@ def list_admin_trackers(db: Session) -> list:
         out.append(build_dashboard(db, ch, tr))
     out.sort(key=lambda d: d.balance - d.account_size, reverse=True)
     return out
+
+
+def build_signal_form_context(
+    db: Session,
+    admin_id: int,
+    *,
+    exclude_signal_id: int | None = None,
+) -> dict:
+    """Контекст формы сигнала: ранг, пул и лимиты дня (с трекером или эталонным счётом)."""
+    from app.daily_stop_limit import SIGNAL_DAILY_TRADE_LIMIT, admin_daily_stop_form_state, admin_signals_today_count
+    from app.rank_service import ensure_rank_fields
+    from app.schemas import SignalFormSnapshot
+    from app.signal_service import get_or_create_trader
+    from app.signal_stake_pool import stake_pool_snapshot
+
+    get_or_create_trader(db, admin_id, None)
+    trader = db.get(Trader, admin_id)
+    if trader is None:
+        raise ValueError("trader_not_found")
+    ensure_rank_fields(trader)
+    pool = stake_pool_snapshot(
+        db,
+        trader,
+        author_telegram_id=admin_id,
+        exclude_signal_id=exclude_signal_id,
+    )
+    rank_cap = float(pool["rank_max_stake_pct"])
+    balance = signal_form_reference_balance(db, admin_id)
+    stop_state = admin_daily_stop_form_state(
+        db,
+        admin_id,
+        balance,
+        rank_cap,
+        exclude_signal_id=exclude_signal_id,
+    )
+    ch = get_challenge(db, admin_id)
+    if ch is None:
+        return SignalFormSnapshot(
+            tracker_configured=False,
+            balance=balance,
+            account_size=balance,
+            daily_loss_usd=float(stop_state["consumed_usd"]),
+            daily_trades_count=admin_signals_today_count(db, admin_id),
+            daily_trades_limit=SIGNAL_DAILY_TRADE_LIMIT,
+            current_rank_id=int(pool["current_rank_id"]),
+            current_rank_name=str(pool["current_rank_name"]),
+            rank_max_stake_pct=rank_cap,
+            rank_max_leverage=int(pool["rank_max_leverage"]),
+            daily_stop_reserved_rank_pct=float(stop_state["reserved_rank_pct"]),
+            daily_stop_remaining_rank_pct=float(stop_state["remaining_rank_pct"]),
+            stake_pool_used_pct=float(pool["stake_pool_used_pct"]),
+            stake_pool_remaining_pct=float(pool["stake_pool_remaining_pct"]),
+            rank_entry_locked=bool(pool.get("rank_entry_locked")),
+            max_stake_pct=float(pool["max_stake_pct"]),
+        ).model_dump()
+
+    dash = build_dashboard(db, ch, trader, exclude_signal_id=exclude_signal_id)
+    return SignalFormSnapshot(
+        tracker_configured=True,
+        balance=dash.balance,
+        account_size=dash.account_size,
+        daily_loss_usd=dash.daily_loss_usd,
+        daily_trades_count=dash.daily_trades_count,
+        daily_trades_limit=dash.daily_trades_limit,
+        current_rank_id=dash.current_rank_id,
+        current_rank_name=dash.current_rank_name,
+        rank_max_stake_pct=dash.rank_max_stake_pct,
+        rank_max_leverage=dash.rank_max_leverage,
+        daily_stop_reserved_rank_pct=dash.daily_stop_reserved_rank_pct,
+        daily_stop_remaining_rank_pct=dash.daily_stop_remaining_rank_pct,
+        stake_pool_used_pct=dash.stake_pool_used_pct,
+        stake_pool_remaining_pct=dash.stake_pool_remaining_pct,
+        rank_entry_locked=dash.rank_entry_locked,
+        max_stake_pct=dash.max_stake_pct,
+    ).model_dump()

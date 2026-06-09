@@ -82,6 +82,7 @@ export function TrackerTab({ trackers, signals, myId, canPublishMainFeed, onSett
 
       {canPublishMainFeed && myId != null && !trackers.some((t) => t.owner_telegram_id === myId) && (
         <section className="tracker-block tracker-block--add">
+          <p className="meta tracker-block--add__hint">{copy.trackerExchangeOnlyHint}</p>
           <button type="button" className="tracker-add-btn" onClick={onCreateTracker}>
             <span className="tracker-add-btn__plus" aria-hidden>
               +

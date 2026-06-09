@@ -155,6 +155,11 @@ export const PUNK_VOLNOVOI_COPY_HINT_BILLING = "Депозит комиссии 
 export const PUNK_VOLNOVOI_COPY_HINT_API = "API Trade · без депозита — пауза";
 export const PUNK_VOLNOVOI_MARKETING_CTA = "Подключите Bybit под карточкой ↓";
 
+export const PUNK_SIGNAL_NO_TRACKER_HINT =
+  "Трекер не подключён — лимиты дня и кода действуют; в проп-статистику сделка не войдёт.";
+export const PUNK_TRACKER_EXCHANGE_ONLY_HINT =
+  "Без трекера — только биржа. «+» — челлендж Hash Hedge и учёт пропа.";
+
 export const PUNK_SUBSCRIPTION_INTRO =
   "Доступ к ленте операций операторов сети — по кодам и результатам.";
 export const PUNK_SUBSCRIPTION_TRIAL_USED_MSG = "Доступ не активен. Получите ключ ниже.";

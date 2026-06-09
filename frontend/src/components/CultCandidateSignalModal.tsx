@@ -69,11 +69,12 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
     const snap = tracker.trackerSnap;
     if (!snap) return null;
     return {
+      trackerConfigured: true,
       balance: snap.balance,
       accountSize: snap.account_size,
       dailyLossPct: 0,
       dailyLossUsd: snap.daily_loss_usd,
-      maxDailyLossPct: 0,
+      maxDailyLossPct: 5,
       dailyTradesCount: snap.daily_trades_count,
       dailyTradesLimit: snap.daily_trades_limit,
       currentRankId: snap.current_rank_id,
@@ -207,6 +208,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
       <SignalFormLimitsBar
         active
         loading={tracker.trackerLoading}
+        trackerConfigured
         dailyRemaining={tracker.dailyRemaining}
         dailyStopReservedRankPct={tracker.dailyStopReservedRank}
         dailyTradesRemaining={tracker.dailyTradesRemainingCount}

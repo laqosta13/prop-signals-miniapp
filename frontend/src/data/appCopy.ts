@@ -68,6 +68,11 @@ export const VOLNOVOI_COPY_HINT_API = "API Trade · без депозита — 
 
 export const VOLNOVOI_MARKETING_CTA = "Подключите Bybit под карточкой ↓";
 
+export const SIGNAL_NO_TRACKER_HINT =
+  "Трекер Hash Hedge не подключён — лимиты дня и ранга действуют; в статистику пропа сделка не попадёт.";
+export const TRACKER_EXCHANGE_ONLY_HINT =
+  "Без трекера — сигналы только на биржу. Нажмите «+», чтобы начать челлендж Hash Hedge и вести статистику пропа.";
+
 export const RANK_GUIDE_HINT = "Ранги — кто сколько может в сделке";
 export const RANK_GUIDE_TITLE = "Система рангов";
 export const RANK_GUIDE_INTRO =

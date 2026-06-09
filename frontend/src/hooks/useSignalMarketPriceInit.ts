@@ -104,7 +104,11 @@ export function useSignalMarketPriceInit({
     setRisk(formatStakeForForm(trackerSnap.maxStakePct));
     lastSymbolRef.current = symbol.trim().toUpperCase();
     const t = window.setTimeout(
-      () => void loadMarketPrice(symbol, { stakePct: stakeDefault, withTracker: true }),
+      () =>
+        void loadMarketPrice(symbol, {
+          stakePct: stakeDefault,
+          withTracker: true,
+        }),
       150,
     );
     return () => clearTimeout(t);

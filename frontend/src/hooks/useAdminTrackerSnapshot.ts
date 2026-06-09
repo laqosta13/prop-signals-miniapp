@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { fetchMyTracker } from "../api";
 
 export type TrackerSnapshot = {
+  trackerConfigured: boolean;
   balance: number;
   accountSize: number;
   dailyLossPct: number;
@@ -37,11 +38,12 @@ export function useAdminTrackerSnapshot(enabled: boolean, excludeSignalId?: numb
       .then((d) => {
         if (!cancelled) {
           setSnapshot({
+            trackerConfigured: d.tracker_configured,
             balance: d.balance,
             accountSize: d.account_size,
-            dailyLossPct: d.daily_loss_pct,
+            dailyLossPct: 0,
             dailyLossUsd: d.daily_loss_usd ?? 0,
-            maxDailyLossPct: d.max_daily_loss_pct,
+            maxDailyLossPct: 5,
             dailyTradesCount: d.daily_trades_count,
             dailyTradesLimit: d.daily_trades_limit,
             currentRankId: d.current_rank_id,
