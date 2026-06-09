@@ -51,10 +51,13 @@ export function RankBadge({ rank, compact, featured, card, interactive = true }:
     </span>
   );
 
-  const warn =
-    rank.pending_rank_penalty && !rank.is_confirmed ? (
-      <span className="rank-badge__warn">{copy.rankPenaltyWarn}</span>
-    ) : null;
+  const needsWeeklyConfirm =
+    !rank.is_confirmed && !rank.rank_applied_this_week && rank.weekly_pct !== 0;
+  const warn = needsWeeklyConfirm ? (
+    <span className="rank-badge__warn">
+      {rank.pending_rank_penalty ? copy.rankPenaltyWarn : copy.rankConfirmPending}
+    </span>
+  ) : null;
 
   const openGuide = (e: MouseEvent) => {
     if (!interactive) return;

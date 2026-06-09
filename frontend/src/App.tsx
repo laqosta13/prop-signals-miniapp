@@ -44,8 +44,8 @@ const EditSignalModal = lazy(() => import("./components/EditSignalModal").then((
 import { NewSignalModal } from "./components/NewSignalModal";
 import { NotifySettingsPanel } from "./components/NotifySettingsPanel";
 import { DisclaimerModal } from "./components/DisclaimerModal";
+import { RankConfirmModal } from "./components/RankConfirmModal";
 const NewsModal = lazy(() => import("./components/NewsModal").then((m) => ({ default: m.NewsModal })));
-const RankConfirmModal = lazy(() => import("./components/RankConfirmModal").then((m) => ({ default: m.RankConfirmModal })));
 const TrackerSettingsModal = lazy(() =>
   import("./components/TrackerSettingsModal").then((m) => ({ default: m.TrackerSettingsModal })),
 );
@@ -195,6 +195,19 @@ export default function App() {
     }
   }, []);
 
+  const refreshRankPending = useCallback(async (canMainFeed: boolean) => {
+    if (!canMainFeed) {
+      setRankPending(null);
+      return;
+    }
+    try {
+      const pending = await fetchRankPending();
+      setRankPending(pending.needs_confirm ? pending.rank : null);
+    } catch {
+      setRankPending(null);
+    }
+  }, []);
+
   const refreshMe = useCallback(async () => {
     try {
       const me = await fetchMe();
@@ -214,10 +227,11 @@ export default function App() {
       setCanWriteReview(me.can_write_review);
       setReviewWriteBlockedReason(me.review_write_blocked_reason);
       setDaysUntilReview(me.days_until_review);
+      await refreshRankPending(me.can_publish_main_feed);
     } catch {
       /* ignore */
     }
-  }, []);
+  }, [refreshRankPending]);
 
   const reloadTrackersOnly = useCallback(async () => {
     if (trackersFetchedRef.current) await loadTrackers();
@@ -243,16 +257,7 @@ export default function App() {
       setCanWriteReview(me.can_write_review);
       setReviewWriteBlockedReason(me.review_write_blocked_reason);
       setDaysUntilReview(me.days_until_review);
-      if (me.can_publish_main_feed) {
-        try {
-          const pending = await fetchRankPending();
-          setRankPending(pending.needs_confirm ? pending.rank : null);
-        } catch {
-          setRankPending(null);
-        }
-      } else {
-        setRankPending(null);
-      }
+      await refreshRankPending(me.can_publish_main_feed);
       const sig = fullAccess ? await fetchSignals() : await fetchSignalsPreview();
       setSignals(sortFeedSignals(sig));
     } catch (e) {
@@ -263,12 +268,13 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [refreshRankPending]);
 
   const reloadAfterSignalChange = useCallback(async () => {
     await refreshSignalsOnly();
     if (trackersFetchedRef.current) await loadTrackers();
-  }, [refreshSignalsOnly, loadTrackers]);
+    if (canPublishMainFeed) await refreshRankPending(true);
+  }, [refreshSignalsOnly, loadTrackers, canPublishMainFeed, refreshRankPending]);
 
   const loadTop = useCallback(async () => {
     try {
@@ -359,14 +365,19 @@ export default function App() {
   }, [tab, loadTrackers]);
 
   useEffect(() => {
-    if (tab === "top") void loadTop();
-  }, [tab, loadTop]);
+    if (tab !== "top") return;
+    void loadTop();
+    if (canPublishMainFeed) void refreshRankPending(true);
+  }, [tab, loadTop, canPublishMainFeed, refreshRankPending]);
 
   useEffect(() => {
     if (loading || tab !== "feed") return;
-    const id = window.setInterval(() => void refreshSignalsOnly(), FEED_POLL_MS);
+    const id = window.setInterval(() => {
+      void refreshSignalsOnly();
+      if (canPublishMainFeed) void refreshRankPending(true);
+    }, FEED_POLL_MS);
     return () => clearInterval(id);
-  }, [loading, tab, refreshSignalsOnly]);
+  }, [loading, tab, refreshSignalsOnly, canPublishMainFeed, refreshRankPending]);
 
   const hasMyTracker =
     myId != null && trackers.some((t) => t.owner_telegram_id === myId);
@@ -432,6 +443,7 @@ export default function App() {
     if (myId == null) return;
     markDisclaimerAccepted(myId);
     setDisclaimerAccepted(true);
+    if (canPublishMainFeed) void refreshRankPending(true);
   };
 
   return (
@@ -647,16 +659,6 @@ export default function App() {
           onSaved={onNewsSaved}
         />
 
-        {!showDisclaimer && rankPending && (
-          <RankConfirmModal
-            rank={rankPending}
-            onDone={() => {
-              setRankPending(null);
-              if (tab === "top") void loadTop();
-            }}
-          />
-        )}
-
         <TrackerSettingsModal
           open={trackerSettingsOpen}
           tracker={trackerSettings}
@@ -671,6 +673,16 @@ export default function App() {
       {showDisclaimer && <DisclaimerModal onAccept={acceptDisclaimer} />}
       {feedDisclaimerOpen && !showDisclaimer && (
         <DisclaimerModal variant="info" onClose={() => setFeedDisclaimerOpen(false)} />
+      )}
+
+      {!showDisclaimer && rankPending && (
+        <RankConfirmModal
+          rank={rankPending}
+          onDone={() => {
+            setRankPending(null);
+            if (tab === "top") void loadTop();
+          }}
+        />
       )}
     </div>
   );

@@ -32,6 +32,7 @@ import {
   VOLNOVOI_MARKETING_CTA,
   VOLNOVOI_SUBTITLE,
   RANK_GUIDE_HINT,
+  RANK_CONFIRM_PENDING,
   subscriptionInactiveHint,
   testModeBannerText,
 } from "../data/appCopy";
@@ -151,6 +152,7 @@ export type ThemedCopy = {
   rankConfirmTitle: string;
   rankConfirmBtn: string;
   rankConfirmWeek: string;
+  rankConfirmPending: string;
   rankPenaltyWarn: string;
   themeToggleDark: string;
   themeTogglePunk: string;
@@ -297,6 +299,7 @@ function buildCopy(theme: Theme): ThemedCopy {
       rankConfirmTitle: "Подтверди свой ранг",
       rankConfirmBtn: "Подтвердить результат",
       rankConfirmWeek: "за неделю",
+      rankConfirmPending: RANK_CONFIRM_PENDING,
       rankPenaltyWarn: "−1 ранг",
       themeToggleDark: "Тёмная тема",
       themeTogglePunk: "Панк-тема",
@@ -433,6 +436,7 @@ function buildCopy(theme: Theme): ThemedCopy {
     rankConfirmTitle: P.PUNK_RANK_CONFIRM_TITLE,
     rankConfirmBtn: P.PUNK_RANK_CONFIRM_BTN,
     rankConfirmWeek: P.PUNK_RANK_CONFIRM_WEEK,
+    rankConfirmPending: P.PUNK_RANK_CONFIRM_PENDING,
     rankPenaltyWarn: P.PUNK_RANK_PENALTY_WARN,
     themeToggleDark: P.PUNK_THEME_TOGGLE_DARK,
     themeTogglePunk: P.PUNK_THEME_TOGGLE_PUNK,

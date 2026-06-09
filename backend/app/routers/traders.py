@@ -10,7 +10,12 @@ from app.schemas import TelegramUser, TraderRankRead, TraderRead, TraderRosterBo
 from app.serializers import trader_rank_read
 from app.signal_service import get_or_create_trader
 from app.cult_candidate_service import ensure_cult_candidate_for_demoted_admin
-from app.trader_roster_service import ROSTER_CANDIDATE, clear_roster_override, set_roster_override
+from app.trader_roster_service import (
+    ROSTER_CANDIDATE,
+    clear_roster_override,
+    is_main_feed_publisher,
+    set_roster_override,
+)
 from app.volnovoi_account import build_volnovoi_read, is_volnovoi_account
 
 router = APIRouter(prefix="/traders", tags=["traders"])
@@ -90,7 +95,8 @@ def my_rank_pending(
     trader = get_or_create_trader(db, user.telegram_user_id, user.username)
     ensure_rank_fields(trader)
     db.commit()
-    return {"needs_confirm": needs_confirm_prompt(trader), "rank": trader_rank_read(trader)}
+    needs = needs_confirm_prompt(trader) if is_main_feed_publisher(db, user.telegram_user_id) else False
+    return {"needs_confirm": needs, "rank": trader_rank_read(trader)}
 
 
 @router.post("/me/rank/confirm", response_model=TraderRankRead)
@@ -98,6 +104,8 @@ def confirm_my_rank(
     db: Session = Depends(db_session),
     user: TelegramUser = Depends(require_admin),
 ) -> TraderRankRead:
+    if not is_main_feed_publisher(db, user.telegram_user_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="not_main_feed_trader")
     trader = get_or_create_trader(db, user.telegram_user_id, user.username)
     confirm_rank(trader)
     db.commit()

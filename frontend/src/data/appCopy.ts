@@ -75,6 +75,8 @@ export const RANK_GUIDE_INTRO =
 export const RANK_GUIDE_POOL =
   "Общий пул входа: если два трейдера заняли 100%, третий в эту сделку не войдёт.";
 
+export const RANK_CONFIRM_PENDING = "Подтвердите неделю";
+
 export const RANK_RULES = [
   "Недельный % по закрытым сделкам → ранг.",
   "Подтвердите итог до вс 23:59 МСК.",
