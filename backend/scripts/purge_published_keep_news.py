@@ -12,7 +12,6 @@ from pathlib import Path
 
 BACKEND = Path(__file__).resolve().parents[1]
 DEFAULT_RANK_ID = 8
-TRACKER_DEFAULT = 10_000.0
 
 
 def _load_dotenv() -> None:
@@ -25,15 +24,6 @@ def _load_dotenv() -> None:
             continue
         key, val = line.split("=", 1)
         os.environ.setdefault(key.strip(), val.strip().strip('"').strip("'"))
-
-
-def _parse_admin_ids(raw: str) -> set[int]:
-    out: set[int] = set()
-    for part in raw.split(","):
-        part = part.strip()
-        if part.isdigit():
-            out.add(int(part))
-    return out
 
 
 def _db_path_from_env(explicit: str | None) -> Path:
@@ -69,7 +59,7 @@ def _delete_files(root: Path, *paths: str | None) -> None:
             target.unlink(missing_ok=True)
 
 
-def purge(db_path: Path, media: Path, admin_ids: set[int]) -> dict[str, int]:
+def purge(db_path: Path, media: Path) -> dict[str, int]:
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
 
@@ -128,29 +118,13 @@ def purge(db_path: Path, media: Path, admin_ids: set[int]) -> dict[str, int]:
     )
     cur.execute("DELETE FROM trader_roster_overrides")
 
-    if admin_ids:
-        placeholders = ",".join("?" for _ in admin_ids)
-        cur.execute(
-            f"DELETE FROM user_challenges WHERE telegram_user_id NOT IN ({placeholders})",
-            tuple(admin_ids),
-        )
-        for aid in admin_ids:
-            cur.execute(
-                """
-                UPDATE user_challenges SET
-                  account_size = ?,
-                  balance = ?,
-                  day_start_balance = ?,
-                  stage = 1,
-                  trading_days = 0,
-                  prop_screenshot_path = NULL
-                WHERE telegram_user_id = ?
-                """,
-                (TRACKER_DEFAULT, TRACKER_DEFAULT, TRACKER_DEFAULT, aid),
-            )
-            tracker_dir = media / "trackers" / str(aid)
-            if tracker_dir.is_dir():
-                shutil.rmtree(tracker_dir, ignore_errors=True)
+    for row in cur.execute("SELECT telegram_user_id, prop_screenshot_path FROM user_challenges"):
+        aid, screenshot = row[0], row[1]
+        _delete_files(media, screenshot)
+        tracker_dir = media / "trackers" / str(aid)
+        if tracker_dir.is_dir():
+            shutil.rmtree(tracker_dir, ignore_errors=True)
+    cur.execute("DELETE FROM user_challenges")
 
     conn.commit()
     conn.close()
@@ -178,9 +152,7 @@ def main() -> None:
         conn.close()
         return
 
-    admin_raw = os.environ.get("TELEGRAM_SUPER_ADMIN_IDS") or os.environ.get("TELEGRAM_ADMIN_IDS", "")
-    admin_ids = _parse_admin_ids(admin_raw)
-    counts = purge(db_path, _media_root(), admin_ids)
+    counts = purge(db_path, _media_root())
     print("Готово (новости сохранены):")
     for k, v in counts.items():
         print(f"  {k}: {v}")

@@ -7,7 +7,6 @@ import shutil
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from app.config import settings
 from app.media_storage import clear_tracker_screenshot_dir, delete_media_files, media_root
 from app.models import (
     CultCandidate,
@@ -25,8 +24,6 @@ from app.models import (
     UserChallenge,
 )
 from app.rank_constants import DEFAULT_RANK_ID
-
-_TRACKER_DEFAULT = 10_000.0
 
 
 def _clear_media_subdir(name: str) -> None:
@@ -106,23 +103,12 @@ def _reset_trader_leaderboard(db: Session, *, reset_ranks: bool = False) -> None
             t.rank_history_json = None
 
 
-def _reset_admin_trackers(db: Session) -> None:
-    admin_ids = settings.all_admin_id_set
+def delete_all_trackers(db: Session) -> None:
+    """Удалить все трекеры Hash Hedge (включая админов). Трекер создаётся только вручную через «+»."""
     for ch in list(db.scalars(select(UserChallenge))):
-        if ch.telegram_user_id not in admin_ids:
-            db.delete(ch)
-    for aid in admin_ids:
-        ch = db.get(UserChallenge, aid)
-        if ch is None:
-            continue
-        ch.account_size = _TRACKER_DEFAULT
-        ch.balance = _TRACKER_DEFAULT
-        ch.day_start_balance = _TRACKER_DEFAULT
-        ch.stage = 1
-        ch.trading_days = 0
         delete_media_files(ch.prop_screenshot_path)
-        ch.prop_screenshot_path = None
-        clear_tracker_screenshot_dir(aid)
+        clear_tracker_screenshot_dir(ch.telegram_user_id)
+        db.delete(ch)
 
 
 def purge_signals_and_reset_ratings(db: Session) -> None:
@@ -134,7 +120,7 @@ def purge_signals_and_reset_ratings(db: Session) -> None:
 def purge_all_signals(db: Session) -> None:
     _purge_signals_media_and_rows(db)
     _reset_trader_leaderboard(db)
-    _reset_admin_trackers(db)
+    delete_all_trackers(db)
 
 
 def _reset_trader_roster_overrides(db: Session) -> None:
@@ -148,7 +134,7 @@ def purge_all_published_content(db: Session) -> None:
     _purge_cult_candidate_stats(db)
     _purge_news_and_reviews(db)
     _reset_trader_leaderboard(db, reset_ranks=True)
-    _reset_admin_trackers(db)
+    delete_all_trackers(db)
     _reset_trader_roster_overrides(db)
 
 
@@ -159,5 +145,5 @@ def purge_published_except_news(db: Session) -> None:
     _purge_cult_candidate_stats(db)
     _purge_reviews_only(db)
     _reset_trader_leaderboard(db, reset_ranks=True)
-    _reset_admin_trackers(db)
+    delete_all_trackers(db)
     _reset_trader_roster_overrides(db)

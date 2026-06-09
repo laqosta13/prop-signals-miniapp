@@ -462,6 +462,7 @@ def run_migrations(engine: Engine) -> None:
     _purge_all_published_startup_v1(engine)
     _purge_all_published_jun2026_v10(engine)
     _purge_all_published_jun2026_v11(engine)
+    _delete_all_manual_trackers_v1(engine)
 
 
 def _seed_launch_news(
@@ -1015,6 +1016,28 @@ def _purge_all_published_jun2026_v11(engine: Engine) -> None:
     db = SessionLocal()
     try:
         purge_all_published_content(db)
+        db.commit()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
+
+
+def _delete_all_manual_trackers_v1(engine: Engine) -> None:
+    """Одноразово: удалить все трекеры — только ручное создание через «+»."""
+    marker = _marker_path(engine, ".deleted_all_manual_trackers_v1")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".deleted_all_manual_trackers_v1"
+    if marker.exists():
+        return
+    from app.database import SessionLocal
+    from app.data_cleanup import delete_all_trackers
+
+    db = SessionLocal()
+    try:
+        delete_all_trackers(db)
         db.commit()
         marker.parent.mkdir(parents=True, exist_ok=True)
         marker.touch()

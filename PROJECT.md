@@ -472,12 +472,12 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 `data_cleanup.py` → `purge_all_published_content()`:
 
 - Удаляет **сигналы** (+ copy-trades, лайки, просмотры, дополнения, в т.ч. сделки кандидатов CULT), **CULT-сигналы каналов** (каналы остаются, stats=0), **stats кандидатов CULT** (записи остаются), **новости**, **отзывы** + медиа
-- Сброс ТОП (рейтинг, ранги), **существующих** трекеров ($10k; новые **не** создаются), **ручной ротации** (`trader_roster_overrides`); очистка скринов пропа
+- Сброс ТОП (рейтинг, ранги), **удаление всех трекеров** (новые только через «+»), **ручной ротации** (`trader_roster_overrides`); очистка скринов пропа
 - **Не** трогает подписчиков, trial, `payment_txs`, подключённые CULT-каналы, настройки Bybit, записи кандидатов CULT (только stats)
 
 | Способ | Как |
 |---|---|
-| Одноразово при деплое | маркеры `.purged_all_published_*` в `migrate.py` (актуально: **`.purged_all_published_jun2026_v11`**) |
+| Одноразово при деплое | маркеры `.purged_all_published_*` и **`.deleted_all_manual_trackers_v1`** в `migrate.py` |
 | API (без UI) | `POST /admin/purge-published` — `require_super_admin` |
 | Скрипт на сервере | `python backend/scripts/purge_published.py` |
 
@@ -631,7 +631,7 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 
 ## Одноразовые миграции (маркеры на диске)
 
-- `.purged_test_v2`, `.purged_reset_v3`, `.purged_all_published_may2026` … `.purged_all_published_jun2026_v10`, **`.purged_all_published_jun2026_v11`** — purge через `data_cleanup.py` / `migrate.py` (v7: + сброс `trader_roster_overrides`)
+- `.purged_test_v2`, `.purged_reset_v3`, `.purged_all_published_may2026` … `.purged_all_published_jun2026_v10`, **`.purged_all_published_jun2026_v11`** — purge через `data_cleanup.py` / `migrate.py` (v7: + сброс `trader_roster_overrides`); **`.deleted_all_manual_trackers_v1`** — удаление всех трекеров (только ручное «+»)
 - **`.backfill_payment_memos_v1`** — VC-коды для существующих подписчиков
 - **`.disabled_bybit_testnet_v1`** — сброс testnet у сохранённых API-ключей
 - `.recalc_closed_signal_pnl_v2`, `.recalc_closed_signal_pnl_v3` — пересчёт P/L от `account_size` и risk_percent
@@ -723,9 +723,10 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 78. **Трекер вручную** — нет автосоздания; «+» на вкладке Трекер; без трекера — сигналы в ленту, проп-статистика отдельно
 79. **Единые лимиты формы** — 3 сделки / 2% / ранг / пул — у топов и кандидатов; `signalFormLimitsState.ts`; эталон $10k без трекера
 80. **Purge jun2026 v10/v11** — разовые полные очистки; маркеры `.purged_all_published_jun2026_v10`, `.purged_all_published_jun2026_v11`
+81. **Удаление всех трекеров** — purge и миграция `.deleted_all_manual_trackers_v1`; трекер только вручную через «+»
 
 ---
 
 ## Быстрое напоминание для AI
 
-> **prop-signals-miniapp** — FastAPI + React Mini App на Amvera (SQLite, `/data`). **Два UI-мира:** **ТЕ** (Volnovoi Cult) и **МА** (МА·СЕТЬ, панк-копирайт, кодовые имена, глич). Админы публикуют сигналы **#N**; **кандидаты CULT** — $20/30д + Bybit, **та же форма лимитов**. **Супер-админ** — ротация, purge. Активные сигналы — по подписке; win/lose + трекер + ТОП — бесплатно. **Трекер Hash Hedge** — только вручную («+»); без него лимиты формы всё равно действуют. **Ранги** — автопересчёт по понедельникам; 2 минусовые недели → уволенные. **Лимит дня:** 3 сделки **или** 2% стопа (MSK). **volnovoi** + Bybit copy (**20%**, memo `VC-…`). Purge: **`.purged_all_published_jun2026_v11`**. Полный контекст — этот файл.
+> **prop-signals-miniapp** — FastAPI + React Mini App на Amvera (SQLite, `/data`). **Два UI-мира:** **ТЕ** (Volnovoi Cult) и **МА** (МА·СЕТЬ, панк-копирайт, кодовые имена, глич). Админы публикуют сигналы **#N**; **кандидаты CULT** — $20/30д + Bybit, **та же форма лимитов**. **Супер-админ** — ротация, purge. Активные сигналы — по подписке; win/lose + трекер + ТОП — бесплатно. **Трекер Hash Hedge** — только вручную («+»); без него лимиты формы всё равно действуют. **Ранги** — автопересчёт по понедельникам; 2 минусовые недели → уволенные. **Лимит дня:** 3 сделки **или** 2% стопа (MSK). **volnovoi** + Bybit copy (**20%**, memo `VC-…`). Purge удаляет все трекеры; миграция **`.deleted_all_manual_trackers_v1`**. Полный контекст — этот файл.
