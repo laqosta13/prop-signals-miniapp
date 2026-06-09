@@ -23,7 +23,7 @@
 ## Вкладки приложения
 
 1. **Лента** — шапка-бренд: **ТЕ** `Volnovoi Cult` + «крипто-сделок», **МА** `МА·СЕТЬ` + «крипто-операций»; счётчики **«N в рынке»** / **«M ожидание входа»** (в МА — «в сети» / «ожидание кода»); сигналы **#N**, график на карточке, просмотры/лайки, мини-трекеры админов, переключатель **«Уведомления в Telegram»** (`NotifySettingsPanel`), **дисклеймер** (кнопка **!** + принятие при первом заходе), **анимация WIN/LOSE** при **живом** закрытии
-2. **Трекер** — Hash Hedge challenge для каждого админа + таблица правил по этапам
+2. **Трекер** — Hash Hedge challenge **только после ручного добавления** («+» на вкладке); таблица правил по этапам; без трекера — сигналы в ленту, но не в проп-статистику
 3. **ТОП** — **volnovoi** + копирование Bybit; **RankGuide**; **ТРЕЙДЕРЫ CULT**; **КОНДИДАТЫ В CULT** — админы + **Telegram-каналы** (аналитика % с момента подключения)
 4. **Отзывы** — оценка 1–5 и текст; один отзыв на пользователя
 5. **Новости** — публикации админов; чтение для всех
@@ -38,7 +38,7 @@
 ## Роли
 
 - **Главный админ** (`TELEGRAM_SUPER_ADMIN_IDS` в env) — полный доступ: новости, CULT-каналы, ротация трейдеров (ТОП ↔ кандидаты ↔ уволенные), purge и т.д.
-- **Админ-трейдер** (`TELEGRAM_ADMIN_IDS`) — публикация и управление **своими** сигналами в **основную ленту**, **настройки своего трекера** (+ лента без подписки, трекер в ТОП). Переведённый в **кандидаты** — только сигналы по правилам кандидатов (подписка CULT + Bybit). Новости, CULT-каналы, purge — только главный админ. Без `TELEGRAM_SUPER_ADMIN_IDS` все из `TELEGRAM_ADMIN_IDS` — полный доступ (обратная совместимость).
+- **Админ-трейдер** (`TELEGRAM_ADMIN_IDS`) — публикация и управление **своими** сигналами в **основную ленту**, **добавление/настройка трекера Hash Hedge** через «+» (по умолчанию трекера нет). Переведённый в **кандидаты** — только сигналы по правилам кандидатов (подписка CULT + Bybit). Новости, CULT-каналы, purge — только главный админ. Без `TELEGRAM_SUPER_ADMIN_IDS` все из `TELEGRAM_ADMIN_IDS` — полный доступ (обратная совместимость).
 - **Подписчик** — активные сигналы при подписке (trial 3 дня) + уведомления в Telegram
 - **Без подписки** — win/lose в ленте, трекер, ТОП, лайки/просмотры на отработанных сигналах
 
@@ -70,10 +70,10 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 - **Номер #N** — сквозная нумерация по порядку публикации (`signals.number`); на карточке, в трекере, модалках, WIN/LOSE и Telegram; после полного purge снова с **#1**
 - **Инструмент**, **LONG/SHORT**
 - **Вход / Стоп / Цель**
-- **Плечо** (кнопки 1–5x, по умолчанию **1**; **макс. по рангу** — `rank_max_leverage` из `GET /challenge/my-tracker`)
-- **Сумма входа %** — бегунок 0–25–50–75–100; **при смене плеча сбрасывается на 10%** (`onLeveragePick` в `signalForm.ts`)
-- **Номинал позиции** = трекер × сумма входа % × плечо / 100 — в форме **выделен цветом** (сумма зелёным, % и плечо фиолетовым)
-- **Трекер $** — только чтение, **баланс Hash Hedge**; при открытии формы подгружается **`GET /challenge/my-tracker`** (`useAdminTrackerSnapshot`)
+- **Плечо** (кнопки 1–5x, по умолчанию **1**; **макс. по рангу** — `rank_max_leverage` из контекста формы)
+- **Сумма входа %** — бегунок 0–25–50–75–100; **при смене плеча сбрасывается на 10%** (`onLeveragePick` в `signalForm.ts`); **лимит по рангу и пулу** — всегда
+- **Номинал позиции** = баланс (трекер или эталон **$10k**) × сумма входа % × плечо / 100 — в форме **выделен цветом** (сумма зелёным, % и плечо фиолетовым); без трекера баланс «—»
+- **Контекст формы** — **`GET /challenge/my-tracker`** → `SignalFormSnapshot` (`tracker_configured`, ранг, пул, лимиты дня); `useAdminTrackerSnapshot` + общая логика `signalFormLimitsState.ts`
 - **Дополнения** на карточке — отдельный блок с фиолетовым акцентом, бейдж «Доп. N», счётчик дополнений
 - **Скрин / Видео / Комментарий** (на русском)
 - **График на карточке** — `SignalChart.tsx` + палитра **`chartTheme.ts`** / `subscribeTheme()` (светлая и тёмная тема): свечи **Bybit USDT perpetual (linear)** 1m / **5m** (по умолчанию) / 15m, линии входа / стопа / целей (`lightweight-charts` **v4**); **~220 видимых баров**, отступ справа **40 баров** (`CHART_RIGHT_OFFSET_BARS`), высота **268px**, скругление **12px**; lazy-load в viewport; TradingView `BYBIT:…` ↗; **`z-index` ниже нижней панели**
@@ -85,9 +85,9 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 - **Рынок при публикации** — `published_market_price` / `published_market_source` (`bybit_perp`) в БД и **Telegram**; на карточке — график, не текст
 
 **Кнопка «+» новый сигнал** — **FAB снизу** на вкладке Лента (`fab-bottom`). Перед публикацией — **`confirmAction`** (подтверждение в WebView).  
-При открытии формы: **`GET /signals/market-price`** → курс **Bybit perp**, стоп/цель **R:R 1:3**; **`GET /challenge/my-tracker`** — баланс, дневные потери, счётчик сделок за MSK-день.
+При открытии формы: **`GET /signals/market-price`** → курс **Bybit perp**, стоп/цель **R:R 1:3**; **`GET /challenge/my-tracker`** — ранг, пул, лимиты дня (с трекером или эталонным счётом).
 
-**Дневной лимит трейдера в форме** (`daily_stop_limit.py`, `utils/dailyStopLimit.ts`):
+**Дневной лимит в форме** — **одинаковый для топ-трейдеров и кандидатов CULT** (`daily_stop_limit.py`, `utils/dailyStopLimit.ts`, `signalFormLimitsState.ts`):
 
 | Параметр | Значение |
 |---|---|
@@ -98,10 +98,12 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 | Весь риск в одну сделку | Можно выставить **весь остаток** стопа на один сигнал |
 | Конвертация | риск счёта ↔ % цены: `(priceStop × stake% × leverage) / 100` |
 | UI | `StopOffsetSlider.tsx`, `useDailyStopSync.ts`, `SignalLevelsFields.tsx`; остаток «N сделок · X% стопа» в `NewSignalModal` |
-| Backend | `validate_signal_daily_trades` + `validate_signal_daily_stop` при `POST /signals`; `daily_trades_count` / `daily_trades_limit` в `GET /challenge/my-tracker` |
+| Backend | `validate_signal_daily_trades` + `validate_signal_daily_stop` при `POST /signals` и `POST /cult-candidates/me/signals` — **всегда**, даже без трекера Hash Hedge |
+| Без трекера | Лимиты дня считаются от **эталонного счёта $10k** (`signal_form_reference_balance`); в проп-статистику сделка **не попадает** |
 | Редактирование | Лимит **сделок** не применяется; лимит **стопа** — да |
+| Кандидаты | Та же форма (`CultCandidateSignalModal` ≈ `NewSignalModal`); snapshot — `GET /cult-candidates/me/form-snapshot` |
 
-Подсказки формы: «Цена с Bybit perp», «R:R 1:3 · лимит: 3 сделки или 2% стопа». Смена LONG/SHORT / плеча пересчитывает уровни (`utils/signalLevels.ts`, `useSignalLevelFields.ts`).
+Подсказки формы: «Цена с Bybit perp», «R:R 1:3 · лимит: 3 сделки или 2% стопа»; без трекера — «лимиты дня и ранга действуют; в статистику пропа сделка не попадёт». Смена LONG/SHORT / плеча пересчитывает уровни (`utils/signalLevels.ts`, `useSignalLevelFields.ts`).
 
 **Кнопка «+» новость** — **FAB сверху** на вкладке Новости (`fab-top`).
 
@@ -169,8 +171,7 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 - Подпись карточки: **«Копирует · все сделки трейдеров»** (не «Аккаунт»)
 - Backend: `volnovoi_account.py`, prepend в `build_leaderboard()`; `GET /traders/0/rank` — вычисленный ранг
 - UI: карточка `top-card--aggregate`, символ **∑**; клик по **шапке** открывает профиль; **график и «Дни · N»** — отдельно (не открывают профиль)
-- Профиль volnovoi: сводная статистика; **кнопка «Страховка»** — активирует **ваш** rank shield (если ещё не использован в месяце); без confirm ранга
-- На карточке volnovoi — та же **«Страховка»** под графиком (для своего ранга)
+- Профиль volnovoi: сводная статистика; ранг volnovoi — по агрегату закрытых сделок (без недельного пересчёта)
 
 ---
 
@@ -242,9 +243,12 @@ POST /cult-candidates/me                 — вступить
 PATCH /cult-candidates/me                — display_name
 GET  /cult-candidates/subscription/info  — оплата CULT (+ payment_memo)
 POST /cult-candidates/subscription/pay   — TXID → cult_subscription_until
+GET  /cult-candidates/me/form-snapshot   — контекст формы (ранг, пул, лимиты дня) — те же правила, что у топ-трейдеров
 POST /cult-candidates/me/signals         — публикация сигнала кандидата
 GET  /cult-candidates/signals/{id}       — деталь сигнала
 ```
+
+**Форма сигнала кандидата** — те же компоненты и лимиты, что у топ-трейдеров (`CultCandidateSignalModal` ≈ `NewSignalModal`, `SignalFormLimitsBar`, `signalFormLimitsState.ts`); snapshot — `GET /cult-candidates/me/form-snapshot`.
 
 **Backend:** `cult_candidate_service.py`, `cult_subscription_billing.py`, `routers/cult_candidates.py`; сигналы с `is_cult_candidate=True`; copy на Bybit автора через `open_signal_copy_for_user`.
 
@@ -312,12 +316,20 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 ## Система рангов
 
-8 уровней: `rank_constants.py`, `rank_service.py`, `rank_scheduler.py` (понедельник).
+8 уровней: `rank_constants.py`, `rank_service.py`, `rank_scheduler.py`.
 
-- Поля в `traders`, API `/traders/me/rank-pending`, `/confirm`, `/shield`
-- UI: `RankBadge` **в одной строке с именем** (карточка ТОП + профиль), `RankConfirmModal`, `TraderProfileModal`, `RankGuide` под volnovoi в ТОП
-- **Страховка** — кнопка «Страховка» (не «Активировать…») в своём профиле и на карточке **volnovoi** для текущего пользователя
-- В списке ТОП **без** полной `rank_history` (полная — в профиле кандидата)
+| Правило | Поведение |
+|---|---|
+| Пересчёт | **Каждый понедельник 00:01 UTC** — автоматически по недельному % закрытых сделок |
+| Минусовая неделя | **−1 ранг**; две минусовые подряд — **−2 ранга** |
+| Увольнение | **Две минусовые недели подряд** → блок **«Уволенные»** (`trader_roster_overrides`, `ensure_auto_fired_for_minus_weeks`) |
+| Возврат из уволенных | Только через **14 дней** после увольнения (`fired_cooldown` в `trader_roster_service.py`) |
+| Страховка / confirm | **Убраны** (нет `RankConfirmModal`, нет API confirm/shield) |
+| Бейдж в ТОП | Скрыт, пока нет **ни одной закрытой сделки** (`traderRankDisplay.ts`); volnovoi — исключение |
+
+- UI: `RankBadge` **в одной строке с именем** (карточка ТОП + профиль), `RankGuideModal` (правила в `RANK_RULES` / `punkCopy`), `TraderProfileModal`
+- API: `GET /traders/{id}/rank` — история и текущий ранг; volnovoi — `id=0`
+- В списке ТОП **без** полной `rank_history` (полная — в профиле)
 
 ---
 
@@ -351,11 +363,13 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 ## Hash Hedge трекер
 
-- Только **админы** (`UserChallenge`)
-- Все трекеры видны в ленте (`PropTrackerMini`) и на вкладке Трекер
+- Только **топ-трейдеры** (`main_feed_publisher`); запись `UserChallenge` **не создаётся автоматически** — даже у главного админа
+- **Добавление** — кнопка **«+»** на вкладке Трекер → `TrackerSettingsModal` (createMode) → `PUT /challenge/settings` → `create_challenge()`
+- **Без трекера** — сигналы в ленту **можно**; лимиты формы действуют; в баланс/дни/WR трекера сделки **не попадают** (только с `tracker_balance` / `account_size` на сигнале)
+- Настроенные трекеры видны в ленте (`PropTrackerMini`) и на вкладке Трекер
 - **Настройки трекера** — модалка `TrackerSettingsModal.tsx`: размер счёта, этап 1–3, **баланс с пропа**, скрин пропа («Заменить скрин»); `modal-backdrop--sheet` для клавиатуры
 - **Баланс с пропа** (`apply_prop_balance_sync`) — обновляет **`balance`** везде (трекер, лента, форма сигнала); **`account_size`** = `balance − сумма P/L закрытых сигналов`; `trading_days` **не** сбрасываются. Если меняют только размер счёта (без баланса с пропа) — правится только `account_size`
-- **Метрики трейдера** (`tracker_metrics.py`) — из **закрытых сигналов**, день **MSK**: **торговые дни**, **WR по P/L $**, **дневной убыток %**, **просадка** от `account_size`
+- **Метрики трекера** (`tracker_metrics.py`) — только из закрытых сигналов **с привязкой к трекеру**; день **MSK**: торговые дни, WR, дневной убыток %, просадка от `account_size`
 - **Лимит дня в форме сигнала** — отдельно от Hash Hedge **5%**: у каждого админа **3 сделки или 2% стопа** (см. раздел «Сигналы — поля и UI»)
 - **Список сделок** на вкладке Трекер — **свёрнут** по умолчанию («Сделки · N»)
 - **Баланс с пропа** под скрином пропа **скрыт** в UI трекера
@@ -363,7 +377,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 - `PUT /challenge/settings` — **multipart Form** (`account_size`, `stage`, `balance`, `screenshot`, `remove_screenshot`); `updateChallengeSettings()` в `api.ts`
 - **Таблица правил** по этапам 1–3: `HashHedgeRulesTable.tsx`, данные **статически** в `frontend/src/data/hashhedgeRules.ts` (без лишнего API)
 - Backend: `hashhedge_rules.py`, `GET /challenge/rules` (опционально); скрины — `save_tracker_screenshot` в `media_storage.py`
-- P/L закрытых сигналов меняет `balance` трекера
+- P/L закрытых сигналов с привязкой к трекеру меняет `balance` трекера (`apply_signal_to_tracker`)
 - Внизу блока правил: **«Лимит дня для всех трейдеров»** — общий лимит **5%** по сумме убытков всех админов за MSK-день; кнопка **«Регистрация на проп»** → Hash Hedge (`HASHHEDGE_REGISTER_URL`)
 
 ---
@@ -458,12 +472,12 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 `data_cleanup.py` → `purge_all_published_content()`:
 
 - Удаляет **сигналы** (+ copy-trades, лайки, просмотры, дополнения, в т.ч. сделки кандидатов CULT), **CULT-сигналы каналов** (каналы остаются, stats=0), **stats кандидатов CULT** (записи остаются), **новости**, **отзывы** + медиа
-- Сброс ТОП (рейтинг, ранги), трекеров админов ($10k), **ручной ротации** (`trader_roster_overrides`); очистка скринов пропа
+- Сброс ТОП (рейтинг, ранги), **существующих** трекеров ($10k; новые **не** создаются), **ручной ротации** (`trader_roster_overrides`); очистка скринов пропа
 - **Не** трогает подписчиков, trial, `payment_txs`, подключённые CULT-каналы, настройки Bybit, записи кандидатов CULT (только stats)
 
 | Способ | Как |
 |---|---|
-| Одноразово при деплое | маркеры `.purged_all_published_*` в `migrate.py` (актуально: **`.purged_all_published_jun2026_v9`**) |
+| Одноразово при деплое | маркеры `.purged_all_published_*` в `migrate.py` (актуально: **`.purged_all_published_jun2026_v11`**) |
 | API (без UI) | `POST /admin/purge-published` — `require_super_admin` |
 | Скрипт на сервере | `python backend/scripts/purge_published.py` |
 
@@ -515,17 +529,17 @@ GET  /traders/roster-demoted     — админы, переведённые в �
 PUT  /traders/{id}/roster        — require_super_admin: top | candidate | fired
 DELETE /traders/{id}/roster      — require_super_admin: сброс ручной ротации
 GET  /traders/{id}/rank          — id=0 → volnovoi
-GET  /traders/me/rank-pending | POST .../confirm | POST .../shield
 GET  /copy-trading/me | PUT /copy-trading/me | PATCH /copy-trading/me
 POST /copy-trading/me/test | POST /copy-trading/me/pay | DELETE /copy-trading/me
 GET  /cult-channels | POST /cult-channels | DELETE /cult-channels/{id} — мутации: require_super_admin
 GET  /challenge/trackers
-GET  /challenge/my-tracker       — require_main_feed_publisher: balance, daily_loss_pct, daily_trades_count/limit
+GET  /challenge/my-tracker       — require_main_feed_publisher: SignalFormSnapshot (ранг, пул, лимиты; tracker_configured)
 GET  /challenge/rules
 PUT  /challenge/settings         — multipart: баланс с пропа / account_size, этап, скрин (require_admin)
 GET  /subscriptions/info | POST /subscriptions/pay | PUT /subscriptions/me
 GET  /cult-candidates | GET /cult-candidates/me | POST /cult-candidates/me
 GET  /cult-candidates/subscription/info | POST /cult-candidates/subscription/pay
+GET  /cult-candidates/me/form-snapshot — лимиты формы кандидата (как у топов)
 POST /cult-candidates/me/signals | GET /cult-candidates/signals/{id}
 POST /support/messages           — сообщение в группу поддержки (если настроена)
 POST /admin/purge-published      — require_super_admin, полная очистка ленты/новостей/отзывов
@@ -546,7 +560,7 @@ POST /admin/purge-published      — require_super_admin, полная очис�
 | Цены | `price_service.py`, `price_monitor.py` |
 | Очистка данных | `data_cleanup.py`, `routers/admin.py`, `scripts/purge_published.py` |
 | Ротация трейдеров | `trader_roster_service.py`, `TraderRosterActions.tsx`, `trader_roster_overrides` в БД |
-| Лимиты формы сигнала | `daily_stop_limit.py`, `utils/dailyStopLimit.ts`, `hooks/useDailyStopSync.ts` |
+| Лимиты формы сигнала | `daily_stop_limit.py`, `signal_stake_pool.py`, `hooks/signalFormLimitsState.ts`, `utils/dailyStopLimit.ts`, `hooks/useDailyStopSync.ts` |
 | P/L, ТОП | `trader_stats.py`, `leaderboard_service.py`, `volnovoi_account.py` |
 | Copy-trading Bybit | `bybit_trading.py`, `copy_trading_service.py`, `copy_billing.py`, `copy_billing_scheduler.py`, `credentials_crypto.py`, `routers/copy_trading.py` |
 | Кандидаты CULT (users) | `cult_candidate_service.py`, `cult_subscription_billing.py`, `CultCandidateJoinPanel.tsx`, `CultCandidatePaySection.tsx`, `routers/cult_candidates.py` |
@@ -561,14 +575,14 @@ POST /admin/purge-published      — require_super_admin, полная очис�
 | Дисклеймер | `DisclaimerModal.tsx`, `data/disclaimer.ts`, `utils/disclaimerStorage.ts` |
 | WIN/LOSE reveal | `OutcomeReveal.tsx`, `hooks/useOutcomeReveal.ts`, `utils/outcomeRevealStorage.ts`, `utils/outcomeSounds.ts` (логика в `App.tsx`) |
 | Подписка / рефералы / оплата | `SubscriptionTab.tsx`, `PaymentMemoRow.tsx`, `subscription_billing.py`, `cult_subscription_billing.py`, `ton_payments.py`, `referral_links.py`, `utils/referralShare.ts` |
-| Форма сигнала | `NewSignalModal.tsx`, `EditSignalModal.tsx`, `hooks/useAdminTrackerSnapshot.ts`, `SignalLevelsFields.tsx`, `StopOffsetSlider.tsx`, `hooks/useSignalLevelFields.ts`, `hooks/useDailyStopSync.ts`, `utils/signalForm.ts`, `utils/signalLevels.ts`, `utils/dailyStopLimit.ts` |
+| Форма сигнала | `NewSignalModal.tsx`, `EditSignalModal.tsx`, `CultCandidateSignalModal.tsx`, `hooks/useSignalFormTracker.ts`, `hooks/useCandidateSignalFormTracker.ts`, `hooks/useAdminTrackerSnapshot.ts`, `SignalFormLimitsBar.tsx`, `SignalLevelsFields.tsx`, `StopOffsetSlider.tsx`, `hooks/useSignalLevelFields.ts`, `utils/traderRankDisplay.ts` |
 | Тема / два мира | `theme.css`, `punk-theme.css`, `ThemeToggle.tsx`, `utils/theme.ts`, `data/punkCopy.ts`, `hooks/useThemedCopy.ts`, `utils/punkCodename.ts`, `hooks/useAuthorProfile.ts`, `MysteryAvatar.tsx`, `utils/punkAvatar.ts`, `utils/punkTheme.ts` |
 | Логотипы CTA | `BrandLogos.tsx`, `public/brands/` |
 | P/L на ленте | `utils/signalPnl.ts`, `utils/mergeFeedSignals.ts` |
 | Права на сигнал | `utils/signalActions.ts` (`canCloseAtMarketSignal`, …) |
 | Дополнения | `AppendSupplementModal.tsx` |
 | Трекер UI | `TrackerTab.tsx`, `TrackerSettingsModal.tsx`, `HashHedgeRulesTable.tsx`, `data/hashhedgeRules.ts` |
-| ТОП | `LeaderboardTab.tsx`, `VolnovoiCopyPanel.tsx`, `CultChannelCard.tsx`, `CultChannelAdminPanel.tsx`, `TraderProfileModal.tsx`, `RankGuide.tsx`, `EquityCurve.tsx`, `utils/volnovoi.ts` |
+| ТОП / ранги UI | `LeaderboardTab.tsx`, `RankBadge.tsx`, `RankGuideModal.tsx`, `VolnovoiCopyPanel.tsx`, `CultChannelCard.tsx`, `TraderProfileModal.tsx`, `TraderRosterActions.tsx`, `EquityCurve.tsx`, `utils/volnovoi.ts`, `utils/ranks.ts` |
 | Upload | `api.ts` (`sendFormWithProgress`), `UploadProgressBar.tsx`, `utils/upload.ts` |
 | API клиент | `frontend/src/api.ts` |
 
@@ -617,7 +631,7 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 
 ## Одноразовые миграции (маркеры на диске)
 
-- `.purged_test_v2`, `.purged_reset_v3`, `.purged_all_published_may2026` … `.purged_all_published_jun2026_v8`, **`.purged_all_published_jun2026_v9`** — purge через `data_cleanup.py` / `migrate.py` (v7: + сброс `trader_roster_overrides`)
+- `.purged_test_v2`, `.purged_reset_v3`, `.purged_all_published_may2026` … `.purged_all_published_jun2026_v10`, **`.purged_all_published_jun2026_v11`** — purge через `data_cleanup.py` / `migrate.py` (v7: + сброс `trader_roster_overrides`)
 - **`.backfill_payment_memos_v1`** — VC-коды для существующих подписчиков
 - **`.disabled_bybit_testnet_v1`** — сброс testnet у сохранённых API-ключей
 - `.recalc_closed_signal_pnl_v2`, `.recalc_closed_signal_pnl_v3` — пересчёт P/L от `account_size` и risk_percent
@@ -705,9 +719,13 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 74. **Два мира** — бренд **МА·СЕТЬ** vs Volnovoi Cult; полный themed copy (`useThemedCopy`)
 75. **Панк-аватары и коды** — MysteryAvatar по рангу; панк-имена (`punkCodename`); глич вкладок в МА
 76. **Форма сигнала** — `useGuardedSubmit`: защита от повторной отправки
+77. **Ранги v2** — автопересчёт по понедельникам; убраны confirm/shield; 2 минусовые недели → уволенные; возврат через 14 дней; бейдж после 1-й сделки
+78. **Трекер вручную** — нет автосоздания; «+» на вкладке Трекер; без трекера — сигналы в ленту, проп-статистика отдельно
+79. **Единые лимиты формы** — 3 сделки / 2% / ранг / пул — у топов и кандидатов; `signalFormLimitsState.ts`; эталон $10k без трекера
+80. **Purge jun2026 v10/v11** — разовые полные очистки; маркеры `.purged_all_published_jun2026_v10`, `.purged_all_published_jun2026_v11`
 
 ---
 
 ## Быстрое напоминание для AI
 
-> **prop-signals-miniapp** — FastAPI + React Mini App на Amvera (SQLite, `/data`). **Два UI-мира:** **ТЕ** (Volnovoi Cult) и **МА** (МА·СЕТЬ, панк-копирайт, кодовые имена, глич). Админы публикуют сигналы **#N**; **кандидаты CULT** — $20/30д + Bybit. **Супер-админ** — ротация, purge. Активные сигналы — по подписке; win/lose + трекер + ТОП — бесплатно. **Лимит дня:** 3 сделки **или** 2% стопа (MSK). **volnovoi** + Bybit copy (**20%**, memo `VC-…`). Purge: **`.purged_all_published_jun2026_v9`**. Полный контекст — этот файл.
+> **prop-signals-miniapp** — FastAPI + React Mini App на Amvera (SQLite, `/data`). **Два UI-мира:** **ТЕ** (Volnovoi Cult) и **МА** (МА·СЕТЬ, панк-копирайт, кодовые имена, глич). Админы публикуют сигналы **#N**; **кандидаты CULT** — $20/30д + Bybit, **та же форма лимитов**. **Супер-админ** — ротация, purge. Активные сигналы — по подписке; win/lose + трекер + ТОП — бесплатно. **Трекер Hash Hedge** — только вручную («+»); без него лимиты формы всё равно действуют. **Ранги** — автопересчёт по понедельникам; 2 минусовые недели → уволенные. **Лимит дня:** 3 сделки **или** 2% стопа (MSK). **volnovoi** + Bybit copy (**20%**, memo `VC-…`). Purge: **`.purged_all_published_jun2026_v11`**. Полный контекст — этот файл.
