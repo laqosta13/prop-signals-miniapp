@@ -569,10 +569,6 @@ export const createCultCandidateSignal = (form: FormData, onProgress?: (p: Uploa
     ? sendFormWithProgress<Signal>("/cult-candidates/me/signals", "POST", form, onProgress)
     : sendForm<Signal>("/cult-candidates/me/signals", "POST", form);
 export const fetchTraderRank = (telegramId: number) => api<TraderRank>(`/traders/${telegramId}/rank`);
-export const fetchRankPending = () =>
-  api<{ needs_confirm: boolean; rank: TraderRank }>("/traders/me/rank-pending");
-export const confirmMyRank = () => api<TraderRank>("/traders/me/rank/confirm", { method: "POST" });
-export const activateRankShield = () => api<TraderRank>("/traders/me/rank/shield", { method: "POST" });
 export const fetchChallengeTrackers = () => api<ChallengeDashboard[]>("/challenge/trackers");
 
 /** Трекер текущего админа (баланс + счёт) — для формы сигнала. */

@@ -65,33 +65,16 @@ def daily_stats_map(db: Session, admin_ids: list[int]) -> dict[int, list[TraderD
     return out
 
 
-def _trader_has_two_minus_weeks(trader: Trader) -> bool:
-    """Две минусовые недели подряд: уже зафиксированы или идёт вторая (первая в consecutive_loss_weeks)."""
-    ensure_rank_fields(trader)
-    clw = trader.consecutive_loss_weeks or 0
-    weekly = trader.weekly_pct or 0.0
-    return clw >= 2 or (clw >= 1 and weekly < 0)
-
-
 def fired_trader_ids(db: Session) -> list[int]:
-    """Уволенные: env, две минусовые недели подряд, ручная ротация главного админа."""
+    """Уволенные: бывшие админы из env и запись в trader_roster_overrides (в т.ч. авто после 2 минус. недель)."""
     overrides = roster_overrides_map(db)
     active = settings.all_admin_id_set
     fired: set[int] = {
         tid for tid in settings.former_admin_id_set if tid not in active and tid != 0
     }
-    if active:
-        traders = db.scalars(select(Trader).where(Trader.telegram_id.in_(active))).all()
-        for t in traders:
-            if _trader_has_two_minus_weeks(t):
-                fired.add(t.telegram_id)
-
     for tid, section in overrides.items():
         if section == ROSTER_FIRED:
             fired.add(tid)
-        elif section in (ROSTER_TOP, ROSTER_CANDIDATE):
-            fired.discard(tid)
-
     return sorted(fired)
 
 

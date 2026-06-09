@@ -25,6 +25,7 @@ import { VolnovoiMarketingBadge } from "./VolnovoiMarketingBadge";
 import { VolnovoiStylePanel } from "./VolnovoiStylePanel";
 import { useAuthorProfile } from "../hooks/useAuthorProfile";
 import { useThemedCopy } from "../hooks/useThemedCopy";
+import { shouldShowTraderRankBadge, traderClosedDealsCount, traderRankAvatarId } from "../utils/traderRankDisplay";
 import { isVolnovoiTrader } from "../utils/volnovoi";
 import { Avatar } from "./Avatar";
 import { TopPlaceMedal } from "./TopPlaceMedal";
@@ -62,6 +63,8 @@ function TopTraderCard({
   const copy = useThemedCopy();
   const profile = useAuthorProfile(trader.display_name, trader.username, trader.telegram_id);
   const aggregate = isVolnovoiTrader(trader);
+  const showRankBadge = shouldShowTraderRankBadge(trader);
+  const hasClosedDeals = traderClosedDealsCount(trader) > 0;
   const topChip = !aggregate && !fired && trader.rank >= 1 && trader.rank <= 3;
 
   return (
@@ -76,7 +79,7 @@ function TopTraderCard({
               displayName={trader.display_name}
               username={trader.username}
               telegramId={trader.telegram_id}
-              rankId={trader.trader_rank?.current_rank_id}
+              rankId={traderRankAvatarId(trader)}
               size={44}
             />
             <div className="top-body">
@@ -96,7 +99,7 @@ function TopTraderCard({
                 {aggregate ? (
                   <VolnovoiMarketingBadge trader={trader} />
                 ) : (
-                  trader.trader_rank && <RankBadge rank={trader.trader_rank} featured />
+                  showRankBadge && trader.trader_rank && <RankBadge rank={trader.trader_rank} featured />
                 )}
               </div>
               {aggregate && trader.trader_rank && (
@@ -110,7 +113,9 @@ function TopTraderCard({
                 {trader.rating_percent.toFixed(2)}%
               </p>
               <p className="top-meta">
-                {trader.trader_rank != null ? (
+                {!aggregate && !hasClosedDeals ? (
+                  <>W 0 · L 0</>
+                ) : trader.trader_rank != null ? (
                   <>
                     Неделя: {trader.trader_rank.weekly_pct >= 0 ? "+" : ""}
                     {trader.trader_rank.weekly_pct.toFixed(1)}%

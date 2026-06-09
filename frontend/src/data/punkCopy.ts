@@ -128,19 +128,19 @@ export const PUNK_OUTCOME_STOP = "Стоп";
 
 export const PUNK_RANK_RULES = [
   "Недельный % по закрытым операциям → код доступа.",
-  "Подтверди итог до вс 23:59 МСК — иначе штраф.",
-  "Минусовая неделя: −1 код; две подряд: −2; без подтверждения: ещё −1.",
-  "Страховка — 1 раз в месяц, минус не снижает код.",
+  "Каждый понедельник 00:01 UTC код пересчитывается автоматически.",
+  "Минусовая неделя: −1 код; две минусовые подряд: −2 кода.",
+  "Две минусовые недели подряд — в блок «Вне рейтинга».",
+  "Из «Вне рейтинга» возврат — не раньше чем через 2 недели.",
   "Топ-коды — до 100% входа и плечо до 5×.",
   "Ниже «КИТ ТЕНИ» — плечо 1×; дальше +1× за уровень.",
 ] as const;
 
 export const PUNK_RANK_GUIDE_UNDERSTOOD = "ВХОД В СЕТЬ";
 export const PUNK_RANK_PENALTY_WARN = "−1 код";
-export const PUNK_RANK_CONFIRM_PENDING = "подтверди цикл";
-export const PUNK_RANK_CONFIRM_TITLE = "ПОДТВЕРДИ КОД";
-export const PUNK_RANK_CONFIRM_BTN = "ЗАФИКСИРОВАТЬ";
-export const PUNK_RANK_CONFIRM_WEEK = "за цикл";
+export const PUNK_RANK_AFTER_FIRST_CLOSE = "код — после первой сделки";
+export const PUNK_ROSTER_FIRED_COOLDOWN_MSG =
+  "Из «Вне рейтинга» — только через 2 недели после увольнения.";
 
 export const PUNK_THEME_TOGGLE_DARK = "Тёмная тема";
 export const PUNK_THEME_TOGGLE_PUNK = "Теневая тема";

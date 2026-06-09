@@ -44,7 +44,11 @@ export function CultCandidateCard({
         displayName={candidate.display_name}
         username={candidate.username}
         telegramId={candidate.telegram_user_id}
-        rankId={candidate.trader_rank?.current_rank_id}
+        rankId={
+          candidate.trader_rank && candidate.wins + candidate.losses > 0
+            ? candidate.trader_rank.current_rank_id
+            : undefined
+        }
         size={44}
       />
       <div className="top-body">
@@ -65,7 +69,9 @@ export function CultCandidateCard({
         </div>
         {(candidate.trader_rank || showTradePills) && (
           <div className="top-candidate-meta">
-            {candidate.trader_rank && <RankBadge rank={candidate.trader_rank} card />}
+            {candidate.trader_rank && candidate.wins + candidate.losses > 0 && (
+              <RankBadge rank={candidate.trader_rank} card />
+            )}
             {showTradePills && (
               <div className="candidate-trades-pills">
                 {activeCount > 0 && (

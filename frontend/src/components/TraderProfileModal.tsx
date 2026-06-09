@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import type { Trader, TraderRank } from "../api";
-import { activateRankShield, confirmMyRank, fetchTraderRank } from "../api";
+import { fetchTraderRank } from "../api";
 import { useAuthorProfile } from "../hooks/useAuthorProfile";
 import { formatUsd } from "../utils";
 import { useThemedCopy } from "../hooks/useThemedCopy";
 import { isVolnovoiTrader } from "../utils/volnovoi";
+import { shouldShowTraderRankBadge, traderClosedDealsCount, traderRankAvatarId } from "../utils/traderRankDisplay";
 import { useAppTheme } from "../hooks/useAppTheme";
-import { resolveRankName } from "../utils/punkTheme";
 import { resolveRankStyle } from "../utils/ranks";
 import { Avatar } from "./Avatar";
 import { RankBadge } from "./RankBadge";
@@ -20,12 +20,13 @@ type Props = {
   onClose: () => void;
 };
 
-export function TraderProfileModal({ trader, isMe, isAdmin, onClose }: Props) {
+export function TraderProfileModal({ trader, onClose }: Props) {
   const theme = useAppTheme();
   const copy = useThemedCopy();
   const aggregate = isVolnovoiTrader(trader);
+  const showRankBadge = shouldShowTraderRankBadge(trader);
+  const hasClosedDeals = traderClosedDealsCount(trader) > 0;
   const [rank, setRank] = useState<TraderRank | null>(trader.trader_rank ?? null);
-  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (aggregate) {
@@ -40,32 +41,6 @@ export function TraderProfileModal({ trader, isMe, isAdmin, onClose }: Props) {
   const st = resolveRankStyle(rank?.current_rank_id ?? 8, theme);
   const profile = useAuthorProfile(trader.display_name, trader.username, trader.telegram_id);
 
-  const onConfirm = async () => {
-    setBusy(true);
-    try {
-      setRank(await confirmMyRank());
-    } catch (e) {
-      alert(e instanceof Error ? e.message : "Ошибка");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const onShieldClick = () => {
-    void (async () => {
-      setBusy(true);
-      try {
-        setRank(await activateRankShield());
-      } catch (e) {
-        alert(e instanceof Error ? e.message : "Страховка недоступна");
-      } finally {
-        setBusy(false);
-      }
-    })();
-  };
-
-  const showOwnShield = !aggregate && isMe && isAdmin && rank && !rank.shield_used_this_month;
-
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="trader-profile-sheet" onClick={(e) => e.stopPropagation()}>
@@ -78,13 +53,13 @@ export function TraderProfileModal({ trader, isMe, isAdmin, onClose }: Props) {
             displayName={trader.display_name}
             username={trader.username}
             telegramId={trader.telegram_id}
-            rankId={rank?.current_rank_id}
+            rankId={traderRankAvatarId(trader)}
             size={56}
           />
           <div className="trader-profile-sheet__who">
             <div className="trader-profile-sheet__name-row">
               <p className="trader-profile-sheet__name">{profile.title}</p>
-              {rank && <RankBadge rank={rank} featured />}
+              {showRankBadge && rank && <RankBadge rank={rank} featured />}
             </div>
             {aggregate && <p className="trader-profile-sheet__sub">{copy.volnovoiSubtitle}</p>}
           </div>
@@ -117,22 +92,16 @@ export function TraderProfileModal({ trader, isMe, isAdmin, onClose }: Props) {
           </div>
         )}
 
-        {rank && (
+        {!aggregate && !hasClosedDeals && (
+          <p className="trader-profile-sheet__rank-pending meta">{copy.rankAfterFirstClose}</p>
+        )}
+
+        {showRankBadge && rank && (
           <div className="trader-profile-sheet__rank-block" style={{ background: st.bg }}>
             <p className="trader-profile-sheet__weekly">
               Неделя: {rank.weekly_pct >= 0 ? "+" : ""}
               {rank.weekly_pct.toFixed(1)}%
             </p>
-            {!aggregate && isMe && !rank.is_confirmed && !rank.rank_applied_this_week && (
-              <button type="button" className="btn-primary" disabled={busy} onClick={() => void onConfirm()}>
-                Подтвердить результат
-              </button>
-            )}
-            {showOwnShield && (
-              <button type="button" className="btn-ghost" disabled={busy} onClick={onShieldClick}>
-                Страховка
-              </button>
-            )}
           </div>
         )}
 
@@ -147,8 +116,7 @@ export function TraderProfileModal({ trader, isMe, isAdmin, onClose }: Props) {
                     {h.weekly_pct >= 0 ? "+" : ""}
                     {h.weekly_pct.toFixed(1)}%
                   </span>
-                  <span>{resolveRankName(h.rank_id, h.rank_name, theme)}</span>
-                  <span className="rank-history__status">{h.confirmed ? "✓" : "—"}</span>
+                  <span>{h.rank_name}</span>
                 </li>
               ))}
             </ul>

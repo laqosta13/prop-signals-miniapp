@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { resetTraderRoster, setTraderRoster } from "../api";
+import { useThemedCopy } from "../hooks/useThemedCopy";
 import { confirmAction } from "../utils/confirmAction";
 
 export type TraderRosterPlacement = "top" | "candidate" | "fired";
@@ -22,7 +23,14 @@ const CONFIRM: Record<TraderRosterPlacement, string> = {
   fired: "Уволить трейдера? Публикация сигналов будет заблокирована.",
 };
 
+function rosterErrorMessage(err: unknown, cooldownMsg: string): string {
+  const text = err instanceof Error ? err.message : "";
+  if (text.includes("fired_cooldown")) return cooldownMsg;
+  return text || "Не удалось изменить статус";
+}
+
 export function TraderRosterActions({ telegramId, placement, onChanged }: Props) {
+  const copy = useThemedCopy();
   const [busy, setBusy] = useState(false);
 
   const move = async (section: TraderRosterPlacement) => {
@@ -34,7 +42,7 @@ export function TraderRosterActions({ telegramId, placement, onChanged }: Props)
       await setTraderRoster(telegramId, section);
       onChanged();
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : "Не удалось изменить статус");
+      window.alert(rosterErrorMessage(e, copy.rosterFiredCooldownMsg));
     } finally {
       setBusy(false);
     }
@@ -49,7 +57,7 @@ export function TraderRosterActions({ telegramId, placement, onChanged }: Props)
       await resetTraderRoster(telegramId);
       onChanged();
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : "Не удалось сбросить статус");
+      window.alert(rosterErrorMessage(e, copy.rosterFiredCooldownMsg));
     } finally {
       setBusy(false);
     }

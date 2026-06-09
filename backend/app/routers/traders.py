@@ -5,17 +5,12 @@ from app.config import settings
 from app.deps import db_session, get_current_user, require_admin, require_super_admin
 from app.leaderboard_service import build_fired_leaderboard, build_leaderboard, build_roster_demoted_admins, fired_trader_ids
 from app.models import Trader
-from app.rank_service import activate_shield, confirm_rank, ensure_rank_fields, needs_confirm_prompt
+from app.rank_service import ensure_rank_fields
 from app.schemas import TelegramUser, TraderRankRead, TraderRead, TraderRosterBody
 from app.serializers import trader_rank_read
 from app.signal_service import get_or_create_trader
 from app.cult_candidate_service import ensure_cult_candidate_for_demoted_admin
-from app.trader_roster_service import (
-    ROSTER_CANDIDATE,
-    clear_roster_override,
-    is_main_feed_publisher,
-    set_roster_override,
-)
+from app.trader_roster_service import ROSTER_CANDIDATE, clear_roster_override, set_roster_override
 from app.volnovoi_account import build_volnovoi_read, is_volnovoi_account
 
 router = APIRouter(prefix="/traders", tags=["traders"])
@@ -85,47 +80,6 @@ def reset_trader_roster(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     db.commit()
-
-
-@router.get("/me/rank-pending")
-def my_rank_pending(
-    db: Session = Depends(db_session),
-    user: TelegramUser = Depends(require_admin),
-) -> dict:
-    trader = get_or_create_trader(db, user.telegram_user_id, user.username)
-    ensure_rank_fields(trader)
-    db.commit()
-    needs = needs_confirm_prompt(trader) if is_main_feed_publisher(db, user.telegram_user_id) else False
-    return {"needs_confirm": needs, "rank": trader_rank_read(trader)}
-
-
-@router.post("/me/rank/confirm", response_model=TraderRankRead)
-def confirm_my_rank(
-    db: Session = Depends(db_session),
-    user: TelegramUser = Depends(require_admin),
-) -> TraderRankRead:
-    if not is_main_feed_publisher(db, user.telegram_user_id):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="not_main_feed_trader")
-    trader = get_or_create_trader(db, user.telegram_user_id, user.username)
-    confirm_rank(trader)
-    db.commit()
-    db.refresh(trader)
-    return trader_rank_read(trader)
-
-
-@router.post("/me/rank/shield", response_model=TraderRankRead)
-def activate_my_shield(
-    db: Session = Depends(db_session),
-    user: TelegramUser = Depends(require_admin),
-) -> TraderRankRead:
-    trader = get_or_create_trader(db, user.telegram_user_id, user.username)
-    try:
-        activate_shield(trader)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
-    db.commit()
-    db.refresh(trader)
-    return trader_rank_read(trader)
 
 
 @router.get("/{telegram_id}/rank", response_model=TraderRankRead)

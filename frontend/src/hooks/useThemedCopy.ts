@@ -32,7 +32,9 @@ import {
   VOLNOVOI_MARKETING_CTA,
   VOLNOVOI_SUBTITLE,
   RANK_GUIDE_HINT,
-  RANK_CONFIRM_PENDING,
+  RANK_AFTER_FIRST_CLOSE,
+  RANK_RULES,
+  ROSTER_FIRED_COOLDOWN_MSG,
   subscriptionInactiveHint,
   testModeBannerText,
 } from "../data/appCopy";
@@ -149,11 +151,9 @@ export type ThemedCopy = {
   rankGuidePool: string;
   rankRules: readonly string[];
   rankUnderstood: string;
-  rankConfirmTitle: string;
-  rankConfirmBtn: string;
-  rankConfirmWeek: string;
-  rankConfirmPending: string;
+  rankAfterFirstClose: string;
   rankPenaltyWarn: string;
+  rosterFiredCooldownMsg: string;
   themeToggleDark: string;
   themeTogglePunk: string;
   outcomeWaiting: string;
@@ -285,22 +285,14 @@ function buildCopy(theme: Theme): ThemedCopy {
       trackerTrades: "Сделок",
       trackerSettings: "Настройки",
       rankGuideTitle: "Система рангов",
-      rankGuideIntro: "Недельный результат → ранг. Выше ранг — больше % входа и плечо в сигнале.",
+      rankGuideIntro:
+        "Недельный результат → ранг. Каждый понедельник ранг обновляется автоматически. Выше ранг — больше % входа и плечо.",
       rankGuidePool: "Общий пул входа: если два трейдера заняли 100%, третий в эту сделку не войдёт.",
-      rankRules: [
-        "Недельный % по закрытым сделкам → ранг.",
-        "Подтвердите итог до вс 23:59 МСК.",
-        "Минусовая неделя: −1 ранг; две подряд: −2; без подтверждения: ещё −1.",
-        "Страховка — 1 раз в месяц, минус не снижает ранг.",
-        "Топ-ранги — до 100% входа и плечо до 5×.",
-        "Ниже «Китяры» — плечо 1×; дальше +1× за ранг.",
-      ],
+      rankRules: RANK_RULES,
       rankUnderstood: "Понятно",
-      rankConfirmTitle: "Подтверди свой ранг",
-      rankConfirmBtn: "Подтвердить результат",
-      rankConfirmWeek: "за неделю",
-      rankConfirmPending: RANK_CONFIRM_PENDING,
+      rankAfterFirstClose: RANK_AFTER_FIRST_CLOSE,
       rankPenaltyWarn: "−1 ранг",
+      rosterFiredCooldownMsg: ROSTER_FIRED_COOLDOWN_MSG,
       themeToggleDark: "Тёмная тема",
       themeTogglePunk: "Панк-тема",
       outcomeWaiting: "Ожидание входа",
@@ -433,11 +425,9 @@ function buildCopy(theme: Theme): ThemedCopy {
     rankGuidePool: PUNK_RANK_GUIDE_POOL,
     rankRules: P.PUNK_RANK_RULES,
     rankUnderstood: P.PUNK_RANK_GUIDE_UNDERSTOOD,
-    rankConfirmTitle: P.PUNK_RANK_CONFIRM_TITLE,
-    rankConfirmBtn: P.PUNK_RANK_CONFIRM_BTN,
-    rankConfirmWeek: P.PUNK_RANK_CONFIRM_WEEK,
-    rankConfirmPending: P.PUNK_RANK_CONFIRM_PENDING,
+    rankAfterFirstClose: P.PUNK_RANK_AFTER_FIRST_CLOSE,
     rankPenaltyWarn: P.PUNK_RANK_PENALTY_WARN,
+    rosterFiredCooldownMsg: P.PUNK_ROSTER_FIRED_COOLDOWN_MSG,
     themeToggleDark: P.PUNK_THEME_TOGGLE_DARK,
     themeTogglePunk: P.PUNK_THEME_TOGGLE_PUNK,
     outcomeWaiting: P.PUNK_OUTCOME_WAITING,

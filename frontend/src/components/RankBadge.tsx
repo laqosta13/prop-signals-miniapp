@@ -43,21 +43,13 @@ export function RankBadge({ rank, compact, featured, card, interactive = true }:
           <RankIcon id={st.iconId} size={iconSize} className="rank-badge__icon" />
         ))}
       <span className="rank-badge__name">{rankName}</span>
-      {rank.shield_active && (
-        <span className="rank-badge__shield" title="Страховка">
-          🛡
-        </span>
-      )}
     </span>
   );
 
-  const needsWeeklyConfirm =
-    !rank.is_confirmed && !rank.rank_applied_this_week && rank.weekly_pct !== 0;
-  const warn = needsWeeklyConfirm ? (
-    <span className="rank-badge__warn">
-      {rank.pending_rank_penalty ? copy.rankPenaltyWarn : copy.rankConfirmPending}
-    </span>
-  ) : null;
+  const warn =
+    rank.pending_rank_penalty && rank.weekly_pct !== 0 ? (
+      <span className="rank-badge__warn">{copy.rankPenaltyWarn}</span>
+    ) : null;
 
   const openGuide = (e: MouseEvent) => {
     if (!interactive) return;

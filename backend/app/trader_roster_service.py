@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import TraderRosterOverride
+from app.models import Trader, TraderRosterOverride
 from app.volnovoi_account import is_volnovoi_account
 
 ROSTER_TOP = "top"
@@ -14,6 +16,42 @@ ROSTER_CANDIDATE = "candidate"
 ROSTER_FIRED = "fired"
 
 VALID_SECTIONS = frozenset({ROSTER_TOP, ROSTER_CANDIDATE, ROSTER_FIRED})
+
+FIRED_RESTORE_DAYS = 14
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def can_leave_fired(db: Session, telegram_id: int) -> bool:
+    row = db.get(TraderRosterOverride, telegram_id)
+    if row is None or row.section != ROSTER_FIRED:
+        return True
+    since = row.updated_at
+    if since is None:
+        return True
+    if since.tzinfo is None:
+        since = since.replace(tzinfo=timezone.utc)
+    return _utc_now() >= since + timedelta(days=FIRED_RESTORE_DAYS)
+
+
+def _assert_can_leave_fired(db: Session, telegram_id: int) -> None:
+    if not can_leave_fired(db, telegram_id):
+        raise ValueError("fired_cooldown")
+
+
+def ensure_auto_fired_for_minus_weeks(db: Session, trader: Trader) -> None:
+    """Две минусовые недели подряд → блок «Уволенные»."""
+    from app.rank_service import ensure_rank_fields
+
+    ensure_rank_fields(trader)
+    if (trader.consecutive_loss_weeks or 0) < 2:
+        return
+    row = db.get(TraderRosterOverride, trader.telegram_id)
+    if row is not None and row.section == ROSTER_FIRED:
+        return
+    set_roster_override(db, trader.telegram_id, ROSTER_FIRED)
 
 
 def roster_overrides_map(db: Session) -> dict[int, str]:
@@ -27,6 +65,8 @@ def set_roster_override(db: Session, telegram_id: int, section: str) -> None:
     if section not in VALID_SECTIONS:
         raise ValueError("invalid_section")
     row = db.get(TraderRosterOverride, telegram_id)
+    if section in (ROSTER_TOP, ROSTER_CANDIDATE) and row is not None and row.section == ROSTER_FIRED:
+        _assert_can_leave_fired(db, telegram_id)
     if row is None:
         db.add(TraderRosterOverride(telegram_id=telegram_id, section=section))
     else:
@@ -43,6 +83,8 @@ def clear_roster_override(db: Session, telegram_id: int) -> bool:
     row = db.get(TraderRosterOverride, telegram_id)
     if row is None:
         return False
+    if row.section == ROSTER_FIRED:
+        _assert_can_leave_fired(db, telegram_id)
     db.delete(row)
     return True
 
