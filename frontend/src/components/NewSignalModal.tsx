@@ -132,6 +132,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
 
     setSubmitting(true);
     setError(null);
+    let published = false;
     try {
       const side = direction === "short" ? "SHORT" : "LONG";
       const ok = await confirmAction(
@@ -155,13 +156,18 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
       const trackUpload = uploadBytes > 0;
       setUploadProgress(trackUpload ? initialUploadProgress(uploadBytes) : null);
       await createSignalWithMedia(fd, trackUpload ? (p) => setUploadProgress(p) : undefined);
-      WebApp.HapticFeedback.notificationOccurred("success");
-      onClose();
+      published = true;
+      try {
+        WebApp.HapticFeedback.notificationOccurred("success");
+      } catch {
+        /* haptic optional */
+      }
       void onCreated();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка");
     } finally {
       release();
+      if (published) onClose();
       setSubmitting(false);
       setUploadProgress(null);
     }

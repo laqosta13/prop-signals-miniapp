@@ -124,6 +124,7 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
 
     setSubmitting(true);
     setError(null);
+    let saved = false;
     try {
       const fd = buildSignalFormData({
         symbol,
@@ -144,13 +145,18 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
       const trackUpload = uploadBytes > 0;
       setUploadProgress(trackUpload ? initialUploadProgress(uploadBytes) : null);
       await updateSignalWithMedia(signal.id, fd, trackUpload ? (p) => setUploadProgress(p) : undefined);
-      WebApp.HapticFeedback.notificationOccurred("success");
-      onClose();
+      saved = true;
+      try {
+        WebApp.HapticFeedback.notificationOccurred("success");
+      } catch {
+        /* haptic optional */
+      }
       void onUpdated();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка");
     } finally {
       release();
+      if (saved) onClose();
       setSubmitting(false);
       setUploadProgress(null);
     }
