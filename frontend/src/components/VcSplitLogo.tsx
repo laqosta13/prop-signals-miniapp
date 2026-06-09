@@ -25,7 +25,7 @@ export function VcSplitLogo({ size = 32, className = "", fluid = false }: Props)
         className="vc-split-logo__classic"
         draggable={false}
       />
-      <VcPunkLogoMark className="vc-split-logo__punk" />
+      {punk ? <VcPunkLogoMark className="vc-split-logo__punk" /> : null}
     </span>
   );
 }

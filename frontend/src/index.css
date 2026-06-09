@@ -120,16 +120,6 @@
   line-height: 0;
 }
 
-.topbar__marketplace-logo-img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: left center;
-  /* Убираем блик-звёздочку в правом нижнем углу PNG. */
-  clip-path: inset(0 9% 9% 0);
-}
-
 .topbar__marketplace-copy {
   display: flex;
   flex-direction: column;
@@ -190,17 +180,14 @@
   opacity: 1;
   transform: scale(1);
   filter: none;
+  object-fit: contain;
+  object-position: left center;
+  /* Убираем блик-звёздочку в правом нижнем углу PNG. */
+  clip-path: inset(0 9% 9% 0);
 }
 
 .vc-split-logo--classic {
   filter: drop-shadow(0 1px 4px rgba(201, 162, 39, 0.35));
-}
-
-.vc-split-logo--classic .vc-split-logo__punk {
-  opacity: 0;
-  visibility: hidden;
-  transform: scale(0);
-  filter: none;
 }
 
 .vc-split-logo--punk .vc-split-logo__classic {
