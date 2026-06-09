@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     public_base_url: str = ""
     exchange_secrets_key: str = ""
     """ISO8601 UTC — старт тестового режима (всё бесплатно test_mode_days). Пусто — режим выключен."""
-    test_mode_start_at: str = ""
+    test_mode_start_at: str = "2026-06-09T00:00:00+00:00"
     test_mode_days: int = 30
 
     @property
