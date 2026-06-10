@@ -17,7 +17,7 @@ function cultSnapshotToTrackerSnapshot(
   snap: Awaited<ReturnType<typeof fetchCultCandidateFormSnapshot>>,
 ): TrackerSnapshot {
   return {
-    trackerConfigured: true,
+    trackerConfigured: false,
     balance: snap.balance,
     accountSize: snap.account_size,
     dailyLossPct: 0,
@@ -82,6 +82,7 @@ export function useCandidateSignalFormTracker(
   return useMemo(
     () => ({
       ...limits,
+      trackerSnapshot: trackerSnap,
       trackerSnap: trackerSnap
         ? {
             balance: trackerSnap.balance,

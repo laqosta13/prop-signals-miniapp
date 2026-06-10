@@ -114,6 +114,25 @@ export function useSignalMarketPriceInit({
     return () => clearTimeout(t);
   }, [open, symbol, skipTrackerInit, trackerLoading, trackerSnap, setRisk, loadMarketPrice]);
 
+  // Snapshot недоступен — всё равно подтянуть цену Bybit (кандидаты без блокеров, сбой API лимитов).
+  useEffect(() => {
+    if (skipTrackerInit || !open || trackerLoading || trackerSnap || !symbol.trim()) return;
+    const sym = symbol.trim().toUpperCase();
+    const noSnapKey = `${openGenRef.current}|no-snap|${sym}`;
+    if (trackerInitRef.current === noSnapKey) return;
+    trackerInitRef.current = noSnapKey;
+    lastSymbolRef.current = sym;
+    const t = window.setTimeout(
+      () =>
+        void loadMarketPrice(symbol, {
+          priceRiskPct: parseRiskPctValue(riskPctRef.current),
+          withTracker: false,
+        }),
+      150,
+    );
+    return () => clearTimeout(t);
+  }, [open, skipTrackerInit, trackerLoading, trackerSnap, symbol, loadMarketPrice]);
+
   // Смена тикера: только цена входа, % стопа не сбрасываем (не при редактировании).
   useEffect(() => {
     if (skipTrackerInit || !open || !symbol.trim() || trackerLoading) return;

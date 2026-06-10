@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { createCultCandidateSignal, type UploadProgress } from "../api";
 import { useCandidateSignalFormTracker } from "../hooks/useCandidateSignalFormTracker";
@@ -65,38 +65,13 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
   const tracker = useCandidateSignalFormTracker(open, { risk, setRisk }, { leverage, setLeverage });
   const balance = tracker.balanceForNominal();
 
-  const trackerSnapForInit = useMemo(() => {
-    const snap = tracker.trackerSnap;
-    if (!snap) return null;
-    return {
-      trackerConfigured: true,
-      balance: snap.balance,
-      accountSize: snap.account_size,
-      dailyLossPct: 0,
-      dailyLossUsd: snap.daily_loss_usd,
-      maxDailyLossPct: 5,
-      dailyTradesCount: snap.daily_trades_count,
-      dailyTradesLimit: snap.daily_trades_limit,
-      currentRankId: snap.current_rank_id,
-      currentRankName: snap.current_rank_name,
-      rankMaxStakePct: snap.rank_max_stake_pct,
-      rankMaxLeverage: snap.rank_max_leverage,
-      dailyStopReservedRankPct: snap.daily_stop_reserved_rank_pct,
-      dailyStopRemainingRankPct: snap.daily_stop_remaining_rank_pct,
-      stakePoolUsedPct: snap.stake_pool_used_pct,
-      stakePoolRemainingPct: snap.stake_pool_remaining_pct,
-      rankEntryLocked: snap.rank_entry_locked ?? false,
-      maxStakePct: snap.max_stake_pct,
-    };
-  }, [tracker.trackerSnap]);
-
   const { resetInitKey } = useSignalMarketPriceInit({
     open,
     symbol,
     stakePctLabel: risk,
     leverage,
     riskPct,
-    trackerSnap: trackerSnapForInit,
+    trackerSnap: tracker.trackerSnapshot,
     trackerLoading: tracker.trackerLoading,
     directionRef,
     applyMarketPrice,
@@ -208,7 +183,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
       <SignalFormLimitsBar
         active
         loading={tracker.trackerLoading}
-        trackerConfigured
+        trackerConfigured={false}
         dailyRemaining={tracker.dailyRemaining}
         dailyStopReservedRankPct={tracker.dailyStopReservedRank}
         dailyTradesRemaining={tracker.dailyTradesRemainingCount}

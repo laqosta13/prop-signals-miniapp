@@ -146,16 +146,24 @@ def is_main_feed_publisher(db: Session, telegram_id: int) -> bool:
 
 def can_publish_candidate_signals(db: Session, telegram_id: int) -> bool:
     """Кто публикует по правилам кандидатов (POST /cult-candidates/me/signals)."""
-    from app.cult_candidate_service import is_cult_candidate
+    from app.cult_candidate_service import is_cult_candidate, join_blockers
     from app.leaderboard_service import fired_trader_ids
+    from app.models import Subscriber
 
     if telegram_id in fired_trader_ids(db):
         return False
     if is_main_feed_publisher(db, telegram_id):
         return False
     if is_roster_demoted_admin(db, telegram_id):
-        return is_cult_candidate(db, telegram_id)
-    return is_cult_candidate(db, telegram_id)
+        if not is_cult_candidate(db, telegram_id):
+            return False
+    elif not is_cult_candidate(db, telegram_id):
+        return False
+    sub = db.get(Subscriber, telegram_id)
+    if sub is None:
+        return False
+    bypass = cult_subscription_admin_bypass(db, telegram_id)
+    return len(join_blockers(db, sub, cult_admin_bypass=bypass)) == 0
 
 
 def cult_subscription_admin_bypass(db: Session, telegram_id: int) -> bool:

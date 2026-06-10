@@ -63,6 +63,8 @@ type Props = {
   entryPrice?: number | null;
   /** win/lose — один раз загрузить свечи и не обновлять */
   frozen?: boolean;
+  /** Модалки — не ждать IntersectionObserver */
+  eager?: boolean;
 };
 
 async function fetchBybitKlines(
@@ -441,6 +443,7 @@ export function SignalChart({
   entryFilledAt,
   entryPrice,
   frozen = false,
+  eager = false,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
@@ -676,6 +679,10 @@ export function SignalChart({
   }, [symbol, frozen, interval, entryFilledAt, createdAt, closedAt, closeReason, closedExitPrice, status]);
 
   useEffect(() => {
+    if (eager) {
+      setVisible(true);
+      return;
+    }
     const el = wrapRef.current;
     if (!el) return;
     const obs = new IntersectionObserver(
@@ -684,7 +691,7 @@ export function SignalChart({
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, []);
+  }, [eager]);
 
   useEffect(() => {
     if (!visible || !chartRef.current) return;

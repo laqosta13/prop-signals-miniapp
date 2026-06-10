@@ -122,6 +122,7 @@ export function CultCandidateSignalDetailModal({ signal, loading = false, error 
               entryFilledAt={s.entry_filled_at}
               entryPrice={s.published_market_price}
               frozen
+              eager
             />
 
             <div className="levels-grid">
