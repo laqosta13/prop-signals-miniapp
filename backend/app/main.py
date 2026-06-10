@@ -75,6 +75,9 @@ async def lifespan(app: FastAPI):
     from app.price_monitor import check_active_signals_once
 
     await _notify_pending_launch_news()
+    from app.coin_icons import warmup_coin_icon_cache
+
+    asyncio.create_task(warmup_coin_icon_cache())
     await check_active_signals_once()
     asyncio.create_task(verify_support_group_after_delay())
     try:

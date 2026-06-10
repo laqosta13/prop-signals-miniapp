@@ -10,26 +10,28 @@ export function symbolBase(symbol: string): string {
   return base || symbol.trim().toUpperCase();
 }
 
-const ICON_SLUG_ALIASES: Record<string, string> = {
-  pepe: "pepe",
-  bonk: "bonk",
-  floki: "floki",
-  lunc: "luna",
-  wif: "wif",
-};
+const API_BASE =
+  import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
+  (import.meta.env.DEV ? "/api" : "");
 
 export function coinIconSlug(symbol: string): string {
-  const base = symbolBase(symbol).toLowerCase();
-  return ICON_SLUG_ALIASES[base] ?? base;
+  return symbolBase(symbol).toLowerCase();
 }
 
+/** Оригинальные logo: бэкенд (CoinGecko) → брендовые SVG → spothq. */
 export function coinIconUrls(symbol: string): string[] {
   const slug = coinIconSlug(symbol);
-  return [
-    `https://assets.coincap.io/assets/icons/${slug}@2x.png`,
-    `https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/32/color/${slug}.png`,
+  const encoded = encodeURIComponent(symbol.trim());
+  const urls: string[] = [];
+  if (API_BASE) {
+    urls.push(`${API_BASE}/signals/coin-icon?symbol=${encoded}`);
+  }
+  urls.push(
+    `https://logo.svgcdn.com/token-branded/${slug}.svg`,
+    `https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/${slug}.png`,
     `https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/svg/color/${slug}.svg`,
-  ];
+  );
+  return urls;
 }
 
 export function symbolHue(symbol: string): number {

@@ -5,11 +5,11 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import PaymentTx, Subscriber, UserBybitSettings
+from app.models import PaymentTx, SignalCopyTrade, Subscriber, UserBybitSettings
 from app.subscription_billing import ensure_payment_memo, usdt_pay_address
 from app.ton_payments import TonPaymentCheck, TonPaymentError, verify_usdt_ton_payment
 
@@ -19,6 +19,8 @@ COPY_FEE_PERCENT = 20.0
 MIN_FEE_USD = 0.01
 MIN_COPY_DEPOSIT_USD = 0.01
 MIN_TOPUP_USD = 1.0
+
+_COPY_ACTIVITY_STATUSES = ("open", "opening", "closing", "closed")
 
 
 def _now() -> datetime:
@@ -65,6 +67,38 @@ def fee_from_profit(profit_usd: float) -> float:
     if profit_usd <= 0:
         return 0.0
     return round(profit_usd * COPY_FEE_PERCENT / 100.0, 2)
+
+
+def user_has_copy_trades(db: Session, telegram_user_id: int) -> bool:
+    count = db.scalar(
+        select(func.count())
+        .select_from(SignalCopyTrade)
+        .where(
+            SignalCopyTrade.telegram_user_id == telegram_user_id,
+            SignalCopyTrade.exchange_status.in_(_COPY_ACTIVITY_STATUSES),
+        )
+    )
+    return int(count or 0) > 0
+
+
+def sync_copy_baseline_if_no_trades(
+    db: Session,
+    telegram_user_id: int,
+    sub: Subscriber,
+    row: UserBybitSettings | None,
+    current_equity: float | None,
+) -> None:
+    """Пока сделок не было — база = текущий баланс, прибыль копирования 0."""
+    if current_equity is None or current_equity <= 0:
+        return
+    if user_has_copy_trades(db, telegram_user_id):
+        return
+    rounded = round(float(current_equity), 2)
+    sub.copy_equity_baseline_usd = rounded
+    sub.copy_billed_profit_usd = 0.0
+    if row is not None:
+        row.equity_baseline_usd = rounded
+        row.last_equity_usd = rounded
 
 
 def copy_fee_exempt(telegram_user_id: int) -> bool:
@@ -221,8 +255,12 @@ def billing_snapshot(
         row.last_equity_usd = round(float(current_equity), 2)
         equity = current_equity
 
-    profit = profit_since_connect(equity, sub)
-    unbilled = 0.0 if exempt else unbilled_profit(equity, sub)
+    if user_has_copy_trades(db, telegram_user_id):
+        profit = profit_since_connect(equity, sub)
+        unbilled = 0.0 if exempt else unbilled_profit(equity, sub)
+    else:
+        profit = 0.0
+        unbilled = 0.0
     accrued_fee = 0.0 if exempt else fee_from_profit(unbilled)
     deposit = copy_fee_deposit_usd(sub)
 

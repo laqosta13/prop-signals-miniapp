@@ -15,6 +15,7 @@ from app.copy_billing import (
     ensure_baseline_on_connect,
     record_copy_deposit_topup,
     settle_copy_fees_from_deposit,
+    sync_copy_baseline_if_no_trades,
 )
 from app.credentials_crypto import decrypt_secret, encrypt_secret
 from app.deps import db_session, get_current_user
@@ -170,6 +171,7 @@ async def _refresh_billing(
     sub = db.get(Subscriber, user.telegram_user_id)
     if sub is not None:
         ensure_baseline_on_connect(db, sub, row, balance)
+        sync_copy_baseline_if_no_trades(db, user.telegram_user_id, sub, row, balance)
         settle_copy_fees_from_deposit(db, user.telegram_user_id, row, balance)
     return balance, balance_error
 
@@ -223,6 +225,7 @@ async def save_my_copy_trading(
     if balance is None and body.account_balance_usd is not None:
         row.account_balance_usd = round(body.account_balance_usd, 2)
     ensure_baseline_on_connect(db, sub, row, balance)
+    sync_copy_baseline_if_no_trades(db, user.telegram_user_id, sub, row, balance)
     settle_copy_fees_from_deposit(db, user.telegram_user_id, row, balance)
     db.commit()
     db.refresh(row)
@@ -255,6 +258,7 @@ async def patch_my_copy_trading(
     sub = db.get(Subscriber, user.telegram_user_id)
     if sub is not None:
         ensure_baseline_on_connect(db, sub, row, balance)
+        sync_copy_baseline_if_no_trades(db, user.telegram_user_id, sub, row, balance)
         settle_copy_fees_from_deposit(db, user.telegram_user_id, row, balance)
     db.commit()
     db.refresh(row)
@@ -307,6 +311,7 @@ async def topup_copy_deposit(
                 sub = db.get(Subscriber, user.telegram_user_id)
                 if sub is not None:
                     ensure_baseline_on_connect(db, sub, row, balance)
+                    sync_copy_baseline_if_no_trades(db, user.telegram_user_id, sub, row, balance)
                     settle_copy_fees_from_deposit(db, user.telegram_user_id, row, balance)
         db.commit()
     except ValueError as e:

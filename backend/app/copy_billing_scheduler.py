@@ -8,7 +8,7 @@ import logging
 from sqlalchemy import select
 
 from app.bybit_trading import BybitCredentials, get_wallet_usdt_balance
-from app.copy_billing import ensure_baseline_on_connect, settle_copy_fees_from_deposit
+from app.copy_billing import ensure_baseline_on_connect, settle_copy_fees_from_deposit, sync_copy_baseline_if_no_trades
 from app.credentials_crypto import decrypt_secret
 from app.database import SessionLocal
 from app.models import Subscriber, UserBybitSettings
@@ -36,6 +36,7 @@ async def run_copy_billing_once() -> int:
             sub = db.get(Subscriber, row.telegram_user_id)
             if sub is not None:
                 ensure_baseline_on_connect(db, sub, row, equity)
+                sync_copy_baseline_if_no_trades(db, row.telegram_user_id, sub, row, equity)
             settle_copy_fees_from_deposit(db, row.telegram_user_id, row, equity)
             if equity is not None:
                 count += 1

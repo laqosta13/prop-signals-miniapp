@@ -3674,6 +3674,8 @@
 
 .volnovoi-copy__ok {
   margin: 0 0 12px;
+  color: var(--accent-green, #3dd68c);
+  font-weight: 600;
 }
 
 .volnovoi-copy__form {

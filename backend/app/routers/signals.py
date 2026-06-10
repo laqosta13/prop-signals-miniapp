@@ -1,9 +1,11 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from app.coin_icons import resolve_coin_icon_url
 from app.deps import db_session, get_current_user, require_active_subscription, require_main_feed_publisher
 from app.signal_permissions import require_signal_engagement, require_signal_owner
 from app.engagement import purge_signal_engagement, record_view, toggle_like
@@ -100,6 +102,15 @@ def _require_signal_form_market_access(user: TelegramUser, db: Session) -> None:
     if is_main_feed_publisher(db, user.telegram_user_id) or can_publish_candidate_signals(db, user.telegram_user_id):
         return
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="forbidden")
+
+
+@router.get("/coin-icon")
+async def coin_icon(symbol: str = Query(..., min_length=1, max_length=32)) -> RedirectResponse:
+    """Публичный редирект на оригинальный logo монеты (CoinGecko). Без auth — для <img src>."""
+    url = await resolve_coin_icon_url(symbol)
+    if not url:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="icon not found")
+    return RedirectResponse(url, status_code=302, headers={"Cache-Control": "public, max-age=604800"})
 
 
 @router.get("/market-symbols", response_model=MarketSymbolsRead)

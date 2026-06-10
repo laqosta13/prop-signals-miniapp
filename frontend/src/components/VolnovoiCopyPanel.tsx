@@ -41,6 +41,7 @@ export function VolnovoiCopyPanel() {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [testOk, setTestOk] = useState<string | null>(null);
   const [tx, setTx] = useState("");
   const [copied, setCopied] = useState(false);
 
@@ -108,6 +109,7 @@ export function VolnovoiCopyPanel() {
     }
     setBusy(true);
     setErr(null);
+    setTestOk(null);
     try {
       if (hasKey && hasSecret) {
         await saveCopyTradingSettings({
@@ -121,6 +123,7 @@ export function VolnovoiCopyPanel() {
         await patchCopyTradingSettings(stakePayload);
       }
       setStatus(await testCopyTradingConnection());
+      setTestOk("Проверка пройдена");
       WebApp.HapticFeedback.notificationOccurred("success");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Ошибка подключения");
@@ -334,6 +337,7 @@ export function VolnovoiCopyPanel() {
                 </label>
               </div>
 
+              {testOk && <p className="volnovoi-copy__ok">{testOk}</p>}
               {err && <p className="err volnovoi-copy__err">{err}</p>}
               {status?.balance_error && <p className="meta volnovoi-copy__err">{status.balance_error}</p>}
 
