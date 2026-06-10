@@ -7,8 +7,9 @@ import {
   signalStopMovePct,
   signalTrackerBalanceUsd,
 } from "../utils/signalPnl";
-import { formatSignedMovePct, signalOutcomeDisplay } from "../utils/signalChartLevels";
+import { signalOutcomeDisplay } from "../utils/signalChartLevels";
 import { SignalChart } from "./SignalChart";
+import { SignalLevelsGrid } from "./SignalLevelsGrid";
 
 type Props = {
   signal: Signal | null;
@@ -125,23 +126,7 @@ export function CultCandidateSignalDetailModal({ signal, loading = false, error 
               eager
             />
 
-            <div className="levels-grid">
-              <div>
-                <span>вход</span>
-                <strong>{entry}</strong>
-              </div>
-              <div className="stop">
-                <span>стоп</span>
-                <strong>
-                  {s.stop_loss || "—"}
-                  {stopMovePct != null && <span className="levels-grid__pct"> {formatSignedMovePct(stopMovePct)}</span>}
-                </strong>
-              </div>
-              <div className="target">
-                <span>цель</span>
-                <strong>{target}</strong>
-              </div>
-            </div>
+            <SignalLevelsGrid entry={entry} stopLoss={s.stop_loss} target={target} stopMovePct={stopMovePct} />
 
             {s.comment && <p className="signal-card__comment">{s.comment}</p>}
           </article>

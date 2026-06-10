@@ -40,8 +40,17 @@ def usdt_credited_usd(check: TonPaymentCheck) -> float:
     return round(check.amount_raw / 1_000_000, 2)
 
 
+def copy_baseline_unset(sub: Subscriber) -> bool:
+    """База не задана или ошибочно 0 без списаний — весь баланс нельзя считать прибылью."""
+    billed = float(sub.copy_billed_profit_usd or 0)
+    baseline = sub.copy_equity_baseline_usd
+    if baseline is None:
+        return True
+    return baseline <= 0 and billed == 0
+
+
 def profit_since_connect(current_equity: float | None, sub: Subscriber) -> float:
-    if current_equity is None or sub.copy_equity_baseline_usd is None:
+    if current_equity is None or copy_baseline_unset(sub):
         return 0.0
     return round(max(0.0, float(current_equity) - float(sub.copy_equity_baseline_usd)), 2)
 
@@ -74,10 +83,30 @@ def ensure_baseline_on_connect(
     current_equity: float | None,
 ) -> None:
     """База прибыли хранится у подписчика — не сбрасывается при удалении/переподключении API."""
+    _ = db
     if sub.copy_connected_at is None:
         sub.copy_connected_at = _now()
-    if sub.copy_equity_baseline_usd is None and current_equity is not None and current_equity >= 0:
-        sub.copy_equity_baseline_usd = round(float(current_equity), 2)
+
+    if not copy_baseline_unset(sub):
+        if row is not None and current_equity is not None:
+            row.last_equity_usd = round(float(current_equity), 2)
+        return
+
+    baseline: float | None = None
+    if row is not None:
+        if row.equity_baseline_usd is not None and row.equity_baseline_usd > 0:
+            baseline = float(row.equity_baseline_usd)
+        elif row.last_equity_usd is not None and row.last_equity_usd > 0:
+            baseline = float(row.last_equity_usd)
+    if baseline is None and current_equity is not None and current_equity > 0:
+        baseline = float(current_equity)
+
+    if baseline is not None and baseline > 0:
+        rounded = round(baseline, 2)
+        sub.copy_equity_baseline_usd = rounded
+        if row is not None:
+            row.equity_baseline_usd = rounded
+
     if row is not None and current_equity is not None:
         row.last_equity_usd = round(float(current_equity), 2)
 

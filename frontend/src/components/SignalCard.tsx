@@ -10,7 +10,6 @@ import {
   signalStopMovePct,
   signalTrackerBalanceUsd,
 } from "../utils/signalPnl";
-import { formatSignedMovePct } from "../utils/signalChartLevels";
 import { useSignalLivePnl } from "../hooks/useSignalLivePnl";
 import { canEditOrDeleteSignal, canCloseAtMarketSignal, canSupplementSignal } from "../utils/signalActions";
 import { localizeOutcomeLabel, useThemedCopy } from "../hooks/useThemedCopy";
@@ -19,6 +18,7 @@ import { Avatar } from "./Avatar";
 import { CoinLogo } from "./CoinLogo";
 import { RankBadge } from "./RankBadge";
 import { SignalChart } from "./SignalChart";
+import { SignalLevelsGrid } from "./SignalLevelsGrid";
 
 type Props = {
   signal: Signal;
@@ -247,23 +247,7 @@ export function SignalCard({
         frozen={s.status === "win" || s.status === "lose"}
       />
 
-      <div className="levels-grid">
-        <div>
-          <span>вход</span>
-          <strong>{entry}</strong>
-        </div>
-        <div className="stop">
-          <span>стоп</span>
-          <strong>
-            {s.stop_loss || "—"}
-            {stopMovePct != null && <span className="levels-grid__pct"> {formatSignedMovePct(stopMovePct)}</span>}
-          </strong>
-        </div>
-        <div className="target">
-          <span>цель</span>
-          <strong>{target}</strong>
-        </div>
-      </div>
+      <SignalLevelsGrid entry={entry} stopLoss={s.stop_loss} target={target} stopMovePct={stopMovePct} />
 
       {s.media_image_url && (
         <button type="button" className="media-thumb" onClick={() => setLightbox(mediaUrl(s.media_image_url))}>

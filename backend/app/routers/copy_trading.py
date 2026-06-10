@@ -254,6 +254,7 @@ async def patch_my_copy_trading(
         row.account_balance_usd = round(body.account_balance_usd, 2)
     sub = db.get(Subscriber, user.telegram_user_id)
     if sub is not None:
+        ensure_baseline_on_connect(db, sub, row, balance)
         settle_copy_fees_from_deposit(db, user.telegram_user_id, row, balance)
     db.commit()
     db.refresh(row)
@@ -305,6 +306,7 @@ async def topup_copy_deposit(
             if balance is not None:
                 sub = db.get(Subscriber, user.telegram_user_id)
                 if sub is not None:
+                    ensure_baseline_on_connect(db, sub, row, balance)
                     settle_copy_fees_from_deposit(db, user.telegram_user_id, row, balance)
         db.commit()
     except ValueError as e:

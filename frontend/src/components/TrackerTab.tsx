@@ -24,9 +24,14 @@ export function TrackerTab({ trackers, signals, myId, canPublishMainFeed, onSett
   const copy = useThemedCopy();
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [tradesOpen, setTradesOpen] = useState<Record<number, boolean>>({});
+  const [propShotOpen, setPropShotOpen] = useState<Record<number, boolean>>({});
 
   const toggleTrades = (ownerId: number) => {
     setTradesOpen((prev) => ({ ...prev, [ownerId]: !prev[ownerId] }));
+  };
+
+  const togglePropShot = (ownerId: number) => {
+    setPropShotOpen((prev) => ({ ...prev, [ownerId]: !prev[ownerId] }));
   };
   const dayLossLimitPct = 5;
   const todayLossUsd = useMemo(() => {
@@ -107,6 +112,7 @@ export function TrackerTab({ trackers, signals, myId, canPublishMainFeed, onSett
         const canEdit = canPublishMainFeed && myId === d.owner_telegram_id;
         const minDaysLabel = d.min_trading_days_unlimited ? "∞" : String(d.min_trading_days);
         const tradesExpanded = !!tradesOpen[d.owner_telegram_id];
+        const propShotExpanded = !!propShotOpen[d.owner_telegram_id];
 
         return (
           <section key={d.owner_telegram_id} className="tracker-block">
@@ -172,14 +178,26 @@ export function TrackerTab({ trackers, signals, myId, canPublishMainFeed, onSett
 
             {d.prop_screenshot_url && (
               <div className="tracker-prop">
-                <p className="label">{copy.trackerRecon}</p>
                 <button
                   type="button"
-                  className="tracker-prop__shot"
-                  onClick={() => setLightbox(mediaUrl(d.prop_screenshot_url) ?? d.prop_screenshot_url)}
+                  className={`tracker-prop__toggle${propShotExpanded ? " tracker-prop__toggle--open" : ""}`}
+                  onClick={() => togglePropShot(d.owner_telegram_id)}
+                  aria-expanded={propShotExpanded}
                 >
-                  <img src={mediaUrl(d.prop_screenshot_url) ?? d.prop_screenshot_url} alt="Скрин с пропа" />
+                  <span>{copy.trackerRecon}</span>
+                  <span className="tracker-prop__chevron" aria-hidden>
+                    {propShotExpanded ? "▾" : "▸"}
+                  </span>
                 </button>
+                {propShotExpanded && (
+                  <button
+                    type="button"
+                    className="tracker-prop__shot"
+                    onClick={() => setLightbox(mediaUrl(d.prop_screenshot_url) ?? d.prop_screenshot_url)}
+                  >
+                    <img src={mediaUrl(d.prop_screenshot_url) ?? d.prop_screenshot_url} alt="Скрин с пропа" />
+                  </button>
+                )}
               </div>
             )}
 

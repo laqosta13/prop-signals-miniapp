@@ -469,6 +469,7 @@ def run_migrations(engine: Engine) -> None:
     _delete_all_manual_trackers_v1(engine)
     _purged_auto_demoted_cult_candidates_v1(engine)
     _purge_all_published_jun2026_v12(engine)
+    _fix_copy_equity_baseline_zero_v1(engine)
 
 
 def _seed_launch_news(
@@ -1189,6 +1190,74 @@ def _backfill_copy_billing_on_subscribers_v1(engine: Engine) -> None:
         marker.touch()
     finally:
         db.close()
+
+
+def _fix_copy_equity_baseline_zero_v1(engine: Engine) -> None:
+    """Стартовый баланс Bybit не должен считаться прибылью (baseline=0 → last_equity)."""
+    marker = _marker_path(engine, ".fix_copy_equity_baseline_zero_v1")
+    if marker is None:
+        return
+    if marker.exists():
+        return
+    tables = inspect(engine).get_table_names()
+    if "subscribers" not in tables or "user_bybit_settings" not in tables:
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+        return
+
+    with engine.begin() as conn:
+        rows = conn.execute(
+            text(
+                """
+                SELECT s.telegram_user_id, s.copy_equity_baseline_usd, s.copy_billed_profit_usd,
+                       u.last_equity_usd, u.equity_baseline_usd, u.account_balance_usd
+                FROM subscribers s
+                INNER JOIN user_bybit_settings u ON u.telegram_user_id = s.telegram_user_id
+                """
+            )
+        ).fetchall()
+        for tid, baseline, billed, last_eq, row_baseline, account_bal in rows:
+            billed_f = float(billed or 0)
+            baseline_f = float(baseline) if baseline is not None else None
+            needs_fix = baseline_f is None or (baseline_f <= 0 and billed_f == 0)
+            if not needs_fix:
+                continue
+            equity = None
+            for candidate in (last_eq, row_baseline, account_bal):
+                if candidate is not None and float(candidate) > 0:
+                    equity = round(float(candidate), 2)
+                    break
+            if equity is None:
+                continue
+            conn.execute(
+                text(
+                    """
+                    UPDATE subscribers
+                    SET copy_equity_baseline_usd = :equity,
+                        copy_billed_profit_usd = CASE
+                            WHEN copy_equity_baseline_usd IS NULL OR copy_equity_baseline_usd <= 0
+                            THEN 0
+                            ELSE copy_billed_profit_usd
+                        END
+                    WHERE telegram_user_id = :tid
+                    """
+                ),
+                {"tid": tid, "equity": equity},
+            )
+            conn.execute(
+                text(
+                    """
+                    UPDATE user_bybit_settings
+                    SET equity_baseline_usd = :equity
+                    WHERE telegram_user_id = :tid
+                      AND (equity_baseline_usd IS NULL OR equity_baseline_usd <= 0)
+                    """
+                ),
+                {"tid": tid, "equity": equity},
+            )
+
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.touch()
 
 
 def _backfill_payment_memos_v1(engine: Engine) -> None:

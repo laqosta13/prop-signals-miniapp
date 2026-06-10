@@ -189,26 +189,30 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
               )}
 
               <div className="volnovoi-copy__form">
-                <label className="volnovoi-copy__field">
-                  <span className="field-label">API Key</span>
-                  <input
-                    type="password"
-                    autoComplete="off"
-                    placeholder={status?.configured ? "Новый ключ" : "Bybit API Key"}
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                  />
-                </label>
-                <label className="volnovoi-copy__field">
-                  <span className="field-label">API Secret</span>
-                  <input
-                    type="password"
-                    autoComplete="off"
-                    placeholder={status?.configured ? "Новый secret" : "Bybit API Secret"}
-                    value={apiSecret}
-                    onChange={(e) => setApiSecret(e.target.value)}
-                  />
-                </label>
+                {!status?.configured && (
+                  <>
+                    <label className="volnovoi-copy__field">
+                      <span className="field-label">API Key</span>
+                      <input
+                        type="password"
+                        autoComplete="off"
+                        placeholder="Bybit API Key"
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                      />
+                    </label>
+                    <label className="volnovoi-copy__field">
+                      <span className="field-label">API Secret</span>
+                      <input
+                        type="password"
+                        autoComplete="off"
+                        placeholder="Bybit API Secret"
+                        value={apiSecret}
+                        onChange={(e) => setApiSecret(e.target.value)}
+                      />
+                    </label>
+                  </>
+                )}
 
                 <div className="volnovoi-copy__deposit">
                   <RiskPercentSlider
