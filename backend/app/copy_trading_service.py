@@ -20,7 +20,7 @@ from app.bybit_trading import (
 from app.credentials_crypto import decrypt_secret
 from app.copy_billing import copy_trading_allowed
 from app.models import Signal, SignalCopyTrade, UserBybitSettings
-from app.price_service import bybit_linear_pair
+from app.price_service import bybit_linear_pair, fetch_bybit_perp_quote
 from app.signal_utils import parse_price, parse_take_profit_levels
 from app.trader_stats import signal_entry_price, signal_entry_stake_pct, signal_leverage
 
@@ -104,6 +104,8 @@ async def _open_copy_for_user(db: Session, signal: Signal, user_row: UserBybitSe
     copy_row = _get_or_create_copy_row(db, signal.id, user_row.telegram_user_id)
     if copy_row.exchange_status in (EXCHANGE_OPEN, EXCHANGE_OPENING, EXCHANGE_CLOSED, EXCHANGE_CLOSING):
         return
+    if copy_row.exchange_status == EXCHANGE_SKIPPED:
+        return
 
     pair = bybit_linear_pair(signal.symbol)
     if not pair:
@@ -113,6 +115,10 @@ async def _open_copy_for_user(db: Session, signal: Signal, user_row: UserBybitSe
         return
 
     entry_price = signal_entry_price(signal)
+    if entry_price is None or entry_price <= 0:
+        quote = await fetch_bybit_perp_quote(signal.symbol)
+        if quote is not None and quote.price > 0:
+            entry_price = float(quote.price)
     if entry_price is None or entry_price <= 0:
         _mark_copy_failed(db, copy_row, "нет цены входа")
         return

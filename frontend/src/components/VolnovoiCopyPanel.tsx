@@ -30,6 +30,7 @@ const EMPTY_STATUS: CopyTradingStatus = {
   profit_usd: 0,
   unbilled_profit_usd: 0,
   copy_allowed: false,
+  fee_exempt: false,
   payment_memo: "",
 };
 
@@ -174,6 +175,7 @@ export function VolnovoiCopyPanel() {
   };
 
   const depositBlocked = status != null && !status.copy_allowed;
+  const feeExempt = status?.fee_exempt === true;
   const minTopup = status?.min_topup_usd ?? 1;
 
   return (
@@ -198,10 +200,13 @@ export function VolnovoiCopyPanel() {
           <p className="volnovoi-copy__desc">{copy.volnovoiCopyDesc}</p>
 
           <ul className="volnovoi-copy__hints">
-            <li>
-              Комиссия <strong>{status?.fee_percent ?? 20}%</strong> с прибыли копирования
-            </li>
-            <li>{copy.volnovoiCopyHintBilling}</li>
+            {!feeExempt && (
+              <li>
+                Комиссия <strong>{status?.fee_percent ?? 20}%</strong> с прибыли копирования
+              </li>
+            )}
+            {feeExempt && <li>Комиссия за копирование не взимается</li>}
+            {!feeExempt && <li>{copy.volnovoiCopyHintBilling}</li>}
             <li>{copy.volnovoiCopyHintApi}</li>
           </ul>
 
@@ -209,6 +214,7 @@ export function VolnovoiCopyPanel() {
             <p className="meta">Загрузка…</p>
           ) : (
             <>
+              {!feeExempt && (
               <section className="volnovoi-copy__bill">
                 <h4 className="volnovoi-copy__bill-title">Депозит комиссии</h4>
                 <p className="volnovoi-copy__bill-row volnovoi-copy__bill-row--due">
@@ -265,6 +271,7 @@ export function VolnovoiCopyPanel() {
                   </button>
                 </form>
               </section>
+              )}
 
               {status?.configured && (
                 <div className="volnovoi-copy__stats">

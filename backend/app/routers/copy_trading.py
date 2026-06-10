@@ -10,6 +10,7 @@ from app.bybit_trading import BybitCredentials, get_wallet_usdt_balance
 from app.copy_billing import (
     MIN_TOPUP_USD,
     billing_snapshot,
+    copy_fee_exempt,
     copy_trading_allowed,
     ensure_baseline_on_connect,
     record_copy_deposit_topup,
@@ -43,6 +44,7 @@ class CopyTradingStatusRead(BaseModel):
     profit_usd: float = 0.0
     unbilled_profit_usd: float = 0.0
     copy_allowed: bool = True
+    fee_exempt: bool = False
     payment_memo: str = ""
 
 
@@ -104,9 +106,8 @@ def _require_copy_deposit_if_enabling(
     *,
     telegram_user_id: int,
     enabled: bool,
-    is_admin: bool,
 ) -> None:
-    if not enabled or is_admin:
+    if not enabled or copy_fee_exempt(telegram_user_id):
         return
     if not copy_trading_allowed(db, telegram_user_id):
         raise HTTPException(
@@ -138,6 +139,7 @@ def _status_from_snap(
         "profit_usd": float(snap["profit_usd"]),
         "unbilled_profit_usd": float(snap["unbilled_profit_usd"]),
         "copy_allowed": bool(snap["copy_allowed"]),
+        "fee_exempt": bool(snap.get("fee_exempt")),
         "payment_memo": payment_memo,
     }
 
@@ -198,7 +200,6 @@ async def save_my_copy_trading(
         db,
         telegram_user_id=user.telegram_user_id,
         enabled=body.enabled,
-        is_admin=user.is_admin,
     )
 
     if row is None:
@@ -242,7 +243,6 @@ async def patch_my_copy_trading(
             db,
             telegram_user_id=user.telegram_user_id,
             enabled=body.enabled,
-            is_admin=user.is_admin,
         )
         row.enabled = body.enabled
     row.testnet = False

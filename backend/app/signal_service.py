@@ -459,6 +459,12 @@ async def stamp_signal_at_publication(
 
     if signal.entry_filled_at is not None:
         await after_limit_entry_filled(db, signal, notify=notify_entry and entry_hit is not None)
+    elif entry_zone_defined(signal.entry_low, signal.entry_high):
+        logger.info(
+            "Публикация signal #%s %s: лимитный вход, копирование после срабатывания цены",
+            signal.id,
+            signal.symbol,
+        )
 
 
 async def try_fill_entry_from_market(db: Session, signal: Signal, *, notify: bool = True) -> bool:

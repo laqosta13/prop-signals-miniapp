@@ -101,6 +101,12 @@ async def check_active_signals_once() -> tuple[int, bool]:
                 if signal.entry_notified_at is None:
                     await notify_entry_filled_if_needed(db, signal)
 
+                if signal.entry_filled_at is not None:
+                    try:
+                        await open_signal_copies(db, signal)
+                    except Exception:
+                        logger.exception("Монитор: повтор копирования signal #%s", signal.id)
+
                 outcome_hit = first_outcome_quote(
                     quotes, signal.direction, signal.stop_loss, signal.take_profits
                 )

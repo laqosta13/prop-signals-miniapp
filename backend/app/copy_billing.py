@@ -67,7 +67,14 @@ def fee_from_profit(profit_usd: float) -> float:
     return round(profit_usd * COPY_FEE_PERCENT / 100.0, 2)
 
 
+def copy_fee_exempt(telegram_user_id: int) -> bool:
+    """Супер-админ: без комиссии и без депозита для копирования volnovoi."""
+    return settings.is_super_admin_id(telegram_user_id)
+
+
 def copy_trading_allowed(db: Session, telegram_user_id: int) -> bool:
+    if copy_fee_exempt(telegram_user_id):
+        return True
     if telegram_user_id in settings.all_admin_id_set:
         return True
     sub = db.get(Subscriber, telegram_user_id)
@@ -118,7 +125,7 @@ def settle_copy_fees_from_deposit(
     current_equity: float | None,
 ) -> float:
     """Списать до 20% неоплаченной прибыли с депозита. Возвращает остаток депозита."""
-    if telegram_user_id in settings.all_admin_id_set:
+    if copy_fee_exempt(telegram_user_id):
         sub = db.get(Subscriber, telegram_user_id)
         return copy_fee_deposit_usd(sub) if sub is not None else 0.0
     if current_equity is None:
@@ -192,9 +199,10 @@ def billing_snapshot(
     equity = current_equity if current_equity is not None else last_equity
 
     if sub is None:
+        exempt = copy_fee_exempt(telegram_user_id)
         return {
             "usdt_ton_address": usdt_pay_address(),
-            "fee_percent": COPY_FEE_PERCENT,
+            "fee_percent": 0.0 if exempt else COPY_FEE_PERCENT,
             "min_topup_usd": MIN_TOPUP_USD,
             "fee_deposit_usd": 0.0,
             "connected_at": None,
@@ -204,20 +212,23 @@ def billing_snapshot(
             "unbilled_profit_usd": 0.0,
             "accrued_fee_usd": 0.0,
             "copy_allowed": copy_trading_allowed(db, telegram_user_id),
+            "fee_exempt": exempt,
         }
+
+    exempt = copy_fee_exempt(telegram_user_id)
 
     if row is not None and current_equity is not None:
         row.last_equity_usd = round(float(current_equity), 2)
         equity = current_equity
 
     profit = profit_since_connect(equity, sub)
-    unbilled = unbilled_profit(equity, sub)
-    accrued_fee = fee_from_profit(unbilled)
+    unbilled = 0.0 if exempt else unbilled_profit(equity, sub)
+    accrued_fee = 0.0 if exempt else fee_from_profit(unbilled)
     deposit = copy_fee_deposit_usd(sub)
 
     return {
         "usdt_ton_address": usdt_pay_address(),
-        "fee_percent": COPY_FEE_PERCENT,
+        "fee_percent": 0.0 if exempt else COPY_FEE_PERCENT,
         "min_topup_usd": MIN_TOPUP_USD,
         "fee_deposit_usd": deposit,
         "connected_at": sub.copy_connected_at.isoformat() if sub.copy_connected_at else None,
@@ -227,4 +238,5 @@ def billing_snapshot(
         "unbilled_profit_usd": unbilled,
         "accrued_fee_usd": accrued_fee,
         "copy_allowed": copy_trading_allowed(db, telegram_user_id),
+        "fee_exempt": exempt,
     }
