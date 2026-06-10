@@ -33,8 +33,9 @@ import {
   type ChartInterval,
   type CloseReason,
 } from "../utils/signalChartLevels";
-import { fetchBybitLastPrice } from "../utils/bybitPrice";
+import { fetchMarketKlines } from "../api";
 import { chartPaletteFor, type ChartPalette } from "../utils/chartTheme";
+import { fetchBybitLastPrice } from "../utils/bybitPrice";
 import { getStoredTheme, subscribeTheme, type Theme } from "../utils/theme";
 
 const CHART_POLL_MS = 30_000;
@@ -72,32 +73,18 @@ async function fetchBybitKlines(
   interval: string,
   options?: { endMs?: number; limit?: number },
 ): Promise<ChartCandle[]> {
-  const params = new URLSearchParams({
-    category: "linear",
-    symbol: pair,
+  const body = await fetchMarketKlines(pair, {
     interval,
-    limit: String(options?.limit ?? CHART_KLINE_LIMIT),
+    limit: options?.limit ?? CHART_KLINE_LIMIT,
+    end: options?.endMs,
   });
-  const endMs = options?.endMs;
-  if (endMs != null && Number.isFinite(endMs)) {
-    params.set("end", String(Math.ceil(endMs)));
-  }
-  const res = await fetch(`https://api.bybit.com/v5/market/kline?${params}`);
-  if (!res.ok) throw new Error("Не удалось загрузить свечи");
-  const body = (await res.json()) as { retCode?: number; result?: { list?: string[][] } };
-  if (body.retCode !== 0) throw new Error("Bybit: нет данных по паре");
-  const rows = body.result?.list ?? [];
-  const candles = rows
-    .map((k) => ({
-      time: Math.floor(Number(k[0]) / 1000) as UTCTimestamp,
-      open: Number(k[1]),
-      high: Number(k[2]),
-      low: Number(k[3]),
-      close: Number(k[4]),
-    }))
-    .filter((c) => Number.isFinite(c.close));
-  candles.reverse();
-  return candles;
+  return body.candles.map((k) => ({
+    time: k.time as UTCTimestamp,
+    open: k.open,
+    high: k.high,
+    low: k.low,
+    close: k.close,
+  }));
 }
 
 const ENTRY_ZONE_PRICE_EPS = 1e-8;

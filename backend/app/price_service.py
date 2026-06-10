@@ -194,6 +194,52 @@ async def fetch_bybit_perp_quote(symbol: str) -> PriceQuote | None:
     return await _fetch_bybit_linear(pair)
 
 
+_BYBIT_KLINE_INTERVALS = frozenset({"1", "3", "5", "15", "30", "60", "120", "240", "360", "720", "D", "W", "M"})
+
+
+async def fetch_bybit_linear_klines(
+    symbol: str,
+    interval: str,
+    *,
+    limit: int = 1000,
+    end_ms: float | None = None,
+) -> list[dict[str, float | int]]:
+    """Свечи Bybit USDT perpetual для графика сигнала."""
+    pair = _crypto_usdt_pair(symbol)
+    if not pair:
+        return []
+    iv = interval.strip() if interval.strip() in _BYBIT_KLINE_INTERVALS else "5"
+    lim = max(1, min(1000, int(limit)))
+    url = (
+        f"https://api.bybit.com/v5/market/kline?category=linear&symbol={pair}"
+        f"&interval={iv}&limit={lim}"
+    )
+    if end_ms is not None and math.isfinite(end_ms):
+        url += f"&end={math.ceil(end_ms)}"
+    data = await _get_json(url)
+    if not isinstance(data, dict) or data.get("retCode") != 0:
+        return []
+    rows = (data.get("result") or {}).get("list") or []
+    candles: list[dict[str, float | int]] = []
+    for k in rows:
+        if not isinstance(k, (list, tuple)) or len(k) < 5:
+            continue
+        close = _valid_price(float(k[4]))
+        if close is None:
+            continue
+        candles.append(
+            {
+                "time": int(float(k[0]) // 1000),
+                "open": float(k[1]),
+                "high": float(k[2]),
+                "low": float(k[3]),
+                "close": close,
+            }
+        )
+    candles.reverse()
+    return candles
+
+
 def first_entry_quote(
     quotes: list[PriceQuote],
     direction: str,

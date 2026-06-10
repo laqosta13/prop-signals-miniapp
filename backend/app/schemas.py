@@ -58,6 +58,19 @@ class MarketPriceRead(BaseModel):
     source: str = "bybit_perp"
 
 
+class MarketKlineCandleRead(BaseModel):
+    time: int
+    open: float
+    high: float
+    low: float
+    close: float
+
+
+class MarketKlinesRead(BaseModel):
+    symbol: str
+    candles: list[MarketKlineCandleRead]
+
+
 class MarketSymbolsRead(BaseModel):
     symbols: list[str]
 

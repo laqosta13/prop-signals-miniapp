@@ -465,8 +465,21 @@ export const fetchSignalsPreview = () => api<Signal[]>("/signals/preview");
 
 export type MarketPrice = { symbol: string; price: number; source?: string };
 
+export type MarketKline = { time: number; open: number; high: number; low: number; close: number };
+
 export const fetchMarketPrice = (symbol: string) =>
   api<MarketPrice>(`/signals/market-price?symbol=${encodeURIComponent(symbol.trim())}`);
+
+export const fetchMarketKlines = (
+  symbol: string,
+  options?: { interval?: string; limit?: number; end?: number },
+) => {
+  const params = new URLSearchParams({ symbol: symbol.trim() });
+  if (options?.interval) params.set("interval", options.interval);
+  if (options?.limit != null) params.set("limit", String(options.limit));
+  if (options?.end != null) params.set("end", String(Math.ceil(options.end)));
+  return api<{ symbol: string; candles: MarketKline[] }>(`/signals/market-klines?${params}`);
+};
 
 export const fetchMarketSymbols = (query: string) =>
   api<{ symbols: string[] }>(

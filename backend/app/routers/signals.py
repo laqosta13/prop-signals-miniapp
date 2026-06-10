@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
@@ -16,10 +16,11 @@ from app.media_storage import (
     save_supplement_video,
 )
 from app.models import Signal, SignalSupplement
-from app.schemas import LikeResponse, MarketPriceRead, MarketSymbolsRead, SignalRead, TelegramUser, ViewResponse
+from app.schemas import LikeResponse, MarketKlineCandleRead, MarketKlinesRead, MarketPriceRead, MarketSymbolsRead, SignalRead, TelegramUser, ViewResponse
 from app.feed_serializers import FEED_SIGNAL_LIMIT, FEED_SIGNAL_ORDER, signals_list_read
 from app.serializers import signal_to_read
 from app.price_service import (
+    fetch_bybit_linear_klines,
     fetch_bybit_linear_symbols,
     fetch_bybit_perp_quote,
     filter_bybit_linear_symbols,
@@ -134,6 +135,29 @@ async def market_price(
             detail=f"Не удалось получить цену Bybit (бессрочный) для {sym}",
         )
     return MarketPriceRead(symbol=sym, price=quote.price, source=quote.source)
+
+
+@router.get("/market-klines", response_model=MarketKlinesRead)
+async def market_klines(
+    symbol: str,
+    interval: str = Query("5"),
+    limit: int = Query(1000, ge=1, le=1000),
+    end: int | None = Query(None, ge=0),
+    user: TelegramUser = Depends(get_current_user),
+) -> MarketKlinesRead:
+    """Свечи Bybit perp для графика (прокси — в Telegram прямой fetch к Bybit часто падает)."""
+    _ = user
+    sym = normalize_symbol(symbol)
+    if not sym:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="symbol required")
+    raw = await fetch_bybit_linear_klines(sym, interval, limit=limit, end_ms=end)
+    if not raw:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Не удалось загрузить свечи Bybit для {sym}",
+        )
+    candles = [MarketKlineCandleRead(**c) for c in raw]
+    return MarketKlinesRead(symbol=sym, candles=candles)
 
 
 @router.post("", response_model=SignalRead)
