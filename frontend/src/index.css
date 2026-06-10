@@ -1444,16 +1444,39 @@
 }
 
 .tracker-add-btn__plus {
+  position: relative;
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
   width: 32px;
   height: 32px;
+  min-width: 32px;
+  aspect-ratio: 1;
   border-radius: 50%;
   background: var(--accent, #7c5cff);
   color: #fff;
-  font-size: 1.35rem;
-  line-height: 1;
+}
+
+.tracker-add-btn__plus::before,
+.tracker-add-btn__plus::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background: currentColor;
+  border-radius: 1px;
+  transform: translate(-50%, -50%);
+}
+
+.tracker-add-btn__plus::before {
+  width: 14px;
+  height: 2px;
+}
+
+.tracker-add-btn__plus::after {
+  width: 2px;
+  height: 14px;
 }
 
 .tracker-empty {
