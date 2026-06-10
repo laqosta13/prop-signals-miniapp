@@ -463,6 +463,7 @@ def run_migrations(engine: Engine) -> None:
     _purge_all_published_jun2026_v10(engine)
     _purge_all_published_jun2026_v11(engine)
     _delete_all_manual_trackers_v1(engine)
+    _purged_auto_demoted_cult_candidates_v1(engine)
 
 
 def _seed_launch_news(
@@ -1038,6 +1039,40 @@ def _delete_all_manual_trackers_v1(engine: Engine) -> None:
     db = SessionLocal()
     try:
         delete_all_trackers(db)
+        db.commit()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
+
+
+def _purged_auto_demoted_cult_candidates_v1(engine: Engine) -> None:
+    """Удалить кандидатов, созданных при ротации админа; вход только через POST /cult-candidates/me."""
+    marker = _marker_path(engine, ".purged_auto_demoted_cult_candidates_v1")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".purged_auto_demoted_cult_candidates_v1"
+    if marker.exists():
+        return
+    if "cult_candidates" not in inspect(engine).get_table_names():
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+        return
+
+    from sqlalchemy import select
+
+    from app.database import SessionLocal
+    from app.models import CultCandidate
+    from app.trader_roster_service import demoted_admin_ids
+
+    db = SessionLocal()
+    try:
+        demoted = set(demoted_admin_ids(db))
+        for row in list(db.scalars(select(CultCandidate))):
+            name_l = (row.display_name or "").casefold()
+            if row.telegram_user_id in demoted or "анастас" in name_l:
+                db.delete(row)
         db.commit()
         marker.parent.mkdir(parents=True, exist_ok=True)
         marker.touch()

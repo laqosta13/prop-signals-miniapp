@@ -9,8 +9,7 @@ from app.rank_service import ensure_rank_fields
 from app.schemas import TelegramUser, TraderRankRead, TraderRead, TraderRosterBody
 from app.serializers import trader_rank_read
 from app.signal_service import get_or_create_trader
-from app.cult_candidate_service import ensure_cult_candidate_for_demoted_admin
-from app.trader_roster_service import ROSTER_CANDIDATE, clear_roster_override, set_roster_override
+from app.trader_roster_service import clear_roster_override, set_roster_override
 from app.volnovoi_account import build_volnovoi_read, is_volnovoi_account
 
 router = APIRouter(prefix="/traders", tags=["traders"])
@@ -62,8 +61,6 @@ def set_trader_roster(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     get_or_create_trader(db, telegram_id, None)
-    if body.section == ROSTER_CANDIDATE:
-        ensure_cult_candidate_for_demoted_admin(db, telegram_id)
     db.commit()
     return {"ok": True, "telegram_id": telegram_id, "section": body.section}
 

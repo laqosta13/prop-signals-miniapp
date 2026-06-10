@@ -80,35 +80,6 @@ def join_blockers(db: Session, sub: Subscriber, *, cult_admin_bypass: bool = Fal
     return []
 
 
-def ensure_cult_candidate_for_demoted_admin(db: Session, telegram_id: int) -> CultCandidate | None:
-    """При переводе админа в кандидаты — запись CULT для публикации по правилам кандидатов."""
-    from app.trader_roster_service import is_roster_demoted_admin
-
-    if not is_roster_demoted_admin(db, telegram_id):
-        return None
-    from app.signal_service import get_or_create_trader
-
-    trader = get_or_create_trader(db, telegram_id, None)
-    name = display_name_from_telegram(
-        first_name=trader.first_name,
-        last_name=trader.last_name,
-        username=trader.username,
-    )
-    existing = db.get(CultCandidate, telegram_id)
-    if existing:
-        existing.display_name = name
-        existing.enabled = True
-        return existing
-    row = CultCandidate(
-        telegram_user_id=telegram_id,
-        display_name=name,
-        joined_at=_now(),
-    )
-    db.add(row)
-    db.flush()
-    return row
-
-
 def join_cult_candidate(
     db: Session,
     sub: Subscriber,
