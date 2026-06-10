@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.prop_screenshot_parser import PropScreenshotData
 from app.hashhedge_rules import rules_for_stage
 from app.trader_roster_service import is_main_feed_publisher, main_feed_publisher_ids
 from app.media_storage import clear_tracker_screenshot_dir, delete_media_files, public_url
@@ -143,6 +146,41 @@ def apply_prop_balance_sync(db: Session, ch: UserChallenge, new_balance: float) 
     db.flush()
 
 
+def can_sync_prop_screenshot_today(ch: UserChallenge) -> bool:
+    """Сверка по скрину — не чаще одного раза в календарные сутки (MSK)."""
+    if ch.prop_screenshot_synced_at is None:
+        return True
+    today = msk_day_key(datetime.now(timezone.utc))
+    last = msk_day_key(ch.prop_screenshot_synced_at)
+    return today != last
+
+
+def apply_prop_screenshot_sync(db: Session, ch: UserChallenge, data: PropScreenshotData) -> None:
+    """Обновить трекер по распознанным данным со скрина пропа."""
+    closed = _tracker_closed_signals(db, ch.telegram_user_id)
+
+    if data.account_size is not None and not closed:
+        ch.account_size = data.account_size
+
+    if data.stage is not None:
+        ch.stage = data.stage
+
+    ch.balance = round(data.balance, 2)
+
+    if data.trading_days is not None:
+        ch.prop_trading_days = data.trading_days
+
+    rules = rules_for_stage(ch.stage)
+    stats = compute_tracker_stats(
+        ch,
+        closed,
+        max_daily_loss_pct=rules.max_daily_loss_pct,
+    )
+    ch.day_start_balance = stats.day_start_balance
+    ch.prop_screenshot_synced_at = datetime.now(timezone.utc)
+    db.flush()
+
+
 def rebuild_tracker_balances_from_signals(db: Session, admin_ids: list[int]) -> None:
     """Баланс трекера = стартовый депозит + сумма realized_pnl закрытых сигналов с привязкой к трекеру."""
     from app.trader_stats import closed_signal_pnl_usd
@@ -187,7 +225,9 @@ def build_dashboard(
         closed,
         max_daily_loss_pct=rules.max_daily_loss_pct,
     )
-    ch.trading_days = stats.trading_days
+    display_trading_days = (
+        ch.prop_trading_days if ch.prop_trading_days is not None else stats.trading_days
+    )
 
     if trader is None:
         trader = db.get(Trader, owner_id)
@@ -250,7 +290,7 @@ def build_dashboard(
         daily_stop_remaining_rank_pct=stop_state["remaining_rank_pct"],
         daily_trades_count=daily_trades_count,
         daily_trades_limit=SIGNAL_DAILY_TRADE_LIMIT,
-        trading_days=stats.trading_days,
+        trading_days=display_trading_days,
         min_trading_days=rules.min_trading_days or 0,
         min_trading_days_unlimited=min_days_unlimited,
         goal_balance=goal,
@@ -259,6 +299,8 @@ def build_dashboard(
         total_pnl=round(balance - start, 2),
         max_leverage=rules.max_leverage,
         prop_screenshot_url=public_url(ch.prop_screenshot_path),
+        prop_screenshot_synced_at=ch.prop_screenshot_synced_at,
+        prop_sync_available=can_sync_prop_screenshot_today(ch),
         current_rank_id=int(pool["current_rank_id"]),
         current_rank_name=str(pool["current_rank_name"]),
         rank_max_stake_pct=float(pool["rank_max_stake_pct"]),

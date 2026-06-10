@@ -97,9 +97,20 @@ async def save_review_image(review_id: int, file: UploadFile) -> str:
     return await _save_upload(file, f"reviews/{review_id}", IMAGE_TYPES, IMAGE_EXT, settings.max_image_bytes, "shot")
 
 
-async def save_tracker_screenshot(admin_id: int, file: UploadFile) -> str:
+async def save_tracker_screenshot(
+    admin_id: int,
+    file: UploadFile,
+    *,
+    raw_bytes: bytes | None = None,
+) -> str:
     return await _save_upload(
-        file, f"trackers/{admin_id}", IMAGE_TYPES, IMAGE_EXT, settings.max_image_bytes, "prop"
+        file,
+        f"trackers/{admin_id}",
+        IMAGE_TYPES,
+        IMAGE_EXT,
+        settings.max_image_bytes,
+        "prop",
+        data=raw_bytes,
     )
 
 
@@ -119,6 +130,8 @@ async def _save_upload(
     allowed_ext: set[str],
     max_bytes: int,
     prefix: str,
+    *,
+    data: bytes | None = None,
 ) -> str:
     if not file.filename:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Пустой файл")
@@ -129,29 +142,29 @@ async def _save_upload(
     if content_type and content_type not in allowed_types and content_type != "application/octet-stream":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Недопустимый тип: {content_type}")
 
-    data = await file.read()
+    payload = data if data is not None else await file.read()
     magic_map = _IMAGE_MAGIC if allowed_ext <= IMAGE_EXT else _VIDEO_MAGIC
     if content_type == "application/octet-stream" or not content_type:
-        if not _matches_magic(data, ext, magic_map):
+        if not _matches_magic(payload, ext, magic_map):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Содержимое файла не совпадает с расширением")
-    elif allowed_ext <= IMAGE_EXT and not _matches_magic(data, ext, _IMAGE_MAGIC):
+    elif allowed_ext <= IMAGE_EXT and not _matches_magic(payload, ext, _IMAGE_MAGIC):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Недопустимое изображение")
-    elif allowed_ext <= VIDEO_EXT and not _matches_magic(data, ext, _VIDEO_MAGIC):
+    elif allowed_ext <= VIDEO_EXT and not _matches_magic(payload, ext, _VIDEO_MAGIC):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Недопустимое видео")
-    if len(data) > max_bytes:
+    if len(payload) > max_bytes:
         limit_mb = max(1, max_bytes // (1024 * 1024))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Файл слишком большой (максимум {limit_mb} МБ)",
         )
-    if len(data) == 0:
+    if len(payload) == 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Пустой файл")
 
     folder = media_root() / subdir
     folder.mkdir(parents=True, exist_ok=True)
     name = f"{prefix}_{uuid.uuid4().hex[:12]}{ext}"
     path = folder / name
-    path.write_bytes(data)
+    path.write_bytes(payload)
     return f"{subdir}/{name}"
 
 

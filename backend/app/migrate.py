@@ -187,6 +187,10 @@ def run_migrations(engine: Engine) -> None:
         if "user_challenges" in tables:
             if not _has_column(engine, "user_challenges", "prop_screenshot_path"):
                 conn.execute(text("ALTER TABLE user_challenges ADD COLUMN prop_screenshot_path VARCHAR(256)"))
+            if not _has_column(engine, "user_challenges", "prop_trading_days"):
+                conn.execute(text("ALTER TABLE user_challenges ADD COLUMN prop_trading_days INTEGER"))
+            if not _has_column(engine, "user_challenges", "prop_screenshot_synced_at"):
+                conn.execute(text("ALTER TABLE user_challenges ADD COLUMN prop_screenshot_synced_at DATETIME"))
 
         if "reviews" in tables:
             if not _has_column(engine, "reviews", "image_path"):

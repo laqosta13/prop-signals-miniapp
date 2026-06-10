@@ -391,6 +391,8 @@ class ChallengeDashboard(BaseModel):
     total_pnl: float
     max_leverage: str
     prop_screenshot_url: str | None = None
+    prop_screenshot_synced_at: datetime | None = None
+    prop_sync_available: bool = True
     current_rank_id: int = 8
     current_rank_name: str = "Нулёвый"
     rank_max_stake_pct: float = 15.0

@@ -17,7 +17,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     MEDIA_ROOT=/data/media
 
 COPY backend/requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-rus \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir -r /app/requirements.txt
 
 COPY backend/ /app/backend/
 COPY docs/news-assets /app/news-assets

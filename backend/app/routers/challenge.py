@@ -1,14 +1,16 @@
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.challenge_service import (
-    apply_prop_balance_sync,
+    apply_prop_screenshot_sync,
     build_dashboard,
     build_signal_form_context,
+    can_sync_prop_screenshot_today,
     create_challenge,
     get_challenge,
     list_admin_trackers,
 )
+from app.prop_screenshot_parser import PropScreenshotParseError, parse_prop_screenshot_bytes
 from app.signal_service import get_or_create_trader
 from app.deps import db_session, get_current_user, require_main_feed_publisher
 from app.hashhedge_rules import rules_payload
@@ -16,10 +18,6 @@ from app.media_storage import clear_tracker_screenshot_dir, delete_media_files, 
 from app.schemas import ChallengeDashboard, SignalFormSnapshot, TelegramUser
 
 router = APIRouter(prefix="/challenge", tags=["challenge"])
-
-
-def _form_bool(raw: str | None) -> bool:
-    return (raw or "").strip().lower() in ("1", "true", "yes", "on")
 
 
 @router.get("/rules")
@@ -51,50 +49,41 @@ def my_tracker(
 
 @router.put("/settings", response_model=ChallengeDashboard)
 async def update_settings(
-    account_size: str | None = Form(None),
-    stage: str | None = Form(None),
-    balance: str | None = Form(None),
-    remove_screenshot: str | None = Form(None),
     screenshot: UploadFile | None = File(None),
     db: Session = Depends(db_session),
     admin: TelegramUser = Depends(require_main_feed_publisher),
 ) -> ChallengeDashboard:
-    """Настройки трекера: баланс с пропа меняет balance; старт (account_size) и торговые дни сохраняются."""
+    """Сверка с пропом только по скрину: OCR → обновление баланса, этапа и торговых дней."""
+    if not screenshot or not screenshot.filename:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Загрузите скрин с пропа — данные обновляются только из скрина",
+        )
+
     get_or_create_trader(db, admin.telegram_user_id, admin.username)
     ch = get_challenge(db, admin.telegram_user_id)
-    if ch is None:
+    is_new = ch is None
+    if is_new:
         ch = create_challenge(db, admin.telegram_user_id)
+    elif not can_sync_prop_screenshot_today(ch):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Сверку можно делать раз в сутки. Повторите завтра или дождитесь следующего дня (MSK).",
+        )
 
-    if stage is not None and stage.strip():
-        stage_n = int(stage)
-        if stage_n < 1 or stage_n > 3:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Этап должен быть от 1 до 3")
-        ch.stage = stage_n
+    raw = await screenshot.read()
+    try:
+        parsed = parse_prop_screenshot_bytes(raw)
+    except PropScreenshotParseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Не удалось прочитать скрин: {exc}",
+        ) from exc
 
-    balance_provided = balance is not None and balance.strip()
-    if balance_provided:
-        try:
-            new_balance = float(balance.replace(",", "."))
-        except ValueError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Некорректный баланс",
-            ) from exc
-        if new_balance < 0:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Баланс не может быть отрицательным")
-        apply_prop_balance_sync(db, ch, new_balance)
-    elif account_size is not None and account_size.strip():
-        ch.account_size = float(account_size.replace(",", "."))
-
-    if _form_bool(remove_screenshot):
-        delete_media_files(ch.prop_screenshot_path)
-        clear_tracker_screenshot_dir(admin.telegram_user_id)
-        ch.prop_screenshot_path = None
-
-    if screenshot and screenshot.filename:
-        delete_media_files(ch.prop_screenshot_path)
-        clear_tracker_screenshot_dir(admin.telegram_user_id)
-        ch.prop_screenshot_path = await save_tracker_screenshot(admin.telegram_user_id, screenshot)
+    delete_media_files(ch.prop_screenshot_path)
+    clear_tracker_screenshot_dir(admin.telegram_user_id)
+    ch.prop_screenshot_path = await save_tracker_screenshot(admin.telegram_user_id, screenshot, raw_bytes=raw)
+    apply_prop_screenshot_sync(db, ch, parsed)
 
     db.commit()
     db.refresh(ch)

@@ -323,6 +323,8 @@ export type ChallengeDashboard = {
   total_pnl: number;
   max_leverage: string;
   prop_screenshot_url: string | null;
+  prop_screenshot_synced_at: string | null;
+  prop_sync_available: boolean;
   current_rank_id: number;
   current_rank_name: string;
   rank_max_stake_pct: number;

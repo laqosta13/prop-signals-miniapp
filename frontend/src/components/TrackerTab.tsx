@@ -209,7 +209,7 @@ export function TrackerTab({ trackers, signals, myId, canPublishMainFeed, onSett
 
             {canEdit && (
               <button type="button" className="ghost-btn" onClick={() => onSettings(d)}>
-                {copy.trackerSettings}
+                {d.prop_screenshot_url ? "Заменить скрин" : copy.trackerSettings}
               </button>
             )}
 

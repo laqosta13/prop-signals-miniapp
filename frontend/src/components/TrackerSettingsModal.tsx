@@ -11,36 +11,35 @@ type Props = {
   onSaved: (updated: ChallengeDashboard) => void;
 };
 
+function formatSyncedAt(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleString("ru-RU", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Moscow",
+  });
+}
+
 export function TrackerSettingsModal({ open, tracker, createMode = false, onClose, onSaved }: Props) {
-  const [accountSize, setAccountSize] = useState("10000");
-  const [stage, setStage] = useState("1");
-  const [balance, setBalance] = useState("10000");
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const syncAvailable = createMode || tracker?.prop_sync_available !== false;
+  const lastSynced = formatSyncedAt(tracker?.prop_screenshot_synced_at);
+
   useEffect(() => {
     if (!open) return;
-    if (createMode || !tracker) {
-      setAccountSize("10000");
-      setStage("1");
-      setBalance("10000");
-      setScreenshot(null);
-      setPreview((prev) => {
-        if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-        return null;
-      });
-      setError(null);
-      return;
-    }
-    setAccountSize(String(Math.round(tracker.account_size)));
-    setStage(String(tracker.stage));
-    setBalance(String(Math.round(tracker.balance * 100) / 100));
     setScreenshot(null);
     setPreview((prev) => {
       if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      if (createMode || !tracker) return null;
       return tracker.prop_screenshot_url ? mediaUrl(tracker.prop_screenshot_url) : null;
     });
     setError(null);
@@ -49,6 +48,7 @@ export function TrackerSettingsModal({ open, tracker, createMode = false, onClos
   if (!open) return null;
 
   const onPickScreenshot = (file: File | null) => {
+    if (!syncAvailable) return;
     setScreenshot(file);
     setPreview((prev) => {
       if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
@@ -59,16 +59,16 @@ export function TrackerSettingsModal({ open, tracker, createMode = false, onClos
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!screenshot) {
+      setError("Выберите скрин с пропа — данные обновляются только из скрина");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
       const fd = new FormData();
-      fd.append("stage", stage);
-      fd.append("balance", balance);
-      if (screenshot) fd.append("screenshot", screenshot);
+      fd.append("screenshot", screenshot);
       const updated = await updateChallengeSettings(fd);
-      setAccountSize(String(Math.round(updated.account_size)));
-      setBalance(String(Math.round(updated.balance * 100) / 100));
       WebApp.HapticFeedback.notificationOccurred("success");
       onSaved(updated);
       onClose();
@@ -84,8 +84,8 @@ export function TrackerSettingsModal({ open, tracker, createMode = false, onClos
       <form className="modal modal--tracker-settings" onClick={(e) => e.stopPropagation()} onSubmit={(e) => void submit(e)}>
         <header className="modal__head">
           <div>
-            <h2>{createMode ? "Добавить трекер" : "Настройки трекера"}</h2>
-            <p>Hash Hedge · сверка с пропом</p>
+            <h2>{createMode ? "Добавить трекер" : "Сверка с пропом"}</h2>
+            <p>Hash Hedge · раз в сутки по скрину</p>
           </div>
           <button type="button" className="icon-btn" onClick={onClose}>
             ×
@@ -94,37 +94,29 @@ export function TrackerSettingsModal({ open, tracker, createMode = false, onClos
 
         <p className="meta tracker-settings-note">
           {createMode
-            ? "Укажите баланс с пропа и этап — после сохранения трекер появится в списке."
-            : "Баланс с пропа обновляет основной баланс и процент прогресса. Старт и цель не меняются."}
+            ? "Загрузите скрин с пропа — баланс, этап и торговые дни подтянутся автоматически."
+            : "Замените скрин — данные обновятся из нового изображения. Ручной ввод отключён."}
         </p>
 
-        <label className="field-label">Размер счёта ($)</label>
-        <input type="text" className="readonly" value={accountSize} readOnly tabIndex={-1} aria-readonly />
-        <p className="meta signal-nominal-hint">Старт челленджа — база цели и шкалы.</p>
-
-        <label className="field-label">Этап</label>
-        <div className="leverage-picker leverage-picker--3col">
-          {(["1", "2", "3"] as const).map((s) => (
-            <button
-              key={s}
-              type="button"
-              className={stage === s ? "active" : ""}
-              onClick={() => setStage(s)}
-            >
-              Этап {s}
-            </button>
-          ))}
-        </div>
-
-        <label className="field-label">Баланс на пропе ($)</label>
-        <input
-          type="number"
-          min={0}
-          step={0.01}
-          value={balance}
-          onChange={(e) => setBalance(e.target.value)}
-          required
-        />
+        {!createMode && tracker && (
+          <div className="tracker-sync-readonly">
+            <div className="tracker-sync-readonly__row">
+              <span className="label">Старт</span>
+              <strong>${Math.round(tracker.account_size).toLocaleString("en-US")}</strong>
+            </div>
+            <div className="tracker-sync-readonly__row">
+              <span className="label">Баланс</span>
+              <strong>${Math.round(tracker.balance * 100) / 100}</strong>
+            </div>
+            <div className="tracker-sync-readonly__row">
+              <span className="label">Этап</span>
+              <strong>{tracker.stage}</strong>
+            </div>
+            {lastSynced && (
+              <p className="meta">Последняя сверка: {lastSynced} (MSK)</p>
+            )}
+          </div>
+        )}
 
         <label className="field-label">Скрин с пропа</label>
         {preview && (
@@ -138,18 +130,33 @@ export function TrackerSettingsModal({ open, tracker, createMode = false, onClos
             type="file"
             accept="image/*"
             className="signal-media-picker__input"
+            disabled={!syncAvailable}
             onChange={(e) => onPickScreenshot(e.target.files?.[0] ?? null)}
           />
-          <button type="button" className="signal-media-picker__btn" onClick={() => fileInputRef.current?.click()}>
-            {preview ? "Заменить скрин" : "Добавить скрин"}
+          <button
+            type="button"
+            className="signal-media-picker__btn"
+            disabled={!syncAvailable}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {preview && !createMode ? "Заменить скрин" : preview ? "Заменить скрин" : "Добавить скрин"}
           </button>
         </div>
-        <p className="meta">Один актуальный скрин — новый заменяет предыдущий.</p>
+        {!syncAvailable && (
+          <p className="meta">Сверку можно делать раз в сутки. Повторите завтра (MSK).</p>
+        )}
+        {syncAvailable && (
+          <p className="meta">Один актуальный скрин — новый заменяет предыдущий.</p>
+        )}
 
         {error && <p className="err">{error}</p>}
 
-        <button type="submit" className="submit-btn" disabled={submitting}>
-          {submitting ? "Сохранение…" : createMode ? "Создать трекер" : "Сохранить"}
+        <button
+          type="submit"
+          className="submit-btn"
+          disabled={submitting || !syncAvailable || !screenshot}
+        >
+          {submitting ? "Сверка…" : createMode ? "Создать трекер" : "Обновить по скрину"}
         </button>
       </form>
     </div>
