@@ -464,6 +464,7 @@ def run_migrations(engine: Engine) -> None:
     _purge_all_published_jun2026_v11(engine)
     _delete_all_manual_trackers_v1(engine)
     _purged_auto_demoted_cult_candidates_v1(engine)
+    _purge_all_published_jun2026_v12(engine)
 
 
 def _seed_launch_news(
@@ -1009,6 +1010,28 @@ def _purge_all_published_jun2026_v11(engine: Engine) -> None:
         from app.media_storage import media_root
 
         marker = media_root() / ".purged_all_published_jun2026_v11"
+    if marker.exists():
+        return
+    from app.database import SessionLocal
+    from app.data_cleanup import purge_all_published_content
+
+    db = SessionLocal()
+    try:
+        purge_all_published_content(db)
+        db.commit()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
+
+
+def _purge_all_published_jun2026_v12(engine: Engine) -> None:
+    """Одноразово: полная очистка опубликованного контента (июнь 2026 v12)."""
+    marker = _marker_path(engine, ".purged_all_published_jun2026_v12")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".purged_all_published_jun2026_v12"
     if marker.exists():
         return
     from app.database import SessionLocal

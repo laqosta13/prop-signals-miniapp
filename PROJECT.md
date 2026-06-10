@@ -477,7 +477,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 | Способ | Как |
 |---|---|
-| Одноразово при деплое | маркеры `.purged_all_published_*` и **`.deleted_all_manual_trackers_v1`** в `migrate.py` |
+| Одноразово при деплое | маркеры `.purged_all_published_*` (актуально: **`.purged_all_published_jun2026_v12`**) в `migrate.py` |
 | API (без UI) | `POST /admin/purge-published` — `require_super_admin` |
 | Скрипт на сервере | `python backend/scripts/purge_published.py` |
 
@@ -631,7 +631,7 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 
 ## Одноразовые миграции (маркеры на диске)
 
-- `.purged_test_v2`, `.purged_reset_v3`, `.purged_all_published_may2026` … `.purged_all_published_jun2026_v10`, **`.purged_all_published_jun2026_v11`** — purge через `data_cleanup.py` / `migrate.py` (v7: + сброс `trader_roster_overrides`); **`.deleted_all_manual_trackers_v1`** — удаление всех трекеров (только ручное «+»)
+- `.purged_test_v2`, `.purged_reset_v3`, `.purged_all_published_may2026` … `.purged_all_published_jun2026_v11`, **`.purged_all_published_jun2026_v12`** — purge через `data_cleanup.py` / `migrate.py` (v7: + сброс `trader_roster_overrides`); **`.deleted_all_manual_trackers_v1`** — удаление всех трекеров (только ручное «+»); **`.purged_auto_demoted_cult_candidates_v1`** — сброс автодобавленных кандидатов
 - **`.backfill_payment_memos_v1`** — VC-коды для существующих подписчиков
 - **`.disabled_bybit_testnet_v1`** — сброс testnet у сохранённых API-ключей
 - `.recalc_closed_signal_pnl_v2`, `.recalc_closed_signal_pnl_v3` — пересчёт P/L от `account_size` и risk_percent
@@ -722,11 +722,12 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 77. **Ранги v2** — автопересчёт по понедельникам; убраны confirm/shield; 2 минусовые недели → уволенные; возврат через 14 дней; бейдж после 1-й сделки
 78. **Трекер вручную** — нет автосоздания; «+» на вкладке Трекер; без трекера — сигналы в ленту, проп-статистика отдельно
 79. **Единые лимиты формы** — 3 сделки / 2% / ранг / пул — у топов и кандидатов; `signalFormLimitsState.ts`; эталон $10k без трекера
-80. **Purge jun2026 v10/v11** — разовые полные очистки; маркеры `.purged_all_published_jun2026_v10`, `.purged_all_published_jun2026_v11`
+80. **Purge jun2026 v10/v11/v12** — разовые полные очистки; актуальный маркер **`.purged_all_published_jun2026_v12`**
 81. **Удаление всех трекеров** — purge и миграция `.deleted_all_manual_trackers_v1`; трекер только вручную через «+»
+82. **Кандидаты только через API** — `.purged_auto_demoted_cult_candidates_v1`; ротация не создаёт `cult_candidates`
 
 ---
 
 ## Быстрое напоминание для AI
 
-> **prop-signals-miniapp** — FastAPI + React Mini App на Amvera (SQLite, `/data`). **Два UI-мира:** **ТЕ** (Volnovoi Cult) и **МА** (МА·СЕТЬ, панк-копирайт, кодовые имена, глич). Админы публикуют сигналы **#N**; **кандидаты CULT** — $20/30д + Bybit, **та же форма лимитов**. **Супер-админ** — ротация, purge. Активные сигналы — по подписке; win/lose + трекер + ТОП — бесплатно. **Трекер Hash Hedge** — только вручную («+»); без него лимиты формы всё равно действуют. **Ранги** — автопересчёт по понедельникам; 2 минусовые недели → уволенные. **Лимит дня:** 3 сделки **или** 2% стопа (MSK). **volnovoi** + Bybit copy (**20%**, memo `VC-…`). Purge удаляет все трекеры; миграция **`.deleted_all_manual_trackers_v1`**. Полный контекст — этот файл.
+> **prop-signals-miniapp** — FastAPI + React Mini App на Amvera (SQLite, `/data`). **Два UI-мира:** **ТЕ** (Volnovoi Cult) и **МА** (МА·СЕТЬ, панк-копирайт, кодовые имена, глич). Админы публикуют сигналы **#N**; **кандидаты CULT** — $20/30д + Bybit, **та же форма лимитов**. **Супер-админ** — ротация, purge. Активные сигналы — по подписке; win/lose + трекер + ТОП — бесплатно. **Трекер Hash Hedge** — только вручную («+»); без него лимиты формы всё равно действуют. **Ранги** — автопересчёт по понедельникам; 2 минусовые недели → уволенные. **Лимит дня:** 3 сделки **или** 2% стопа (MSK). **volnovoi** + Bybit copy (**20%**, memo `VC-…`). Purge: **`.purged_all_published_jun2026_v12`**. Полный контекст — этот файл.
