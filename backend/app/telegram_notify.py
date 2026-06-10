@@ -7,7 +7,14 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from app.config import settings
-from app.telegram_bot_api import TelegramApiError, send_message, send_photo
+from app.telegram_bot_api import (
+    TelegramApiError,
+    send_media_group,
+    send_message,
+    send_photo,
+    send_photo_bytes,
+)
+from app.telegram_notify_render import render_notify_card_png
 from app.media_storage import media_root
 from app.models import NewsPost, Signal
 from app.signal_utils import entry_zone_defined, parse_take_profit_levels
@@ -278,7 +285,51 @@ async def _send_photo(chat_id: int, image_path: Path, caption: str) -> bool:
         return await _send_message(chat_id, caption)
 
 
-async def notify_subscribers(text: str, subscriber_ids: list[int], *, photo_rel_path: str | None = None) -> int:
+async def _send_colored_card(
+    chat_id: int,
+    card_png: bytes,
+    text: str,
+    *,
+    screenshot_path: Path | None = None,
+) -> bool:
+    caption = _plain_fallback(text)[:1024]
+    if not settings.bot_token:
+        logger.warning("BOT_TOKEN не задан — карточка не отправлена")
+        return False
+    try:
+        if screenshot_path is not None:
+            media = [
+                {"type": "photo", "media": "attach://card", "caption": caption},
+                {"type": "photo", "media": "attach://shot"},
+            ]
+            with screenshot_path.open("rb") as f:
+                shot_bytes = f.read()
+            await send_media_group(
+                chat_id,
+                media,
+                {
+                    "card": ("notify.png", card_png, "image/png"),
+                    "shot": (screenshot_path.name, shot_bytes, "image/jpeg"),
+                },
+            )
+        else:
+            await send_photo_bytes(chat_id, card_png, caption, parse_mode=None)
+        return True
+    except TelegramApiError as e:
+        logger.warning("Telegram card failed chat=%s: %s — fallback to text", chat_id, e)
+        return await _send_message(chat_id, text)
+    except Exception as e:
+        logger.warning("Telegram card failed chat=%s: %s", chat_id, e)
+        return await _send_message(chat_id, text)
+
+
+async def notify_subscribers(
+    text: str,
+    subscriber_ids: list[int],
+    *,
+    photo_rel_path: str | None = None,
+    direction: str | None = None,
+) -> int:
     """Возвращает число успешно доставленных push."""
     if not subscriber_ids:
         logger.info("Нет подписчиков для уведомления")
@@ -288,11 +339,22 @@ async def notify_subscribers(text: str, subscriber_ids: list[int], *, photo_rel_
         candidate = media_root() / photo_rel_path
         if candidate.is_file():
             photo_file = candidate
+    card_png: bytes | None = None
+    if direction:
+        try:
+            card_png = render_notify_card_png(text, direction=direction)
+        except Exception as e:
+            logger.warning("notify card render failed: %s", e)
     logger.info("Отправка уведомления %s подписчикам", len(subscriber_ids))
     ok = 0
     fail = 0
     for uid in subscriber_ids:
-        sent = await _send_photo(uid, photo_file, text) if photo_file else await _send_message(uid, text)
+        if card_png:
+            sent = await _send_colored_card(uid, card_png, text, screenshot_path=photo_file)
+        elif photo_file:
+            sent = await _send_photo(uid, photo_file, text)
+        else:
+            sent = await _send_message(uid, text)
         if sent:
             ok += 1
         else:

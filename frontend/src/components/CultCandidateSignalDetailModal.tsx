@@ -7,7 +7,7 @@ import {
   signalStopMovePct,
   signalTrackerBalanceUsd,
 } from "../utils/signalPnl";
-import { signalOutcomeDisplay } from "../utils/signalChartLevels";
+import { formatSignedMovePct, signalOutcomeDisplay } from "../utils/signalChartLevels";
 import { SignalChart } from "./SignalChart";
 import { SignalLevelsGrid } from "./SignalLevelsGrid";
 

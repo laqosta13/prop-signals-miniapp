@@ -142,7 +142,12 @@ def subscriber_ids_for_notify(db: Session) -> list[int]:
 async def notify_new_signal(db: Session, signal: Signal) -> None:
     ids = subscriber_ids_for_notify(db)
     if ids:
-        await notify_subscribers(format_new_signal_message(signal), ids)
+        await notify_subscribers(
+            format_new_signal_message(signal),
+            ids,
+            photo_rel_path=signal.media_image_path,
+            direction=signal.direction,
+        )
 
 
 async def notify_new_news(db: Session, post: NewsPost) -> None:
@@ -174,14 +179,22 @@ async def notify_updated_signal(
     ids = subscriber_ids_for_notify(db)
     if ids:
         label = resolve_actor_label(db, actor)
-        await notify_subscribers(format_updated_signal_message(signal, changes, actor_label=label), ids)
+        await notify_subscribers(
+            format_updated_signal_message(signal, changes, actor_label=label),
+            ids,
+            direction=signal.direction,
+        )
 
 
 async def notify_deleted_signal(db: Session, signal: Signal, *, actor: TelegramUser) -> None:
     ids = subscriber_ids_for_notify(db)
     if ids:
         label = resolve_actor_label(db, actor)
-        await notify_subscribers(format_deleted_signal_message(signal, actor_label=label), ids)
+        await notify_subscribers(
+            format_deleted_signal_message(signal, actor_label=label),
+            ids,
+            direction=signal.direction,
+        )
 
 
 def close_signal(
@@ -250,7 +263,11 @@ async def close_signal_and_notify(
     if not ids:
         logger.warning("Close push #%s: нет получателей (notify_enabled + подписка)", num)
         return
-    delivered = await notify_subscribers(format_closed_signal_message(signal, market_close=market_close), ids)
+    delivered = await notify_subscribers(
+        format_closed_signal_message(signal, market_close=market_close),
+        ids,
+        direction=signal.direction,
+    )
     if delivered == 0:
         logger.warning("Close push #%s: ни одному из %s подписчиков не доставлено", num, len(ids))
     else:
@@ -298,7 +315,11 @@ async def notify_market_closed(signal_id: int) -> None:
             return
         ids = subscriber_ids_for_notify(db)
         if ids:
-            await notify_subscribers(format_closed_signal_message(signal, market_close=True), ids)
+            await notify_subscribers(
+                format_closed_signal_message(signal, market_close=True),
+                ids,
+                direction=signal.direction,
+            )
     except Exception:
         logger.exception("notify market close failed for signal #%s", signal_id)
     finally:
@@ -314,7 +335,11 @@ async def notify_entry_filled_if_needed(db: Session, signal: Signal) -> bool:
     if not ids:
         logger.warning("Entry push #%s: нет получателей (notify_enabled + подписка)", num)
         return False
-    delivered = await notify_subscribers(format_entry_filled_message(signal), ids)
+    delivered = await notify_subscribers(
+        format_entry_filled_message(signal),
+        ids,
+        direction=signal.direction,
+    )
     if delivered == 0:
         logger.warning(
             "Entry push #%s: ни одному из %s подписчиков не доставлено — повторим в мониторе",
@@ -372,6 +397,7 @@ async def notify_signal_supplement(
                 actor_label=label,
             ),
             ids,
+            direction=signal.direction,
         )
 
 

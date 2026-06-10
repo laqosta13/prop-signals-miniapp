@@ -13,7 +13,7 @@ import {
 import { useSignalLivePnl } from "../hooks/useSignalLivePnl";
 import { canEditOrDeleteSignal, canCloseAtMarketSignal, canSupplementSignal } from "../utils/signalActions";
 import { localizeOutcomeLabel, useThemedCopy } from "../hooks/useThemedCopy";
-import { signalOutcomeDisplay } from "../utils/signalChartLevels";
+import { formatSignedMovePct, signalOutcomeDisplay } from "../utils/signalChartLevels";
 import { Avatar } from "./Avatar";
 import { CoinLogo } from "./CoinLogo";
 import { RankBadge } from "./RankBadge";

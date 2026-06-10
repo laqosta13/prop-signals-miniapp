@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 from typing import Any
@@ -148,6 +149,56 @@ async def send_photo(
             logger.warning("telegram sendPhoto failed chat=%s", chat_id)
             raise
     return parsed.get("result") or {}
+
+
+async def send_photo_bytes(
+    chat_id: int,
+    photo_bytes: bytes,
+    caption: str = "",
+    *,
+    filename: str = "notify.png",
+    parse_mode: str | None = None,
+) -> dict[str, Any] | None:
+    token = settings.bot_token
+    if not token:
+        raise RuntimeError("BOT_TOKEN не задан")
+    url = API.format(token=token, method="sendPhoto")
+    data_fields: dict[str, str] = {"chat_id": str(chat_id), "caption": caption[:1024]}
+    if parse_mode:
+        data_fields["parse_mode"] = parse_mode
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        r = await client.post(
+            url,
+            data=data_fields,
+            files={"photo": (filename, photo_bytes, "image/png")},
+        )
+        try:
+            parsed = _parse_response(r)
+        except TelegramApiError:
+            logger.warning("telegram sendPhotoBytes failed chat=%s", chat_id)
+            raise
+    return parsed.get("result") or {}
+
+
+async def send_media_group(
+    chat_id: int,
+    media: list[dict[str, Any]],
+    files: dict[str, tuple[str, bytes, str]],
+) -> list[dict[str, Any]]:
+    token = settings.bot_token
+    if not token:
+        raise RuntimeError("BOT_TOKEN не задан")
+    url = API.format(token=token, method="sendMediaGroup")
+    payload = {"chat_id": str(chat_id), "media": json.dumps(media)}
+    multipart_files = {key: (name, data, mime) for key, (name, data, mime) in files.items()}
+    async with httpx.AsyncClient(timeout=45.0) as client:
+        r = await client.post(url, data=payload, files=multipart_files)
+        try:
+            parsed = _parse_response(r)
+        except TelegramApiError:
+            logger.warning("telegram sendMediaGroup failed chat=%s", chat_id)
+            raise
+    return parsed.get("result") or []
 
 
 async def get_updates(
