@@ -131,3 +131,10 @@ export const REFERRAL_SHARE_FALLBACK =
   "Volnovoi Cult — marketplace крипто-сделок. Прозрачные сигналы топ-трейдеров.";
 
 export const PARTNER_BYBIT_HINT = "Bybit — копирование volnovoi";
+
+export {
+  HASH_HEDGE_TRADE_BTN,
+  HASH_HEDGE_TRADE_HINT,
+  HASH_HEDGE_TRADE_COPIED,
+  HASH_HEDGE_TRADE_COPY_FAILED,
+} from "./hashhedgeTrade";

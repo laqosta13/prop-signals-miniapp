@@ -216,6 +216,12 @@ export const PUNK_REFERRAL_SHARE_FALLBACK =
   "Volnovoi Cult — теневой marketplace крипто-операций. Прозрачные коды топ-операторов.";
 
 export const PUNK_PARTNER_BYBIT_HINT = "Bybit — зеркало оператора";
+export const PUNK_HASH_HEDGE_TRADE_BTN = "HASH HEDGE";
+export const PUNK_HASH_HEDGE_TRADE_HINT = "Скопировать код сделки и открыть терминал Hash Hedge";
+export const PUNK_HASH_HEDGE_TRADE_COPIED =
+  "Код сделки в буфере.\n\nВ Hedge: «Торговать» → «Ордер» → «Рынок» → TP/SL → вставьте стоп и цель → подтвердите.";
+export const PUNK_HASH_HEDGE_TRADE_COPY_FAILED =
+  "Буфер недоступен. Откройте Hedge и перепишите уровни с карточки.";
 export const PUNK_PARTNER_BINGX_HINT = "Регистрация BingX";
 export const PUNK_PARTNER_ANTARCTIC_HINT = "Вывод крипты и оплата по СБП";
 export const PUNK_PARTNER_LINKS_TITLE = "Биржи и вывод";

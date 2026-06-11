@@ -11,6 +11,10 @@ import {
   FEED_LABEL_ACTIVE,
   FEED_LABEL_CLOSED,
   formatFeedShowMoreClosed,
+  HASH_HEDGE_TRADE_BTN,
+  HASH_HEDGE_TRADE_COPIED,
+  HASH_HEDGE_TRADE_COPY_FAILED,
+  HASH_HEDGE_TRADE_HINT,
   PARTNER_BYBIT_HINT,
   PRODUCT_NAME,
   PRODUCT_PITCH,
@@ -174,6 +178,10 @@ export type ThemedCopy = {
   cardDelete: string;
   cardCloseMarket: string;
   cardTrade: string;
+  hashHedgeTradeBtn: string;
+  hashHedgeTradeHint: string;
+  hashHedgeTradeCopied: string;
+  hashHedgeTradeCopyFailed: string;
   formatTrackerStageLev: (stage: number, leverage: string | number) => string;
   formatTrackerTradesTab: (count: number) => string;
   formatFeedShowMoreClosed: (count: number) => string;
@@ -315,6 +323,10 @@ function buildCopy(theme: Theme): ThemedCopy {
       cardDelete: "Удалить",
       cardCloseMarket: "Закрыть по рынку",
       cardTrade: "+ Сделка",
+      hashHedgeTradeBtn: HASH_HEDGE_TRADE_BTN,
+      hashHedgeTradeHint: HASH_HEDGE_TRADE_HINT,
+      hashHedgeTradeCopied: HASH_HEDGE_TRADE_COPIED,
+      hashHedgeTradeCopyFailed: HASH_HEDGE_TRADE_COPY_FAILED,
       formatTrackerStageLev: (stage, leverage) => `Этап ${stage} · плечо ${leverage}`,
       formatTrackerTradesTab: (count) => `Сделки · ${count}`,
       formatFeedShowMoreClosed,
@@ -452,6 +464,10 @@ function buildCopy(theme: Theme): ThemedCopy {
     cardDelete: P.PUNK_CARD_DELETE,
     cardCloseMarket: P.PUNK_CARD_CLOSE_MARKET,
     cardTrade: P.PUNK_CARD_TRADE,
+    hashHedgeTradeBtn: P.PUNK_HASH_HEDGE_TRADE_BTN,
+    hashHedgeTradeHint: P.PUNK_HASH_HEDGE_TRADE_HINT,
+    hashHedgeTradeCopied: P.PUNK_HASH_HEDGE_TRADE_COPIED,
+    hashHedgeTradeCopyFailed: P.PUNK_HASH_HEDGE_TRADE_COPY_FAILED,
     formatTrackerStageLev: P.PUNK_TRACKER_STAGE_LEV,
     formatTrackerTradesTab: P.PUNK_TRACKER_TRADES_TAB,
     formatFeedShowMoreClosed: P.PUNK_FORMAT_FEED_SHOW_MORE_CLOSED,

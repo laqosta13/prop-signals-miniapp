@@ -10,6 +10,7 @@ import {
 import { formatSignedMovePct, signalOutcomeDisplay } from "../utils/signalChartLevels";
 import { SignalChart } from "./SignalChart";
 import { SignalLevelsGrid } from "./SignalLevelsGrid";
+import { HashHedgeTradeButton } from "./HashHedgeTradeButton";
 
 type Props = {
   signal: Signal | null;
@@ -127,6 +128,8 @@ export function CultCandidateSignalDetailModal({ signal, loading = false, error 
             />
 
             <SignalLevelsGrid entry={entry} stopLoss={s.stop_loss} target={target} stopMovePct={stopMovePct} />
+
+            <HashHedgeTradeButton signal={s} />
 
             {s.comment && <p className="signal-card__comment">{s.comment}</p>}
           </article>

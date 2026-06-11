@@ -1353,6 +1353,40 @@
   filter: brightness(0.96);
 }
 
+.hashhedge-trade-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin: 10px 0 4px;
+  padding: 12px 14px;
+  border: none;
+  border-radius: 12px;
+  background: var(--prop-cta-bg);
+  color: var(--prop-cta-text);
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: var(--prop-cta-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+
+.hashhedge-trade-btn:active:not(:disabled) {
+  transform: scale(0.98);
+  filter: brightness(0.96);
+}
+
+.hashhedge-trade-btn:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.hashhedge-trade-btn .brand-logo {
+  border-radius: 6px;
+}
+
 .partner-strip {
   margin-top: 12px;
 }

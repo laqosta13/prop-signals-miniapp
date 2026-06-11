@@ -19,6 +19,7 @@ import { CoinLogo } from "./CoinLogo";
 import { RankBadge } from "./RankBadge";
 import { SignalChart } from "./SignalChart";
 import { SignalLevelsGrid } from "./SignalLevelsGrid";
+import { HashHedgeTradeButton } from "./HashHedgeTradeButton";
 
 type Props = {
   signal: Signal;
@@ -248,6 +249,8 @@ export function SignalCard({
       />
 
       <SignalLevelsGrid entry={entry} stopLoss={s.stop_loss} target={target} stopMovePct={stopMovePct} />
+
+      <HashHedgeTradeButton signal={s} />
 
       {s.media_image_url && (
         <button type="button" className="media-thumb" onClick={() => setLightbox(mediaUrl(s.media_image_url))}>
