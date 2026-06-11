@@ -12,6 +12,7 @@ from app.models import NewsPost, Signal, Subscriber, Trader
 from app.subscription_billing import register_subscriber_with_meta, subscriber_ids_for_news_notify, subscription_active_strict
 from app.signal_utils import (
     compute_signal_points_percent,
+    compute_signal_points_percent_from_price,
     entry_zone_defined,
     outcome_from_move,
     signal_in_trade,
@@ -429,6 +430,16 @@ async def stamp_signal_at_publication(
             signal.entry_filled_at = published_at
     elif not entry_zone_defined(signal.entry_low, signal.entry_high):
         signal.entry_filled_at = published_at
+
+    if (
+        not entry_zone_defined(signal.entry_low, signal.entry_high)
+        and signal.published_market_price is not None
+        and signal.published_market_price > 0
+    ):
+        signal.points_percent = compute_signal_points_percent_from_price(
+            float(signal.published_market_price),
+            signal.stop_loss,
+        )
 
     db.commit()
     db.refresh(signal)

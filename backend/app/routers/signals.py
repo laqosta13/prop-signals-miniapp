@@ -49,7 +49,7 @@ from app.signal_service import (
     update_signal_fields,
 )
 from app.telegram_notify import snapshot_signal, diff_signal_changes
-from app.signal_utils import entry_zone_defined, signal_awaiting_entry, signal_in_trade
+from app.signal_utils import entry_zone_defined, form_bool_flag, signal_awaiting_entry, signal_in_trade, stored_entry_levels
 
 router = APIRouter(prefix="/signals", tags=["signals"])
 
@@ -185,9 +185,12 @@ async def create_signal(
     tracker_balance: float | None = Form(None),
     screenshot: UploadFile | None = File(None),
     video: UploadFile | None = File(None),
+    market_entry: str | None = Form(None),
     db: Session = Depends(db_session),
     admin: TelegramUser = Depends(require_main_feed_publisher),
 ) -> SignalRead:
+    market = form_bool_flag(market_entry)
+    stored_low, stored_high = stored_entry_levels(entry_low, entry_high, market_entry=market)
     ch = get_challenge(db, admin.telegram_user_id)
     tb = admin_tracker_balance(db, admin.telegram_user_id)
     acct = admin_account_size(db, admin.telegram_user_id)
@@ -209,8 +212,8 @@ async def create_signal(
         db,
         symbol=symbol.strip().upper(),
         direction=_parse_direction(direction),
-        entry_low=entry_low or None,
-        entry_high=entry_high or None,
+        entry_low=stored_low,
+        entry_high=stored_high,
         stop_loss=stop_loss or None,
         take_profits=take_profits or None,
         comment=comment or None,

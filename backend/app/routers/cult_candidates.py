@@ -42,7 +42,7 @@ from app.schemas import (
 from app.media_storage import save_signal_image, save_signal_video
 from app.serializers import signal_to_read
 from app.signal_service import build_signal_row, close_signal_at_market, stamp_signal_at_publication
-from app.signal_utils import signal_in_trade
+from app.signal_utils import form_bool_flag, signal_in_trade, stored_entry_levels
 from app.routers.signals import _parse_direction
 from app.test_mode import test_mode_public_fields
 
@@ -199,9 +199,12 @@ async def create_cult_candidate_signal(
     risk_percent: float | None = Form(None),
     screenshot: UploadFile | None = File(None),
     video: UploadFile | None = File(None),
+    market_entry: str | None = Form(None),
     db: Session = Depends(db_session),
     user: TelegramUser = Depends(get_current_user),
 ) -> SignalRead:
+    market = form_bool_flag(market_entry)
+    stored_low, stored_high = stored_entry_levels(entry_low, entry_high, market_entry=market)
     sub = _subscriber(db, user)
     try:
         ensure_can_trade(db, sub)
@@ -221,8 +224,8 @@ async def create_cult_candidate_signal(
         db,
         symbol=symbol.strip().upper(),
         direction=_parse_direction(direction),
-        entry_low=entry_low or None,
-        entry_high=entry_high or None,
+        entry_low=stored_low,
+        entry_high=stored_high,
         stop_loss=stop_loss or None,
         take_profits=take_profits or None,
         comment=comment or None,

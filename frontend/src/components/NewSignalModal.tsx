@@ -42,6 +42,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
   const [shotPreview, setShotPreview] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [symbolEdited, setSymbolEdited] = useState(false);
+  const [entryEdited, setEntryEdited] = useState(false);
   const {
     direction,
     entry,
@@ -105,6 +106,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
       setUploadProgress(null);
       setSymbol(DEFAULT_SYMBOL);
       setSymbolEdited(false);
+      setEntryEdited(false);
       setLeverage("1");
       setRisk("10");
       setComment("");
@@ -151,6 +153,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
         risk,
         screenshot,
         video,
+        marketEntry: !entryEdited,
       });
       const uploadBytes = mediaBytesInForm(fd);
       const trackUpload = uploadBytes > 0;
@@ -206,6 +209,7 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
           suggestOnInput={symbolEdited}
           onSymbolChange={(value) => {
             setSymbolEdited(true);
+            setEntryEdited(false);
             setSymbol(value);
           }}
           direction={direction}
@@ -221,7 +225,10 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
           target={target}
           riskPct={riskPct}
           priceLoading={priceLoading}
-          onEntryChange={onEntryChange}
+          onEntryChange={(value) => {
+            setEntryEdited(true);
+            onEntryChange(value);
+          }}
           onStopChange={onStopChange}
           onTargetChange={onTargetChange}
           onRiskPctChange={onRiskPctChange}

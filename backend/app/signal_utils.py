@@ -139,6 +139,31 @@ def compute_signal_points_percent(
     return settings.default_signal_points_percent
 
 
+def compute_signal_points_percent_from_price(entry_price: float, stop_loss: str | None) -> float:
+    """points_percent для market-entry: расстояние от цены публикации до стопа."""
+    stop = parse_price(stop_loss)
+    if entry_price > 0 and stop is not None:
+        pct = abs(entry_price - stop) / entry_price * 100.0
+        return round(min(max(pct, 0.1), settings.max_signal_points_percent), 2)
+    return settings.default_signal_points_percent
+
+
+def form_bool_flag(raw: str | None) -> bool:
+    return raw is not None and raw.strip().lower() in ("1", "true", "yes", "on")
+
+
+def stored_entry_levels(
+    entry_low: str | None,
+    entry_high: str | None,
+    *,
+    market_entry: bool,
+) -> tuple[str | None, str | None]:
+    """Уровни входа в БД: market_entry — без лимитной зоны (вход по рынку)."""
+    if market_entry:
+        return None, None
+    return entry_low or None, entry_high or None
+
+
 def signal_awaiting_entry(signal) -> bool:
     """Сигнал ещё не в работе — можно менять уровни и удалить."""
     if signal.status != "active":

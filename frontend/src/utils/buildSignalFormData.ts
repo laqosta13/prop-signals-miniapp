@@ -16,6 +16,8 @@ export type SignalFormPayload = {
   removeVideo?: boolean;
   /** Редактирование: комментарий всегда в теле запроса. */
   alwaysSendComment?: boolean;
+  /** Цена входа не менялась вручную — вход по рынку при публикации. */
+  marketEntry?: boolean;
 };
 
 export function buildSignalFormData(payload: SignalFormPayload): FormData {
@@ -25,6 +27,9 @@ export function buildSignalFormData(payload: SignalFormPayload): FormData {
   if (payload.entry) {
     fd.append("entry_low", payload.entry);
     fd.append("entry_high", payload.entry);
+  }
+  if (payload.marketEntry) {
+    fd.append("market_entry", "true");
   }
   if (payload.stop) fd.append("stop_loss", payload.stop);
   const tp = normalizeTakeProfits(payload.target);
