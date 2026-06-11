@@ -2,7 +2,6 @@ import type { Signal } from "../api";
 import { formatTakeProfits } from "../utils";
 import { HASH_HEDGE_TRADE_URL } from "../data/hashhedgeTrade";
 import { copyToClipboard } from "./clipboard";
-import { openExternalLink } from "./openExternalLink";
 import { signalEntryStakePct } from "./signalPnl";
 import { chartEntryReference, levelsFromSignal } from "./signalChartLevels";
 
@@ -71,8 +70,9 @@ export function formatHashHedgeTradeClipboard(signal: HashHedgeTradeSignal): str
   ].join("\n");
 }
 
-export async function openHashHedgeWithSignal(signal: HashHedgeTradeSignal): Promise<{ copied: boolean }> {
+export async function prepareHashHedgeTrade(
+  signal: HashHedgeTradeSignal,
+): Promise<{ copied: boolean; url: string }> {
   const copied = await copyToClipboard(formatHashHedgeTradeClipboard(signal));
-  openExternalLink(HASH_HEDGE_TRADE_URL);
-  return { copied };
+  return { copied, url: HASH_HEDGE_TRADE_URL };
 }
