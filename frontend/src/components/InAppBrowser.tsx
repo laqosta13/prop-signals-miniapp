@@ -3,15 +3,25 @@ import { createPortal } from "react-dom";
 import WebApp from "@twa-dev/sdk";
 import { safeExternalUrl } from "../utils/safeUrl";
 import { openExternalLink } from "../utils/openExternalLink";
+import { SignalLevelsGrid } from "./SignalLevelsGrid";
+
+export type InAppBrowserLevels = {
+  entry: string;
+  stopLoss: string | null;
+  target: string;
+  stopMovePct?: number | null;
+  signalNumber?: number | string;
+};
 
 type Props = {
   url: string;
   title?: string;
   hint?: string;
+  levels?: InAppBrowserLevels;
   onClose: () => void;
 };
 
-export function InAppBrowser({ url, title = "Hash Hedge", hint, onClose }: Props) {
+export function InAppBrowser({ url, title = "Hash Hedge", hint, levels, onClose }: Props) {
   const safe = safeExternalUrl(url);
 
   useEffect(() => {
@@ -46,7 +56,23 @@ export function InAppBrowser({ url, title = "Hash Hedge", hint, onClose }: Props
           ↗
         </button>
       </header>
-      {hint && <p className="in-app-browser__hint">{hint}</p>}
+      {levels ? (
+        <div className="in-app-browser__signal">
+          {levels.signalNumber != null && (
+            <p className="in-app-browser__signal-meta">Сигнал #{levels.signalNumber}</p>
+          )}
+          {hint && <p className="in-app-browser__signal-hint">{hint}</p>}
+          <SignalLevelsGrid
+            entry={levels.entry}
+            stopLoss={levels.stopLoss}
+            target={levels.target}
+            stopMovePct={levels.stopMovePct}
+            compact
+          />
+        </div>
+      ) : (
+        hint && <p className="in-app-browser__hint">{hint}</p>
+      )}
       <iframe
         className="in-app-browser__frame"
         src={safe}

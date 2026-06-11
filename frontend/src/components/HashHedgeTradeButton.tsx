@@ -1,7 +1,13 @@
 import { useState } from "react";
 import WebApp from "@twa-dev/sdk";
+import type { Signal } from "../api";
 import { useThemedCopy } from "../hooks/useThemedCopy";
-import { prepareHashHedgeTrade, type HashHedgeTradeSignal } from "../utils/hashHedgeTrade";
+import {
+  hashHedgeLevelsFromSignal,
+  prepareHashHedgeTrade,
+  type HashHedgeTradeSignal,
+} from "../utils/hashHedgeTrade";
+import { signalStopMovePct } from "../utils/signalPnl";
 import { HashHedgeLogo } from "./BrandLogos";
 import { InAppBrowser } from "./InAppBrowser";
 
@@ -13,7 +19,11 @@ type Props = {
 export function HashHedgeTradeButton({ signal, className = "" }: Props) {
   const copy = useThemedCopy();
   const [busy, setBusy] = useState(false);
-  const [browser, setBrowser] = useState<{ url: string; hint?: string } | null>(null);
+  const [browser, setBrowser] = useState<{
+    url: string;
+    hint?: string;
+    levels: ReturnType<typeof hashHedgeLevelsFromSignal>;
+  } | null>(null);
 
   if (signal.status !== "active") return null;
 
@@ -24,12 +34,16 @@ export function HashHedgeTradeButton({ signal, className = "" }: Props) {
     setBusy(true);
     try {
       const { copied, url } = await prepareHashHedgeTrade(signal);
+      const levels = {
+        ...hashHedgeLevelsFromSignal(signal),
+        stopMovePct: signalStopMovePct(signal as Signal),
+      };
       WebApp.HapticFeedback.notificationOccurred(copied ? "success" : "warning");
       if (copied) {
-        setBrowser({ url, hint: copy.hashHedgeTradeCopied });
+        setBrowser({ url, hint: copy.hashHedgeTradeCopied, levels });
       } else {
         WebApp.showAlert(copy.hashHedgeTradeCopyFailed);
-        setBrowser({ url });
+        setBrowser({ url, levels });
       }
     } finally {
       setBusy(false);
@@ -56,6 +70,7 @@ export function HashHedgeTradeButton({ signal, className = "" }: Props) {
           url={browser.url}
           title={copy.hashHedgeTradeBtn}
           hint={browser.hint}
+          levels={browser.levels}
           onClose={() => setBrowser(null)}
         />
       )}

@@ -15,6 +15,8 @@ import {
   HASH_HEDGE_TRADE_COPIED,
   HASH_HEDGE_TRADE_COPY_FAILED,
   HASH_HEDGE_TRADE_HINT,
+  LEVELS_COPIED,
+  LEVELS_COPY_TAP,
   PARTNER_BYBIT_HINT,
   PRODUCT_NAME,
   PRODUCT_PITCH,
@@ -182,6 +184,8 @@ export type ThemedCopy = {
   hashHedgeTradeHint: string;
   hashHedgeTradeCopied: string;
   hashHedgeTradeCopyFailed: string;
+  levelsCopyTap: string;
+  levelsCopied: string;
   formatTrackerStageLev: (stage: number, leverage: string | number) => string;
   formatTrackerTradesTab: (count: number) => string;
   formatFeedShowMoreClosed: (count: number) => string;
@@ -327,6 +331,8 @@ function buildCopy(theme: Theme): ThemedCopy {
       hashHedgeTradeHint: HASH_HEDGE_TRADE_HINT,
       hashHedgeTradeCopied: HASH_HEDGE_TRADE_COPIED,
       hashHedgeTradeCopyFailed: HASH_HEDGE_TRADE_COPY_FAILED,
+      levelsCopyTap: LEVELS_COPY_TAP,
+      levelsCopied: LEVELS_COPIED,
       formatTrackerStageLev: (stage, leverage) => `Этап ${stage} · плечо ${leverage}`,
       formatTrackerTradesTab: (count) => `Сделки · ${count}`,
       formatFeedShowMoreClosed,
@@ -468,6 +474,8 @@ function buildCopy(theme: Theme): ThemedCopy {
     hashHedgeTradeHint: P.PUNK_HASH_HEDGE_TRADE_HINT,
     hashHedgeTradeCopied: P.PUNK_HASH_HEDGE_TRADE_COPIED,
     hashHedgeTradeCopyFailed: P.PUNK_HASH_HEDGE_TRADE_COPY_FAILED,
+    levelsCopyTap: P.PUNK_LEVELS_COPY_TAP,
+    levelsCopied: P.PUNK_LEVELS_COPIED,
     formatTrackerStageLev: P.PUNK_TRACKER_STAGE_LEV,
     formatTrackerTradesTab: P.PUNK_TRACKER_TRADES_TAB,
     formatFeedShowMoreClosed: P.PUNK_FORMAT_FEED_SHOW_MORE_CLOSED,

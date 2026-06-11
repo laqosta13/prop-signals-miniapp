@@ -1,7 +1,8 @@
 import type { HashHedgeRules } from "../api";
+import { HASH_HEDGE_APP_LOGIN_URL } from "./hashhedgeTrade";
 
-/** Ссылка на регистрацию Hash Hedge (реферал). */
-export const HASHHEDGE_REGISTER_URL = "https://hashhedge.com?fpr=igor83";
+/** Вход / регистрация Hash Hedge. */
+export const HASHHEDGE_REGISTER_URL = HASH_HEDGE_APP_LOGIN_URL;
 
 export const HASHHEDGE_REGISTER_LABEL = "Регистрация в HASH HEDGE";
 

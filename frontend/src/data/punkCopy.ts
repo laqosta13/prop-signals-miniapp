@@ -219,7 +219,9 @@ export const PUNK_PARTNER_BYBIT_HINT = "Bybit — зеркало операто�
 export const PUNK_HASH_HEDGE_TRADE_BTN = "HASH HEDGE";
 export const PUNK_HASH_HEDGE_TRADE_HINT = "Скопировать код сделки и открыть терминал Hash Hedge в приложении";
 export const PUNK_HASH_HEDGE_TRADE_COPIED =
-  "Код в буфере. В терминале: «Рынок» → TP/SL → вставьте стоп и цель → подтвердите.";
+  "Полный код в буфере. Уровни ниже — тап по цифре копирует вход, стоп или цель.";
+export const PUNK_LEVELS_COPY_TAP = "тап · копировать";
+export const PUNK_LEVELS_COPIED = "в буфере";
 export const PUNK_HASH_HEDGE_TRADE_COPY_FAILED =
   "Буфер недоступен. Откройте Hedge и перепишите уровни с карточки.";
 export const PUNK_PARTNER_BINGX_HINT = "Регистрация BingX";

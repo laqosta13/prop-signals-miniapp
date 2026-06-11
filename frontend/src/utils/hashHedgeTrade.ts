@@ -70,6 +70,15 @@ export function formatHashHedgeTradeClipboard(signal: HashHedgeTradeSignal): str
   ].join("\n");
 }
 
+export function hashHedgeLevelsFromSignal(signal: HashHedgeTradeSignal) {
+  return {
+    entry: signal.entry_low || signal.entry_high || "—",
+    stopLoss: signal.stop_loss,
+    target: formatTakeProfits(signal.take_profits),
+    signalNumber: signal.number ?? signal.id,
+  };
+}
+
 export async function prepareHashHedgeTrade(
   signal: HashHedgeTradeSignal,
 ): Promise<{ copied: boolean; url: string }> {
