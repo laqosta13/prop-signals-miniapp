@@ -64,6 +64,7 @@ class MarketKlineCandleRead(BaseModel):
     high: float
     low: float
     close: float
+    volume: float = 0.0
 
 
 class MarketKlinesRead(BaseModel):

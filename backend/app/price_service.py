@@ -227,6 +227,9 @@ async def fetch_bybit_linear_klines(
         close = _valid_price(float(k[4]))
         if close is None:
             continue
+        volume = float(k[5]) if len(k) > 5 else 0.0
+        if not math.isfinite(volume) or volume < 0:
+            volume = 0.0
         candles.append(
             {
                 "time": int(float(k[0]) // 1000),
@@ -234,6 +237,7 @@ async def fetch_bybit_linear_klines(
                 "high": float(k[2]),
                 "low": float(k[3]),
                 "close": close,
+                "volume": volume,
             }
         )
     candles.reverse()

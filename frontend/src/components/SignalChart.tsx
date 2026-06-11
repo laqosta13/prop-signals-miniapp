@@ -45,7 +45,11 @@ const CHART_KLINE_LIMIT = 1000;
 const CHART_VISIBLE_BARS = 220;
 const CHART_HISTORY_BEFORE_MS = 36 * 60 * 60 * 1000;
 const CHART_RIGHT_OFFSET_BARS = 40;
-const CHART_HEIGHT = 268;
+const CHART_HEIGHT = 300;
+const CHART_VOLUME_SCALE_ID = "volume";
+const CHART_PRICE_SCALE_MARGINS = { top: 0.08, bottom: 0.26 };
+const CHART_VOLUME_SCALE_MARGINS = { top: 0.74, bottom: 0 };
+const CHART_VOLUME_ALPHA = 0.42;
 const CHART_LIVE_AXIS_PREFIX = "  ";
 
 type Props = {
@@ -84,7 +88,45 @@ async function fetchBybitKlines(
     high: k.high,
     low: k.low,
     close: k.close,
+    volume: k.volume ?? 0,
   }));
+}
+
+function hexWithAlpha(hex: string, alpha: number): string {
+  const h = hex.replace("#", "");
+  if (h.length !== 6) return hex;
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function volumeHistogramData(candles: ChartCandle[], palette: ChartPalette) {
+  return candles.map((c) => {
+    const up = c.close >= c.open;
+    return {
+      time: c.time,
+      value: c.volume,
+      color: hexWithAlpha(up ? palette.upColor : palette.downColor, CHART_VOLUME_ALPHA),
+    };
+  });
+}
+
+function createVolumeSeries(chart: IChartApi, data: ChartCandle[], palette: ChartPalette) {
+  chart.priceScale("right").applyOptions({ scaleMargins: CHART_PRICE_SCALE_MARGINS });
+  const volumeSeries = chart.addHistogramSeries({
+    priceFormat: { type: "volume" },
+    priceScaleId: CHART_VOLUME_SCALE_ID,
+    lastValueVisible: false,
+    priceLineVisible: false,
+  });
+  chart.priceScale(CHART_VOLUME_SCALE_ID).applyOptions({
+    scaleMargins: CHART_VOLUME_SCALE_MARGINS,
+    visible: false,
+    borderVisible: false,
+  });
+  volumeSeries.setData(volumeHistogramData(data, palette));
+  return volumeSeries;
 }
 
 const ENTRY_ZONE_PRICE_EPS = 1e-8;
@@ -436,6 +478,7 @@ export function SignalChart({
   const chartRef = useRef<HTMLDivElement>(null);
   const chartApi = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const entryCandleTimeRef = useRef<UTCTimestamp | null>(null);
   const closeCandleTimeRef = useRef<UTCTimestamp | null>(null);
   const lastCandleTimeRef = useRef<UTCTimestamp | null>(null);
@@ -700,7 +743,7 @@ export function SignalChart({
         autoScale: true,
         entireTextOnly: false,
         minimumWidth: 92,
-        scaleMargins: { top: 0.1, bottom: 0.1 },
+        scaleMargins: CHART_PRICE_SCALE_MARGINS,
       },
       timeScale: {
         borderVisible: false,
@@ -730,6 +773,7 @@ export function SignalChart({
       chart.remove();
       chartApi.current = null;
       seriesRef.current = null;
+      volumeSeriesRef.current = null;
       entryCandleTimeRef.current = null;
       closeCandleTimeRef.current = null;
       pinnedEntryRef.current = null;
@@ -769,6 +813,7 @@ export function SignalChart({
         if (!chart) return;
         const data = clipCandlesForSignal(candles, createdAt, closedAt, candleSec, frozen);
         if (seriesRef.current) chart.removeSeries(seriesRef.current);
+        if (volumeSeriesRef.current) chart.removeSeries(volumeSeriesRef.current);
         const scalePrices = chartLevelPrices(lv, { entryPrice: entryRef, closedExitPrice });
         const series = chart.addCandlestickSeries({
           upColor: palette.upColor,
@@ -782,6 +827,7 @@ export function SignalChart({
         });
         livePriceLineRef.current = null;
         seriesRef.current = series;
+        volumeSeriesRef.current = createVolumeSeries(chart, data, palette);
         series.setData(data);
         entryRefPriceRef.current = entryRef;
         lastCandleTimeRef.current = data.length ? data[data.length - 1].time : null;
@@ -851,9 +897,11 @@ export function SignalChart({
         .then((candles) => {
           const chartNow = chartApi.current;
           const seriesNow = seriesRef.current;
+          const volumeNow = volumeSeriesRef.current;
           if (!chartNow || !seriesNow) return;
           const data = clipCandlesForSignal(candles, createdAt, closedAt, candleSec, false);
           seriesNow.setData(data);
+          volumeNow?.setData(volumeHistogramData(data, palette));
           lastCandleTimeRef.current = data.length ? data[data.length - 1].time : null;
           paintChartMarkers(seriesNow, data, candleSec, lv, entryRef);
           applyFeedVisibleRange(
@@ -879,7 +927,7 @@ export function SignalChart({
 
     const id = window.setInterval(refreshCandles, CHART_POLL_MS);
     return () => window.clearInterval(id);
-  }, [visible, pair, interval, frozen, entryFilledAt, entryPrice, entryLow, entryHigh, stopLoss, takeProfits, createdAt, closedAt]);
+  }, [visible, pair, interval, frozen, entryFilledAt, entryPrice, entryLow, entryHigh, stopLoss, takeProfits, createdAt, closedAt, palette]);
 
   useEffect(() => {
     if (!visible || !pair || !showLivePrice) {

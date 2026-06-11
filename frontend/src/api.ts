@@ -467,7 +467,14 @@ export const fetchSignalsPreview = () => api<Signal[]>("/signals/preview");
 
 export type MarketPrice = { symbol: string; price: number; source?: string };
 
-export type MarketKline = { time: number; open: number; high: number; low: number; close: number };
+export type MarketKline = {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+};
 
 export const fetchMarketPrice = (symbol: string) =>
   api<MarketPrice>(`/signals/market-price?symbol=${encodeURIComponent(symbol.trim())}`);

@@ -4,7 +4,14 @@ import { parseApiDate } from "../utils";
 import type { AutoscaleInfo, UTCTimestamp } from "lightweight-charts";
 import { roundPct } from "./formatPct";
 
-export type ChartCandle = { time: UTCTimestamp; open: number; high: number; low: number; close: number };
+export type ChartCandle = {
+  time: UTCTimestamp;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+};
 
 export function parseLevelPrice(raw: string | null | undefined): number | null {
   if (!raw) return null;
