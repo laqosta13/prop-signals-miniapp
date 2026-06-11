@@ -59,8 +59,12 @@ export function TraderProfileModal({ trader, onClose }: Props) {
           <div className="trader-profile-sheet__who">
             <div className="trader-profile-sheet__name-row">
               <p className="trader-profile-sheet__name">{profile.title}</p>
-              {showRankBadge && rank && <RankBadge rank={rank} featured />}
             </div>
+            {showRankBadge && rank && (
+              <div className="trader-profile-sheet__rank">
+                <RankBadge rank={rank} featured />
+              </div>
+            )}
             {aggregate && <p className="trader-profile-sheet__sub">{copy.volnovoiSubtitle}</p>}
           </div>
         </div>

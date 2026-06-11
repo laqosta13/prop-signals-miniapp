@@ -83,7 +83,7 @@ function TopTraderCard({
               size={44}
             />
             <div className="top-body">
-              <div className="top-name-row">
+              <div className="top-name-row top-name-row--stacked">
                 <div className="top-name-line">
                   {topChip ? (
                     <TopPlaceMedal place={trader.rank as 1 | 2 | 3} />
@@ -96,17 +96,18 @@ function TopTraderCard({
                   )}
                   <p className="top-name">{profile.title}</p>
                 </div>
-                {aggregate ? (
-                  <VolnovoiMarketingBadge trader={trader} />
-                ) : (
-                  showRankBadge && trader.trader_rank && <RankBadge rank={trader.trader_rank} featured />
+                {!aggregate && showRankBadge && trader.trader_rank && (
+                  <div className="top-trader-rank">
+                    <RankBadge rank={trader.trader_rank} featured />
+                  </div>
                 )}
+                {aggregate && trader.trader_rank && (
+                  <div className="top-aggregate-rank">
+                    <RankBadge rank={trader.trader_rank} featured />
+                  </div>
+                )}
+                {aggregate && <VolnovoiMarketingBadge trader={trader} />}
               </div>
-              {aggregate && trader.trader_rank && (
-                <div className="top-aggregate-rank">
-                  <RankBadge rank={trader.trader_rank} featured />
-                </div>
-              )}
               {aggregate && <p className="top-aggregate-hint">{copy.volnovoiSubtitle}</p>}
               <p className={`top-score ${trader.rating_percent >= 0 ? "up" : "down"}`}>
                 {trader.rating_percent >= 0 ? "+" : ""}
