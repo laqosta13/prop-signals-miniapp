@@ -100,7 +100,31 @@ def _mark_copy_failed(db: Session, row: SignalCopyTrade, error: str) -> None:
     db.commit()
 
 
-async def _open_copy_for_user(db: Session, signal: Signal, user_row: UserBybitSettings) -> None:
+async def _resolve_copy_entry_price(signal: Signal, *, at_publication: bool) -> float | None:
+    """Цена market-входа копии: при публикации — рынок, после лимитки — зона входа сигнала."""
+    if at_publication:
+        if signal.published_market_price is not None and signal.published_market_price > 0:
+            return float(signal.published_market_price)
+        quote = await fetch_bybit_perp_quote(signal.symbol)
+        if quote is not None and quote.price > 0:
+            return float(quote.price)
+        return None
+
+    entry_price = signal_entry_price(signal)
+    if entry_price is None or entry_price <= 0:
+        quote = await fetch_bybit_perp_quote(signal.symbol)
+        if quote is not None and quote.price > 0:
+            entry_price = float(quote.price)
+    return entry_price if entry_price and entry_price > 0 else None
+
+
+async def _open_copy_for_user(
+    db: Session,
+    signal: Signal,
+    user_row: UserBybitSettings,
+    *,
+    at_publication: bool = False,
+) -> None:
     copy_row = _get_or_create_copy_row(db, signal.id, user_row.telegram_user_id)
     if copy_row.exchange_status in (EXCHANGE_OPEN, EXCHANGE_OPENING, EXCHANGE_CLOSED, EXCHANGE_CLOSING):
         return
@@ -114,12 +138,8 @@ async def _open_copy_for_user(db: Session, signal: Signal, user_row: UserBybitSe
         db.commit()
         return
 
-    entry_price = signal_entry_price(signal)
-    if entry_price is None or entry_price <= 0:
-        quote = await fetch_bybit_perp_quote(signal.symbol)
-        if quote is not None and quote.price > 0:
-            entry_price = float(quote.price)
-    if entry_price is None or entry_price <= 0:
+    entry_price = await _resolve_copy_entry_price(signal, at_publication=at_publication)
+    if entry_price is None:
         _mark_copy_failed(db, copy_row, "нет цены входа")
         return
 
@@ -159,7 +179,14 @@ async def _open_copy_for_user(db: Session, signal: Signal, user_row: UserBybitSe
         copy_row.exchange_order_id = order_id
         copy_row.exchange_error = None
         db.commit()
-        logger.info("Bybit copy: user=%s signal #%s %s qty=%s", uid, signal.id, pair, qty)
+        logger.info(
+            "Bybit copy: user=%s signal #%s %s qty=%s%s",
+            uid,
+            signal.id,
+            pair,
+            qty,
+            " (at publication)" if at_publication else "",
+        )
     except Exception as e:
         logger.exception("Bybit copy open user=%s signal #%s", uid, signal.id)
         _mark_copy_failed(db, copy_row, str(e))
@@ -212,17 +239,19 @@ async def open_signal_copy_for_user(db: Session, signal: Signal, telegram_user_i
     await _open_copy_for_user(db, signal, row)
 
 
-async def open_signal_copies(db: Session, signal: Signal) -> None:
+async def open_signal_copies(db: Session, signal: Signal, *, at_publication: bool = False) -> None:
     """Открыть копии сигнала на Bybit у всех подписчиков с API."""
     if getattr(signal, "is_cult_candidate", False):
         return
-    if signal.entry_filled_at is None or signal.status != "active":
+    if signal.status != "active":
+        return
+    if not at_publication and signal.entry_filled_at is None:
         return
     users = eligible_copy_settings(db)
     if not users:
         return
     for user_row in users:
-        await _open_copy_for_user(db, signal, user_row)
+        await _open_copy_for_user(db, signal, user_row, at_publication=at_publication)
 
 
 async def close_signal_copies(db: Session, signal: Signal) -> None:

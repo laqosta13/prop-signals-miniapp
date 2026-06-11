@@ -457,11 +457,16 @@ async def stamp_signal_at_publication(
             await open_signal_copy_for_user(db, signal, signal.author_telegram_id)
         return
 
+    try:
+        await open_signal_copies(db, signal, at_publication=True)
+    except Exception:
+        logger.exception("open_signal_copies at publication failed for signal #%s", signal.id)
+
     if signal.entry_filled_at is not None:
         await after_limit_entry_filled(db, signal, notify=notify_entry and entry_hit is not None)
     elif entry_zone_defined(signal.entry_low, signal.entry_high):
         logger.info(
-            "Публикация signal #%s %s: лимитный вход, копирование после срабатывания цены",
+            "Публикация signal #%s %s: лимитный вход сигнала, копии volnovoi открыты по рынку",
             signal.id,
             signal.symbol,
         )
