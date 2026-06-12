@@ -1,7 +1,11 @@
 import WebApp from "@twa-dev/sdk";
 import { safeExternalUrl } from "./safeUrl";
 
-/** Открыть внешнюю или Telegram-ссылку из Mini App. */
+type OpenLinkOptions = {
+  try_instant_view?: boolean;
+};
+
+/** Открыть ссылку: в Telegram — встроенный браузер клиента (openLink), иначе новая вкладка. */
 export function openExternalLink(url: string): void {
   const safe = safeExternalUrl(url);
   if (!safe) return;
@@ -10,8 +14,9 @@ export function openExternalLink(url: string): void {
     WebApp.openTelegramLink(safe);
     return;
   }
-  if (typeof WebApp.openLink === "function") {
-    WebApp.openLink(safe);
+  const openLink = WebApp.openLink as ((link: string, options?: OpenLinkOptions) => void) | undefined;
+  if (typeof openLink === "function") {
+    openLink(safe);
     return;
   }
   window.open(safe, "_blank", "noopener,noreferrer");

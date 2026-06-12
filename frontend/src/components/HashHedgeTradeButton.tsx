@@ -1,15 +1,11 @@
 import { useState } from "react";
 import WebApp from "@twa-dev/sdk";
-import type { Signal } from "../api";
+import { HASH_HEDGE_TRADE_URL } from "../data/hashhedgeTrade";
 import { useThemedCopy } from "../hooks/useThemedCopy";
-import {
-  hashHedgeLevelsFromSignal,
-  prepareHashHedgeTrade,
-  type HashHedgeTradeSignal,
-} from "../utils/hashHedgeTrade";
-import { signalStopMovePct } from "../utils/signalPnl";
+import { formatHashHedgeTradeClipboard, type HashHedgeTradeSignal } from "../utils/hashHedgeTrade";
+import { copyToClipboard } from "../utils/clipboard";
+import { openExternalLink } from "../utils/openExternalLink";
 import { HashHedgeLogo } from "./BrandLogos";
-import { InAppBrowser } from "./InAppBrowser";
 
 type Props = {
   signal: HashHedgeTradeSignal;
@@ -19,61 +15,42 @@ type Props = {
 export function HashHedgeTradeButton({ signal, className = "" }: Props) {
   const copy = useThemedCopy();
   const [busy, setBusy] = useState(false);
-  const [browser, setBrowser] = useState<{
-    url: string;
-    hint?: string;
-    levels: ReturnType<typeof hashHedgeLevelsFromSignal>;
-  } | null>(null);
 
   if (signal.status !== "active") return null;
 
-  const onClick = async (e: React.MouseEvent) => {
+  const onClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (busy) return;
     setBusy(true);
-    try {
-      const { copied, url } = await prepareHashHedgeTrade(signal);
-      const levels = {
-        ...hashHedgeLevelsFromSignal(signal),
-        stopMovePct: signalStopMovePct(signal as Signal),
-      };
-      WebApp.HapticFeedback.notificationOccurred(copied ? "success" : "warning");
-      if (copied) {
-        setBrowser({ url, hint: copy.hashHedgeTradeCopied, levels });
-      } else {
-        WebApp.showAlert(copy.hashHedgeTradeCopyFailed);
-        setBrowser({ url, levels });
+    // openLink нужно вызвать сразу в обработчике клика (TTL ~1 с в Telegram).
+    openExternalLink(HASH_HEDGE_TRADE_URL);
+    void (async () => {
+      try {
+        const copied = await copyToClipboard(formatHashHedgeTradeClipboard(signal));
+        WebApp.HapticFeedback.notificationOccurred(copied ? "success" : "warning");
+        if (!copied) {
+          WebApp.showAlert(copy.hashHedgeTradeCopyFailed);
+        }
+      } finally {
+        setBusy(false);
       }
-    } finally {
-      setBusy(false);
-    }
+    })();
   };
 
   const cls = `hashhedge-trade-btn${className ? ` ${className}` : ""}`;
 
   return (
-    <>
-      <button
-        type="button"
-        className={cls}
-        disabled={busy}
-        title={copy.hashHedgeTradeHint}
-        aria-label={copy.hashHedgeTradeHint}
-        onClick={(e) => void onClick(e)}
-      >
-        <HashHedgeLogo size={20} />
-        <span>{copy.hashHedgeTradeBtn}</span>
-      </button>
-      {browser && (
-        <InAppBrowser
-          url={browser.url}
-          title={copy.hashHedgeTradeBtn}
-          hint={browser.hint}
-          levels={browser.levels}
-          onClose={() => setBrowser(null)}
-        />
-      )}
-    </>
+    <button
+      type="button"
+      className={cls}
+      disabled={busy}
+      title={copy.hashHedgeTradeHint}
+      aria-label={copy.hashHedgeTradeHint}
+      onClick={onClick}
+    >
+      <HashHedgeLogo size={20} />
+      <span>{copy.hashHedgeTradeBtn}</span>
+    </button>
   );
 }

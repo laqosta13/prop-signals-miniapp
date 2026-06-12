@@ -1,8 +1,8 @@
 import { useState } from "react";
 import type { HashHedgeRules } from "../api";
 import { HASHHEDGE_REGISTER_LABEL, HASHHEDGE_REGISTER_URL } from "../data/hashhedgeRules";
+import { openExternalLink } from "../utils/openExternalLink";
 import { HashHedgeLogo } from "./BrandLogos";
-import { InAppBrowser } from "./InAppBrowser";
 
 type Props = {
   rules: HashHedgeRules | null;
@@ -11,7 +11,6 @@ type Props = {
 
 export function HashHedgeRulesTable({ rules, loading }: Props) {
   const [openHint, setOpenHint] = useState<string | null>(null);
-  const [browserOpen, setBrowserOpen] = useState(false);
 
   if (loading) return <p className="meta hashhedge-rules__loading">Загрузка правил…</p>;
   if (!rules) return null;
@@ -67,7 +66,7 @@ export function HashHedgeRulesTable({ rules, loading }: Props) {
           <button
             type="button"
             className="hashhedge-rules__register"
-            onClick={() => setBrowserOpen(true)}
+            onClick={() => openExternalLink(HASHHEDGE_REGISTER_URL)}
             aria-label={HASHHEDGE_REGISTER_LABEL}
           >
             <span className="cta-btn__label">
@@ -77,13 +76,6 @@ export function HashHedgeRulesTable({ rules, loading }: Props) {
           </button>
         </div>
       </div>
-      {browserOpen && (
-        <InAppBrowser
-          url={HASHHEDGE_REGISTER_URL}
-          title="Hash Hedge"
-          onClose={() => setBrowserOpen(false)}
-        />
-      )}
     </section>
   );
 }
