@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.active_signal_read import build_active_signal_read
 from app.copy_trading_service import copy_deposit_base_usd
 from app.models import CultCandidate, Signal, UserBybitSettings
 from app.schemas import (
@@ -195,44 +196,8 @@ def _active_signals_for(db: Session, user_ids: list[int]) -> dict[int, list[Cult
         ).all()
     )
     out: dict[int, list[CultCandidateActiveSignalRead]] = defaultdict(list)
-    from app.signal_utils import signal_awaiting_entry, signal_in_trade
-
     for s in rows:
-        stake = s.risk_percent if s.risk_percent is not None else 10.0
-        lev = int(s.leverage or 1)
-        if s.entry_low and s.entry_high and s.entry_low != s.entry_high:
-            entry = f"{s.entry_low}–{s.entry_high}"
-        else:
-            entry = s.entry_low or s.entry_high or "—"
-        awaiting = signal_awaiting_entry(s)
-        in_market = signal_in_trade(s)
-        if awaiting:
-            level_label = "ожидание входа"
-        elif in_market:
-            if s.stop_loss:
-                level_label = f"стоп {s.stop_loss}"
-            elif s.take_profits:
-                tp = (s.take_profits or "").split(",")[0].strip()
-                level_label = f"цель {tp}" if tp else "в рынке"
-            else:
-                level_label = "в рынке"
-        else:
-            level_label = "активна"
-        out[s.author_telegram_id].append(
-            CultCandidateActiveSignalRead(
-                id=s.id,
-                symbol=s.symbol,
-                direction=s.direction,
-                entry=entry,
-                level_label=level_label,
-                stake_percent=float(stake),
-                leverage=lev,
-                stop_loss=s.stop_loss,
-                take_profits=s.take_profits,
-                in_market=in_market,
-                awaiting_entry=awaiting,
-            )
-        )
+        out[s.author_telegram_id].append(build_active_signal_read(s))
     return out
 
 

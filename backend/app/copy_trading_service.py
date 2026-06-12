@@ -17,6 +17,7 @@ from app.bybit_trading import (
     set_leverage,
     set_position_stops,
 )
+from app.config import settings
 from app.credentials_crypto import decrypt_secret
 from app.copy_billing import copy_trading_allowed
 from app.models import Signal, SignalCopyTrade, UserBybitSettings
@@ -229,8 +230,28 @@ async def _close_copy_for_user(db: Session, copy_row: SignalCopyTrade, signal: S
         _mark_copy_failed(db, copy_row, f"close: {e}")
 
 
+async def sync_open_copies_for_user(db: Session, telegram_user_id: int) -> None:
+    """Догоняющее открытие копий активных сделок ленты (volnovoi) для одного подписчика."""
+    row = db.get(UserBybitSettings, telegram_user_id)
+    if row is None or not row.enabled or not copy_trading_allowed(db, telegram_user_id):
+        return
+    admin_ids = sorted(settings.all_admin_id_set)
+    if not admin_ids:
+        return
+    signals = list(
+        db.scalars(
+            select(Signal).where(
+                Signal.status == "active",
+                Signal.is_cult_candidate.is_(False),
+                Signal.author_telegram_id.in_(admin_ids),
+            )
+        ).all()
+    )
+    for signal in signals:
+        await _open_copy_for_user(db, signal, row, at_publication=True)
+
+
 async def open_signal_copy_for_user(db: Session, signal: Signal, telegram_user_id: int) -> None:
-    """Открыть сделку на Bybit только у указанного пользователя (кандидат CULT)."""
     if signal.entry_filled_at is None or signal.status != "active":
         return
     row = db.get(UserBybitSettings, telegram_user_id)

@@ -215,6 +215,7 @@ class TraderRead(BaseModel):
     trader_rank: TraderRankRead | None = None
     volnovoi_style: VolnovoiStyleRead | None = None
     is_aggregate: bool = False
+    active_signals: list[CultCandidateActiveSignalRead] = []
 
     model_config = {"from_attributes": True}
 

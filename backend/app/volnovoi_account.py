@@ -8,11 +8,12 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.active_signal_read import build_active_signal_read
 from app.config import settings
 from app.models import Signal
 from app.rank_constants import get_rank_by_pct, rank_name
 from app.rank_service import next_sunday_deadline
-from app.schemas import TraderDayStat, TraderRankRead, TraderRead
+from app.schemas import CultCandidateActiveSignalRead, TraderDayStat, TraderRankRead, TraderRead
 from app.trader_stats import (
     closed_signal_move_pct,
     signal_entry_stake_pct,
@@ -110,13 +111,35 @@ def volnovoi_rank_read(weekly_pct: float, rating_pct: float) -> TraderRankRead:
     )
 
 
+def _active_admin_feed_signals(db: Session, admin_ids: list[int]) -> list[Signal]:
+    if not admin_ids:
+        return []
+    return list(
+        db.scalars(
+            select(Signal)
+            .where(
+                Signal.author_telegram_id.in_(admin_ids),
+                Signal.is_cult_candidate.is_(False),
+                Signal.status == "active",
+            )
+            .order_by(Signal.created_at.desc())
+        ).all()
+    )
+
+
+def volnovoi_active_signals(db: Session, admin_ids: list[int] | None = None) -> list[CultCandidateActiveSignalRead]:
+    ids = admin_ids if admin_ids is not None else sorted(settings.all_admin_id_set)
+    return [build_active_signal_read(s) for s in _active_admin_feed_signals(db, ids)]
+
+
 def build_volnovoi_read(db: Session) -> TraderRead | None:
     admin_ids = sorted(settings.all_admin_id_set)
     if not admin_ids:
         return None
 
     signals = _closed_admin_signals(db, admin_ids)
-    if not signals:
+    active_signals = volnovoi_active_signals(db, admin_ids)
+    if not signals and not active_signals:
         return None
 
     now = datetime.now(timezone.utc)
@@ -155,4 +178,5 @@ def build_volnovoi_read(db: Session) -> TraderRead | None:
         daily_stats=volnovoi_daily_stats(signals),
         trader_rank=volnovoi_rank_read(weekly, rating) if total else None,
         is_aggregate=True,
+        active_signals=active_signals,
     )

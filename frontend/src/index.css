@@ -1724,26 +1724,6 @@
   letter-spacing: 0.05em;
 }
 
-.levels-grid span:not(.levels-grid__copy-hint) {
-  display: block;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  color: var(--muted);
-  letter-spacing: 0.05em;
-}
-
-.levels-grid__copy-hint {
-  display: block;
-  margin-top: 2px;
-  font-size: 0.58rem;
-  font-style: normal;
-  font-weight: 500;
-  text-transform: none;
-  letter-spacing: 0;
-  color: var(--green);
-  opacity: 0.9;
-}
-
 .levels-grid strong,
 .levels-grid__value {
   font-size: 0.95rem;

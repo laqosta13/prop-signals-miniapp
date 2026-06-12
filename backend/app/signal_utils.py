@@ -60,6 +60,37 @@ def effective_entry_price(
     return None
 
 
+def format_level_price_display(price: float) -> str:
+    abs_p = abs(price)
+    if abs_p >= 1000:
+        text = f"{price:.2f}"
+    elif abs_p >= 1:
+        text = f"{price:.4f}"
+    else:
+        text = f"{price:.6f}"
+    if "." in text:
+        text = text.rstrip("0").rstrip(".")
+    return text
+
+
+def format_signal_entry_display(
+    entry_low: str | None,
+    entry_high: str | None,
+    published_market_price: float | None = None,
+) -> str:
+    """Строка входа для UI: зона лимита или цена рынка при публикации."""
+    low_raw = (entry_low or "").strip()
+    high_raw = (entry_high or "").strip()
+    lo = parse_price(entry_low)
+    hi = parse_price(entry_high)
+    if lo is not None and hi is not None and low_raw and high_raw and low_raw != high_raw:
+        return f"{format_level_price_display(lo)}–{format_level_price_display(hi)}"
+    price = effective_entry_price(entry_low, entry_high, published_market_price)
+    if price is not None:
+        return format_level_price_display(price)
+    return low_raw or high_raw or "—"
+
+
 def outcome_from_move(move: float) -> str:
     """win/lose по знаку движения цены (0% = win)."""
     return "win" if move >= 0 else "lose"

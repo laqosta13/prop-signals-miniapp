@@ -10,6 +10,7 @@ import {
   type Trader,
 } from "../api";
 import { EquityCurve } from "./EquityCurve";
+import { CultCandidateActiveTrades } from "./CultCandidateActiveTrades";
 import { CultCandidateCard } from "./CultCandidateCard";
 import { CultCandidateJoinPanel } from "./CultCandidateJoinPanel";
 import { CultCandidateSignalDetailModal } from "./CultCandidateSignalDetailModal";
@@ -109,6 +110,9 @@ function TopTraderCard({
                 {aggregate && <VolnovoiMarketingBadge trader={trader} />}
               </div>
               {aggregate && <p className="top-aggregate-hint">{copy.volnovoiSubtitle}</p>}
+              {aggregate && (trader.active_signals?.length ?? 0) > 0 && (
+                <CultCandidateActiveTrades trades={trader.active_signals!} />
+              )}
               <p className={`top-score ${trader.rating_percent >= 0 ? "up" : "down"}`}>
                 {trader.rating_percent >= 0 ? "+" : ""}
                 {trader.rating_percent.toFixed(2)}%

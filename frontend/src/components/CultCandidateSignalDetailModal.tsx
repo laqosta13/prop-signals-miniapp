@@ -7,7 +7,12 @@ import {
   signalStopMovePct,
   signalTrackerBalanceUsd,
 } from "../utils/signalPnl";
-import { formatSignedMovePct, signalOutcomeDisplay } from "../utils/signalChartLevels";
+import {
+  formatSignedMovePct,
+  signalDisplayEntry,
+  signalEntryForRR,
+  signalOutcomeDisplay,
+} from "../utils/signalChartLevels";
 import { SignalChart } from "./SignalChart";
 import { SignalLevelsGrid } from "./SignalLevelsGrid";
 import { HashHedgeTradeButton } from "./HashHedgeTradeButton";
@@ -23,7 +28,7 @@ export function CultCandidateSignalDetailModal({ signal, loading = false, error 
   if (!signal && !loading && !error) return null;
 
   const s = signal;
-  const entry = s ? s.entry_low || s.entry_high || "—" : "—";
+  const entry = s ? signalDisplayEntry(s.entry_low, s.entry_high, s.published_market_price) : "—";
   const target = s ? formatTakeProfits(s.take_profits) : "—";
   const isLong = s?.direction === "long";
   const stake = s ? signalEntryStakePct(s) : 0;
@@ -42,7 +47,9 @@ export function CultCandidateSignalDetailModal({ signal, loading = false, error 
         s.take_profits,
       )
     : null;
-  const rr = s ? calcRR(entry === "—" ? null : entry, s.stop_loss, s.take_profits) : "—";
+  const rr = s
+    ? calcRR(signalEntryForRR(s.entry_low, s.entry_high, s.published_market_price), s.stop_loss, s.take_profits)
+    : "—";
   const stopMovePct = s ? signalStopMovePct(s) : null;
 
   return (

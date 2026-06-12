@@ -12,6 +12,7 @@ import { Avatar } from "./Avatar";
 import { RankBadge } from "./RankBadge";
 import { VolnovoiMarketingBadge } from "./VolnovoiMarketingBadge";
 import { VolnovoiStylePanel } from "./VolnovoiStylePanel";
+import { CultCandidateActiveTrades } from "./CultCandidateActiveTrades";
 
 type Props = {
   trader: Trader;
@@ -71,6 +72,10 @@ export function TraderProfileModal({ trader, onClose }: Props) {
 
         {aggregate && (
           <VolnovoiMarketingBadge trader={trader} className="volnovoi-marketing--profile" />
+        )}
+
+        {aggregate && (trader.active_signals?.length ?? 0) > 0 && (
+          <CultCandidateActiveTrades trades={trader.active_signals!} />
         )}
 
         {!aggregate && trader.volnovoi_style && (

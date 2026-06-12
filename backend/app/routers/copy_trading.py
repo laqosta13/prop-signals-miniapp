@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.bybit_trading import BybitCredentials, get_wallet_usdt_balance
+from app.copy_trading_service import sync_open_copies_for_user
 from app.copy_billing import (
     MIN_TOPUP_USD,
     billing_snapshot,
@@ -229,6 +230,8 @@ async def save_my_copy_trading(
     settle_copy_fees_from_deposit(db, user.telegram_user_id, row, balance)
     db.commit()
     db.refresh(row)
+    if row.enabled and copy_trading_allowed(db, user.telegram_user_id):
+        await sync_open_copies_for_user(db, user.telegram_user_id)
     return _status_from_snap(db, row, telegram_user_id=user.telegram_user_id, balance=balance, balance_error=balance_error)
 
 
@@ -262,6 +265,8 @@ async def patch_my_copy_trading(
         settle_copy_fees_from_deposit(db, user.telegram_user_id, row, balance)
     db.commit()
     db.refresh(row)
+    if row.enabled and copy_trading_allowed(db, user.telegram_user_id):
+        await sync_open_copies_for_user(db, user.telegram_user_id)
     return _status_from_snap(db, row, telegram_user_id=user.telegram_user_id, balance=balance, balance_error=balance_error)
 
 
@@ -293,6 +298,9 @@ async def test_my_copy_trading(
         )
     balance, balance_error = await _refresh_billing(db, user, row)
     db.commit()
+    db.refresh(row)
+    if row.enabled and copy_trading_allowed(db, user.telegram_user_id):
+        await sync_open_copies_for_user(db, user.telegram_user_id)
     return _status_from_snap(db, row, telegram_user_id=user.telegram_user_id, balance=balance, balance_error=balance_error)
 
 
@@ -319,5 +327,7 @@ async def topup_copy_deposit(
     if row is not None:
         db.refresh(row)
         balance, balance_error = await _fetch_balance(row)
+        if row.enabled and copy_trading_allowed(db, user.telegram_user_id):
+            await sync_open_copies_for_user(db, user.telegram_user_id)
         return _status_from_snap(db, row, telegram_user_id=user.telegram_user_id, balance=balance, balance_error=balance_error)
     return _status_from_snap(db, None, telegram_user_id=user.telegram_user_id)

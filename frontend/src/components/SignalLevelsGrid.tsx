@@ -11,7 +11,6 @@ type Props = {
   stopLoss: string | null;
   target: string;
   stopMovePct?: number | null;
-  showCopyHint?: boolean;
   compact?: boolean;
 };
 
@@ -29,14 +28,7 @@ function splitTargets(target: string): string[] {
     .filter(Boolean);
 }
 
-export function SignalLevelsGrid({
-  entry,
-  stopLoss,
-  target,
-  stopMovePct,
-  showCopyHint = true,
-  compact = false,
-}: Props) {
+export function SignalLevelsGrid({ entry, stopLoss, target, stopMovePct, compact = false }: Props) {
   const copy = useThemedCopy();
   const [copied, setCopied] = useState<CopiedKey | null>(null);
   const targets = splitTargets(target);
@@ -59,30 +51,22 @@ export function SignalLevelsGrid({
       type="button"
       className={valueClass(key, extraClass)}
       disabled={!copyable(raw)}
-      title={copyable(raw) ? copy.levelsCopyTap : undefined}
       onClick={() => void onCopy(key, raw)}
     >
       {copied === key ? copy.levelsCopied : raw}
     </button>
   );
 
-  const hint = showCopyHint ? copy.levelsCopyTap : null;
   const rootClass = `levels-grid${compact ? " levels-grid--compact" : ""}`;
 
   return (
     <div className={rootClass}>
       <div>
-        <span className="levels-grid__label">
-          вход
-          {hint && <em className="levels-grid__copy-hint">{hint}</em>}
-        </span>
+        <span className="levels-grid__label">вход</span>
         {renderValue("entry", entry)}
       </div>
       <div className="stop">
-        <span className="levels-grid__label">
-          стоп
-          {hint && <em className="levels-grid__copy-hint">{hint}</em>}
-        </span>
+        <span className="levels-grid__label">стоп</span>
         <div className="levels-grid__value-row">
           {renderValue("stop", stopLoss || "—", "levels-grid__value--stop")}
           {stopMovePct != null && (
@@ -91,10 +75,7 @@ export function SignalLevelsGrid({
         </div>
       </div>
       <div className="target">
-        <span className="levels-grid__label">
-          цель
-          {hint && <em className="levels-grid__copy-hint">{hint}</em>}
-        </span>
+        <span className="levels-grid__label">цель</span>
         {multiTarget ? (
           <div className="levels-grid__targets">
             {targets.map((tp, i) => (

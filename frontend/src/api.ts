@@ -167,6 +167,7 @@ export type Trader = {
   trader_rank: TraderRank | null;
   volnovoi_style?: VolnovoiStyle | null;
   is_aggregate?: boolean;
+  active_signals?: CultCandidateActiveSignal[];
 };
 
 export type CultChannel = {

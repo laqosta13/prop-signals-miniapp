@@ -1,6 +1,7 @@
 /** Парсинг уровней сигнала для графика. */
 
 import { parseApiDate } from "../utils";
+import { formatPriceLevel } from "./signalLevels";
 import type { AutoscaleInfo, UTCTimestamp } from "lightweight-charts";
 import { roundPct } from "./formatPct";
 
@@ -93,6 +94,40 @@ export function chartEntryReference(
     return publishedMarketPrice;
   }
   return null;
+}
+
+/** Цена входа для карточки: лимитная зона или рынок при публикации. */
+export function signalDisplayEntry(
+  entryLow: string | null,
+  entryHigh: string | null,
+  publishedMarketPrice?: number | null,
+): string {
+  const lowRaw = entryLow?.trim();
+  const highRaw = entryHigh?.trim();
+  const low = parseLevelPrice(entryLow);
+  const high = parseLevelPrice(entryHigh);
+
+  if (lowRaw && highRaw && low != null && high != null && lowRaw !== highRaw) {
+    return `${formatPriceLevel(low)} – ${formatPriceLevel(high)}`;
+  }
+
+  const lv = levelsFromSignal(entryLow, entryHigh, null, null);
+  const ref = chartEntryReference(lv, publishedMarketPrice);
+  if (ref != null) return formatPriceLevel(ref);
+
+  return lowRaw || highRaw || "—";
+}
+
+/** Числовой вход для RR — середина зоны или цена рынка. */
+export function signalEntryForRR(
+  entryLow: string | null,
+  entryHigh: string | null,
+  publishedMarketPrice?: number | null,
+): string | null {
+  const lv = levelsFromSignal(entryLow, entryHigh, null, null);
+  const ref = chartEntryReference(lv, publishedMarketPrice);
+  if (ref == null) return null;
+  return formatPriceLevel(ref);
 }
 
 /** % движения цены от входа с учётом направления (+ в сторону профита). */

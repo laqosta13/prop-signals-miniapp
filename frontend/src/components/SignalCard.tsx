@@ -13,7 +13,12 @@ import {
 import { useSignalLivePnl } from "../hooks/useSignalLivePnl";
 import { canEditOrDeleteSignal, canCloseAtMarketSignal, canSupplementSignal } from "../utils/signalActions";
 import { localizeOutcomeLabel, useThemedCopy } from "../hooks/useThemedCopy";
-import { formatSignedMovePct, signalOutcomeDisplay } from "../utils/signalChartLevels";
+import {
+  formatSignedMovePct,
+  signalDisplayEntry,
+  signalEntryForRR,
+  signalOutcomeDisplay,
+} from "../utils/signalChartLevels";
 import { Avatar } from "./Avatar";
 import { CoinLogo } from "./CoinLogo";
 import { RankBadge } from "./RankBadge";
@@ -90,7 +95,7 @@ export function SignalCard({
     return () => obs.disconnect();
   }, [s.id, s.created_at, canEngage, onPatch]);
 
-  const entry = s.entry_low || s.entry_high || "—";
+  const entry = signalDisplayEntry(s.entry_low, s.entry_high, s.published_market_price);
   const target = formatTakeProfits(s.take_profits);
   const isLong = s.direction === "long";
   const pnl = signalRealizedPnl(s) ?? s.realized_pnl;
@@ -115,7 +120,7 @@ export function SignalCard({
   const statusBadge = localizeOutcomeLabel(outcome.label, copy);
   const statusClass = outcome.className;
   const author = useAuthorProfile(s.author_display_name, s.author_username, s.author_telegram_id);
-  const rr = calcRR(entry === "—" ? null : entry, s.stop_loss, s.take_profits);
+  const rr = calcRR(signalEntryForRR(s.entry_low, s.entry_high, s.published_market_price), s.stop_loss, s.take_profits);
   const stopMovePct = signalStopMovePct(s);
   const showResult = headerPnl != null || headerMove != null || (livePnl.loading && s.status === "active" && entryDone);
 
