@@ -10,6 +10,7 @@ import {
   type Trader,
 } from "../api";
 import { EquityCurve } from "./EquityCurve";
+import { CultCandidateCard } from "./CultCandidateCard";
 import { CultCandidateJoinPanel } from "./CultCandidateJoinPanel";
 import { CultCandidateSignalDetailModal } from "./CultCandidateSignalDetailModal";
 import { CultCandidateSignalModal } from "./CultCandidateSignalModal";

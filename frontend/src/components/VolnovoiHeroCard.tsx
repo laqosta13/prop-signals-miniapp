@@ -53,9 +53,9 @@ export function VolnovoiHeroCard({ trader, onOpen }: Props) {
         )}
 
         <div className="volnovoi-hero__stats">
-          <p className={`volnovoi-hero__rating ${trader.rating_percent >= 0 ? "up" : "down"}`}>
-            {trader.rating_percent >= 0 ? "+" : ""}
-            {trader.rating_percent.toFixed(2)}%
+          <p className={`volnovoi-hero__rating ${(trader.rating_percent ?? 0) >= 0 ? "up" : "down"}`}>
+            {(trader.rating_percent ?? 0) >= 0 ? "+" : ""}
+            {(trader.rating_percent ?? 0).toFixed(2)}%
           </p>
           <p className="volnovoi-hero__meta">
             {!hasClosedDeals ? (
@@ -76,9 +76,9 @@ export function VolnovoiHeroCard({ trader, onOpen }: Props) {
         </div>
       </button>
 
-      {trader.daily_stats.length > 0 && (
+      {(trader.daily_stats?.length ?? 0) > 0 && (
         <div className="volnovoi-hero__chart">
-          <EquityCurve dailyStats={trader.daily_stats} />
+          <EquityCurve dailyStats={trader.daily_stats!} />
         </div>
       )}
     </article>
