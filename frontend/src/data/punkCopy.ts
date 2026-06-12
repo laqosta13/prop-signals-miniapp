@@ -138,7 +138,8 @@ export const PUNK_RANK_RULES = [
 
 export const PUNK_RANK_GUIDE_UNDERSTOOD = "ВХОД В СЕТЬ";
 export const PUNK_RANK_PENALTY_WARN = "−1 код";
-export const PUNK_RANK_AFTER_FIRST_CLOSE = "код — после первой сделки";
+export const PUNK_RANK_AFTER_FIRST_CLOSE =
+  "старт: LIVE. первая сделка: + — LIVE, − — нулевой";
 export const PUNK_ROSTER_FIRED_COOLDOWN_MSG =
   "Из «Вне рейтинга» — только через 2 недели после увольнения.";
 

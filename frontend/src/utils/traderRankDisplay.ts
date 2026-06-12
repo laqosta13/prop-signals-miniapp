@@ -1,16 +1,12 @@
 import type { Trader } from "../api";
-import { isVolnovoiTrader } from "./volnovoi";
 
 export function traderClosedDealsCount(trader: { wins: number; losses: number }): number {
   return (trader.wins ?? 0) + (trader.losses ?? 0);
 }
 
-/** Ранг на карточке: volnovoi — онлайн; трейдеры — только после закрытых сделок. */
+/** Ранг на карточке: volnovoi — по результатам; трейдеры — «В рынке» с нуля. */
 export function shouldShowTraderRankBadge(trader: Trader): boolean {
-  if (isVolnovoiTrader(trader)) {
-    return trader.trader_rank != null;
-  }
-  return trader.trader_rank != null && traderClosedDealsCount(trader) > 0;
+  return trader.trader_rank != null;
 }
 
 export function traderRankAvatarId(trader: Trader): number | undefined {

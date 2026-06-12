@@ -80,7 +80,8 @@ export const RANK_GUIDE_INTRO =
 export const RANK_GUIDE_POOL =
   "Общий пул входа: если два трейдера заняли 100%, третий в эту сделку не войдёт.";
 
-export const RANK_AFTER_FIRST_CLOSE = "Ранг — после первой закрытой сделки";
+export const RANK_AFTER_FIRST_CLOSE =
+  "Стартовый ранг «В рынке». Первая сделка: плюс — остаётся, минус — «Нулёвый».";
 export const ROSTER_FIRED_COOLDOWN_MSG =
   "Из «Уволенных» можно вернуть только через 2 недели после увольнения.";
 

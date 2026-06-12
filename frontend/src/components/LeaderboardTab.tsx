@@ -119,7 +119,10 @@ function TopTraderCard({
               </p>
               <p className="top-meta">
                 {!aggregate && !hasClosedDeals ? (
-                  <>W 0 · L 0</>
+                  <>
+                    {trader.trader_rank != null ? "Неделя: +0.0% · " : null}
+                    W 0 · L 0
+                  </>
                 ) : trader.trader_rank != null ? (
                   <>
                     Неделя: {trader.trader_rank.weekly_pct >= 0 ? "+" : ""}

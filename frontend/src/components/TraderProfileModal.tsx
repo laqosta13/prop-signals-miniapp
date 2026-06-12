@@ -39,7 +39,7 @@ export function TraderProfileModal({ trader, onClose }: Props) {
       .catch(() => setRank(trader.trader_rank ?? null));
   }, [aggregate, trader.telegram_id, trader.trader_rank]);
 
-  const st = resolveRankStyle(rank?.current_rank_id ?? 8, theme);
+  const st = resolveRankStyle(rank?.current_rank_id ?? 7, theme);
   const profile = useAuthorProfile(trader.display_name, trader.username, trader.telegram_id);
 
   return (

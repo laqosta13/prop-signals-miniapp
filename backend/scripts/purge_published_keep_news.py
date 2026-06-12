@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 BACKEND = Path(__file__).resolve().parents[1]
-DEFAULT_RANK_ID = 8
+INITIAL_RANK_ID = 7
 
 
 def _load_dotenv() -> None:
@@ -114,7 +114,7 @@ def purge(db_path: Path, media: Path) -> dict[str, int]:
           rank_applied_this_week = 0,
           rank_history_json = NULL
         """,
-        (DEFAULT_RANK_ID,),
+        (INITIAL_RANK_ID,),
     )
     cur.execute("DELETE FROM trader_roster_overrides")
 

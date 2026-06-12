@@ -151,7 +151,7 @@ class Trader(Base):
     total_pnl_usd: Mapped[float] = mapped_column(Float, default=0.0)
     wins: Mapped[int] = mapped_column(Integer, default=0)
     losses: Mapped[int] = mapped_column(Integer, default=0)
-    current_rank_id: Mapped[int] = mapped_column(Integer, default=8)
+    current_rank_id: Mapped[int] = mapped_column(Integer, default=7)
     weekly_pct: Mapped[float] = mapped_column(Float, default=0.0)
     is_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
     confirm_deadline: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

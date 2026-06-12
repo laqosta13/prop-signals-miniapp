@@ -23,7 +23,7 @@ from app.models import (
     TraderRosterOverride,
     UserChallenge,
 )
-from app.rank_constants import DEFAULT_RANK_ID
+from app.rank_constants import INITIAL_RANK_ID
 
 
 def _clear_media_subdir(name: str) -> None:
@@ -92,7 +92,7 @@ def _reset_trader_leaderboard(db: Session, *, reset_ranks: bool = False) -> None
         t.rating_percent = 0.0
         t.total_pnl_usd = 0.0
         if reset_ranks:
-            t.current_rank_id = DEFAULT_RANK_ID
+            t.current_rank_id = INITIAL_RANK_ID
             t.weekly_pct = 0.0
             t.is_confirmed = False
             t.confirm_deadline = None

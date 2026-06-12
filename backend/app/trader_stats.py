@@ -147,6 +147,8 @@ def apply_outcome_to_trader(
     if trader.losses is None:
         trader.losses = 0
 
+    first_close = (trader.wins or 0) + (trader.losses or 0) == 0
+
     if pnl >= 0:
         trader.wins += 1
     else:
@@ -155,8 +157,10 @@ def apply_outcome_to_trader(
     trader.rating_percent = round(trader.rating_percent + move, 2)
     trader.total_pnl_usd = round(trader.total_pnl_usd + pnl, 2)
 
-    from app.rank_service import add_weekly_pct
+    from app.rank_service import add_weekly_pct, apply_first_close_rank
 
+    if first_close:
+        apply_first_close_rank(trader, move)
     add_weekly_pct(trader, move)
 
 

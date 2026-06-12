@@ -12,6 +12,7 @@ from app.config import settings
 from app.models import Trader
 from app.rank_constants import (
     DEFAULT_RANK_ID,
+    INITIAL_RANK_ID,
     RANK_BY_ID,
     better_rank,
     clamp_rank_id,
@@ -78,9 +79,15 @@ def _save_history(trader: Trader, entries: list[dict]) -> None:
     trader.rank_history_json = json.dumps(entries[:MAX_RANK_HISTORY], ensure_ascii=False)
 
 
+def trader_closed_deals(trader: Trader) -> int:
+    return (trader.wins or 0) + (trader.losses or 0)
+
+
 def ensure_rank_fields(trader: Trader) -> None:
     if trader.current_rank_id is None:
-        trader.current_rank_id = DEFAULT_RANK_ID
+        trader.current_rank_id = INITIAL_RANK_ID
+    elif trader_closed_deals(trader) == 0 and trader.current_rank_id == DEFAULT_RANK_ID:
+        trader.current_rank_id = INITIAL_RANK_ID
     if trader.weekly_pct is None:
         trader.weekly_pct = 0.0
     if trader.is_confirmed is None:
@@ -100,6 +107,12 @@ def ensure_rank_fields(trader: Trader) -> None:
 def add_weekly_pct(trader: Trader, delta_pct: float) -> None:
     ensure_rank_fields(trader)
     trader.weekly_pct = round((trader.weekly_pct or 0.0) + delta_pct, 2)
+
+
+def apply_first_close_rank(trader: Trader, move_pct: float) -> None:
+    """Первая закрытая сделка: плюс — «В рынке», минус — «Нулёвый»."""
+    ensure_rank_fields(trader)
+    _apply_rank_change(trader, DEFAULT_RANK_ID if move_pct < 0 else INITIAL_RANK_ID)
 
 
 def _apply_rank_change(trader: Trader, new_rank_id: int) -> None:

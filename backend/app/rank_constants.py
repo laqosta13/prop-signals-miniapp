@@ -31,6 +31,7 @@ RANK_BY_ID: Final[dict[int, TraderRankDef]] = {r.id: r for r in TRADER_RANKS}
 RANKS_BEST_TO_WORST: Final[tuple[int, ...]] = (10, 9, 1, 2, 3, 4, 5, 6, 7, 8)
 
 DEFAULT_RANK_ID = 8
+INITIAL_RANK_ID = 7  # «В рынке» — стартовый ранг до первой закрытой сделки
 
 # Макс. сумма входа % в одном сигнале по рангу.
 RANK_MAX_STAKE_PCT: Final[dict[int, float]] = {

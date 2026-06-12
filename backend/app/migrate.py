@@ -470,6 +470,8 @@ def run_migrations(engine: Engine) -> None:
     _purged_auto_demoted_cult_candidates_v1(engine)
     _purge_all_published_jun2026_v12(engine)
     _fix_copy_equity_baseline_zero_v1(engine)
+    _purge_all_published_jun2026_v13(engine)
+    _starter_rank_in_market_v1(engine)
 
 
 def _seed_launch_news(
@@ -1050,6 +1052,53 @@ def _purge_all_published_jun2026_v12(engine: Engine) -> None:
         marker.touch()
     finally:
         db.close()
+
+
+def _purge_all_published_jun2026_v13(engine: Engine) -> None:
+    """Одноразово: полная очистка контента + стартовый ранг «В рынке» (июнь 2026 v13)."""
+    marker = _marker_path(engine, ".purged_all_published_jun2026_v13")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".purged_all_published_jun2026_v13"
+    if marker.exists():
+        return
+    from app.database import SessionLocal
+    from app.data_cleanup import purge_all_published_content
+
+    db = SessionLocal()
+    try:
+        purge_all_published_content(db)
+        db.commit()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
+
+
+def _starter_rank_in_market_v1(engine: Engine) -> None:
+    """Одноразово: трейдеры без сделок — ранг «В рынке» (id 7)."""
+    marker = _marker_path(engine, ".starter_rank_in_market_v1")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".starter_rank_in_market_v1"
+    if marker.exists():
+        return
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                """
+                UPDATE traders
+                SET current_rank_id = 7
+                WHERE (wins IS NULL OR wins = 0)
+                  AND (losses IS NULL OR losses = 0)
+                  AND (current_rank_id IS NULL OR current_rank_id = 8)
+                """
+            )
+        )
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.touch()
 
 
 def _delete_all_manual_trackers_v1(engine: Engine) -> None:

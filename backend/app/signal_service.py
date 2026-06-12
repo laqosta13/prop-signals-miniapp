@@ -69,6 +69,8 @@ def get_or_create_trader(
     last_name: str | None = None,
     photo_url: str | None = None,
 ) -> Trader:
+    from app.rank_constants import INITIAL_RANK_ID
+
     trader = db.get(Trader, telegram_id)
     if trader is None:
         trader = Trader(
@@ -80,6 +82,7 @@ def get_or_create_trader(
             losses=0,
             rating_percent=0.0,
             total_pnl_usd=0.0,
+            current_rank_id=INITIAL_RANK_ID,
         )
         db.add(trader)
     else:
