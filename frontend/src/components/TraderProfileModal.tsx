@@ -66,7 +66,7 @@ export function TraderProfileModal({ trader, onClose }: Props) {
                 <RankBadge rank={rank} featured />
               </div>
             )}
-            {aggregate && <p className="trader-profile-sheet__sub">{copy.volnovoiSubtitle}</p>}
+            {aggregate && <p className="trader-profile-sheet__sub trader-profile-sheet__sub--volnovoi">{copy.volnovoiSubtitle}</p>}
           </div>
         </div>
 

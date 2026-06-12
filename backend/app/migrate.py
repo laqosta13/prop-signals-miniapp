@@ -254,7 +254,7 @@ def run_migrations(engine: Engine) -> None:
                         api_secret_encrypted VARCHAR(512) NOT NULL,
                         testnet BOOLEAN DEFAULT 1,
                         account_balance_usd REAL DEFAULT 10000,
-                        stake_percent REAL DEFAULT 10,
+                        stake_percent REAL DEFAULT 100,
                         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                     )
                     """
@@ -472,6 +472,36 @@ def run_migrations(engine: Engine) -> None:
     _fix_copy_equity_baseline_zero_v1(engine)
     _purge_all_published_jun2026_v13(engine)
     _starter_rank_in_market_v1(engine)
+    _copy_stake_default_100_v1(engine)
+
+
+def _copy_stake_default_100_v1(engine: Engine) -> None:
+    """Копирование: масштаб 100% = сумма входа как в сигнале."""
+    marker = _marker_path(engine, ".copy_stake_default_100_v1")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".copy_stake_default_100_v1"
+    if marker.exists():
+        return
+    if "user_bybit_settings" not in inspect(engine).get_table_names():
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+        return
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                """
+                UPDATE user_bybit_settings
+                SET stake_percent = 100
+                WHERE stake_percent IS NULL
+                   OR stake_percent <= 0
+                   OR stake_percent = 10
+                """
+            )
+        )
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.touch()
 
 
 def _seed_launch_news(

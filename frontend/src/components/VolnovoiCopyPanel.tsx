@@ -21,7 +21,7 @@ const EMPTY_STATUS: CopyTradingStatus = {
   configured: false,
   enabled: false,
   account_balance_usd: 10000,
-  stake_percent: 10,
+  stake_percent: 100,
   usdt_ton_address: "",
   fee_percent: 20,
   min_topup_usd: 1,
@@ -49,7 +49,7 @@ export function VolnovoiCopyPanel() {
   const [apiKey, setApiKey] = useState("");
   const [apiSecret, setApiSecret] = useState("");
   const [enabled, setEnabled] = useState(true);
-  const [stakePercent, setStakePercent] = useState("10");
+  const [stakePercent, setStakePercent] = useState("100");
 
   const walletRef = useRef<HTMLInputElement>(null);
 
@@ -71,7 +71,7 @@ export function VolnovoiCopyPanel() {
 
   const stakePayload = {
     enabled,
-    stake_percent: Number(stakePercent) || 10,
+    stake_percent: Number(stakePercent) || 100,
   };
 
   const onSave = async () => {

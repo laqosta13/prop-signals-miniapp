@@ -53,7 +53,7 @@ class UserBybitSettings(Base):
     api_secret_encrypted: Mapped[str] = mapped_column(String(512), nullable=False)
     testnet: Mapped[bool] = mapped_column(Boolean, default=False)
     account_balance_usd: Mapped[float] = mapped_column(Float, default=10_000.0)
-    stake_percent: Mapped[float] = mapped_column(Float, default=10.0)
+    stake_percent: Mapped[float] = mapped_column(Float, default=100.0)
     connected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     equity_baseline_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
     last_equity_usd: Mapped[float | None] = mapped_column(Float, nullable=True)

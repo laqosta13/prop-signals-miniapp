@@ -27,6 +27,8 @@ from app.trader_stats import signal_entry_price, signal_entry_stake_pct, signal_
 
 logger = logging.getLogger(__name__)
 
+COPY_DEFAULT_SCALE_PCT = 100.0
+
 EXCHANGE_SKIPPED = "skipped"
 EXCHANGE_OPENING = "opening"
 EXCHANGE_OPEN = "open"
@@ -66,13 +68,26 @@ def copy_deposit_base_usd(settings_row: UserBybitSettings) -> float:
     return max(float(settings_row.account_balance_usd or 0), 0)
 
 
-def copy_notional_usd(settings_row: UserBybitSettings, signal: Signal) -> float:
-    stake = signal_entry_stake_pct(signal)
-    lev = signal_leverage(signal)
-    base = copy_deposit_base_usd(settings_row)
+def copy_scale_pct(settings_row: UserBybitSettings) -> float:
+    """Масштаб копии относительно суммы входа сигнала (100 = как в сигнале)."""
     custom = float(settings_row.stake_percent or 0)
     if custom > 0:
-        stake = custom
+        return custom
+    return COPY_DEFAULT_SCALE_PCT
+
+
+def copy_effective_stake_pct(settings_row: UserBybitSettings, signal: Signal) -> float:
+    """Итоговый % депозита: risk_percent сигнала × масштаб из панели / 100."""
+    signal_stake = signal_entry_stake_pct(signal)
+    scale = copy_scale_pct(settings_row)
+    return signal_stake * scale / 100.0
+
+
+def copy_notional_usd(settings_row: UserBybitSettings, signal: Signal) -> float:
+    """Номинал: баланс Bybit × % входа (из сигнала × масштаб) × плечо сигнала."""
+    stake = copy_effective_stake_pct(settings_row, signal)
+    lev = signal_leverage(signal)
+    base = copy_deposit_base_usd(settings_row)
     return round(base * stake * lev / 100.0, 2)
 
 

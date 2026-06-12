@@ -58,7 +58,7 @@ export const TOP_EMPTY =
 export const TOP_CANDIDATES_EMPTY =
   "Станьте кандидатом или дождитесь каналов на отборе.";
 
-export const VOLNOVOI_SUBTITLE = "Сводка сделок отобранных трейдеров";
+export const VOLNOVOI_SUBTITLE = "(копирует все сделки ТОП Трейдеров)";
 
 export const VOLNOVOI_COPY_TITLE = "Копирование volnovoi · Bybit";
 export const VOLNOVOI_COPY_DESC =

@@ -10,15 +10,14 @@ from PIL import Image, ImageDraw, ImageFont
 
 _TAG_RE = re.compile(r"<[^>]+>")
 
-# Punk / CP2077 (theme.css)
-_LONG_FILL = (8, 28, 24)
-_LONG_ACCENT = (5, 255, 161)
-_SHORT_FILL = (36, 8, 18)
-_SHORT_ACCENT = (255, 42, 109)
+# Палитра близка к accent 3 (green) / 0 (red) в Telegram dark theme.
+_LONG_FILL = (22, 62, 45)
+_LONG_ACCENT = (103, 190, 110)
+_SHORT_FILL = (153, 47, 55)
+_SHORT_ACCENT = (255, 147, 128)
 _CANVAS = (7, 8, 13)
-_TEXT = (252, 238, 10)
-_MUTED = (0, 240, 255)
-_BORDER_GLOW = (0, 240, 255)
+_TEXT = (245, 245, 247)
+_MUTED = (180, 180, 188)
 
 _FONT_CANDIDATES = (
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
@@ -137,7 +136,6 @@ def render_notify_card_png(html_text: str, *, direction: str) -> bytes | None:
 
     img = Image.new("RGB", (width, max(height, 80)), _CANVAS)
     draw = ImageDraw.Draw(img)
-    draw.rectangle((0, 0, width - 1, max(height, 80) - 1), outline=_BORDER_GLOW, width=2)
     y = pad_y
 
     if banner_lines:

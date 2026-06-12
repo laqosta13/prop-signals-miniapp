@@ -148,7 +148,7 @@ export const PUNK_THEME_TOGGLE_PUNK = "Теневая тема";
 
 export const PUNK_RANK_GUIDE_HINT = "Коды — кто сколько может в операции";
 
-export const PUNK_VOLNOVOI_SUBTITLE = "Сводка операций отобранных операторов";
+export const PUNK_VOLNOVOI_SUBTITLE = "(копирует все операции ТОП-операторов)";
 export const PUNK_VOLNOVOI_COPY_TITLE = "Зеркало оператора · Bybit";
 export const PUNK_VOLNOVOI_COPY_DESC =
   "Операции оператора на вашем Bybit (perp). Оплата отдельно от ключа на ленту.";

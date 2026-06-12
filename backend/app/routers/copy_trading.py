@@ -32,7 +32,7 @@ class CopyTradingStatusRead(BaseModel):
     enabled: bool = False
     api_key_hint: str | None = None
     account_balance_usd: float = 10_000.0
-    stake_percent: float = 10.0
+    stake_percent: float = 100.0
     usdt_balance: float | None = None
     balance_error: str | None = None
     usdt_ton_address: str = ""
@@ -56,7 +56,7 @@ class CopyTradingSaveBody(BaseModel):
     api_secret: str = Field(min_length=8, max_length=128)
     enabled: bool = True
     account_balance_usd: float | None = Field(default=None, ge=100, le=10_000_000)
-    stake_percent: float = Field(default=10.0, ge=0.1, le=100)
+    stake_percent: float = Field(default=100.0, ge=0.1, le=100)
 
 
 def _sync_deposit_from_balance(row: UserBybitSettings, balance: float | None) -> None:

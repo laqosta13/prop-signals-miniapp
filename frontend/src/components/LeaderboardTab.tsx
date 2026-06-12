@@ -10,8 +10,6 @@ import {
   type Trader,
 } from "../api";
 import { EquityCurve } from "./EquityCurve";
-import { CultCandidateActiveTrades } from "./CultCandidateActiveTrades";
-import { CultCandidateCard } from "./CultCandidateCard";
 import { CultCandidateJoinPanel } from "./CultCandidateJoinPanel";
 import { CultCandidateSignalDetailModal } from "./CultCandidateSignalDetailModal";
 import { CultCandidateSignalModal } from "./CultCandidateSignalModal";
@@ -22,7 +20,7 @@ import { RankGuide } from "./RankGuide";
 import { TraderProfileModal } from "./TraderProfileModal";
 import { TraderRosterActions, type TraderRosterPlacement } from "./TraderRosterActions";
 import { VolnovoiCopyPanel } from "./VolnovoiCopyPanel";
-import { VolnovoiMarketingBadge } from "./VolnovoiMarketingBadge";
+import { VolnovoiHeroCard } from "./VolnovoiHeroCard";
 import { VolnovoiStylePanel } from "./VolnovoiStylePanel";
 import { useAuthorProfile } from "../hooks/useAuthorProfile";
 import { useThemedCopy } from "../hooks/useThemedCopy";
@@ -61,18 +59,14 @@ function TopTraderCard({
   rosterPlacement?: TraderRosterPlacement;
   onRosterChange?: () => void;
 }) {
-  const copy = useThemedCopy();
   const profile = useAuthorProfile(trader.display_name, trader.username, trader.telegram_id);
-  const aggregate = isVolnovoiTrader(trader);
   const showRankBadge = shouldShowTraderRankBadge(trader);
   const hasClosedDeals = traderClosedDealsCount(trader) > 0;
-  const topChip = !aggregate && !fired && trader.rank >= 1 && trader.rank <= 3;
+  const topChip = !fired && trader.rank >= 1 && trader.rank <= 3;
 
   return (
-    <li className={aggregate ? "top-list__item--aggregate" : undefined}>
-      <div
-        className={`top-card${aggregate ? " top-card--aggregate" : ""}${fired ? " top-card--fired" : ""}`}
-      >
+    <li>
+      <div className={`top-card${fired ? " top-card--fired" : ""}`}>
         <button type="button" className="top-card__head-btn" onClick={onOpen}>
           <div className="top-card__head">
             <Avatar
@@ -89,36 +83,24 @@ function TopTraderCard({
                   {topChip ? (
                     <TopPlaceMedal place={trader.rank as 1 | 2 | 3} />
                   ) : (
-                    <span
-                      className={`top-rank-inline${aggregate ? " top-rank-inline--aggregate" : ""}${fired ? " top-rank-inline--fired" : ""}`}
-                    >
-                      {aggregate ? "∑" : fired ? "—" : `#${trader.rank}`}
+                    <span className={`top-rank-inline${fired ? " top-rank-inline--fired" : ""}`}>
+                      {fired ? "—" : `#${trader.rank}`}
                     </span>
                   )}
                   <p className="top-name">{profile.title}</p>
                 </div>
-                {!aggregate && showRankBadge && trader.trader_rank && (
+                {showRankBadge && trader.trader_rank && (
                   <div className="top-trader-rank">
                     <RankBadge rank={trader.trader_rank} featured />
                   </div>
                 )}
-                {aggregate && trader.trader_rank && (
-                  <div className="top-aggregate-rank">
-                    <RankBadge rank={trader.trader_rank} featured />
-                  </div>
-                )}
-                {aggregate && <VolnovoiMarketingBadge trader={trader} />}
               </div>
-              {aggregate && <p className="top-aggregate-hint">{copy.volnovoiSubtitle}</p>}
-              {aggregate && (trader.active_signals?.length ?? 0) > 0 && (
-                <CultCandidateActiveTrades trades={trader.active_signals!} />
-              )}
               <p className={`top-score ${trader.rating_percent >= 0 ? "up" : "down"}`}>
                 {trader.rating_percent >= 0 ? "+" : ""}
                 {trader.rating_percent.toFixed(2)}%
               </p>
               <p className="top-meta">
-                {!aggregate && !hasClosedDeals ? (
+                {!hasClosedDeals ? (
                   <>
                     {trader.trader_rank != null ? "Неделя: +0.0% · " : null}
                     W 0 · L 0
@@ -148,13 +130,11 @@ function TopTraderCard({
           </div>
         </button>
 
-        {!aggregate && trader.volnovoi_style && (
-          <VolnovoiStylePanel style={trader.volnovoi_style} />
-        )}
+        {trader.volnovoi_style && <VolnovoiStylePanel style={trader.volnovoi_style} />}
 
         {trader.daily_stats.length > 0 && <EquityCurve dailyStats={trader.daily_stats} />}
 
-        {isSuperAdmin && rosterPlacement && onRosterChange && !aggregate && (
+        {isSuperAdmin && rosterPlacement && onRosterChange && (
           <TraderRosterActions
             telegramId={trader.telegram_id}
             placement={rosterPlacement}
@@ -248,7 +228,7 @@ export function LeaderboardTab({
     [firedTraders],
   );
 
-  const showTradersBlock = Boolean(volnovoi || traderCandidates.length > 0);
+  const showTradersBlock = traderCandidates.length > 0;
   const showCandidatesBlock =
     cultCandidates.length > 0 || channelCandidates.length > 0 || isAdmin || myId != null;
   const showFiredBlock = firedList.length > 0;
@@ -262,31 +242,31 @@ export function LeaderboardTab({
       )}
 
       <p className="meta top-marketplace-intro">{copy.topIntro}</p>
+
+      {volnovoi && (
+        <section className="volnovoi-hero" aria-label="volnovoi">
+          <VolnovoiHeroCard trader={volnovoi} onOpen={() => setProfileTrader(volnovoi)} />
+          <VolnovoiCopyPanel />
+        </section>
+      )}
+
       <RankGuide />
 
       {showTradersBlock && (
         <section className="top-cult-block top-cult-block--traders">
           <p className="top-cult-label top-cult-label--traders">{copy.topLabelTraders}</p>
-          {volnovoi && (
-            <ol className="top-list top-list--solo">
-              <TopTraderCard trader={volnovoi} onOpen={() => setProfileTrader(volnovoi)} />
-            </ol>
-          )}
-          {volnovoi && <VolnovoiCopyPanel />}
-          {traderCandidates.length > 0 && (
-            <ol className={`top-list${volnovoi ? " top-list--after-volnovoi" : ""}`}>
-              {traderCandidates.map((trader) => (
-                <TopTraderCard
-                  key={trader.telegram_id}
-                  trader={trader}
-                  onOpen={() => setProfileTrader(trader)}
-                  isSuperAdmin={isSuperAdmin}
-                  rosterPlacement="top"
-                  onRosterChange={onRosterChange}
-                />
-              ))}
-            </ol>
-          )}
+          <ol className="top-list">
+            {traderCandidates.map((trader) => (
+              <TopTraderCard
+                key={trader.telegram_id}
+                trader={trader}
+                onOpen={() => setProfileTrader(trader)}
+                isSuperAdmin={isSuperAdmin}
+                rosterPlacement="top"
+                onRosterChange={onRosterChange}
+              />
+            ))}
+          </ol>
         </section>
       )}
 

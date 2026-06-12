@@ -18,7 +18,7 @@ const EMPTY_STATUS: CopyTradingStatus = {
   configured: false,
   enabled: false,
   account_balance_usd: 10000,
-  stake_percent: 10,
+  stake_percent: 100,
   usdt_ton_address: "",
   payment_memo: "",
   fee_percent: 20,
@@ -47,7 +47,7 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
   const [apiKey, setApiKey] = useState("");
   const [apiSecret, setApiSecret] = useState("");
   const [enabled, setEnabled] = useState(true);
-  const [stakePercent, setStakePercent] = useState("10");
+  const [stakePercent, setStakePercent] = useState("100");
 
   const refresh = async () => {
     const s = await fetchCopyTradingStatus();
@@ -67,7 +67,7 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
 
   const stakePayload = {
     enabled,
-    stake_percent: Number(stakePercent) || 10,
+    stake_percent: Number(stakePercent) || 100,
   };
 
   const afterSuccess = async () => {
