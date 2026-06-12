@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.bybit_trading import BybitCredentials, get_wallet_usdt_balance
-from app.copy_trading_service import sync_open_copies_for_user
+from app.copy_trading_service import recent_copy_errors, sync_open_copies_for_user
 from app.copy_billing import (
     MIN_TOPUP_USD,
     billing_snapshot,
@@ -48,6 +48,7 @@ class CopyTradingStatusRead(BaseModel):
     copy_allowed: bool = True
     fee_exempt: bool = False
     payment_memo: str = ""
+    copy_errors: list[str] = Field(default_factory=list)
 
 
 class CopyTradingSaveBody(BaseModel):
@@ -128,6 +129,7 @@ def _status_from_snap(
 ) -> CopyTradingStatusRead:
     payment_memo = _subscriber_payment_memo(db, telegram_user_id)
     snap = billing_snapshot(db, telegram_user_id, row, current_equity=balance)
+    copy_errors = recent_copy_errors(db, telegram_user_id) if row is not None else []
 
     base = {
         "usdt_ton_address": str(snap["usdt_ton_address"]),
@@ -143,6 +145,7 @@ def _status_from_snap(
         "copy_allowed": bool(snap["copy_allowed"]),
         "fee_exempt": bool(snap.get("fee_exempt")),
         "payment_memo": payment_memo,
+        "copy_errors": copy_errors,
     }
 
     if row is None:
@@ -185,6 +188,8 @@ async def get_my_copy_trading(
     row = db.get(UserBybitSettings, user.telegram_user_id)
     balance, balance_error = await _refresh_billing(db, user, row)
     db.commit()
+    if row is not None and row.enabled and copy_trading_allowed(db, user.telegram_user_id):
+        await sync_open_copies_for_user(db, user.telegram_user_id)
     return _status_from_snap(db, row, telegram_user_id=user.telegram_user_id, balance=balance, balance_error=balance_error)
 
 

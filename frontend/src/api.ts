@@ -516,6 +516,7 @@ export type CopyTradingStatus = {
   unbilled_profit_usd: number;
   copy_allowed: boolean;
   fee_exempt?: boolean;
+  copy_errors?: string[];
 };
 
 export type CopyTradingSaveBody = {

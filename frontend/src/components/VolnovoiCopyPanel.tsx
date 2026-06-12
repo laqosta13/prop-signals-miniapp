@@ -32,6 +32,7 @@ const EMPTY_STATUS: CopyTradingStatus = {
   copy_allowed: false,
   fee_exempt: false,
   payment_memo: "",
+  copy_errors: [],
 };
 
 export function VolnovoiCopyPanel() {
@@ -340,6 +341,16 @@ export function VolnovoiCopyPanel() {
               {testOk && <p className="volnovoi-copy__ok">{testOk}</p>}
               {err && <p className="err volnovoi-copy__err">{err}</p>}
               {status?.balance_error && <p className="meta volnovoi-copy__err">{status.balance_error}</p>}
+              {status?.copy_errors && status.copy_errors.length > 0 && (
+                <div className="volnovoi-copy__err">
+                  <p className="meta">Последние ошибки копирования:</p>
+                  <ul className="volnovoi-copy__hints">
+                    {status.copy_errors.map((msg) => (
+                      <li key={msg}>{msg}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <div className="volnovoi-copy__actions">
                 <button type="button" className="btn-primary" disabled={busy} onClick={() => void onSave()}>

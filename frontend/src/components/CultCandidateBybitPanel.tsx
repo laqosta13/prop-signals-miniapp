@@ -28,6 +28,7 @@ const EMPTY_STATUS: CopyTradingStatus = {
   profit_usd: 0,
   unbilled_profit_usd: 0,
   copy_allowed: true,
+  copy_errors: [],
 };
 
 type Props = {
@@ -241,6 +242,16 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
 
               {err && <p className="err volnovoi-copy__err">{err}</p>}
               {status?.balance_error && <p className="meta volnovoi-copy__err">{status.balance_error}</p>}
+              {status?.copy_errors && status.copy_errors.length > 0 && (
+                <div className="volnovoi-copy__err">
+                  <p className="meta">Последние ошибки копирования:</p>
+                  <ul className="volnovoi-copy__hints">
+                    {status.copy_errors.map((msg) => (
+                      <li key={msg}>{msg}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <div className="volnovoi-copy__actions">
                 <button type="button" className="btn-primary" disabled={busy} onClick={() => void onSave()}>

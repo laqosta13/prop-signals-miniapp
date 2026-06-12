@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -17,7 +18,6 @@ from app.bybit_trading import (
     set_leverage,
     set_position_stops,
 )
-from app.config import settings
 from app.credentials_crypto import decrypt_secret
 from app.copy_billing import copy_trading_allowed
 from app.models import Signal, SignalCopyTrade, UserBybitSettings
@@ -81,6 +81,18 @@ def eligible_copy_settings(db: Session) -> list[UserBybitSettings]:
     return [row for row in rows if copy_trading_allowed(db, row.telegram_user_id)]
 
 
+def _copy_open_blocked(copy_row: SignalCopyTrade) -> bool:
+    if copy_row.exchange_status in (EXCHANGE_OPEN, EXCHANGE_CLOSED, EXCHANGE_CLOSING):
+        return True
+    if copy_row.exchange_status == EXCHANGE_SKIPPED:
+        return True
+    return False
+
+
+def _order_link_id(copy_row_id: int) -> str:
+    return f"ps{copy_row_id}-{int(time.time())}"[:36]
+
+
 def _get_or_create_copy_row(db: Session, signal_id: int, user_id: int) -> SignalCopyTrade:
     row = db.scalar(
         select(SignalCopyTrade).where(
@@ -93,6 +105,21 @@ def _get_or_create_copy_row(db: Session, signal_id: int, user_id: int) -> Signal
         db.add(row)
         db.flush()
     return row
+
+
+def recent_copy_errors(db: Session, telegram_user_id: int, limit: int = 3) -> list[str]:
+    rows = db.execute(
+        select(SignalCopyTrade, Signal.symbol)
+        .join(Signal, Signal.id == SignalCopyTrade.signal_id)
+        .where(
+            SignalCopyTrade.telegram_user_id == telegram_user_id,
+            SignalCopyTrade.exchange_status == EXCHANGE_FAILED,
+            SignalCopyTrade.exchange_error.isnot(None),
+        )
+        .order_by(SignalCopyTrade.created_at.desc())
+        .limit(limit)
+    ).all()
+    return [f"{sym}: {row.exchange_error}" for row, sym in rows if row.exchange_error]
 
 
 def _mark_copy_failed(db: Session, row: SignalCopyTrade, error: str) -> None:
@@ -127,9 +154,7 @@ async def _open_copy_for_user(
     at_publication: bool = False,
 ) -> None:
     copy_row = _get_or_create_copy_row(db, signal.id, user_row.telegram_user_id)
-    if copy_row.exchange_status in (EXCHANGE_OPEN, EXCHANGE_OPENING, EXCHANGE_CLOSED, EXCHANGE_CLOSING):
-        return
-    if copy_row.exchange_status == EXCHANGE_SKIPPED:
+    if _copy_open_blocked(copy_row):
         return
 
     pair = bybit_linear_pair(signal.symbol)
@@ -147,15 +172,20 @@ async def _open_copy_for_user(
     notional = copy_notional_usd(user_row, signal)
     copy_row.exchange_status = EXCHANGE_OPENING
     copy_row.exchange_pair = pair
+    copy_row.exchange_error = None
     db.commit()
 
     creds = _user_credentials(user_row)
     uid = user_row.telegram_user_id
+    pos_dir = signal.direction
     try:
         rules = await get_instrument_rules(creds, pair)
         qty = calc_qty(notional, entry_price, rules)
         if qty is None:
-            _mark_copy_failed(db, copy_row, f"qty слишком мала (${notional:.2f})")
+            hint = f"${notional:.2f}"
+            if rules.min_notional > 0:
+                hint += f", мин. ордер ${rules.min_notional}"
+            _mark_copy_failed(db, copy_row, f"объём слишком мал ({hint})")
             return
 
         await set_leverage(creds, pair, signal_leverage(signal))
@@ -165,13 +195,20 @@ async def _open_copy_for_user(
             pair=pair,
             side=side,
             qty=qty,
-            order_link_id=f"ps-u{uid}-s{signal.id}-in",
+            order_link_id=_order_link_id(copy_row.id),
+            position_direction=pos_dir,
         )
 
         stop = parse_price(signal.stop_loss)
         tp = _first_take_profit(signal)
         try:
-            await set_position_stops(creds, pair=pair, stop_loss=stop, take_profit=tp)
+            await set_position_stops(
+                creds,
+                pair=pair,
+                stop_loss=stop,
+                take_profit=tp,
+                position_direction=pos_dir,
+            )
         except Exception as e:
             logger.warning("Bybit copy SL/TP user=%s signal #%s: %s", uid, signal.id, e)
 
@@ -212,7 +249,8 @@ async def _close_copy_for_user(db: Session, copy_row: SignalCopyTrade, signal: S
             pair=pair,
             side=side,
             qty=qty,
-            order_link_id=f"ps-u{uid}-s{signal.id}-out",
+            order_link_id=_order_link_id(copy_row.id),
+            position_direction=signal.direction,
         )
         copy_row.exchange_status = EXCHANGE_CLOSED
         copy_row.exchange_order_id = order_id
@@ -235,15 +273,11 @@ async def sync_open_copies_for_user(db: Session, telegram_user_id: int) -> None:
     row = db.get(UserBybitSettings, telegram_user_id)
     if row is None or not row.enabled or not copy_trading_allowed(db, telegram_user_id):
         return
-    admin_ids = sorted(settings.all_admin_id_set)
-    if not admin_ids:
-        return
     signals = list(
         db.scalars(
             select(Signal).where(
                 Signal.status == "active",
                 Signal.is_cult_candidate.is_(False),
-                Signal.author_telegram_id.in_(admin_ids),
             )
         ).all()
     )

@@ -36,6 +36,7 @@ def _friendly_bybit_error(path: str, msg: str) -> str:
         )
     return f"Bybit {path}: {msg}"
 _INSTRUMENT_CACHE: dict[str, dict[str, float | str]] = {}
+_POSITION_MODE_CACHE: dict[str, int] = {}
 _httpx_client: httpx.AsyncClient | None = None
 
 
@@ -54,6 +55,7 @@ class InstrumentRules:
     qty_step: Decimal
     min_qty: Decimal
     tick_size: Decimal
+    min_notional: Decimal = Decimal("0")
 
 
 def _client() -> httpx.AsyncClient:
@@ -148,6 +150,7 @@ async def get_instrument_rules(creds: BybitCredentials, pair: str) -> Instrument
             qty_step=_parse_decimal(cached["qty_step"]),
             min_qty=_parse_decimal(cached["min_qty"]),
             tick_size=_parse_decimal(cached["tick_size"]),
+            min_notional=_parse_decimal(cached.get("min_notional"), "0"),
         )
     r = await _client().get(
         f"{creds.api_base}/v5/market/instruments-info",
@@ -165,11 +168,13 @@ async def get_instrument_rules(creds: BybitCredentials, pair: str) -> Instrument
         qty_step=_parse_decimal(lot.get("qtyStep"), "0.001"),
         min_qty=_parse_decimal(lot.get("minOrderQty"), "0.001"),
         tick_size=_parse_decimal(price.get("tickSize"), "0.01"),
+        min_notional=_parse_decimal(lot.get("minNotionalValue"), "0"),
     )
     _INSTRUMENT_CACHE[cache_key] = {
         "qty_step": str(rules.qty_step),
         "min_qty": str(rules.min_qty),
         "tick_size": str(rules.tick_size),
+        "min_notional": str(rules.min_notional),
     }
     return rules
 
@@ -181,7 +186,42 @@ def calc_qty(notional_usd: float, price: float, rules: InstrumentRules) -> Decim
     qty = _floor_to_step(raw, rules.qty_step)
     if qty < rules.min_qty:
         return None
+    order_value = qty * Decimal(str(price))
+    if rules.min_notional > 0 and order_value < rules.min_notional:
+        return None
     return qty
+
+
+async def _position_mode_for_pair(creds: BybitCredentials, pair: str) -> int:
+    """0 — one-way, 3 — hedge (both side)."""
+    cache_key = f"{creds.api_key[:12]}:{pair}"
+    cached = _POSITION_MODE_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+    mode = 0
+    try:
+        result = await _request(
+            creds,
+            "GET",
+            "/v5/position/list",
+            params={"category": "linear", "symbol": pair},
+        )
+        for item in result.get("list") or []:
+            idx = int(item.get("positionIdx") or 0)
+            if idx in (1, 2):
+                mode = 3
+                break
+    except Exception:
+        mode = 0
+    _POSITION_MODE_CACHE[cache_key] = mode
+    return mode
+
+
+async def resolve_position_idx(creds: BybitCredentials, *, pair: str, position_direction: str) -> int:
+    """position_direction: long | short — сторона открытой позиции."""
+    if await _position_mode_for_pair(creds, pair) != 3:
+        return 0
+    return 1 if position_direction.lower() == "long" else 2
 
 
 async def set_leverage(creds: BybitCredentials, pair: str, leverage: int) -> None:
@@ -210,21 +250,28 @@ async def place_market_entry(
     side: str,
     qty: Decimal,
     order_link_id: str,
+    position_direction: str,
 ) -> str:
-    result = await _request(
-        creds,
-        "POST",
-        "/v5/order/create",
-        body={
-            "category": "linear",
-            "symbol": pair,
-            "side": side,
-            "orderType": "Market",
-            "qty": _fmt_decimal(qty),
-            "orderLinkId": order_link_id,
-            "positionIdx": 0,
-        },
-    )
+    position_idx = await resolve_position_idx(creds, pair=pair, position_direction=position_direction)
+    body: dict[str, Any] = {
+        "category": "linear",
+        "symbol": pair,
+        "side": side,
+        "orderType": "Market",
+        "qty": _fmt_decimal(qty),
+        "orderLinkId": order_link_id,
+        "positionIdx": position_idx,
+    }
+    try:
+        result = await _request(creds, "POST", "/v5/order/create", body=body)
+    except RuntimeError as e:
+        err = str(e).lower()
+        hedge_idx = 1 if side == "Buy" else 2
+        if position_idx != 0 or ("position idx" not in err and "10001" not in err):
+            raise
+        _POSITION_MODE_CACHE[f"{creds.api_key[:12]}:{pair}"] = 3
+        body["positionIdx"] = hedge_idx
+        result = await _request(creds, "POST", "/v5/order/create", body=body)
     order_id = result.get("orderId")
     if not order_id:
         raise RuntimeError("Bybit: orderId не получен")
@@ -237,11 +284,13 @@ async def set_position_stops(
     pair: str,
     stop_loss: float | None,
     take_profit: float | None,
+    position_direction: str,
 ) -> None:
+    position_idx = await resolve_position_idx(creds, pair=pair, position_direction=position_direction)
     body: dict[str, Any] = {
         "category": "linear",
         "symbol": pair,
-        "positionIdx": 0,
+        "positionIdx": position_idx,
         "tpslMode": "Full",
         "tpTriggerBy": "LastPrice",
         "slTriggerBy": "LastPrice",
@@ -262,7 +311,9 @@ async def close_position_market(
     side: str,
     qty: Decimal,
     order_link_id: str,
+    position_direction: str,
 ) -> str:
+    position_idx = await resolve_position_idx(creds, pair=pair, position_direction=position_direction)
     result = await _request(
         creds,
         "POST",
@@ -275,7 +326,7 @@ async def close_position_market(
             "qty": _fmt_decimal(qty),
             "reduceOnly": True,
             "orderLinkId": order_link_id,
-            "positionIdx": 0,
+            "positionIdx": position_idx,
         },
     )
     order_id = result.get("orderId")
