@@ -14,6 +14,7 @@ from app.bybit_trading import (
     calc_qty,
     close_position_market,
     get_instrument_rules,
+    get_wallet_usdt_balance,
     place_market_entry,
     set_leverage,
     set_position_stops,
@@ -89,6 +90,20 @@ def copy_notional_usd(settings_row: UserBybitSettings, signal: Signal) -> float:
     lev = signal_leverage(signal)
     base = copy_deposit_base_usd(settings_row)
     return round(base * stake * lev / 100.0, 2)
+
+
+async def _refresh_copy_balance_usd(user_row: UserBybitSettings) -> float | None:
+    """Актуальный баланс USDT с Bybit (до копейки) перед расчётом номинала."""
+    try:
+        balance = await get_wallet_usdt_balance(_user_credentials(user_row))
+    except Exception:
+        logger.debug("Bybit balance refresh failed user=%s", user_row.telegram_user_id, exc_info=True)
+        return None
+    if balance is not None and balance > 0:
+        user_row.last_equity_usd = balance
+        user_row.account_balance_usd = balance
+        return balance
+    return None
 
 
 def eligible_copy_settings(db: Session) -> list[UserBybitSettings]:
@@ -183,6 +198,9 @@ async def _open_copy_for_user(
     if entry_price is None:
         _mark_copy_failed(db, copy_row, "нет цены входа")
         return
+
+    await _refresh_copy_balance_usd(user_row)
+    db.flush()
 
     notional = copy_notional_usd(user_row, signal)
     copy_row.exchange_status = EXCHANGE_OPENING

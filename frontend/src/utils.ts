@@ -113,6 +113,16 @@ export function formatUsd(n: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 }
 
+/** USD с копейками — баланс Bybit, депозит комиссии, номинал копии. */
+export function formatUsdCents(n: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n);
+}
+
 export function authorProfile(
   displayName: string | null | undefined,
   username: string | null | undefined,

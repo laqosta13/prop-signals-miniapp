@@ -9,7 +9,7 @@ import {
   testCopyTradingConnection,
 } from "../api";
 import { useThemedCopy } from "../hooks/useThemedCopy";
-import { formatUsd } from "../utils";
+import { formatUsdCents } from "../utils";
 import { BybitLogo } from "./BrandLogos";
 import { PartnerLinks } from "./PartnerLinks";
 import { RiskPercentSlider } from "./RiskPercentSlider";
@@ -184,7 +184,7 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
                 <div className="volnovoi-copy__stats">
                   {status.api_key_hint && <span>Ключ {status.api_key_hint}</span>}
                   {status.current_equity_usd != null && (
-                    <span>Баланс {formatUsd(status.current_equity_usd)}</span>
+                    <span>Баланс {formatUsdCents(status.current_equity_usd)}</span>
                   )}
                 </div>
               )}
@@ -224,7 +224,7 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
                   <p className="meta volnovoi-copy__deposit-hint">
                     {status?.current_equity_usd != null ? (
                       <>
-                        Баланс Bybit: <strong>{formatUsd(status.current_equity_usd)}</strong>
+                        Баланс Bybit: <strong>{formatUsdCents(status.current_equity_usd)}</strong>
                       </>
                     ) : status?.configured ? (
                       "Нажмите «Проверить» — баланс подтянется с Bybit"

@@ -11,7 +11,7 @@ from dataclasses import dataclass
 import httpx
 
 from app.config import settings
-from app.signal_utils import entry_triggered, evaluate_signal
+from app.signal_utils import entry_triggered, evaluate_signal, signal_in_trade
 
 logger = logging.getLogger(__name__)
 
@@ -271,6 +271,29 @@ def first_outcome_quote(
             win = q
     if win is not None:
         return "win", win
+    return None
+
+
+def monitor_outcome_for_signal(
+    signal,
+    quotes: list[PriceQuote],
+) -> tuple[str, PriceQuote] | None:
+    """Исход по текущей цене: в работе — стоп/цель; до входа — цена уже за стопом."""
+    if not quotes:
+        return None
+    if signal_in_trade(signal):
+        return first_outcome_quote(quotes, signal.direction, signal.stop_loss, signal.take_profits)
+    from app.signal_utils import parse_price
+
+    stop = parse_price(signal.stop_loss)
+    if stop is None:
+        return None
+    direction = signal.direction.lower()
+    for q in quotes:
+        if direction == "long" and q.price <= stop:
+            return "lose", q
+        if direction == "short" and q.price >= stop:
+            return "lose", q
     return None
 
 

@@ -35,6 +35,13 @@ def test_copy_half_scale_scales_signal_stake():
     assert copy_notional_usd(user, signal) == 2250.0
 
 
+def test_copy_notional_uses_balance_cents():
+    user = _settings(stake_percent=100.0, equity=4977.50)
+    signal = _signal(risk_percent=15.0, leverage=5)
+    # 4977.50 * 15% * 5 / 100 = 3733.125 → 3733.13
+    assert copy_notional_usd(user, signal) == 3733.13
+
+
 def test_copy_scale_default_when_unset():
     user = _settings(stake_percent=0, equity=1000.0)
     signal = _signal(risk_percent=15.0, leverage=2)

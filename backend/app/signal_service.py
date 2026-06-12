@@ -14,6 +14,7 @@ from app.signal_utils import (
     compute_signal_points_percent,
     compute_signal_points_percent_from_price,
     entry_zone_defined,
+    monitor_exit_price,
     outcome_from_move,
     signal_in_trade,
     trade_move_pct,
@@ -43,6 +44,7 @@ from app.price_service import (
     fetch_market_quotes,
     fetch_price,
     first_entry_quote,
+    monitor_outcome_for_signal,
 )
 from app.telegram_avatar import ensure_trader_avatar
 
@@ -245,6 +247,37 @@ def close_signal(
     db.commit()
     db.refresh(signal)
     return True
+
+
+async def try_close_on_quotes(
+    db: Session,
+    signal: Signal,
+    quotes: list[PriceQuote],
+    *,
+    notify: bool = True,
+) -> bool:
+    """Закрыть сигнал, если текущая цена уже за стопом или на цели."""
+    if signal.status != "active" or not quotes:
+        return False
+    outcome_hit = monitor_outcome_for_signal(signal, quotes)
+    if outcome_hit is None:
+        return False
+    outcome, hit = outcome_hit
+    if outcome not in ("win", "lose"):
+        return False
+    exit_px = monitor_exit_price(
+        outcome,
+        direction=signal.direction,
+        stop_loss=signal.stop_loss,
+        take_profits=signal.take_profits,
+        market_price=hit.price,
+    )
+    reason = "target" if outcome == "win" else "stop"
+    if notify:
+        await close_signal_and_notify(db, signal, outcome, exit_price=exit_px, close_reason=reason)
+    elif close_signal(db, signal, outcome, exit_price=exit_px, close_reason=reason):
+        await close_signal_copies(db, signal)
+    return signal.status != "active"
 
 
 async def close_signal_and_notify(
@@ -466,6 +499,14 @@ async def stamp_signal_at_publication(
     else:
         logger.warning("Публикация signal #%s %s: цена бирж не получена", signal.id, signal.symbol)
 
+    if quotes and await try_close_on_quotes(db, signal, quotes):
+        logger.info(
+            "Публикация signal #%s %s: закрыт по стопу/цели (цена уже за уровнем)",
+            signal.id,
+            signal.symbol,
+        )
+        return
+
     if getattr(signal, "is_cult_candidate", False):
         if signal.entry_filled_at is not None:
             await open_signal_copy_for_user(db, signal, signal.author_telegram_id)
@@ -518,8 +559,11 @@ async def try_fill_entry_from_market(db: Session, signal: Signal, *, notify: boo
     )
     if getattr(signal, "is_cult_candidate", False):
         await open_signal_copy_for_user(db, signal, signal.author_telegram_id)
-        return True
-    await after_limit_entry_filled(db, signal, notify=notify)
+    else:
+        await after_limit_entry_filled(db, signal, notify=notify)
+    refreshed = await fetch_market_quotes(signal.symbol)
+    if refreshed:
+        await try_close_on_quotes(db, signal, refreshed)
     return True
 
 

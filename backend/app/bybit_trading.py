@@ -347,5 +347,5 @@ async def get_wallet_usdt_balance(creds: BybitCredentials) -> float | None:
             if coin.get("coin") == "USDT":
                 raw = coin.get("walletBalance") or coin.get("equity")
                 if raw is not None:
-                    return float(raw)
+                    return round(float(raw), 2)
     return None

@@ -16,7 +16,7 @@ from app.price_service import (
     clear_price_cache,
     fetch_market_quotes,
     first_entry_quote,
-    first_outcome_quote,
+    monitor_outcome_for_signal,
     normalize_symbol,
 )
 from app.copy_trading_service import open_signal_copies, open_signal_copy_for_user
@@ -79,11 +79,37 @@ async def check_active_signals_once() -> tuple[int, bool]:
                     logger.warning("Монитор: нет цен для %s (signal #%s)", signal.symbol, signal.id)
                     continue
 
-                if signal.entry_filled_at is None:
-                    if not entry_zone_defined(signal.entry_low, signal.entry_high):
-                        continue
+                if signal.entry_filled_at is None and entry_zone_defined(signal.entry_low, signal.entry_high):
                     hit = first_entry_quote(quotes, signal.direction, signal.entry_low, signal.entry_high)
                     if hit is None:
+                        outcome_hit = monitor_outcome_for_signal(signal, quotes)
+                        if outcome_hit is not None:
+                            outcome, hit = outcome_hit
+                            if outcome in ("win", "lose"):
+                                exit_px = monitor_exit_price(
+                                    outcome,
+                                    direction=signal.direction,
+                                    stop_loss=signal.stop_loss,
+                                    take_profits=signal.take_profits,
+                                    market_price=hit.price,
+                                )
+                                logger.info(
+                                    "Монитор: %s signal #%s %s (до входа), %s=%.4f → exit=%.4f",
+                                    outcome,
+                                    signal.id,
+                                    signal.symbol,
+                                    hit.source,
+                                    hit.price,
+                                    exit_px,
+                                )
+                                await close_signal_and_notify(
+                                    db,
+                                    signal,
+                                    outcome,
+                                    exit_price=exit_px,
+                                    close_reason="target" if outcome == "win" else "stop",
+                                )
+                                closed += 1
                         continue
                     signal.entry_filled_at = datetime.now(timezone.utc)
                     db.commit()
@@ -106,9 +132,7 @@ async def check_active_signals_once() -> tuple[int, bool]:
                 except Exception:
                     logger.exception("Монитор: повтор копирования signal #%s", signal.id)
 
-                outcome_hit = first_outcome_quote(
-                    quotes, signal.direction, signal.stop_loss, signal.take_profits
-                )
+                outcome_hit = monitor_outcome_for_signal(signal, quotes)
                 if outcome_hit is None:
                     continue
                 outcome, hit = outcome_hit
@@ -145,18 +169,14 @@ async def check_active_signals_once() -> tuple[int, bool]:
             quotes = quotes_by_symbol.get(sym) or []
             if not quotes:
                 continue
-            if signal.entry_filled_at is None:
-                if not entry_zone_defined(signal.entry_low, signal.entry_high):
-                    continue
+            if signal.entry_filled_at is None and entry_zone_defined(signal.entry_low, signal.entry_high):
                 hit = first_entry_quote(quotes, signal.direction, signal.entry_low, signal.entry_high)
-                if hit is None:
-                    continue
-                signal.entry_filled_at = datetime.now(timezone.utc)
-                db.commit()
-                logger.info("CULT кандидат: вход #%s %s", signal.id, signal.symbol)
-                await open_signal_copy_for_user(db, signal, signal.author_telegram_id)
-                continue
-            outcome_hit = first_outcome_quote(quotes, signal.direction, signal.stop_loss, signal.take_profits)
+                if hit is not None:
+                    signal.entry_filled_at = datetime.now(timezone.utc)
+                    db.commit()
+                    logger.info("CULT кандидат: вход #%s %s", signal.id, signal.symbol)
+                    await open_signal_copy_for_user(db, signal, signal.author_telegram_id)
+            outcome_hit = monitor_outcome_for_signal(signal, quotes)
             if outcome_hit is None:
                 continue
             outcome, hit = outcome_hit
@@ -187,18 +207,14 @@ async def check_active_signals_once() -> tuple[int, bool]:
             if not quotes:
                 continue
 
-            if sig.entry_filled_at is None:
-                if not entry_zone_defined(sig.entry_low, sig.entry_high):
-                    continue
+            if sig.entry_filled_at is None and entry_zone_defined(sig.entry_low, sig.entry_high):
                 hit = first_entry_quote(quotes, sig.direction, sig.entry_low, sig.entry_high)
-                if hit is None:
-                    continue
-                sig.entry_filled_at = datetime.now(timezone.utc)
-                db.commit()
-                logger.info("CULT: вход #%s %s @%s", sig.id, sig.symbol, channel.username)
-                continue
+                if hit is not None:
+                    sig.entry_filled_at = datetime.now(timezone.utc)
+                    db.commit()
+                    logger.info("CULT: вход #%s %s @%s", sig.id, sig.symbol, channel.username)
 
-            outcome_hit = first_outcome_quote(quotes, sig.direction, sig.stop_loss, sig.take_profits)
+            outcome_hit = monitor_outcome_for_signal(sig, quotes)
             if outcome_hit is None:
                 continue
             outcome, hit = outcome_hit

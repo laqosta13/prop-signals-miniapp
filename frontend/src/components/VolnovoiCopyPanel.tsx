@@ -9,7 +9,7 @@ import {
   saveCopyTradingSettings,
   testCopyTradingConnection,
 } from "../api";
-import { copyToClipboard, formatUsd, selectFieldText } from "../utils";
+import { copyToClipboard, formatUsdCents, selectFieldText } from "../utils";
 import { PasteButton } from "./PasteButton";
 import { useThemedCopy } from "../hooks/useThemedCopy";
 import { BybitLogo } from "./BrandLogos";
@@ -223,12 +223,12 @@ export function VolnovoiCopyPanel() {
                 <h4 className="volnovoi-copy__bill-title">Депозит комиссии</h4>
                 <p className="volnovoi-copy__bill-row volnovoi-copy__bill-row--due">
                   <span>На депозите</span>
-                  <strong>{formatUsd(status?.fee_deposit_usd ?? 0)}</strong>
+                  <strong>{formatUsdCents(status?.fee_deposit_usd ?? 0)}</strong>
                 </p>
                 {status && status.accrued_fee_usd > 0 && (
                   <p className="volnovoi-copy__bill-row">
                     <span>К списанию ({status.fee_percent}% прибыли)</span>
-                    <strong>{formatUsd(status.accrued_fee_usd)}</strong>
+                    <strong>{formatUsdCents(status.accrued_fee_usd)}</strong>
                   </p>
                 )}
                 {depositBlocked && (
@@ -281,9 +281,9 @@ export function VolnovoiCopyPanel() {
                 <div className="volnovoi-copy__stats">
                   {status.api_key_hint && <span>Ключ {status.api_key_hint}</span>}
                   {status.current_equity_usd != null && (
-                    <span>Баланс Bybit {formatUsd(status.current_equity_usd)}</span>
+                    <span>Баланс Bybit {formatUsdCents(status.current_equity_usd)}</span>
                   )}
-                  <span>Прибыль копирования {formatUsd(status.profit_usd)}</span>
+                  <span>Прибыль копирования {formatUsdCents(status.profit_usd)}</span>
                 </div>
               )}
 
@@ -322,7 +322,7 @@ export function VolnovoiCopyPanel() {
                   <p className="meta volnovoi-copy__deposit-hint">
                     {status?.current_equity_usd != null ? (
                       <>
-                        Баланс Bybit: <strong>{formatUsd(status.current_equity_usd)}</strong>
+                        Баланс Bybit: <strong>{formatUsdCents(status.current_equity_usd)}</strong>
                       </>
                     ) : status?.configured ? (
                       "Нажмите «Проверить» — баланс подтянется с Bybit"
