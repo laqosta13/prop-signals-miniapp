@@ -32,17 +32,30 @@ export function VolnovoiHeroCard({ trader, onOpen }: Props) {
             size={52}
           />
           <div className="volnovoi-hero__identity">
-            <div className="volnovoi-hero__title-row">
-              <span className="volnovoi-hero__symbol" aria-hidden>
-                ∑
-              </span>
-              <h2 className="volnovoi-hero__name">{profile.title}</h2>
+            <div className="volnovoi-hero__top-row">
+              <div className="volnovoi-hero__title-row">
+                <span className="volnovoi-hero__symbol" aria-hidden>
+                  ∑
+                </span>
+                <h2 className="volnovoi-hero__name">{profile.title}</h2>
+              </div>
+              <div
+                className="volnovoi-hero__marketing"
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              >
+                <VolnovoiMarketingBadge trader={trader} className="volnovoi-marketing--hero" />
+              </div>
             </div>
-            <p className="volnovoi-hero__tagline">{copy.volnovoiSubtitle}</p>
-            <div className="volnovoi-hero__badges">
-              {trader.trader_rank ? <RankBadge rank={trader.trader_rank} featured /> : null}
-              <VolnovoiMarketingBadge trader={trader} />
-            </div>
+            <p className="volnovoi-hero__tagline">
+              <span className="volnovoi-hero__tagline-lead">{copy.volnovoiSubtitleLead}</span>{" "}
+              <span className="volnovoi-hero__tagline-accent">{copy.volnovoiSubtitleAccent}</span>
+            </p>
+            {trader.trader_rank ? (
+              <div className="volnovoi-hero__rank">
+                <RankBadge rank={trader.trader_rank} featured />
+              </div>
+            ) : null}
           </div>
         </header>
 

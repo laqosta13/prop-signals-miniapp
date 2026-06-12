@@ -36,6 +36,8 @@ import {
   VOLNOVOI_COPY_TITLE,
   VOLNOVOI_MARKETING_CTA,
   VOLNOVOI_SUBTITLE,
+  VOLNOVOI_SUBTITLE_ACCENT,
+  VOLNOVOI_SUBTITLE_LEAD,
   RANK_GUIDE_HINT,
   RANK_AFTER_FIRST_CLOSE,
   RANK_RULES,
@@ -83,6 +85,8 @@ export type ThemedCopy = {
   topCandidatesEmpty: string;
   rankGuideHint: string;
   volnovoiSubtitle: string;
+  volnovoiSubtitleLead: string;
+  volnovoiSubtitleAccent: string;
   volnovoiCopyTitle: string;
   volnovoiCopyDesc: string;
   volnovoiCopyHintBilling: string;
@@ -228,6 +232,8 @@ function buildCopy(theme: Theme): ThemedCopy {
       topCandidatesEmpty: TOP_CANDIDATES_EMPTY,
       rankGuideHint: RANK_GUIDE_HINT,
       volnovoiSubtitle: VOLNOVOI_SUBTITLE,
+      volnovoiSubtitleLead: VOLNOVOI_SUBTITLE_LEAD,
+      volnovoiSubtitleAccent: VOLNOVOI_SUBTITLE_ACCENT,
       volnovoiCopyTitle: VOLNOVOI_COPY_TITLE,
       volnovoiCopyDesc: VOLNOVOI_COPY_DESC,
       volnovoiCopyHintBilling: VOLNOVOI_COPY_HINT_BILLING,
@@ -371,6 +377,8 @@ function buildCopy(theme: Theme): ThemedCopy {
     topCandidatesEmpty: P.PUNK_TOP_CANDIDATES_EMPTY,
     rankGuideHint: P.PUNK_RANK_GUIDE_HINT,
     volnovoiSubtitle: P.PUNK_VOLNOVOI_SUBTITLE,
+    volnovoiSubtitleLead: P.PUNK_VOLNOVOI_SUBTITLE_LEAD,
+    volnovoiSubtitleAccent: P.PUNK_VOLNOVOI_SUBTITLE_ACCENT,
     volnovoiCopyTitle: P.PUNK_VOLNOVOI_COPY_TITLE,
     volnovoiCopyDesc: P.PUNK_VOLNOVOI_COPY_DESC,
     volnovoiCopyHintBilling: P.PUNK_VOLNOVOI_COPY_HINT_BILLING,
