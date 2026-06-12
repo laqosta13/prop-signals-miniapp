@@ -9,7 +9,7 @@ from pathlib import Path
 
 from app.hashhedge_rules import ACCOUNT_SIZES
 
-_MONEY = re.compile(r"\$[\s\u00a0]*(\d[\d\s\u00a0,]*)")
+_MONEY = re.compile(r"\$[\s\u00a0]*(\d[\d \u00a0,]*)")
 _STAGE = re.compile(r"(?:Стадия|Stage)\s*(\d)", re.IGNORECASE)
 _TRADING_DAYS = re.compile(
     r"(?:Торговые\s*дни|Trading\s*days?)[^\d]{0,40}(\d+)\s*/\s*(\d+)",
@@ -37,7 +37,7 @@ class PropScreenshotParseError(ValueError):
 
 
 def _parse_money_token(raw: str) -> float | None:
-    cleaned = raw.replace("\u00a0", " ").replace(" ", "").replace(",", "")
+    cleaned = re.sub(r"[\s\u00a0,]", "", raw)
     if not cleaned:
         return None
     try:
@@ -46,16 +46,69 @@ def _parse_money_token(raw: str) -> float | None:
         return None
 
 
-def _money_after_label(text: str, label: re.Pattern[str]) -> float | None:
+_PNL_LABEL = re.compile(
+    r"(?:Realize|Unrealize|реализ|P&L|прибыл|убыт|потеря|loss|profit|Заработать)",
+    re.IGNORECASE,
+)
+_SPLIT_SUFFIX = re.compile(r"^[\s\n]+(\d{2,4})\b")
+
+
+def _merge_split_ocr_amount(tail: str, match_end: int, value: float) -> float:
+    """OCR часто рвёт $4 977 → «$4» + строка «977» или «$49» + «77»."""
+    if value >= 500:
+        return value
+    rest = tail[match_end:]
+    suffix = _SPLIT_SUFFIX.match(rest)
+    if not suffix:
+        return value
+    merged = float(f"{int(value)}{suffix.group(1)}")
+    return merged if merged > value else value
+
+
+def _money_candidates_after_label(text: str, label: re.Pattern[str], *, window: int = 280) -> list[float]:
     match = label.search(text)
     if not match:
-        return None
-    tail = text[match.end() : match.end() + 220]
+        return []
+    tail = text[match.end() : match.end() + window]
+    values: list[float] = []
     for money in _MONEY.finditer(tail):
-        value = _parse_money_token(money.group(1))
-        if value is not None and value > 0:
-            return value
-    return None
+        before = tail[max(0, money.start() - 24) : money.start()]
+        if _PNL_LABEL.search(before):
+            continue
+        raw = _parse_money_token(money.group(1))
+        if raw is None or raw <= 0:
+            continue
+        values.append(_merge_split_ocr_amount(tail, money.end(), raw))
+    return values
+
+
+def _plausible_balance(value: float, account_size: float | None) -> bool:
+    if value < 100:
+        return False
+    if account_size is None:
+        return value >= 500
+    return account_size * 0.5 <= value <= account_size * 1.15
+
+
+def _pick_balance(candidates: list[float], account_size: float | None) -> float | None:
+    plausible = [v for v in candidates if _plausible_balance(v, account_size)]
+    if not plausible:
+        return None
+    if account_size is not None:
+        return max(plausible, key=lambda v: (-abs(account_size - v), v))
+    return max(plausible)
+
+
+def _resolve_balance(text: str, account_size: float | None) -> float | None:
+    assets = _money_candidates_after_label(text, _ASSETS_LABEL)
+    balance = _money_candidates_after_label(text, _BALANCE_LABEL)
+    candidates = assets + balance
+    picked = _pick_balance(candidates, account_size)
+    if picked is not None:
+        return picked
+    if account_size is not None:
+        return _pick_balance([v for v in candidates if v >= 100], account_size)
+    return max(candidates) if candidates else None
 
 
 def _nearest_account_size(text: str, balance: float | None) -> float | None:
@@ -79,11 +132,6 @@ def _nearest_account_size(text: str, balance: float | None) -> float | None:
 def parse_prop_ocr_text(text: str) -> PropScreenshotData:
     """Разбор текста OCR; покрыт unit-тестами без tesseract."""
     normalized = text.replace("\u00a0", " ").replace("\r", "\n")
-    balance = _money_after_label(normalized, _BALANCE_LABEL)
-    if balance is None:
-        balance = _money_after_label(normalized, _ASSETS_LABEL)
-    if balance is None:
-        raise PropScreenshotParseError("Не найден баланс на скрине (Баланс / Активы)")
 
     stage = None
     stage_match = _STAGE.search(normalized)
@@ -99,9 +147,15 @@ def parse_prop_ocr_text(text: str) -> PropScreenshotData:
         trading_days = int(days_match.group(1))
         trading_days_required = int(days_match.group(2))
 
-    account_size = _nearest_account_size(normalized, balance)
+    account_size = _nearest_account_size(normalized, None)
     if account_size is None and _PLAN.search(normalized):
         account_size = _nearest_account_size(normalized, None)
+
+    balance = _resolve_balance(normalized, account_size)
+    if balance is None:
+        raise PropScreenshotParseError("Не найден баланс на скрине (Баланс / Активы)")
+    if account_size is None:
+        account_size = _nearest_account_size(normalized, balance)
 
     return PropScreenshotData(
         balance=balance,
