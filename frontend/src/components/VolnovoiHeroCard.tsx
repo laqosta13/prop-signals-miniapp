@@ -47,10 +47,11 @@ export function VolnovoiHeroCard({ trader, onOpen }: Props) {
                 <VolnovoiMarketingBadge trader={trader} className="volnovoi-marketing--hero" />
               </div>
             </div>
-            <p className="volnovoi-hero__tagline">
-              <span className="volnovoi-hero__tagline-lead">{copy.volnovoiSubtitleLead}</span>{" "}
+            <div className="volnovoi-hero__tagline-frame" aria-label={copy.volnovoiSubtitle}>
+              <span className="volnovoi-hero__tagline-lead">{copy.volnovoiSubtitleLead}</span>
+              <span className="volnovoi-hero__tagline-divider" aria-hidden />
               <span className="volnovoi-hero__tagline-accent">{copy.volnovoiSubtitleAccent}</span>
-            </p>
+            </div>
             {trader.trader_rank ? (
               <div className="volnovoi-hero__rank">
                 <RankBadge rank={trader.trader_rank} featured />
