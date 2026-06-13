@@ -460,8 +460,6 @@ def run_migrations(engine: Engine) -> None:
     _recalc_closed_signal_pnl_v2(engine)
     _recalc_closed_signal_pnl_v3(engine)
     _recalc_winrate_by_pnl_v1(engine)
-    _seed_volnovoi_cult_launch_news_v1(engine)
-    _seed_volnovoi_cult_launch_news_v2(engine)
     _backfill_pinned_launch_news_v1(engine)
     _purge_all_published_startup_v1(engine)
     _purge_all_published_jun2026_v10(engine)
@@ -475,6 +473,7 @@ def run_migrations(engine: Engine) -> None:
     _copy_stake_default_100_v1(engine)
     _purge_all_published_jun2026_v14(engine)
     _purge_all_published_jun2026_v15(engine)
+    _delete_volnovoi_cult_launch_news_v1(engine)
 
 
 def _purge_all_published_jun2026_v15(engine: Engine) -> None:
@@ -493,6 +492,81 @@ def _purge_all_published_jun2026_v15(engine: Engine) -> None:
     try:
         purge_all_published_content(db)
         db.commit()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
+
+
+def _delete_volnovoi_cult_launch_news_v1(engine: Engine) -> None:
+    """Одноразово: удалить стартовую новость Volnovoi Cult (июнь 2026)."""
+    marker = _marker_path(engine, ".deleted_volnovoi_cult_launch_news_v1")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".deleted_volnovoi_cult_launch_news_v1"
+    if marker.exists():
+        return
+    if "news_posts" not in inspect(engine).get_table_names():
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+        return
+
+    import shutil
+
+    from sqlalchemy import or_, select
+
+    from app.database import SessionLocal
+    from app.media_storage import delete_media_files, media_root
+    from app.models import NewsPost
+    from app.news_launch import (
+        LAUNCH_NEWS_TITLE,
+        PENDING_NEWS_NOTIFY_FILE,
+        SEED_MARKER_V1,
+        SEED_MARKER_V2,
+    )
+
+    title = LAUNCH_NEWS_TITLE[:200]
+    db = SessionLocal()
+    try:
+        rows = list(
+            db.scalars(
+                select(NewsPost).where(
+                    or_(
+                        NewsPost.title == title,
+                        NewsPost.body.contains("витрина живого рынка"),
+                        NewsPost.body.contains("красивые обещания"),
+                    )
+                )
+            ).all()
+        )
+        deleted_ids: list[int] = []
+        for row in rows:
+            delete_media_files(row.image_path, row.video_path)
+            deleted_ids.append(row.id)
+            db.delete(row)
+        db.commit()
+
+        root = media_root()
+        news_root = root / "news"
+        if news_root.is_dir():
+            for item in news_root.iterdir():
+                if item.is_dir() and item.name.isdigit() and int(item.name) in deleted_ids:
+                    shutil.rmtree(item, ignore_errors=True)
+
+        for name in (
+            PENDING_NEWS_NOTIFY_FILE,
+            SEED_MARKER_V1,
+            SEED_MARKER_V2,
+            ".backfill_pinned_launch_news_v1",
+        ):
+            (root / name).unlink(missing_ok=True)
+        sqlite_marker = _marker_path(engine, SEED_MARKER_V1)
+        if sqlite_marker is not None:
+            sqlite_marker.unlink(missing_ok=True)
+            _marker_path(engine, SEED_MARKER_V2).unlink(missing_ok=True)
+            _marker_path(engine, ".backfill_pinned_launch_news_v1").unlink(missing_ok=True)
+
         marker.parent.mkdir(parents=True, exist_ok=True)
         marker.touch()
     finally:
