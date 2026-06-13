@@ -26,6 +26,7 @@ import { VolnovoiStylePanel } from "./VolnovoiStylePanel";
 import { useAuthorProfile } from "../hooks/useAuthorProfile";
 import { useThemedCopy } from "../hooks/useThemedCopy";
 import { shouldShowTraderRankBadge, traderClosedDealsCount, traderRankAvatarId } from "../utils/traderRankDisplay";
+import { canViewActiveSignals, canViewCandidateActiveTrades } from "../utils/signalActions";
 import { isVolnovoiTrader } from "../utils/volnovoi";
 import { Avatar } from "./Avatar";
 import { TopPlaceMedal } from "./TopPlaceMedal";
@@ -40,6 +41,7 @@ type Props = {
   myId: number | null;
   isAdmin: boolean;
   isSuperAdmin: boolean;
+  subscriptionActive: boolean;
   onCultChannelsChange: () => void;
   onCultCandidatesChange: () => void;
   onRosterChange: () => void;
@@ -157,6 +159,7 @@ export function LeaderboardTab({
   myId,
   isAdmin,
   isSuperAdmin,
+  subscriptionActive,
   onCultChannelsChange,
   onCultCandidatesChange,
   onRosterChange,
@@ -234,6 +237,8 @@ export function LeaderboardTab({
     cultCandidates.length > 0 || channelCandidates.length > 0 || isAdmin || myId != null;
   const showFiredBlock = firedList.length > 0;
 
+  const showVolnovoiActiveTrades = canViewActiveSignals(subscriptionActive, isAdmin);
+
   if (loading) return <p className="meta">{copy.loading}</p>;
 
   return (
@@ -246,7 +251,11 @@ export function LeaderboardTab({
 
       {volnovoi && (
         <section className="volnovoi-hero" aria-label="volnovoi">
-          <VolnovoiHeroCard trader={volnovoi} onOpen={() => setProfileTrader(volnovoi)} />
+          <VolnovoiHeroCard
+            trader={volnovoi}
+            onOpen={() => setProfileTrader(volnovoi)}
+            showActiveTrades={showVolnovoiActiveTrades}
+          />
           <VolnovoiCopyPanel />
         </section>
       )}
@@ -283,6 +292,7 @@ export function LeaderboardTab({
                 <CultCandidateCard
                   key={`me-${myCandidate.telegram_user_id}`}
                   candidate={myCandidate}
+                  showActiveTrades={canViewCandidateActiveTrades(subscriptionActive, isAdmin, true)}
                   onTrade={canPublishCandidate ? () => setSignalModalOpen(true) : undefined}
                   onOpenClosedTrade={openClosedTrade}
                   onCloseAtMarket={handleCloseCandidateAtMarket}
@@ -295,6 +305,7 @@ export function LeaderboardTab({
                 <CultCandidateCard
                   key={candidate.telegram_user_id}
                   candidate={candidate}
+                  showActiveTrades={canViewCandidateActiveTrades(subscriptionActive, isAdmin, false)}
                   onOpenClosedTrade={openClosedTrade}
                   isSuperAdmin={isSuperAdmin}
                   onRosterChange={onRosterChange}
@@ -357,6 +368,11 @@ export function LeaderboardTab({
           trader={profileTrader}
           isMe={myId === profileTrader.telegram_id}
           isAdmin={isAdmin}
+          showActiveTrades={
+            isVolnovoiTrader(profileTrader)
+              ? showVolnovoiActiveTrades
+              : canViewCandidateActiveTrades(subscriptionActive, isAdmin, myId === profileTrader.telegram_id)
+          }
           onClose={() => setProfileTrader(null)}
         />
       )}

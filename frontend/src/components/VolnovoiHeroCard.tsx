@@ -11,13 +11,14 @@ import { VolnovoiMarketingBadge } from "./VolnovoiMarketingBadge";
 type Props = {
   trader: Trader;
   onOpen: () => void;
+  showActiveTrades?: boolean;
 };
 
-export function VolnovoiHeroCard({ trader, onOpen }: Props) {
+export function VolnovoiHeroCard({ trader, onOpen, showActiveTrades = false }: Props) {
   const copy = useThemedCopy();
   const profile = useAuthorProfile(trader.display_name, trader.username, trader.telegram_id);
   const hasClosedDeals = traderClosedDealsCount(trader) > 0;
-  const hasActive = (trader.active_signals?.length ?? 0) > 0;
+  const hasActive = showActiveTrades && (trader.active_signals?.length ?? 0) > 0;
 
   return (
     <article className="volnovoi-hero__card">

@@ -18,10 +18,11 @@ type Props = {
   trader: Trader;
   isMe: boolean;
   isAdmin: boolean;
+  showActiveTrades?: boolean;
   onClose: () => void;
 };
 
-export function TraderProfileModal({ trader, onClose }: Props) {
+export function TraderProfileModal({ trader, onClose, showActiveTrades = false }: Props) {
   const theme = useAppTheme();
   const copy = useThemedCopy();
   const aggregate = isVolnovoiTrader(trader);
@@ -74,7 +75,7 @@ export function TraderProfileModal({ trader, onClose }: Props) {
           <VolnovoiMarketingBadge trader={trader} className="volnovoi-marketing--profile" />
         )}
 
-        {aggregate && (trader.active_signals?.length ?? 0) > 0 && (
+        {aggregate && showActiveTrades && (trader.active_signals?.length ?? 0) > 0 && (
           <CultCandidateActiveTrades trades={trader.active_signals!} />
         )}
 

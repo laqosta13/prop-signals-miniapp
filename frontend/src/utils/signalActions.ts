@@ -58,6 +58,15 @@ export function canViewActiveSignals(subscriptionActive: boolean, isAdmin: boole
   return subscriptionActive || isAdmin;
 }
 
+/** Активные сделки в TOP: подписка, админ или своя карточка кандидата. */
+export function canViewCandidateActiveTrades(
+  subscriptionActive: boolean,
+  isAdmin: boolean,
+  isMe: boolean,
+): boolean {
+  return canViewActiveSignals(subscriptionActive, isAdmin) || isMe;
+}
+
 /** Лента: без подписки — только win/lose (двойная защита поверх API /signals/preview). */
 export function visibleFeedSignals(signals: Signal[], subscriptionActive: boolean, isAdmin: boolean): Signal[] {
   if (canViewActiveSignals(subscriptionActive, isAdmin)) return signals;

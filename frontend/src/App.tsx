@@ -563,6 +563,7 @@ export default function App() {
               myId={myId}
               isAdmin={isAdmin}
               isSuperAdmin={isSuperAdmin}
+              subscriptionActive={subActive}
               onCultChannelsChange={() => void loadTop()}
               onCultCandidatesChange={() => void loadTop()}
               onRosterChange={() => void loadTop()}

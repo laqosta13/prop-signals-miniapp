@@ -12,6 +12,7 @@ import { VolnovoiStylePanel } from "./VolnovoiStylePanel";
 
 type Props = {
   candidate: CultCandidate;
+  showActiveTrades?: boolean;
   onTrade?: () => void;
   onOpenClosedTrade?: (trade: CultCandidateClosedSignal) => void;
   onCloseAtMarket?: (signalId: number) => void;
@@ -22,6 +23,7 @@ type Props = {
 
 export function CultCandidateCard({
   candidate,
+  showActiveTrades = false,
   onTrade,
   onOpenClosedTrade,
   onCloseAtMarket,
@@ -35,7 +37,8 @@ export function CultCandidateCard({
   const activeCount = candidate.active_signals.length;
   const closedCount = candidate.closed_signals?.length ?? 0;
   const topPlace = candidate.rank >= 1 && candidate.rank <= 3 ? (candidate.rank as 1 | 2 | 3) : null;
-  const showTradePills = !expanded && (activeCount > 0 || closedCount > 0);
+  const showTradePills =
+    !expanded && ((showActiveTrades && activeCount > 0) || closedCount > 0);
 
   const headContent = (
     <div className="top-card__head">
@@ -74,7 +77,7 @@ export function CultCandidateCard({
             )}
             {showTradePills && (
               <div className="candidate-trades-pills">
-                {activeCount > 0 && (
+                {showActiveTrades && activeCount > 0 && (
                   <span className="candidate-trades-pill candidate-trades-pill--active">
                     <span className="candidate-trades-pill__dot" aria-hidden />
                     {activeCount} в игре
@@ -123,9 +126,10 @@ export function CultCandidateCard({
           <VolnovoiStylePanel style={candidate.volnovoi_style} stopPropagation />
         )}
 
-        {expanded && candidate.active_signals.length > 0 && (
+        {expanded && showActiveTrades && candidate.active_signals.length > 0 && (
           <CultCandidateActiveTrades
             trades={candidate.active_signals}
+            showDetails
             canClose={candidate.is_me}
             closingId={closingSignalId}
             onCloseAtMarket={onCloseAtMarket}
