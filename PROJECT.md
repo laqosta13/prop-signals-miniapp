@@ -14,6 +14,7 @@
 | **Стек** | FastAPI + SQLite + React/Vite + Telegram Mini App |
 | **Деплой** | Docker → Amvera Cloud, постоянный диск `/data` |
 | **Брендинг** | **ТЕ:** Volnovoi Cult · Marketplace крипто-сделок (`appCopy.ts`); **МА:** **МА·СЕТЬ** · теневой marketplace (`punkCopy.ts`); трекер/проп — **Hash Hedge** |
+| **Telegram-бот** | **@volnovoibot** — Mini App, push, `/start`, рефералы `?startapp=CODE` |
 | **Прод (Amvera)** | тариф **Стандартный**, 1 реплика — достаточно для ~2–3k заходов на публикацию сигнала |
 
 **Суть:** Telegram Mini App с лентой торговых сигналов. Публикуют только **админы** (`TELEGRAM_ADMIN_IDS`). **Активные** сигналы — по подписке; **отработанные** (win/lose), трекер и ТОП — **бесплатно** для всех авторизованных пользователей.
@@ -24,7 +25,7 @@
 
 1. **Лента** — шапка-бренд: **ТЕ** `Volnovoi Cult` + «крипто-сделок», **МА** `МА·СЕТЬ` + «крипто-операций»; счётчики **«N в рынке»** / **«M ожидание входа»** (в МА — «в сети» / «ожидание кода»); сигналы **#N**, график на карточке, просмотры/лайки, мини-трекеры админов, переключатель **«Уведомления в Telegram»** (`NotifySettingsPanel`), **дисклеймер** (кнопка **!** + принятие при первом заходе), **анимация WIN/LOSE** при **живом** закрытии
 2. **Трекер** — Hash Hedge challenge **только после ручного добавления** («+» на вкладке); таблица правил по этапам; без трекера — сигналы в ленту, но не в проп-статистику
-3. **ТОП** — **volnovoi** + копирование Bybit; **RankGuide**; **ТРЕЙДЕРЫ CULT**; **КОНДИДАТЫ В CULT** — админы + **Telegram-каналы** (аналитика % с момента подключения)
+3. **ТОП** — **hero volnovoi** (`VolnovoiHeroCard`) первым блоком → **RankGuide** → **ТРЕЙДЕРЫ CULT** → **КОНДИДАТЫ В CULT**; копирование Bybit под hero; Telegram-каналы (аналитика % с момента подключения)
 4. **Отзывы** — оценка 1–5 и текст; один отзыв на пользователя
 5. **Новости** — публикации админов; чтение для всех
 6. **Подписка** — оплата USDT TON (проверка TXID в блокчейне), реферальные ссылки, trial, **чат поддержки** (`SubscriptionSupportChat` → `POST /support/messages`)
@@ -145,6 +146,7 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 - Форекс / золото: Frankfurter / gold-api (как раньше)
 - Мониторинг входа, win/lose, публикация, `GET /signals/market-price` — одна котировка Bybit
 - **Закрытие по стопу/цели:** котировка только **детектирует** касание; `closed_exit_price` = **ровно уровень** стопа или первой цели (`monitor_exit_price` в `price_monitor.py`) — без проскальзывания, если цена уже ушла дальше между опросами
+- **Автозакрытие до входа:** если цена уже за стопом — сигнал закрывается на следующем тике (`monitor_outcome_for_signal` в `price_service.py`; при публикации и в `price_monitor.py` без `continue` после лимитного входа)
 - На фронте график: публичный API `GET /v5/market/kline?category=linear` (без бэкенда)
 
 ### Публикация сигнала
@@ -167,11 +169,12 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 ## volnovoi — сводный портфель ТОП
 
 - **`VOLNOVOI_TELEGRAM_ID = 0`**, отображение **`volnovoi`**, флаг **`is_aggregate: true`**
-- Первая секция **«ТРЕЙДЕРЫ CULT»**: все **закрытые** сигналы **всех админов** в одном портфеле (рейтинг %, P/L $, W/L, WR, equity curve)
-- Подпись карточки: **«Копирует · все сделки трейдеров»** (не «Аккаунт»)
+- **Hero-блок** (`VolnovoiHeroCard.tsx`) — **первый** на вкладке ТОП (до RankGuide и списка трейдеров): аватар VC, **∑ volnovoi**, бейдж PnL **справа в шапке** (`VolnovoiMarketingBadge`), подпись в **рамке** («копирует все сделки» + акцент **ТОП Трейдеров**), активные сделки, рейтинг, equity; под карточкой — `VolnovoiCopyPanel`
+- Первая секция списка **«ТРЕЙДЕРЫ CULT»**: все **закрытые** сигналы **всех админов** в одном портфеле (рейтинг %, P/L $, W/L, WR, equity curve)
+- Подпись: `VOLNOVOI_SUBTITLE` — без скобок; themed copy: `volnovoiSubtitleLead` / `volnovoiSubtitleAccent`
 - Backend: `volnovoi_account.py`, prepend в `build_leaderboard()`; `GET /traders/0/rank` — вычисленный ранг
-- UI: карточка `top-card--aggregate`, символ **∑**; клик по **шапке** открывает профиль; **график и «Дни · N»** — отдельно (не открывают профиль)
-- Профиль volnovoi: сводная статистика; ранг volnovoi — по агрегату закрытых сделок (без недельного пересчёта)
+- UI: `top-card--aggregate` в списке; клик по **шапке** hero/карточки → профиль; **график** — отдельно (не открывает профиль)
+- Профиль volnovoi: сводная статистика; ранг — по агрегату закрытых сделок (без недельного пересчёта)
 
 ---
 
@@ -181,12 +184,12 @@ Frontend: без подписки — `fetchSignalsPreview()`, с подписк
 
 | Параметр | Значение |
 |---|---|
-| UI | `VolnovoiCopyPanel.tsx` — под карточкой **volnovoi** на вкладке ТОП (раскрывающийся блок) |
+| UI | `VolnovoiCopyPanel.tsx` — под **hero** volnovoi на вкладке ТОП (раскрывающийся блок) |
 | Доступ | Любой авторизованный пользователь — `GET/PUT /copy-trading/me` |
 | Биржа | Bybit v5, **USDT perp**; forex/золото пропускаются |
 | Вход | Market при `entry_filled_at` (монитор / публикация) |
 | Выход | Reduce-only market при закрытии сигнала; SL/TP на позиции через `trading-stop` |
-| Размер | `account_balance_usd × stake_percent × leverage_сигнала / 100` (депозит и % задаёт пользователь) |
+| Размер | `balance × (risk_percent_сигнала × масштаб_панели / 100) × leverage / 100`; **масштаб 100%** = сумма входа как в сигнале (`copy_scale_pct`, `copy_effective_stake_pct`); баланс и номинал — с точностью **$0.01** (`formatUsdCents`, `get_wallet_usdt_balance`) |
 | Ключи | Шифрование Fernet (`credentials_crypto.py`); ключ = `EXCHANGE_SECRETS_KEY` или `BOT_TOKEN`; права API — только **Trade** |
 | Биржа | Только **основной Bybit** (`api.bybit.com`); testnet убран из UI; подпись GET с сортировкой параметров (`X-BAPI-SIGN-TYPE: 2`) |
 
@@ -413,7 +416,9 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 ## Telegram-бот и уведомления
 
-**Доставка:** `telegram_notify.py` → `sendMessage` / `sendPhoto` подписчикам с `notify_enabled` и активной подпиской (`signal_service.subscriber_ids_for_notify`). Формат push — **блочный HTML**: заголовок (⚡️/✏️/…), `blockquote` с **#N · символ · LONG/SHORT**, блок **Уровни** (вход/стоп/цель/рынок при посте) — отдельный `blockquote` с **жирными** ценами; далее *Позиция* / *Трейдер*; WIN/LOSE — *Результат* в `blockquote`.
+**Доставка:** `telegram_notify.py` → `sendMessage` / `sendPhoto` подписчикам с `notify_enabled` и активной подпиской (`signal_service.subscriber_ids_for_notify`). **Скрин сигнала в push не прикрепляется** — только **цветная PNG-карточка** (`telegram_notify_render.py`, LONG/SHORT) + plain-text caption или fallback на HTML.
+
+Формат push — **блочный HTML**: заголовок (⚡️/✏️/…), `blockquote` с **#N · символ · LONG/SHORT**, блоки **Уровни** / **Позиция** / **Трейдер** / **Статус** / **Итог** — каждый в `blockquote`; цены **жирные**. **Вход по рынку:** в «Входе» — `format_signal_entry_display` + «по рынку» + источник (Bybit perp); отдельная строка «При посте» убрана. Push **«В РЫНКЕ»:** лимитка vs market-entry разный текст статуса.
 
 **Приём обновлений бота:** **long polling** (`telegram_updates.py`: `delete_webhook` при старте, `getUpdates`, offset в `/data/media/telegram_update_offset.txt`) — **не** зависит от webhook Amvera. В том же цикле: `channel_post` (CULT-каналы), `/start` и рефералы (`bot_welcome.py`), сообщения в группу поддержки (`support_chat.py`).
 
@@ -463,7 +468,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 - Единый стиль **glassmorphism**: полупрозрачные карточки/модалки/кнопки, blur, мягкие тени
 - Нижнее меню: вместо эмодзи используются SVG-иконки (современный iOS-like стиль)
 - Полиш взаимодействий: active/focus состояния, мягкие микро-анимации, поддержка `prefers-reduced-motion`
-- ТОП: процент рейтинга окрашивается по знаку (**плюс зелёный**, **минус красный**); кривая доходности — вверх зелёная, вниз красная; секции **ТРЕЙДЕРЫ CULT** / **КОНДИДАТЫ В CULT**
+- ТОП: процент рейтинга окрашивается по знаку (**плюс зелёный**, **минус красный**); кривая доходности — вверх зелёная, вниз красная; секции **ТРЕЙДЕРЫ CULT** / **КОНДИДАТЫ В CULT**; топ **1–2–3** — компактные чипы (`TopPlaceMedal`); ранг **4+** у кандидатов — нейтральная цифра (`top-rank-plain`), карточки кандидатов без фиолетового акцента
 
 ---
 
@@ -477,7 +482,7 @@ Frontend: `frontend/src/utils/signalActions.ts`.
 
 | Способ | Как |
 |---|---|
-| Одноразово при деплое | маркеры `.purged_all_published_*` (актуально: **`.purged_all_published_jun2026_v12`**) в `migrate.py` |
+| Одноразово при деплое | маркеры `.purged_all_published_*` (актуально: **`.purged_all_published_jun2026_v15`**) в `migrate.py` |
 | API (без UI) | `POST /admin/purge-published` — `require_super_admin` |
 | Скрипт на сервере | `python backend/scripts/purge_published.py` |
 
@@ -567,7 +572,7 @@ POST /admin/purge-published      — require_super_admin, полная очис�
 | CULT каналы | `cult_channel_service.py`, `channel_signal_parser.py`, `telegram_updates.py`, `telegram_bot_api.py`, `routers/cult_channels.py` |
 | Ранги | `rank_service.py`, `rank_scheduler.py`, `rank_constants.py` |
 | Трекер | `challenge_service.py`, `tracker_metrics.py`, `hashhedge_rules.py` |
-| Уведомления | `telegram_notify.py`, `telegram_updates.py`, `bot_welcome.py` |
+| Уведомления | `telegram_notify.py`, `telegram_notify_render.py`, `telegram_updates.py`, `bot_welcome.py`, `tests/test_telegram_notify.py` |
 | Поддержка | `support_chat.py`, `routers/support.py`, `SubscriptionSupportChat.tsx` |
 | Frontend shell | `App.tsx`, `components/NotifySettingsPanel.tsx`, `data/appCopy.ts` |
 | Лента | `FeedTab.tsx`, `SignalCard.tsx`, `SignalChart.tsx`, `utils/signalChartLevels.ts`, `utils/chartTheme.ts` |
@@ -582,7 +587,7 @@ POST /admin/purge-published      — require_super_admin, полная очис�
 | Права на сигнал | `utils/signalActions.ts` (`canCloseAtMarketSignal`, …) |
 | Дополнения | `AppendSupplementModal.tsx` |
 | Трекер UI | `TrackerTab.tsx`, `TrackerSettingsModal.tsx`, `HashHedgeRulesTable.tsx`, `data/hashhedgeRules.ts` |
-| ТОП / ранги UI | `LeaderboardTab.tsx`, `RankBadge.tsx`, `RankGuideModal.tsx`, `VolnovoiCopyPanel.tsx`, `CultChannelCard.tsx`, `TraderProfileModal.tsx`, `TraderRosterActions.tsx`, `EquityCurve.tsx`, `utils/volnovoi.ts`, `utils/ranks.ts` |
+| ТОП / ранги UI | `LeaderboardTab.tsx`, `VolnovoiHeroCard.tsx`, `TopPlaceMedal.tsx`, `RankBadge.tsx`, `RankGuideModal.tsx`, `VolnovoiCopyPanel.tsx`, `VolnovoiMarketingBadge.tsx`, `CultCandidateCard.tsx`, `CultChannelCard.tsx`, `TraderProfileModal.tsx`, `TraderRosterActions.tsx`, `EquityCurve.tsx`, `utils/volnovoi.ts`, `utils/ranks.ts` |
 | Upload | `api.ts` (`sendFormWithProgress`), `UploadProgressBar.tsx`, `utils/upload.ts` |
 | API клиент | `frontend/src/api.ts` |
 
@@ -593,7 +598,7 @@ POST /admin/purge-published      — require_super_admin, полная очис�
 ```env
 BOT_TOKEN=...
 TELEGRAM_INIT_DATA_MAX_AGE_SECONDS=86400
-TELEGRAM_BOT_USERNAME=PropDeskBot   # для реферальных startapp-ссылок
+TELEGRAM_BOT_USERNAME=volnovoibot   # бот Mini App + реферальные startapp-ссылки (https://t.me/volnovoibot)
 TELEGRAM_ADMIN_IDS=123456789,...   # трейдеры: публикация сигналов
 TELEGRAM_SUPER_ADMIN_IDS=987654321 # главный админ (полный доступ); если пусто — все админы с полным доступом
 TELEGRAM_SUPPORT_GROUP_ID=   # опционально; чат поддержки (-100…)
@@ -623,15 +628,15 @@ git push origin main
 Amvera пересобирает Docker (`Dockerfile`, `amvera.yml`, диск `/data`).  
 Проверка: `curl -s https://ВАШ-ДОМЕН.amvera.io/health` → `{"status":"ok"}`.
 
-BotFather: Mini App URL = HTTPS домен Amvera.
+BotFather: Mini App URL = HTTPS домен Amvera. Бот прод: **@volnovoibot**.
 
-Локально: `README.md`.
+Локально: `README.md`. Маркетинг Instagram: `INSTAGRAM_VOLNOVOI_PACK.txt`.
 
 ---
 
 ## Одноразовые миграции (маркеры на диске)
 
-- `.purged_test_v2`, `.purged_reset_v3`, `.purged_all_published_may2026` … `.purged_all_published_jun2026_v11`, **`.purged_all_published_jun2026_v12`** — purge через `data_cleanup.py` / `migrate.py` (v7: + сброс `trader_roster_overrides`); **`.deleted_all_manual_trackers_v1`** — удаление всех трекеров (только ручное «+»); **`.purged_auto_demoted_cult_candidates_v1`** — сброс автодобавленных кандидатов
+- `.purged_test_v2`, `.purged_reset_v3`, `.purged_all_published_may2026` … `.purged_all_published_jun2026_v14`, **`.purged_all_published_jun2026_v15`** — purge через `data_cleanup.py` / `migrate.py` (v7: + сброс `trader_roster_overrides`); **`.deleted_all_manual_trackers_v1`** — удаление всех трекеров (только ручное «+»); **`.purged_auto_demoted_cult_candidates_v1`** — сброс автодобавленных кандидатов; **`.copy_stake_default_100_v1`** — масштаб копии 100% по умолчанию
 - **`.backfill_payment_memos_v1`** — VC-коды для существующих подписчиков
 - **`.disabled_bybit_testnet_v1`** — сброс testnet у сохранённых API-ключей
 - `.recalc_closed_signal_pnl_v2`, `.recalc_closed_signal_pnl_v3` — пересчёт P/L от `account_size` и risk_percent
@@ -725,9 +730,16 @@ BotFather: Mini App URL = HTTPS домен Amvera.
 80. **Purge jun2026 v10/v11/v12** — разовые полные очистки; актуальный маркер **`.purged_all_published_jun2026_v12`**
 81. **Удаление всех трекеров** — purge и миграция `.deleted_all_manual_trackers_v1`; трекер только вручную через «+»
 82. **Кандидаты только через API** — `.purged_auto_demoted_cult_candidates_v1`; ротация не создаёт `cult_candidates`
+83. **Hero volnovoi на ТОП** — `VolnovoiHeroCard` первым блоком; бейдж PnL в шапке; tagline в рамке; `VolnovoiCopyPanel` под hero
+84. **Копия Bybit от % сигнала** — `copy_effective_stake_pct`; масштаб 100% = stake сигнала; `.copy_stake_default_100_v1`
+85. **Автозакрытие по стопу** — `monitor_outcome_for_signal` до входа и в мониторе; `try_close_on_quotes` при публикации
+86. **Copy UI с копейками** — `formatUsdCents`; баланс Bybit округление 2 знака
+87. **Push без скрина** — только PNG-карточка + блочный HTML; market-entry в «Входе»; тесты `test_telegram_notify.py`
+88. **Топ-чипы 1–2–3** — `TopPlaceMedal` CSS-чипы; кандидаты `top-rank-plain`; purge **v14/v15**
+89. **Маркетинг IG** — `INSTAGRAM_VOLNOVOI_PACK.txt` (био, Taplink, 14 Stories, бот `@volnovoibot`)
 
 ---
 
 ## Быстрое напоминание для AI
 
-> **prop-signals-miniapp** — FastAPI + React Mini App на Amvera (SQLite, `/data`). **Два UI-мира:** **ТЕ** (Volnovoi Cult) и **МА** (МА·СЕТЬ, панк-копирайт, кодовые имена, глич). Админы публикуют сигналы **#N**; **кандидаты CULT** — $20/30д + Bybit, **та же форма лимитов**. **Супер-админ** — ротация, purge. Активные сигналы — по подписке; win/lose + трекер + ТОП — бесплатно. **Трекер Hash Hedge** — только вручную («+»); без него лимиты формы всё равно действуют. **Ранги** — автопересчёт по понедельникам; 2 минусовые недели → уволенные. **Лимит дня:** 3 сделки **или** 2% стопа (MSK). **volnovoi** + Bybit copy (**20%**, memo `VC-…`). Purge: **`.purged_all_published_jun2026_v12`**. Полный контекст — этот файл.
+> **prop-signals-miniapp** — FastAPI + React Mini App на Amvera (SQLite, `/data`). Бот: **@volnovoibot**. **Два UI-мира:** **ТЕ** (Volnovoi Cult) и **МА** (МА·СЕТЬ, панк-копирайт, кодовые имена, глич). Админы публикуют сигналы **#N**; **кандидаты CULT** — $20/30д + Bybit, **та же форма лимитов**. **Супер-админ** — ротация, purge. Активные сигналы — по подписке; win/lose + трекер + ТОП — бесплатно. **Трекер Hash Hedge** — только вручную («+»). **ТОП:** hero **volnovoi** → RankGuide → трейдеры → кандидаты. **Копия Bybit:** масштаб **100%** = % входа сигнала; комиссия **20%**, memo `VC-…`. Push: **без скрина**, блоки, цена market-entry. Purge: **`.purged_all_published_jun2026_v15`**. Полный контекст — этот файл.
