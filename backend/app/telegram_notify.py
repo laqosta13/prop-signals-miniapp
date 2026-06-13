@@ -9,7 +9,6 @@ from pathlib import Path
 from app.config import settings
 from app.telegram_bot_api import (
     TelegramApiError,
-    send_media_group,
     send_message,
     send_photo,
     send_photo_bytes,
@@ -17,7 +16,7 @@ from app.telegram_bot_api import (
 from app.telegram_notify_render import render_notify_card_png
 from app.media_storage import media_root
 from app.models import NewsPost, Signal
-from app.signal_utils import entry_zone_defined, parse_take_profit_levels
+from app.signal_utils import entry_zone_defined, format_signal_entry_display, parse_take_profit_levels
 from app.trader_stats import (
     signal_entry_stake_pct,
     signal_entry_stake_usd,
@@ -96,14 +95,28 @@ def _bold_price(value: str) -> str:
     return f"<b>{value}</b>"
 
 
+def _entry_row_value(signal: Signal) -> str:
+    display = format_signal_entry_display(
+        signal.entry_low,
+        signal.entry_high,
+        signal.published_market_price,
+    )
+    if display == "—":
+        return "—"
+    price_part = _bold_price(_val(display))
+    if not entry_zone_defined(signal.entry_low, signal.entry_high):
+        tags = ["<i>по рынку</i>"]
+        src = _market_source_label(signal.published_market_source)
+        if src:
+            tags.append(f"<i>{_esc(src)}</i>")
+        return f"{price_part} · {' · '.join(tags)}"
+    return price_part
+
+
 def _levels_block(signal: Signal) -> str:
-    body = _row("Вход", _bold_price(_entry_label(signal.entry_low, signal.entry_high)))
+    body = _row("Вход", _entry_row_value(signal))
     body += _row("Стоп", _bold_price(_esc(signal.stop_loss) if signal.stop_loss else "—"))
     body += _row("Цель", _bold_price(_format_take_profits(signal.take_profits)))
-    if signal.published_market_price is not None and not entry_zone_defined(signal.entry_low, signal.entry_high):
-        src = _market_source_label(signal.published_market_source)
-        src_part = f" · <i>{_esc(src)}</i>" if src else ""
-        body += _row("При посте", f"{_bold_price(_val(f'{signal.published_market_price:g}'))}{src_part}")
     return _highlight_block("Уровни", body)
 
 
@@ -112,14 +125,13 @@ def _position_block(signal: Signal) -> str:
     stake_usd = signal_entry_stake_usd(signal)
     tracker = signal_tracker_balance(signal)
     lev = signal_leverage(signal)
-    body = _section("Позиция")
-    body += _row("Сумма", f"<b>{stake}%</b> × <b>{lev}x</b> · {_val(f'${stake_usd:,.0f}')}")
+    body = _row("Сумма", f"<b>{stake}%</b> × <b>{lev}x</b> · {_val(f'${stake_usd:,.0f}')}")
     body += _row("Трекер", _val(f"${tracker:,.0f}"))
-    return body
+    return _highlight_block("Позиция", body)
 
 
 def _author_block(signal: Signal) -> str:
-    return _section("Трейдер") + _row("Автор", f"<b>{_esc(_signal_author_label(signal))}</b>")
+    return _highlight_block("Трейдер", _row("Автор", f"<b>{_esc(_signal_author_label(signal))}</b>"))
 
 
 @dataclass
@@ -289,31 +301,13 @@ async def _send_colored_card(
     chat_id: int,
     card_png: bytes,
     text: str,
-    *,
-    screenshot_path: Path | None = None,
 ) -> bool:
     caption = _plain_fallback(text)[:1024]
     if not settings.bot_token:
         logger.warning("BOT_TOKEN не задан — карточка не отправлена")
         return False
     try:
-        if screenshot_path is not None:
-            media = [
-                {"type": "photo", "media": "attach://card", "caption": caption},
-                {"type": "photo", "media": "attach://shot"},
-            ]
-            with screenshot_path.open("rb") as f:
-                shot_bytes = f.read()
-            await send_media_group(
-                chat_id,
-                media,
-                {
-                    "card": ("notify.png", card_png, "image/png"),
-                    "shot": (screenshot_path.name, shot_bytes, "image/jpeg"),
-                },
-            )
-        else:
-            await send_photo_bytes(chat_id, card_png, caption, parse_mode=None)
+        await send_photo_bytes(chat_id, card_png, caption, parse_mode=None)
         return True
     except TelegramApiError as e:
         logger.warning("Telegram card failed chat=%s: %s — fallback to text", chat_id, e)
@@ -350,7 +344,7 @@ async def notify_subscribers(
     fail = 0
     for uid in subscriber_ids:
         if card_png:
-            sent = await _send_colored_card(uid, card_png, text, screenshot_path=photo_file)
+            sent = await _send_colored_card(uid, card_png, text)
         elif photo_file:
             sent = await _send_photo(uid, photo_file, text)
         else:
@@ -381,9 +375,9 @@ def format_updated_signal_message(signal: Signal, changes: list[str], *, actor_l
         _signal_headline(signal),
     ]
     if actor_label:
-        parts.append(_section("Кто") + _row("Изменил", f"<b>{_esc(actor_label)}</b>"))
+        parts.append(_highlight_block("Кто", _row("Изменил", f"<b>{_esc(actor_label)}</b>")))
     if changes:
-        parts.append(_section("Что поменялось") + "\n" + "\n".join(changes))
+        parts.append(_highlight_block("Изменения", "\n" + "\n".join(changes)))
     else:
         parts.append("\n<i>Параметры сигнала обновлены</i>")
     body = "".join(parts)
@@ -405,7 +399,7 @@ def format_updated_signal_message(signal: Signal, changes: list[str], *, actor_l
 def format_deleted_signal_message(signal: Signal, *, actor_label: str | None = None) -> str:
     parts = [f"🗑 <b>СИГНАЛ СНЯТ</b>", _signal_headline(signal)]
     if actor_label:
-        parts.append(_section("Кто") + _row("Удалил", f"<b>{_esc(actor_label)}</b>"))
+        parts.append(_highlight_block("Кто", _row("Удалил", f"<b>{_esc(actor_label)}</b>")))
     parts.append(_signal_body(signal))
     return "".join(parts)
 
@@ -486,11 +480,16 @@ def format_new_news_message(post: NewsPost, *, author_label: str | None = None) 
 
 
 def format_entry_filled_message(signal: Signal) -> str:
+    is_market = not entry_zone_defined(signal.entry_low, signal.entry_high)
+    status_line = (
+        "▸ Вход <b>по рынку</b> — позиция в работе"
+        if is_market
+        else "▸ Лимитка <b>сработала</b> — позиция в работе"
+    )
     return (
         f"🎯 <b>В РЫНКЕ</b>"
         f"{_signal_headline(signal)}"
-        + _section("Статус")
-        + "\n▸ Лимитка <b>сработала</b> — позиция в работе"
+        + _highlight_block("Статус", f"\n{status_line}")
         + _levels_block(signal)
         + _author_block(signal)
     )

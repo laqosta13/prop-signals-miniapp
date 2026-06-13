@@ -57,7 +57,7 @@ export function CultCandidateCard({
             {topPlace ? (
               <TopPlaceMedal place={topPlace} />
             ) : (
-              <span className="top-rank-inline top-rank-inline--candidate">#{candidate.rank}</span>
+              <span className="top-rank-plain">{candidate.rank}</span>
             )}
             <p className="top-name">{profile.title}</p>
           </div>

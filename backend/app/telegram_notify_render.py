@@ -127,7 +127,7 @@ def render_notify_card_png(html_text: str, *, direction: str) -> bytes | None:
 
     height = pad_y
     if banner_lines:
-        height += _block_height(banner_lines, banner_font, line_gap) + gap
+        height += pad_y * 2 + _block_height(banner_lines, banner_font, line_gap) + gap
     for lines in block_line_sets:
         height += pad_y * 2 + _block_height(lines, body_font, line_gap) + gap
     if tail_lines:
@@ -139,11 +139,19 @@ def render_notify_card_png(html_text: str, *, direction: str) -> bytes | None:
     y = pad_y
 
     if banner_lines:
+        banner_h = pad_y + _block_height(banner_lines, banner_font, line_gap) + pad_y
+        x0 = pad_x
+        x1 = width - pad_x
+        y0 = y
+        y1 = y + banner_h
+        draw.rounded_rectangle((x0, y0, x1, y1), radius=12, fill=(18, 20, 30))
+        draw.rectangle((x0, y0, x1, y0 + 4), fill=accent)
+        ty = y0 + pad_y
         for line in banner_lines:
-            draw.text((pad_x, y), line, fill=_TEXT, font=banner_font)
+            draw.text((x0 + 14, ty), line, fill=_TEXT, font=banner_font)
             ascent, descent = banner_font.getmetrics()
-            y += ascent + descent + line_gap
-        y += gap
+            ty += ascent + descent + line_gap
+        y = y1 + gap
 
     for lines in block_line_sets:
         block_h = pad_y * 2 + _block_height(lines, body_font, line_gap)

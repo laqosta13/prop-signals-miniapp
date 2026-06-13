@@ -151,7 +151,6 @@ async def notify_new_signal(db: Session, signal: Signal) -> None:
         await notify_subscribers(
             format_new_signal_message(signal),
             ids,
-            photo_rel_path=signal.media_image_path,
             direction=signal.direction,
         )
 
