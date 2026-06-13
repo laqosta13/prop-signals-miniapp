@@ -19,15 +19,8 @@ function firstTarget(takeProfits: string | null): string | null {
   return value || null;
 }
 
-function statusClass(trade: CultCandidateActiveSignal): string {
-  if (trade.awaiting_entry) return "cult-active-trades__status--wait";
-  if (trade.in_market) return "cult-active-trades__status--live";
-  return "cult-active-trades__status--idle";
-}
-
 function statusLabel(trade: CultCandidateActiveSignal): string | null {
   if (trade.awaiting_entry) return "ожидание входа";
-  if (trade.in_market) return "в рынке";
   return null;
 }
 
@@ -53,7 +46,7 @@ export function CultCandidateActiveTrades({
           return (
             <li key={t.id} className="cult-active-trades__item">
               <div className="cult-active-trades__row">
-                <CoinLogo symbol={t.symbol} size={32} showLabel className="cult-active-trades__coin" />
+                <CoinLogo symbol={t.symbol} size={28} showLabel className="cult-active-trades__coin" />
                 <div className="cult-active-trades__main">
                   <div className="cult-active-trades__head">
                     <span
@@ -86,7 +79,7 @@ export function CultCandidateActiveTrades({
                   </div>
 
                   {status && (
-                    <span className={`cult-active-trades__status ${statusClass(t)}`}>{status}</span>
+                    <span className="cult-active-trades__status cult-active-trades__status--wait">{status}</span>
                   )}
                 </div>
               </div>

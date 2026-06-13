@@ -7,6 +7,9 @@ from pathlib import Path
 
 LAUNCH_NEWS_TITLE = "Volnovoi Cult — то, чего ещё не было на рынке"
 
+LAUNCH_NEWS_SHORT_MARKER = "Раньше — красивые обещания и тишина"
+LAUNCH_NEWS_LONG_MARKER = "Что изменилось для вас"
+
 LAUNCH_NEWS_BODY = """Раньше вы смотрели на чужие сделки вслепую: красивые скрины, громкие обещания, тишина, когда цена пошла не туда.
 
 Volnovoi Cult — другая история. Это не «канал с сигналами». Это витрина живого рынка: кто торгует, как держит дисциплину, что открыто сейчас, что уже закрыто с результатом. Всё на виду — до того, как вы решите платить.
@@ -76,6 +79,22 @@ Volnovoi Cult — marketplace, где рынок говорит сам за се
 PENDING_NEWS_NOTIFY_FILE = ".pending_news_notify_id"
 SEED_MARKER_V1 = ".seeded_volnovoi_cult_launch_news_v1"
 SEED_MARKER_V2 = ".seeded_volnovoi_cult_launch_news_v2"
+
+
+def is_short_launch_news_body(body: str | None) -> bool:
+    text = (body or "").strip()
+    if not text:
+        return False
+    if LAUNCH_NEWS_SHORT_MARKER in text:
+        return True
+    return "Заходи. Смотри. Решай сам." in text and LAUNCH_NEWS_LONG_MARKER not in text
+
+
+def is_long_launch_news_body(body: str | None) -> bool:
+    text = (body or "").strip()
+    if not text:
+        return False
+    return LAUNCH_NEWS_LONG_MARKER in text or text.startswith("Раньше вы смотрели")
 
 LAUNCH_NEWS_COVER_FILES = (
     "news-cover-volnovoi-cult-full.png",
