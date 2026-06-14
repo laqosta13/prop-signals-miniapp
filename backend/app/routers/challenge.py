@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.challenge_service import (
@@ -9,6 +9,7 @@ from app.challenge_service import (
     create_challenge,
     get_challenge,
     list_admin_trackers,
+    set_account_size,
 )
 from app.prop_screenshot_parser import PropScreenshotParseError, parse_prop_screenshot_bytes
 from app.signal_service import get_or_create_trader
@@ -49,15 +50,17 @@ def my_tracker(
 
 @router.put("/settings", response_model=ChallengeDashboard)
 async def update_settings(
+    account_size: float | None = Form(None, ge=100, le=1_000_000),
     screenshot: UploadFile | None = File(None),
     db: Session = Depends(db_session),
     admin: TelegramUser = Depends(require_main_feed_publisher),
 ) -> ChallengeDashboard:
-    """Сверка с пропом только по скрину: OCR → обновление баланса, этапа и торговых дней."""
-    if not screenshot or not screenshot.filename:
+    """Обновить трекер: account_size вводится вручную, баланс/этап/дни — из скрина."""
+    has_screenshot = bool(screenshot and screenshot.filename)
+    if not account_size and not has_screenshot:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Загрузите скрин с пропа — данные обновляются только из скрина",
+            detail="Укажите размер счёта или загрузите скрин с пропа",
         )
 
     get_or_create_trader(db, admin.telegram_user_id, admin.username)
@@ -65,25 +68,28 @@ async def update_settings(
     is_new = ch is None
     if is_new:
         ch = create_challenge(db, admin.telegram_user_id)
-    elif not can_sync_prop_screenshot_today(ch):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Сверку можно делать раз в сутки. Повторите завтра или дождитесь следующего дня (MSK).",
-        )
 
-    raw = await screenshot.read()
-    try:
-        parsed = parse_prop_screenshot_bytes(raw)
-    except PropScreenshotParseError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Не удалось прочитать скрин: {exc}",
-        ) from exc
+    if account_size:
+        set_account_size(db, ch, account_size)
 
-    delete_media_files(ch.prop_screenshot_path)
-    clear_tracker_screenshot_dir(admin.telegram_user_id)
-    ch.prop_screenshot_path = await save_tracker_screenshot(admin.telegram_user_id, screenshot, raw_bytes=raw)
-    apply_prop_screenshot_sync(db, ch, parsed)
+    if has_screenshot:
+        if not is_new and not can_sync_prop_screenshot_today(ch):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Сверку можно делать раз в сутки. Повторите завтра или дождитесь следующего дня (MSK).",
+            )
+        raw = await screenshot.read()
+        try:
+            parsed = parse_prop_screenshot_bytes(raw)
+        except PropScreenshotParseError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Не удалось прочитать скрин: {exc}",
+            ) from exc
+        delete_media_files(ch.prop_screenshot_path)
+        clear_tracker_screenshot_dir(admin.telegram_user_id)
+        ch.prop_screenshot_path = await save_tracker_screenshot(admin.telegram_user_id, screenshot, raw_bytes=raw)
+        apply_prop_screenshot_sync(db, ch, parsed)
 
     db.commit()
     db.refresh(ch)

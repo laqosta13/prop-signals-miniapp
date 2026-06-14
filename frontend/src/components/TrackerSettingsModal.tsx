@@ -25,6 +25,7 @@ function formatSyncedAt(iso: string | null | undefined): string | null {
 }
 
 export function TrackerSettingsModal({ open, tracker, createMode = false, onClose, onSaved }: Props) {
+  const [accountSize, setAccountSize] = useState("");
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -36,6 +37,7 @@ export function TrackerSettingsModal({ open, tracker, createMode = false, onClos
 
   useEffect(() => {
     if (!open) return;
+    setAccountSize(tracker && !createMode ? String(Math.round(tracker.account_size)) : "");
     setScreenshot(null);
     setPreview((prev) => {
       if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
@@ -59,15 +61,21 @@ export function TrackerSettingsModal({ open, tracker, createMode = false, onClos
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!screenshot) {
-      setError("Выберите скрин с пропа — данные обновляются только из скрина");
+    const parsedSize = accountSize.trim() ? parseFloat(accountSize) : null;
+    if (!parsedSize && !screenshot) {
+      setError("Укажите размер счёта или выберите скрин с пропа");
+      return;
+    }
+    if (parsedSize !== null && (parsedSize < 100 || parsedSize > 1_000_000)) {
+      setError("Размер счёта: от 100 до 1 000 000");
       return;
     }
     setSubmitting(true);
     setError(null);
     try {
       const fd = new FormData();
-      fd.append("screenshot", screenshot);
+      if (parsedSize) fd.append("account_size", String(parsedSize));
+      if (screenshot) fd.append("screenshot", screenshot);
       const updated = await updateChallengeSettings(fd);
       WebApp.HapticFeedback.notificationOccurred("success");
       onSaved(updated);
@@ -94,16 +102,24 @@ export function TrackerSettingsModal({ open, tracker, createMode = false, onClos
 
         <p className="meta tracker-settings-note">
           {createMode
-            ? "Загрузите скрин с пропа — баланс, этап и торговые дни подтянутся автоматически."
-            : "Замените скрин — данные обновятся из нового изображения. Ручной ввод отключён."}
+            ? "Укажите размер счёта и загрузите скрин — баланс, этап и торговые дни подтянутся автоматически."
+            : "Обновите размер счёта (Старт) или загрузите новый скрин для сверки."}
         </p>
+
+        <label className="field-label">Старт ($)</label>
+        <input
+          type="number"
+          className="text-input"
+          placeholder="5000"
+          value={accountSize}
+          min={100}
+          max={1000000}
+          step={1}
+          onChange={(e) => setAccountSize(e.target.value)}
+        />
 
         {!createMode && tracker && (
           <div className="tracker-sync-readonly">
-            <div className="tracker-sync-readonly__row">
-              <span className="label">Старт</span>
-              <strong>${Math.round(tracker.account_size).toLocaleString("en-US")}</strong>
-            </div>
             <div className="tracker-sync-readonly__row">
               <span className="label">Баланс</span>
               <strong>${Math.round(tracker.balance * 100) / 100}</strong>
@@ -154,9 +170,9 @@ export function TrackerSettingsModal({ open, tracker, createMode = false, onClos
         <button
           type="submit"
           className="submit-btn"
-          disabled={submitting || !syncAvailable || !screenshot}
+          disabled={submitting || (!accountSize.trim() && !screenshot)}
         >
-          {submitting ? "Сверка…" : createMode ? "Создать трекер" : "Обновить по скрину"}
+          {submitting ? "Сохранение…" : createMode ? "Создать трекер" : "Сохранить"}
         </button>
       </form>
     </div>
