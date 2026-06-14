@@ -35,7 +35,7 @@ from app.telegram_notify import (
     notify_subscribers,
 )
 from app.copy_trading_service import close_signal_copies, open_signal_copies, open_signal_copy_for_user
-from app.challenge_service import apply_signal_to_tracker, ensure_tracker_for_new_signal
+from app.challenge_service import apply_signal_to_tracker
 from app.database import SessionLocal
 from app.price_service import (
     PriceQuote,
@@ -164,8 +164,6 @@ async def notify_new_news(db: Session, post: NewsPost) -> None:
     trader = db.get(Trader, post.author_telegram_id)
     author = None
     if trader:
-        from app.serializers import trader_display_name
-
         author = trader_display_name(trader, trader.username)
     await notify_subscribers(
         format_new_news_message(post, author_label=author),
@@ -406,10 +404,6 @@ async def after_limit_entry_filled(db: Session, signal: Signal, *, notify: bool 
         await open_signal_copies(db, signal)
     except Exception:
         logger.exception("open_signal_copies failed for signal #%s", signal.id)
-
-
-async def notify_entry_filled(db: Session, signal: Signal) -> None:
-    await notify_entry_filled_if_needed(db, signal)
 
 
 async def notify_signal_supplement(

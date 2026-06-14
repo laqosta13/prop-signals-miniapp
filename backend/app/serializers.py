@@ -111,12 +111,7 @@ def trader_rank_read(t: Trader, *, include_history: bool = False) -> TraderRankR
         current_rank_id=p["current_rank_id"],
         current_rank_name=p["current_rank_name"],
         weekly_pct=p["weekly_pct"],
-        is_confirmed=p["is_confirmed"],
-        confirm_deadline=p.get("confirm_deadline"),
         consecutive_loss_weeks=p["consecutive_loss_weeks"],
-        shield_used_this_month=p["shield_used_this_month"],
-        shield_active=p["shield_active"],
-        rank_applied_this_week=p["rank_applied_this_week"],
         pending_rank_penalty=p["pending_rank_penalty"],
         rank_history=history,
     )

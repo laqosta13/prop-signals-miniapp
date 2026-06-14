@@ -179,12 +179,7 @@ class TraderRankRead(BaseModel):
     current_rank_id: int
     current_rank_name: str
     weekly_pct: float
-    is_confirmed: bool
-    confirm_deadline: datetime | None = None
     consecutive_loss_weeks: int = 0
-    shield_used_this_month: bool = False
-    shield_active: bool = False
-    rank_applied_this_week: bool = False
     pending_rank_penalty: bool = False
     rank_history: list[RankHistoryEntryRead] = []
 

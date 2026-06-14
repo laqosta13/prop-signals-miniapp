@@ -13,9 +13,7 @@ from app.serializers import trader_to_read
 from app.signal_service import get_or_create_trader
 from app.rank_service import ensure_rank_fields
 from app.trader_roster_service import (
-    ROSTER_CANDIDATE,
     ROSTER_FIRED,
-    ROSTER_TOP,
     demoted_admin_ids,
     roster_overrides_map,
     top_trader_ids,

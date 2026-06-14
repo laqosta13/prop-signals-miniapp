@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.hashhedge_rules import rules_for_stage
 from app.models import Signal
 from app.signal_utils import compute_signal_points_percent
-from app.trader_stats import DEFAULT_ENTRY_STAKE_PCT, closed_signal_move_pct, signal_leverage
+from app.trader_stats import closed_signal_move_pct, signal_leverage
 from app.tracker_metrics import compute_tracker_stats, msk_day_key
 
 SIGNAL_DAILY_STOP_LIMIT_PCT = 2.0

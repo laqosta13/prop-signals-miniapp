@@ -142,12 +142,7 @@ export type TraderRank = {
   current_rank_id: number;
   current_rank_name: string;
   weekly_pct: number;
-  is_confirmed: boolean;
-  confirm_deadline: string | null;
   consecutive_loss_weeks: number;
-  shield_used_this_month: boolean;
-  shield_active: boolean;
-  rank_applied_this_week: boolean;
   pending_rank_penalty: boolean;
   rank_history: RankHistoryEntry[];
 };

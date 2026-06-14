@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -55,15 +55,6 @@ def current_week_label(now: datetime | None = None) -> str:
     return f"Неделя {iso.week}"
 
 
-def next_sunday_deadline(now: datetime | None = None) -> datetime:
-    n = (now or _utc_now()).astimezone(timezone.utc)
-    days_until_sunday = (6 - n.weekday()) % 7
-    if days_until_sunday == 0 and n.hour >= 23 and n.minute >= 59:
-        days_until_sunday = 7
-    sunday = (n + timedelta(days=days_until_sunday)).replace(hour=23, minute=59, second=59, microsecond=0)
-    return sunday
-
-
 def _load_history(trader: Trader) -> list[dict]:
     raw = trader.rank_history_json
     if not raw:
@@ -90,18 +81,8 @@ def ensure_rank_fields(trader: Trader) -> None:
         trader.current_rank_id = INITIAL_RANK_ID
     if trader.weekly_pct is None:
         trader.weekly_pct = 0.0
-    if trader.is_confirmed is None:
-        trader.is_confirmed = True
     if trader.consecutive_loss_weeks is None:
         trader.consecutive_loss_weeks = 0
-    if trader.shield_used_this_month is None:
-        trader.shield_used_this_month = False
-    if trader.shield_active is None:
-        trader.shield_active = False
-    if trader.rank_applied_this_week is None:
-        trader.rank_applied_this_week = False
-    if trader.confirm_deadline is None:
-        trader.confirm_deadline = next_sunday_deadline()
 
 
 def add_weekly_pct(trader: Trader, delta_pct: float) -> None:
@@ -147,8 +128,6 @@ def apply_weekly_rank(trader: Trader, weekly_pct: float) -> int:
     else:
         trader.consecutive_loss_weeks = 0
 
-    trader.rank_applied_this_week = True
-    trader.is_confirmed = True
     return trader.current_rank_id or DEFAULT_RANK_ID
 
 
@@ -167,9 +146,6 @@ def append_week_history(trader: Trader) -> None:
 
 def reset_week_state(trader: Trader) -> None:
     trader.weekly_pct = 0.0
-    trader.is_confirmed = True
-    trader.rank_applied_this_week = False
-    trader.confirm_deadline = next_sunday_deadline()
 
 
 def process_monday_rollover(db: Session) -> int:
@@ -205,12 +181,7 @@ def trader_rank_payload(trader: Trader, *, include_history: bool = True) -> dict
         "current_rank_id": rid,
         "current_rank_name": rank_name(rid),
         "weekly_pct": weekly,
-        "is_confirmed": True,
-        "confirm_deadline": trader.confirm_deadline,
         "consecutive_loss_weeks": trader.consecutive_loss_weeks or 0,
-        "shield_used_this_month": False,
-        "shield_active": False,
-        "rank_applied_this_week": bool(trader.rank_applied_this_week),
         "pending_rank_penalty": weekly < 0,
         "rank_history": _load_history(trader) if include_history else [],
     }

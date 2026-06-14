@@ -20,7 +20,7 @@ from app.schemas import (
     TelegramUser,
     TraderDayStat,
 )
-from app.serializers import trader_avatar_url, trader_display_name, trader_login, trader_rank_read
+from app.serializers import trader_avatar_url, trader_login, trader_rank_read
 from app.signal_service import get_or_create_trader
 from app.signal_utils import (
     effective_entry_price,

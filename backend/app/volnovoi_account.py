@@ -12,7 +12,6 @@ from app.active_signal_read import build_active_signal_read
 from app.config import settings
 from app.models import Signal
 from app.rank_constants import get_rank_by_pct, rank_name
-from app.rank_service import next_sunday_deadline
 from app.schemas import CultCandidateActiveSignalRead, TraderDayStat, TraderRankRead, TraderRead
 from app.trader_stats import (
     closed_signal_move_pct,
@@ -100,12 +99,7 @@ def volnovoi_rank_read(weekly_pct: float, rating_pct: float) -> TraderRankRead:
         current_rank_id=rank_id,
         current_rank_name=rank_name(rank_id),
         weekly_pct=round(weekly_pct, 2),
-        is_confirmed=True,
-        confirm_deadline=next_sunday_deadline(),
         consecutive_loss_weeks=0,
-        shield_used_this_month=False,
-        shield_active=False,
-        rank_applied_this_week=False,
         pending_rank_penalty=rating_pct < 0,
         rank_history=[],
     )

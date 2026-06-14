@@ -166,23 +166,14 @@ def run_migrations(engine: Engine) -> None:
             for col, ddl in (
                 ("current_rank_id", "ALTER TABLE traders ADD COLUMN current_rank_id INTEGER DEFAULT 8"),
                 ("weekly_pct", "ALTER TABLE traders ADD COLUMN weekly_pct REAL DEFAULT 0"),
-                ("is_confirmed", "ALTER TABLE traders ADD COLUMN is_confirmed BOOLEAN DEFAULT 0"),
-                ("confirm_deadline", "ALTER TABLE traders ADD COLUMN confirm_deadline DATETIME"),
                 ("consecutive_loss_weeks", "ALTER TABLE traders ADD COLUMN consecutive_loss_weeks INTEGER DEFAULT 0"),
-                ("shield_used_this_month", "ALTER TABLE traders ADD COLUMN shield_used_this_month BOOLEAN DEFAULT 0"),
-                ("shield_active", "ALTER TABLE traders ADD COLUMN shield_active BOOLEAN DEFAULT 0"),
-                ("rank_applied_this_week", "ALTER TABLE traders ADD COLUMN rank_applied_this_week BOOLEAN DEFAULT 0"),
                 ("rank_history_json", "ALTER TABLE traders ADD COLUMN rank_history_json TEXT"),
             ):
                 if not _has_column(engine, "traders", col):
                     conn.execute(text(ddl))
             conn.execute(text("UPDATE traders SET current_rank_id = 8 WHERE current_rank_id IS NULL"))
             conn.execute(text("UPDATE traders SET weekly_pct = 0 WHERE weekly_pct IS NULL"))
-            conn.execute(text("UPDATE traders SET is_confirmed = 0 WHERE is_confirmed IS NULL"))
             conn.execute(text("UPDATE traders SET consecutive_loss_weeks = 0 WHERE consecutive_loss_weeks IS NULL"))
-            conn.execute(text("UPDATE traders SET shield_used_this_month = 0 WHERE shield_used_this_month IS NULL"))
-            conn.execute(text("UPDATE traders SET shield_active = 0 WHERE shield_active IS NULL"))
-            conn.execute(text("UPDATE traders SET rank_applied_this_week = 0 WHERE rank_applied_this_week IS NULL"))
 
         if "user_challenges" in tables:
             if not _has_column(engine, "user_challenges", "prop_screenshot_path"):

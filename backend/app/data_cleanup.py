@@ -94,12 +94,7 @@ def _reset_trader_leaderboard(db: Session, *, reset_ranks: bool = False) -> None
         if reset_ranks:
             t.current_rank_id = INITIAL_RANK_ID
             t.weekly_pct = 0.0
-            t.is_confirmed = False
-            t.confirm_deadline = None
             t.consecutive_loss_weeks = 0
-            t.shield_used_this_month = False
-            t.shield_active = False
-            t.rank_applied_this_week = False
             t.rank_history_json = None
 
 
