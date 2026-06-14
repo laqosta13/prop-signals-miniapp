@@ -468,6 +468,7 @@ def run_migrations(engine: Engine) -> None:
     _keep_long_launch_news_v2(engine)
     _purge_all_published_jun2026_v16(engine)
     _remove_anastasia_v2(engine)
+    _delete_all_trackers_v2(engine)
 
 
 def _purge_all_published_jun2026_v15(engine: Engine) -> None:
@@ -1714,6 +1715,32 @@ def _remove_anastasia_v2(engine: Engine) -> None:
         for row in list(db.scalars(select(CultCandidate))):
             if "анастас" in (row.display_name or "").casefold():
                 db.delete(row)
+        db.commit()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
+
+
+def _delete_all_trackers_v2(engine: Engine) -> None:
+    """Одноразово: удалить все трекеры Hash Hedge (v2 — v16 запустилась без удаления трекеров)."""
+    marker = _marker_path(engine, ".delete_all_trackers_v2")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".delete_all_trackers_v2"
+    if marker.exists():
+        return
+    if "user_challenges" not in inspect(engine).get_table_names():
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+        return
+    from app.database import SessionLocal
+    from app.data_cleanup import delete_all_trackers
+
+    db = SessionLocal()
+    try:
+        delete_all_trackers(db)
         db.commit()
         marker.parent.mkdir(parents=True, exist_ok=True)
         marker.touch()
