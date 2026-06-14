@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.active_signal_read import build_active_signal_read
 from app.copy_trading_service import copy_deposit_base_usd
-from app.models import CultCandidate, Signal, UserBybitSettings
+from app.models import CultCandidate, CultChannel, Signal, UserBybitSettings
 from app.schemas import (
     CultCandidateActiveSignalRead,
     CultCandidateClosedSignalRead,
@@ -73,11 +73,17 @@ def join_blockers(db: Session, sub: Subscriber, *, cult_admin_bypass: bool = Fal
         return ["Админы в ТОП публикуют в основную ленту"]
     if is_cult_candidate(db, sub.telegram_user_id):
         return []
-    if not cult_subscription_active(sub, is_admin=cult_admin_bypass):
-        return ["Нужна подписка кандидата CULT ($20 / 30 дней)"]
-    bybit = db.get(UserBybitSettings, sub.telegram_user_id)
-    if bybit is None:
-        return ["Подключите API Bybit"]
+    if cult_admin_bypass:
+        return []
+    has_bybit = db.get(UserBybitSettings, sub.telegram_user_id) is not None
+    has_channel = db.scalar(
+        select(CultChannel).where(
+            CultChannel.added_by_telegram_id == sub.telegram_user_id,
+            CultChannel.enabled.is_(True),
+        )
+    ) is not None
+    if not has_bybit and not has_channel:
+        return ["Доступ через API Bybit или CULT-канал"]
     return []
 
 

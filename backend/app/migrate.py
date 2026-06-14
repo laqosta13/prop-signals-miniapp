@@ -466,6 +466,8 @@ def run_migrations(engine: Engine) -> None:
     _purge_all_published_jun2026_v15(engine)
     _delete_volnovoi_cult_launch_news_v1(engine)
     _keep_long_launch_news_v2(engine)
+    _purge_all_published_jun2026_v16(engine)
+    _remove_anastasia_v2(engine)
 
 
 def _purge_all_published_jun2026_v15(engine: Engine) -> None:
@@ -1664,6 +1666,59 @@ def _reset_news_notify_opt_in_v2(engine: Engine) -> None:
         conn.execute(text("UPDATE subscribers SET notify_news_enabled = 0"))
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.touch()
+
+
+def _purge_all_published_jun2026_v16(engine: Engine) -> None:
+    """Одноразово: очистка контента (июнь 2026 v16), трекеры не трогаем."""
+    marker = _marker_path(engine, ".purged_all_published_jun2026_v16")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".purged_all_published_jun2026_v16"
+    if marker.exists():
+        return
+    from app.database import SessionLocal
+    from app.data_cleanup import purge_content_keep_trackers
+
+    db = SessionLocal()
+    try:
+        purge_content_keep_trackers(db)
+        db.commit()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
+
+
+def _remove_anastasia_v2(engine: Engine) -> None:
+    """Одноразово: удалить Anastasia из кандидатов (v2 — перезапуск после v1)."""
+    marker = _marker_path(engine, ".remove_anastasia_v2")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".remove_anastasia_v2"
+    if marker.exists():
+        return
+    if "cult_candidates" not in inspect(engine).get_table_names():
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+        return
+
+    from sqlalchemy import select
+
+    from app.database import SessionLocal
+    from app.models import CultCandidate
+
+    db = SessionLocal()
+    try:
+        for row in list(db.scalars(select(CultCandidate))):
+            if "анастас" in (row.display_name or "").casefold():
+                db.delete(row)
+        db.commit()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
 
 
 def _purge_test_data_once(engine: Engine) -> None:

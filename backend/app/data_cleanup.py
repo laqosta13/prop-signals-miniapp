@@ -142,3 +142,13 @@ def purge_published_except_news(db: Session) -> None:
     _reset_trader_leaderboard(db, reset_ranks=True)
     delete_all_trackers(db)
     _reset_trader_roster_overrides(db)
+
+
+def purge_content_keep_trackers(db: Session) -> None:
+    """Сигналы, CULT, новости, отзывы, медиа; рейтинг и ротация — сброс. Трекеры не трогаем."""
+    _purge_signals_media_and_rows(db)
+    _purge_cult_channel_content(db)
+    _purge_cult_candidate_stats(db)
+    _purge_news_and_reviews(db)
+    _reset_trader_leaderboard(db, reset_ranks=True)
+    _reset_trader_roster_overrides(db)
