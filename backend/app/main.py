@@ -14,7 +14,7 @@ from app.config import settings
 from app.media_storage import media_root
 from app.database import Base, engine
 from app.migrate import run_migrations
-from app.price_monitor import price_monitor_loop
+from app.price_monitor import check_missed_closes_on_startup, price_monitor_loop
 from app.copy_billing_scheduler import copy_billing_scheduler_loop
 from app.rank_scheduler import rank_scheduler_loop
 from app.subscription_pause_scheduler import run_subscription_pause_sync, subscription_pause_scheduler_loop
@@ -78,6 +78,7 @@ async def lifespan(app: FastAPI):
     from app.coin_icons import warmup_coin_icon_cache
 
     asyncio.create_task(warmup_coin_icon_cache())
+    await check_missed_closes_on_startup()
     await check_active_signals_once()
     asyncio.create_task(verify_support_group_after_delay())
     try:

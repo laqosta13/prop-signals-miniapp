@@ -207,6 +207,7 @@ def close_signal(
     exit_price: float | None = None,
     *,
     close_reason: str | None = None,
+    closed_at: datetime | None = None,
 ) -> bool:
     if signal.status != "active":
         return False
@@ -228,7 +229,7 @@ def close_signal(
         return True
 
     signal.status = outcome
-    signal.closed_at = datetime.now(timezone.utc)
+    signal.closed_at = closed_at or datetime.now(timezone.utc)
     if close_reason:
         signal.close_reason = close_reason
     elif outcome == "win":
@@ -285,9 +286,10 @@ async def close_signal_and_notify(
     *,
     close_reason: str | None = None,
     market_close: bool = False,
+    closed_at: datetime | None = None,
 ) -> None:
     reason = close_reason or ("market" if market_close else None)
-    if not close_signal(db, signal, outcome, exit_price, close_reason=reason):
+    if not close_signal(db, signal, outcome, exit_price, close_reason=reason, closed_at=closed_at):
         return
     await close_signal_copies(db, signal)
     if getattr(signal, "is_cult_candidate", False):

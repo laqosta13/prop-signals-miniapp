@@ -13,7 +13,9 @@ from app.cult_channel_service import apply_outcome_to_channel
 from app.database import SessionLocal
 from app.models import CultChannel, CultChannelSignal, Signal
 from app.price_service import (
+    PriceQuote,
     clear_price_cache,
+    fetch_bybit_linear_klines,
     fetch_market_quotes,
     first_entry_quote,
     monitor_outcome_for_signal,
@@ -28,6 +30,72 @@ logger = logging.getLogger(__name__)
 
 def _signal_awaits_entry(signal: Signal | CultChannelSignal) -> bool:
     return signal.entry_filled_at is None and entry_zone_defined(signal.entry_low, signal.entry_high)
+
+
+def _candle_quotes(candle: dict, direction: str) -> list[PriceQuote]:
+    """Два синтетических котировки из свечи: сначала риск (стоп), потом цель."""
+    low = float(candle.get("low") or 0)
+    high = float(candle.get("high") or 0)
+    if direction.lower() == "long":
+        return [PriceQuote("kline_low", low), PriceQuote("kline_high", high)]
+    return [PriceQuote("kline_high", high), PriceQuote("kline_low", low)]
+
+
+async def check_missed_closes_on_startup() -> None:
+    """При рестарте: проверяем klines Bybit за ~3 дня — вдруг стоп/цель пробили пока сервер не работал."""
+    db = SessionLocal()
+    try:
+        in_trade = list(
+            db.scalars(
+                select(Signal).where(
+                    Signal.status == "active",
+                    Signal.entry_filled_at.isnot(None),
+                )
+            ).all()
+        )
+        if not in_trade:
+            return
+        logger.info("startup: проверяем %s сигнал(а) на пропущенные закрытия", len(in_trade))
+        for signal in in_trade:
+            try:
+                klines = await fetch_bybit_linear_klines(signal.symbol, "5", limit=1000)
+                if not klines:
+                    logger.warning("startup: нет klines для #%s %s", signal.id, signal.symbol)
+                    continue
+                for candle in klines:
+                    candle_time = datetime.fromtimestamp(candle["time"], tz=timezone.utc)
+                    if candle_time <= signal.entry_filled_at:
+                        continue
+                    quotes = _candle_quotes(candle, signal.direction)
+                    outcome_hit = monitor_outcome_for_signal(signal, quotes)
+                    if outcome_hit is None:
+                        continue
+                    outcome, hit = outcome_hit
+                    if outcome not in ("win", "lose"):
+                        continue
+                    exit_px = monitor_exit_price(
+                        outcome,
+                        direction=signal.direction,
+                        stop_loss=signal.stop_loss,
+                        take_profits=signal.take_profits,
+                        market_price=hit.price,
+                    )
+                    logger.info(
+                        "startup: пропущенное %s signal #%s %s, свеча=%s exit=%.4f",
+                        outcome, signal.id, signal.symbol,
+                        candle_time.isoformat(), exit_px,
+                    )
+                    await close_signal_and_notify(
+                        db, signal, outcome,
+                        exit_price=exit_px,
+                        close_reason="target" if outcome == "win" else "stop",
+                        closed_at=candle_time,
+                    )
+                    break
+            except Exception:
+                logger.exception("startup missed-close check: ошибка signal #%s", signal.id)
+    finally:
+        db.close()
 
 
 async def check_active_signals_once() -> tuple[int, bool]:
