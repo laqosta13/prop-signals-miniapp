@@ -560,7 +560,7 @@ def _delete_volnovoi_cult_launch_news_v1(engine: Engine) -> None:
         db.close()
 
 
-def _create_long_launch_news_row(db, root) -> NewsPost:
+def _create_long_launch_news_row(db, root) -> "NewsPost":
     from app.config import settings
     from app.models import NewsPost
     from app.news_launch import (
