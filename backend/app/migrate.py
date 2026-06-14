@@ -1678,11 +1678,11 @@ def _purge_all_published_jun2026_v16(engine: Engine) -> None:
     if marker.exists():
         return
     from app.database import SessionLocal
-    from app.data_cleanup import purge_content_keep_trackers
+    from app.data_cleanup import purge_all_published_content
 
     db = SessionLocal()
     try:
-        purge_content_keep_trackers(db)
+        purge_all_published_content(db)
         db.commit()
         marker.parent.mkdir(parents=True, exist_ok=True)
         marker.touch()
