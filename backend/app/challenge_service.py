@@ -128,16 +128,6 @@ def _sync_trading_days(db: Session, ch: UserChallenge) -> None:
     ch.trading_days = len({msk_day_key(s.closed_at) for s in closed if msk_day_key(s.closed_at)})
 
 
-def set_account_size(db: Session, ch: UserChallenge, new_size: float) -> None:
-    """Задать фиксированный размер счёта; если нет закрытых сделок — синхронизирует баланс."""
-    closed = _tracker_closed_signals(db, ch.telegram_user_id)
-    ch.account_size = round(new_size, 2)
-    if not closed:
-        ch.balance = ch.account_size
-        ch.day_start_balance = ch.account_size
-    db.flush()
-
-
 def can_sync_prop_screenshot_today(ch: UserChallenge) -> bool:
     """Сверка по скрину — не чаще одного раза в календарные сутки (MSK)."""
     if ch.prop_screenshot_synced_at is None:
@@ -148,8 +138,12 @@ def can_sync_prop_screenshot_today(ch: UserChallenge) -> bool:
 
 
 def apply_prop_screenshot_sync(db: Session, ch: UserChallenge, data: PropScreenshotData) -> None:
-    """Обновить трекер по распознанным данным со скрина пропа. account_size не трогаем."""
+    """Обновить трекер по распознанным данным со скрина пропа."""
     closed = _tracker_closed_signals(db, ch.telegram_user_id)
+
+    # Размер счёта фиксируем только один раз — пока стоит дефолт
+    if data.account_size is not None and ch.account_size == DEFAULT_SIGNAL_FORM_ACCOUNT_SIZE:
+        ch.account_size = data.account_size
 
     if data.stage is not None:
         ch.stage = data.stage
