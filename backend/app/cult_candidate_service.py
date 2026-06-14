@@ -73,8 +73,8 @@ def join_blockers(db: Session, sub: Subscriber, *, cult_admin_bypass: bool = Fal
         return ["Админы в ТОП публикуют в основную ленту"]
     if is_cult_candidate(db, sub.telegram_user_id):
         return []
-    if cult_admin_bypass:
-        return []
+    if not cult_subscription_active(sub, is_admin=cult_admin_bypass):
+        return ["Нужна подписка кандидата CULT ($20 / 30 дней)"]
     has_bybit = db.get(UserBybitSettings, sub.telegram_user_id) is not None
     has_channel = db.scalar(
         select(CultChannel).where(
