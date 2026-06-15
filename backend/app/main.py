@@ -45,6 +45,28 @@ run_migrations(engine)
 media_root()
 
 
+async def _one_time_purge_on_startup() -> None:
+    """Разовая очистка контента при первом старте после деплоя."""
+    sentinel = media_root() / ".purge_done_v1"
+    if sentinel.is_file():
+        return
+    log = logging.getLogger(__name__)
+    log.info("one-time purge: старт очистки...")
+    from app.data_cleanup import purge_all_published_content
+    from app.database import SessionLocal
+    db = SessionLocal()
+    try:
+        purge_all_published_content(db)
+        db.commit()
+        sentinel.touch()
+        log.info("one-time purge: завершено, sentinel создан")
+    except Exception:
+        log.exception("one-time purge: ошибка")
+        db.rollback()
+    finally:
+        db.close()
+
+
 async def _notify_pending_launch_news() -> None:
     from app.database import SessionLocal
     from app.media_storage import media_root
@@ -74,6 +96,7 @@ async def _notify_pending_launch_news() -> None:
 async def lifespan(app: FastAPI):
     from app.price_monitor import check_active_signals_once
 
+    await _one_time_purge_on_startup()
     await _notify_pending_launch_news()
     from app.coin_icons import warmup_coin_icon_cache
 
