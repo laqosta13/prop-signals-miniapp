@@ -66,13 +66,8 @@ def is_cult_candidate(db: Session, telegram_id: int) -> bool:
     return row is not None and bool(row.enabled)
 
 
-def join_blockers(db: Session, sub: Subscriber, *, cult_admin_bypass: bool = False) -> list[str]:
-    from app.trader_roster_service import is_main_feed_publisher
-
-    if is_main_feed_publisher(db, sub.telegram_user_id):
-        return ["Админы в ТОП публикуют в основную ленту"]
-    if is_cult_candidate(db, sub.telegram_user_id):
-        return []
+def _trade_access_blockers(db: Session, sub: Subscriber, *, cult_admin_bypass: bool = False) -> list[str]:
+    """Проверки для публикации сигнала: подписка + API/канал (без раннего выхода для уже-кандидатов)."""
     if not cult_subscription_active(sub, is_admin=cult_admin_bypass):
         return ["Нужна подписка кандидата CULT ($20 / 30 дней)"]
     has_bybit = db.get(UserBybitSettings, sub.telegram_user_id) is not None
@@ -85,6 +80,16 @@ def join_blockers(db: Session, sub: Subscriber, *, cult_admin_bypass: bool = Fal
     if not has_bybit and not has_channel:
         return ["Доступ через API Bybit или CULT-канал"]
     return []
+
+
+def join_blockers(db: Session, sub: Subscriber, *, cult_admin_bypass: bool = False) -> list[str]:
+    from app.trader_roster_service import is_main_feed_publisher
+
+    if is_main_feed_publisher(db, sub.telegram_user_id):
+        return ["Админы в ТОП публикуют в основную ленту"]
+    if is_cult_candidate(db, sub.telegram_user_id):
+        return []
+    return _trade_access_blockers(db, sub, cult_admin_bypass=cult_admin_bypass)
 
 
 def join_cult_candidate(
@@ -758,7 +763,7 @@ def ensure_can_trade(db: Session, sub: Subscriber) -> CultCandidate:
     if row is None or not row.enabled:
         raise ValueError("Сначала станьте кандидатом в CULT")
     bypass = cult_subscription_admin_bypass(db, sub.telegram_user_id)
-    blockers = join_blockers(db, sub, cult_admin_bypass=bypass)
+    blockers = _trade_access_blockers(db, sub, cult_admin_bypass=bypass)
     if blockers:
         raise ValueError(blockers[0])
     return row
