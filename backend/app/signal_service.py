@@ -151,7 +151,6 @@ async def notify_new_signal(db: Session, signal: Signal) -> None:
         await notify_subscribers(
             format_new_signal_message(signal),
             ids,
-            direction=signal.direction,
         )
 
 
@@ -185,7 +184,6 @@ async def notify_updated_signal(
         await notify_subscribers(
             format_updated_signal_message(signal, changes, actor_label=label),
             ids,
-            direction=signal.direction,
         )
 
 
@@ -196,7 +194,6 @@ async def notify_deleted_signal(db: Session, signal: Signal, *, actor: TelegramU
         await notify_subscribers(
             format_deleted_signal_message(signal, actor_label=label),
             ids,
-            direction=signal.direction,
         )
 
 
@@ -302,7 +299,6 @@ async def close_signal_and_notify(
     delivered = await notify_subscribers(
         format_closed_signal_message(signal, market_close=market_close),
         ids,
-        direction=signal.direction,
     )
     if delivered == 0:
         logger.warning("Close push #%s: ни одному из %s подписчиков не доставлено", num, len(ids))
@@ -354,7 +350,6 @@ async def notify_market_closed(signal_id: int) -> None:
             await notify_subscribers(
                 format_closed_signal_message(signal, market_close=True),
                 ids,
-                direction=signal.direction,
             )
     except Exception:
         logger.exception("notify market close failed for signal #%s", signal_id)
@@ -374,7 +369,6 @@ async def notify_entry_filled_if_needed(db: Session, signal: Signal) -> bool:
     delivered = await notify_subscribers(
         format_entry_filled_message(signal),
         ids,
-        direction=signal.direction,
     )
     if delivered == 0:
         logger.warning(
@@ -429,7 +423,6 @@ async def notify_signal_supplement(
                 actor_label=label,
             ),
             ids,
-            direction=signal.direction,
         )
 
 
