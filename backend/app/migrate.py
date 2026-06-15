@@ -469,6 +469,7 @@ def run_migrations(engine: Engine) -> None:
     _purge_all_published_jun2026_v16(engine)
     _remove_anastasia_v2(engine)
     _delete_all_trackers_v2(engine)
+    _reset_candidates_and_bybit_v1(engine)
 
 
 def _purge_all_published_jun2026_v15(engine: Engine) -> None:
@@ -1715,6 +1716,31 @@ def _remove_anastasia_v2(engine: Engine) -> None:
         for row in list(db.scalars(select(CultCandidate))):
             if "анастас" in (row.display_name or "").casefold():
                 db.delete(row)
+        db.commit()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
+
+
+def _reset_candidates_and_bybit_v1(engine: Engine) -> None:
+    """Одноразово: удалить всех кандидатов и все Bybit API ключи — заново вводить."""
+    marker = _marker_path(engine, ".reset_candidates_and_bybit_v1")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".reset_candidates_and_bybit_v1"
+    if marker.exists():
+        return
+    from sqlalchemy import delete
+
+    from app.database import SessionLocal
+    from app.models import CultCandidate, UserBybitSettings
+
+    db = SessionLocal()
+    try:
+        db.execute(delete(CultCandidate))
+        db.execute(delete(UserBybitSettings))
         db.commit()
         marker.parent.mkdir(parents=True, exist_ok=True)
         marker.touch()
