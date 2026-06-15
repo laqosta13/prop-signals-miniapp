@@ -31,10 +31,11 @@ export function useSignalLivePnl(
   }, [rootRef, signal.id]);
 
   useEffect(() => {
-    if (!enabled || !visible) {
+    if (!enabled) {
       setState({ pnl: null, movePct: null, loading: false });
       return;
     }
+    if (!visible) return;
 
     let cancelled = false;
 

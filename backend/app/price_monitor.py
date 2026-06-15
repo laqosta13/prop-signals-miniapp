@@ -150,6 +150,14 @@ async def check_active_signals_once() -> tuple[int, bool]:
                     logger.warning("Монитор: нет цен для %s (signal #%s)", signal.symbol, signal.id)
                     continue
 
+                if signal.published_market_price is None and quotes:
+                    signal.published_market_price = quotes[0].price
+                    db.commit()
+                    logger.info(
+                        "Монитор: восстановил published_market_price=%.4f для signal #%s %s",
+                        quotes[0].price, signal.id, signal.symbol,
+                    )
+
                 if signal.entry_filled_at is None and entry_zone_defined(signal.entry_low, signal.entry_high):
                     hit = first_entry_quote(quotes, signal.direction, signal.entry_low, signal.entry_high)
                     if hit is None:
