@@ -38,7 +38,7 @@ def get_pool_balance(db: Session) -> float:
     signals = db.scalars(
         select(Signal).where(
             Signal.status.in_(("win", "lose")),
-            Signal.is_cult_candidate.is_(False),
+            Signal.is_cult_candidate.is_not(True),
         ).order_by(Signal.closed_at.asc())
     ).all()
 
