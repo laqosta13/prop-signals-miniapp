@@ -6,6 +6,7 @@ import {
   fetchCultChannels,
   fetchFiredLeaderboard,
   fetchLeaderboard,
+  fetchRosterDemotedAdmins,
   fetchMe,
   fetchSignals,
   fetchSignalsPreview,
@@ -120,6 +121,7 @@ export default function App() {
   const [canPublishMainFeed, setCanPublishMainFeed] = useState(false);
   const [canPublishCandidate, setCanPublishCandidate] = useState(false);
   const [cultCandidates, setCultCandidates] = useState<CultCandidate[]>([]);
+  const [rosterDemotedAdmins, setRosterDemotedAdmins] = useState<Trader[]>([]);
   const [cultChannels, setCultChannels] = useState<CultChannel[]>([]);
   const [trackers, setTrackers] = useState<ChallengeDashboard[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -258,11 +260,12 @@ export default function App() {
 
   const loadTop = useCallback(async () => {
     try {
-      const [boardResult, firedResult, candidatesResult, channelsResult] = await Promise.allSettled([
+      const [boardResult, firedResult, candidatesResult, channelsResult, demotedResult] = await Promise.allSettled([
         fetchLeaderboard(),
         fetchFiredLeaderboard(),
         fetchCultCandidates(),
         fetchCultChannels(),
+        fetchRosterDemotedAdmins(),
       ]);
       if (boardResult.status === "fulfilled") {
         setTraders(boardResult.value);
@@ -288,6 +291,11 @@ export default function App() {
         setCultChannels(channelsResult.value);
       } else {
         setCultChannels([]);
+      }
+      if (demotedResult.status === "fulfilled") {
+        setRosterDemotedAdmins(demotedResult.value);
+      } else {
+        setRosterDemotedAdmins([]);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка рейтинга");
@@ -550,6 +558,7 @@ export default function App() {
             <LeaderboardTab
               traders={traders}
               firedTraders={firedTraders}
+              rosterDemotedAdmins={rosterDemotedAdmins}
               cultCandidates={cultCandidates}
               canPublishCandidate={canPublishCandidate}
               cultChannels={cultChannels}

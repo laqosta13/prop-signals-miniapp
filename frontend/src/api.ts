@@ -570,6 +570,7 @@ export const topUpCopyDeposit = (tx_id: string) =>
 export const fetchPoolStats = () => api<PoolStats>("/traders/pool");
 export const fetchLeaderboard = () => api<Trader[]>("/traders/leaderboard");
 export const fetchFiredLeaderboard = () => api<Trader[]>("/traders/fired-leaderboard");
+export const fetchRosterDemotedAdmins = () => api<Trader[]>("/traders/roster-demoted");
 
 export type TraderRosterSection = "top" | "candidate" | "fired";
 

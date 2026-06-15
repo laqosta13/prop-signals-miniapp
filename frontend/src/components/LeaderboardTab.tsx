@@ -39,6 +39,7 @@ import { TopPlaceMedal } from "./TopPlaceMedal";
 type Props = {
   traders: Trader[];
   firedTraders: Trader[];
+  rosterDemotedAdmins: Trader[];
   cultCandidates: CultCandidate[];
   canPublishCandidate: boolean;
   cultChannels: CultChannel[];
@@ -165,6 +166,7 @@ function TopTraderCard({
 export function LeaderboardTab({
   traders,
   firedTraders,
+  rosterDemotedAdmins,
   cultCandidates,
   canPublishCandidate,
   cultChannels,
@@ -254,7 +256,7 @@ export function LeaderboardTab({
 
   const showTradersBlock = traderCandidates.length > 0;
   const showCandidatesBlock =
-    cultCandidates.length > 0 || channelCandidates.length > 0 || isAdmin || myId != null;
+    cultCandidates.length > 0 || channelCandidates.length > 0 || rosterDemotedAdmins.length > 0 || isAdmin || myId != null;
   const showFiredBlock = firedList.length > 0;
 
   const showVolnovoiActiveTrades = canViewActiveSignals(subscriptionActive, isAdmin);
@@ -341,7 +343,21 @@ export function LeaderboardTab({
               ))}
             </ol>
           )}
-          {cultCandidates.length === 0 && channelCandidates.length === 0 && !isAdmin && (
+          {rosterDemotedAdmins.length > 0 && (
+            <ol className="top-list">
+              {rosterDemotedAdmins.map((trader) => (
+                <TopTraderCard
+                  key={trader.telegram_id}
+                  trader={trader}
+                  onOpen={() => setProfileTrader(trader)}
+                  isSuperAdmin={isSuperAdmin}
+                  rosterPlacement="candidate"
+                  onRosterChange={onRosterChange}
+                />
+              ))}
+            </ol>
+          )}
+          {cultCandidates.length === 0 && channelCandidates.length === 0 && rosterDemotedAdmins.length === 0 && !isAdmin && (
             <p className="meta">{copy.topCandidatesEmpty}</p>
           )}
           {isSuperAdmin && <CultChannelAdminPanel channels={cultChannels} onChange={onCultChannelsChange} />}
