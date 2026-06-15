@@ -10,7 +10,7 @@
 """
 from __future__ import annotations
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.rank_constants import RANKS_BEST_TO_WORST
@@ -26,17 +26,28 @@ CANDIDATE_TOP_SPLIT: dict[int, float] = {1: 0.50, 2: 0.30, 3: 0.20}
 
 
 def get_pool_balance(db: Session) -> float:
-    """Баланс пула = $100 000 + суммарный realized_pnl закрытых сигналов."""
-    from app.models import Signal
+    """Пул компаундируется от % движения цены каждого закрытого сигнала ТОП-трейдеров.
 
-    total_pnl: float = db.scalar(
-        select(func.sum(Signal.realized_pnl)).where(
-            Signal.realized_pnl.is_not(None),
+    -0.29% → пул × 0.9971 (-$290 от $100k)
+    +3.5%  → пул × 1.035  (+$3 500 от $100k)
+    Сделки кандидатов на пул не влияют.
+    """
+    from app.models import Signal
+    from app.trader_stats import closed_signal_move_pct
+
+    signals = db.scalars(
+        select(Signal).where(
             Signal.status.in_(("win", "lose")),
             Signal.is_cult_candidate.is_(False),
-        )
-    ) or 0.0
-    return round(max(0.0, POOL_INITIAL_USD + total_pnl), 2)
+        ).order_by(Signal.closed_at.asc())
+    ).all()
+
+    balance = POOL_INITIAL_USD
+    for sig in signals:
+        move = closed_signal_move_pct(sig)
+        balance = round(balance * (1.0 + move / 100.0), 2)
+
+    return max(0.0, balance)
 
 
 def _quality_index(rank_id: int) -> int:
