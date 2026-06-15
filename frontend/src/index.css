@@ -3704,7 +3704,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 7px 8px;
-  margin: 8px 0 10px;
+  margin: 4px 0 10px;
   padding: 8px 12px 8px 14px;
   border-radius: 11px;
   border: 1px solid color-mix(in srgb, var(--purple) 42%, var(--border));
@@ -3762,7 +3762,7 @@
 }
 
 .volnovoi-hero__rank {
-  margin: 0 0 4px;
+  margin: 4px 0 6px;
 }
 
 .volnovoi-hero__rank .rank-badge {

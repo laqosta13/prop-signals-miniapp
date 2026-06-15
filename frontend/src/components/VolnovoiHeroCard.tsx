@@ -8,9 +8,7 @@ import { EquityCurve } from "./EquityCurve";
 import { RankBadge } from "./RankBadge";
 
 function fmtPool(v: number): string {
-  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1000) return `$${Math.round(v / 1000)}K`;
-  return `$${Math.round(v)}`;
+  return "$" + Math.round(v).toLocaleString("ru-RU");
 }
 
 type Props = {
@@ -55,16 +53,16 @@ export function VolnovoiHeroCard({ trader, onOpen, showActiveTrades = false, poo
                 ) : null}
               </div>
             </div>
-            <div className="volnovoi-hero__tagline-frame" aria-label={copy.volnovoiSubtitle}>
-              <span className="volnovoi-hero__tagline-lead">{copy.volnovoiSubtitleLead}</span>
-              <span className="volnovoi-hero__tagline-divider" aria-hidden />
-              <span className="volnovoi-hero__tagline-accent">{copy.volnovoiSubtitleAccent}</span>
-            </div>
             {trader.trader_rank ? (
               <div className="volnovoi-hero__rank">
                 <RankBadge rank={trader.trader_rank} featured />
               </div>
             ) : null}
+            <div className="volnovoi-hero__tagline-frame" aria-label={copy.volnovoiSubtitle}>
+              <span className="volnovoi-hero__tagline-lead">{copy.volnovoiSubtitleLead}</span>
+              <span className="volnovoi-hero__tagline-divider" aria-hidden />
+              <span className="volnovoi-hero__tagline-accent">{copy.volnovoiSubtitleAccent}</span>
+            </div>
           </div>
         </header>
 
