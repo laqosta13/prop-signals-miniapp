@@ -31,6 +31,7 @@ from app.price_service import (
 from app.challenge_service import (
     admin_account_size,
     admin_tracker_balance,
+    can_sync_prop_screenshot_today,
     ensure_tracker_for_new_signal,
     get_challenge,
 )
@@ -192,6 +193,11 @@ async def create_signal(
     market = form_bool_flag(market_entry)
     stored_low, stored_high = stored_entry_levels(entry_low, entry_high, market_entry=market)
     ch = get_challenge(db, admin.telegram_user_id)
+    if ch is not None and can_sync_prop_screenshot_today(ch):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Сверьте трекер по скрину пропа — ежедневная сверка обязательна перед публикацией сигнала",
+        )
     tb = admin_tracker_balance(db, admin.telegram_user_id)
     acct = admin_account_size(db, admin.telegram_user_id)
     validate_signal_daily_trades(db, admin.telegram_user_id)

@@ -51,6 +51,11 @@ _PNL_LABEL = re.compile(
     re.IGNORECASE,
 )
 _SPLIT_SUFFIX = re.compile(r"^[\s\n]+(\d{2,4})\b")
+# «STARTER - $5 000», «STANDARD · $10 000» и т.п.
+_PLAN_AMOUNT = re.compile(
+    r"\b(?:STARTER|STANDARD|ADVANCED|PRO|ELITE|PRIME)\b[\s \-–—·]*\$[\s ]*(\d[\d  ,]*)",
+    re.IGNORECASE,
+)
 
 
 def _merge_split_ocr_amount(tail: str, match_end: int, value: float) -> float:
@@ -111,6 +116,24 @@ def _resolve_balance(text: str, account_size: float | None) -> float | None:
     return max(candidates) if candidates else None
 
 
+def _account_size_from_plan(text: str) -> float | None:
+    """«STARTER - $5 000» → 5000. Надёжнее общего сканирования."""
+    for m in _PLAN_AMOUNT.finditer(text):
+        raw = _parse_money_token(m.group(1))
+        if raw is None or raw < 100:
+            continue
+        if raw < 500:
+            suffix = _SPLIT_SUFFIX.match(text[m.end():])
+            if suffix:
+                merged = float(f"{int(raw)}{suffix.group(1)}")
+                if merged > raw:
+                    raw = merged
+        nearest = min(ACCOUNT_SIZES, key=lambda s: abs(s - raw))
+        if abs(nearest - raw) <= max(50.0, nearest * 0.02):
+            return float(nearest)
+    return None
+
+
 def _nearest_account_size(text: str, balance: float | None) -> float | None:
     sizes: list[float] = []
     for money in _MONEY.finditer(text):
@@ -147,8 +170,8 @@ def parse_prop_ocr_text(text: str) -> PropScreenshotData:
         trading_days = int(days_match.group(1))
         trading_days_required = int(days_match.group(2))
 
-    account_size = _nearest_account_size(normalized, None)
-    if account_size is None and _PLAN.search(normalized):
+    account_size = _account_size_from_plan(normalized)
+    if account_size is None:
         account_size = _nearest_account_size(normalized, None)
 
     balance = _resolve_balance(normalized, account_size)
