@@ -58,14 +58,43 @@ def roster_demoted_admins(
 def pool_stats(
     db: Session = Depends(db_session),
     user: TelegramUser = Depends(get_current_user),
-) -> dict[str, float]:
+) -> dict:
     _ = user
-    balance = get_pool_balance(db)
+    from app.models import Signal
+    from app.trader_stats import closed_signal_move_pct
+
+    signals = db.scalars(
+        select(Signal)
+        .where(
+            Signal.status.in_(("win", "lose")),
+            Signal.is_cult_candidate.is_(False),
+        )
+        .order_by(Signal.closed_at.asc())
+    ).all()
+
+    balance = POOL_INITIAL_USD
+    breakdown = []
+    for sig in signals:
+        move = closed_signal_move_pct(sig)
+        before = balance
+        balance = round(balance * (1.0 + move / 100.0), 2)
+        breakdown.append({
+            "signal_id": sig.id,
+            "move_pct": round(move, 4),
+            "delta_usd": round(balance - before, 2),
+            "pool_after": balance,
+            "closed_exit_price": sig.closed_exit_price,
+            "realized_pnl": sig.realized_pnl,
+        })
+
+    balance = max(0.0, balance)
     return {
         "balance": balance,
         "project_usd": round(balance * PROJECT_SHARE, 2),
         "traders_usd": round(balance * TRADERS_SHARE, 2),
         "candidates_usd": round(balance * CANDIDATES_SHARE, 2),
+        "signals_count": len(signals),
+        "breakdown": breakdown,
     }
 
 
