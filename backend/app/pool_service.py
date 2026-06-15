@@ -26,14 +26,13 @@ CANDIDATE_TOP_SPLIT: dict[int, float] = {1: 0.50, 2: 0.30, 3: 0.20}
 
 
 def get_pool_balance(db: Session) -> float:
-    """Пул компаундируется от % движения цены каждого закрытого сигнала ТОП-трейдеров.
+    """Пул = $100 000 + сумма P/L всех закрытых сигналов ТОП-трейдеров (база Volnovoi $100k).
 
-    -0.29% → пул × 0.9971 (-$290 от $100k)
-    +3.5%  → пул × 1.035  (+$3 500 от $100k)
+    Каждая сделка: stake% × $100k × leverage × move% / 100 — то же что «доходность» у Volnovoi.
     Сделки кандидатов на пул не влияют.
     """
     from app.models import Signal
-    from app.trader_stats import closed_signal_move_pct
+    from app.volnovoi_account import volnovoi_signal_pnl_usd
 
     signals = db.scalars(
         select(Signal).where(
@@ -44,8 +43,7 @@ def get_pool_balance(db: Session) -> float:
 
     balance = POOL_INITIAL_USD
     for sig in signals:
-        move = closed_signal_move_pct(sig)
-        balance = round(balance * (1.0 + move / 100.0), 2)
+        balance = round(balance + volnovoi_signal_pnl_usd(sig), 2)
 
     return max(0.0, balance)
 
