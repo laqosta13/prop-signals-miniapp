@@ -62,9 +62,12 @@ async def check_missed_closes_on_startup() -> None:
                 if not klines:
                     logger.warning("startup: нет klines для #%s %s", signal.id, signal.symbol)
                     continue
+                entry_filled = signal.entry_filled_at
+                if entry_filled is not None and entry_filled.tzinfo is None:
+                    entry_filled = entry_filled.replace(tzinfo=timezone.utc)
                 for candle in klines:
                     candle_time = datetime.fromtimestamp(candle["time"], tz=timezone.utc)
-                    if candle_time <= signal.entry_filled_at:
+                    if entry_filled is not None and candle_time <= entry_filled:
                         continue
                     quotes = _candle_quotes(candle, signal.direction)
                     outcome_hit = monitor_outcome_for_signal(signal, quotes)
