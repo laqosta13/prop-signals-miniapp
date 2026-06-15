@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from statistics import median
+from statistics import mean, median
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -27,60 +27,76 @@ WINDOW_DAYS = 60
 
 _ARCHETYPE_COPY: dict[str, tuple[str, str]] = {
     "forming": (
-        "Стиль качается",
+        "Стиль не раскрыт",
         "Мало закрытых сделок — профиль появится после пары недель в ленте.",
     ),
-    "structurer": (
-        "Структурщик",
-        "Входит по плану и дожимает до стопа или цели. Редко жмёт «закрыть по рынку» — спокойный регламент.",
+    "surgeon": (
+        "Хирург",
+        "Заходит по плану, выходит по цели, не нервничает. Минимум market-close, максимум точности.",
     ),
-    "diamond": (
-        "Алмазный",
-        "Алмазные руки: сидит долго и часто забирает полную цель. Не сливает на первом плюсе.",
+    "whalechaser": (
+        "Китобой",
+        "Охотится за крупными движениями — терпит, ждёт, берёт полную амплитуду.",
     ),
-    "fixer": (
-        "Фиксатор",
-        "Берёт профит раньше плана — не ждёт 1:3, фиксирует по факту. Аккуратный, без жадности до цели.",
+    "berserker": (
+        "Берсерк",
+        "Плечо, частые входы, закрывает по рынку — живёт в потоке. Либо всё, либо ничего.",
     ),
-    "paper": (
-        "Бумажный",
-        "Бумажные руки: быстро забирает плюс, не держит. Короткие сделки, ранний выход.",
+    "monk": (
+        "Монах",
+        "Редко, но точно. Ждёт сетап неделями и берёт чисто. Без суеты, без FOMO.",
     ),
-    "scalp": (
-        "Скальпик",
-        "Короткие заходы — вошёл, вышел, без многочасовых кемпов в позиции.",
+    "piranha": (
+        "Пиранья",
+        "Вошёл — вышел — снова вошёл. Маленькие укусы, высокая частота, не жадничает до цели.",
     ),
-    "sniper": (
-        "Снайпер",
-        "Редко стреляет, но метко: мало сделок, зато по уровням и без суеты.",
+    "marinator": (
+        "Маринатор",
+        "Маринует позицию сутками. Не дёргается, пока рынок делает своё дело.",
     ),
-    "grinder": (
-        "Гриндер",
-        "Молотит объём — много сетапов в неделю, постоянно в игре.",
+    "ghost": (
+        "Призрак",
+        "Ультракороткие заходы — зашёл, исчез. Никаких кемпов, никакого ожидания.",
     ),
-    "hyperactive": (
-        "Шило",
-        "Шило в одном месте: куча сделок и частые ручные выходы по рынку.",
+    "strategist": (
+        "Стратег",
+        "Только лимитки, только структура. Входит по заявке и дожидается сценария.",
     ),
-    "patient": (
-        "Терпила",
-        "Может сидеть в позиции сутками — не дёргается, ждёт сценарий.",
+    "adrenaline": (
+        "Адреналинщик",
+        "Живёт на ощущении — часто закрывает по рынку, реагирует на движение в моменте.",
     ),
-    "reactive": (
-        "Реактивщик",
-        "Часто закрывает по рынку, а не по уровню — торгует на ощущении в моменте.",
+    "machine": (
+        "Машина",
+        "Стабильно гриндит: много сделок, дисциплина MM, без эмоций и лишних движений.",
     ),
-    "fomo": (
-        "Фомошник",
-        "Много входов и частые market close — похоже на погоню за движением.",
+    "gunslinger": (
+        "Ковбой",
+        "Быстро стреляет. Много входов, часто закрывает по рынку, нет времени думать.",
     ),
-    "by_the_book": (
-        "По уставу",
-        "Дисциплина ММ: % входа и плечо в рамках ранга, без лудомании.",
+    "thermonuke": (
+        "Термояд",
+        "Максимальное плечо + крупные заходы + охотится на тренды. Либо взрыв, либо пепел.",
+    ),
+    "ironhands": (
+        "Стальной",
+        "Принимает убытки по стопу без паники и ручного закрытия. Железная дисциплина риска.",
+    ),
+    "contrarian": (
+        "Контрарианец",
+        "Шортит когда все покупают, лонгует когда все шортят. Против толпы — и часто прав.",
+    ),
+    "longbias": (
+        "Лонгист",
+        "Верит в рост. Почти всегда лонг — медведь не живёт в этом портфеле.",
+    ),
+    "shortbias": (
+        "Шортист",
+        "Видит медведя везде. Шортит стабильно, не переубедить.",
     ),
     "vibe": (
         "На вайбе",
-        "Смешанный стиль: план есть, но исход часто решает рынок, не только уровни.",
+        "Смешанный стиль без чёткого почерка — торгует по настроению рынка.",
     ),
 }
 
@@ -97,6 +113,11 @@ class _Metrics:
     limit_entry_rate: float
     leverage_rate: float
     stake_discipline: float
+    # новые метрики
+    long_rate: float
+    avg_realized_rr: float | None
+    big_move_rate: float
+    avg_leverage: float
 
 
 def _now() -> datetime:
@@ -187,7 +208,7 @@ def _hold_minutes(signal: Signal) -> float | None:
 def _collect_metrics(db: Session, author_id: int, signals: list[Signal]) -> _Metrics:
     n = len(signals)
     if n == 0:
-        return _Metrics(0, 0, 0, 0, 0, 0, None, 0, 0, 0)
+        return _Metrics(0, 0, 0, 0, 0, 0, None, 0, 0, 0, 0.5, None, 0, 1.0)
 
     market = sum(1 for s in signals if (s.close_reason or "") == "market")
     target = sum(1 for s in signals if (s.close_reason or "") == "target")
@@ -205,6 +226,7 @@ def _collect_metrics(db: Session, author_id: int, signals: list[Signal]) -> _Met
     trades_per_week = float(week_count)
 
     captures: list[float] = []
+    realized_rrs: list[float] = []
     for s in signals:
         if s.status != "win":
             continue
@@ -212,9 +234,13 @@ def _collect_metrics(db: Session, author_id: int, signals: list[Signal]) -> _Met
         realized = _realized_r(s)
         if planned and planned > 0 and realized is not None:
             captures.append(min(realized / planned, 1.5))
+            realized_rrs.append(realized)
 
     limit_entries = sum(1 for s in signals if entry_zone_defined(s.entry_low, s.entry_high))
     lev_high = sum(1 for s in signals if signal_leverage(s) > 1)
+
+    leverages = [signal_leverage(s) for s in signals]
+    avg_lev = float(mean(leverages)) if leverages else 1.0
 
     trader = db.get(Trader, author_id)
     rank_cap = rank_max_stake_pct(trader.current_rank_id if trader else None) if trader else 100.0
@@ -224,6 +250,17 @@ def _collect_metrics(db: Session, author_id: int, signals: list[Signal]) -> _Met
         if stake <= rank_cap + 0.01:
             stake_ok += 1
     stake_discipline = stake_ok / n if n else 0.0
+
+    # лонг-шорт перевес
+    longs = sum(1 for s in signals if (s.direction or "").lower() == "long")
+    long_rate = longs / n if n else 0.5
+
+    # среднее R:R (в прибыльных сделках)
+    avg_rr: float | None = round(mean(realized_rrs), 2) if realized_rrs else None
+
+    # доля сделок с движением > 1.5% (крупные амплитуды)
+    big_moves = sum(1 for s in signals if abs(closed_signal_move_pct(s)) >= 1.5)
+    big_move_rate = big_moves / n if n else 0.0
 
     return _Metrics(
         sample_size=n,
@@ -236,6 +273,10 @@ def _collect_metrics(db: Session, author_id: int, signals: list[Signal]) -> _Met
         limit_entry_rate=limit_entries / n,
         leverage_rate=lev_high / n,
         stake_discipline=stake_discipline,
+        long_rate=long_rate,
+        avg_realized_rr=avg_rr,
+        big_move_rate=big_move_rate,
+        avg_leverage=avg_lev,
     )
 
 
@@ -255,30 +296,100 @@ def _pick_archetype(m: _Metrics) -> str:
 
     scores: dict[str, float] = {k: 0.0 for k in _ARCHETYPE_COPY if k != "forming"}
 
-    if m.target_rate >= 0.45 and m.market_rate < 0.25:
-        scores["structurer"] += 3.0
-    if m.target_rate >= 0.5 and m.median_hold_min >= 12 * 60 and (m.plan_capture_median or 0) >= 0.7:
-        scores["diamond"] += 4.0
-    if m.plan_capture_median is not None and m.plan_capture_median < 0.55 and m.market_rate < 0.4:
-        scores["fixer"] += 3.0
-    if m.plan_capture_median is not None and m.plan_capture_median < 0.45 and m.median_hold_min < 6 * 60:
-        scores["paper"] += 3.0
-    if m.median_hold_min < 2 * 60:
-        scores["scalp"] += 2.5
-    if m.trades_per_week <= 4 and m.market_rate < 0.3:
-        scores["sniper"] += 2.5
-    if m.trades_per_week >= 7:
-        scores["grinder"] += 2.5
-    if m.trades_per_week >= 10 and m.market_rate >= 0.3:
-        scores["hyperactive"] += 4.0
+    # Хирург: целевой, точный, без паники
+    if m.target_rate >= 0.5 and m.market_rate < 0.2 and m.stake_discipline >= 0.8:
+        scores["surgeon"] += 4.5
+    if (m.avg_realized_rr or 0) >= 1.5 and m.market_rate < 0.25:
+        scores["surgeon"] += 2.0
+
+    # Китобой: крупные движения + долго держит + редко входит
+    if m.big_move_rate >= 0.4 and m.median_hold_min >= 8 * 60:
+        scores["whalechaser"] += 4.0
+    if m.trades_per_week <= 3 and m.big_move_rate >= 0.3:
+        scores["whalechaser"] += 2.5
+
+    # Берсерк: плечо + частые + market close
+    if m.leverage_rate >= 0.5 and m.market_rate >= 0.3 and m.trades_per_week >= 5:
+        scores["berserker"] += 5.0
+    if m.avg_leverage >= 2.5 and m.trades_per_week >= 4:
+        scores["berserker"] += 2.0
+
+    # Монах: редко, долго, чисто
+    if m.trades_per_week <= 2 and m.median_hold_min >= 24 * 60 and m.market_rate < 0.25:
+        scores["monk"] += 5.0
+    if m.limit_entry_rate >= 0.6 and m.trades_per_week <= 3:
+        scores["monk"] += 1.5
+
+    # Пиранья: быстро + часто + малые движения
+    if m.median_hold_min < 60 and m.trades_per_week >= 6 and m.big_move_rate < 0.25:
+        scores["piranha"] += 5.0
+    if m.median_hold_min < 30 and m.trades_per_week >= 5:
+        scores["piranha"] += 2.0
+
+    # Маринатор: очень долго держит
     if m.median_hold_min >= 48 * 60:
-        scores["patient"] += 3.0
-    if m.market_rate >= 0.4:
-        scores["reactive"] += 4.0
-    if m.market_rate >= 0.35 and m.trades_per_week >= 6:
-        scores["fomo"] += 3.0
-    if m.stake_discipline >= 0.85 and m.market_rate < 0.2:
-        scores["by_the_book"] += 2.5
+        scores["marinator"] += 4.0
+    if m.median_hold_min >= 24 * 60 and m.market_rate < 0.2:
+        scores["marinator"] += 2.0
+
+    # Призрак: ультракороткие, бесшумный
+    if m.median_hold_min < 15 and m.trades_per_week >= 4:
+        scores["ghost"] += 5.0
+    if m.median_hold_min < 30 and m.market_rate < 0.3:
+        scores["ghost"] += 1.5
+
+    # Стратег: лимитки + план + цели
+    if m.limit_entry_rate >= 0.65 and m.target_rate >= 0.5 and m.market_rate < 0.2:
+        scores["strategist"] += 5.0
+    if m.limit_entry_rate >= 0.55 and (m.plan_capture_median or 0) >= 0.7:
+        scores["strategist"] += 2.0
+
+    # Адреналинщик: много market close, реактивный
+    if m.market_rate >= 0.5:
+        scores["adrenaline"] += 5.0
+    if m.market_rate >= 0.35 and m.trades_per_week >= 5:
+        scores["adrenaline"] += 2.0
+
+    # Машина: стабильный гриндер с дисциплиной
+    if m.trades_per_week >= 7 and m.stake_discipline >= 0.85 and m.market_rate < 0.35:
+        scores["machine"] += 4.5
+    if m.trades_per_week >= 5 and m.target_rate >= 0.4 and m.stake_discipline >= 0.8:
+        scores["machine"] += 1.5
+
+    # Ковбой: частый, импульсивный, много market close
+    if m.trades_per_week >= 6 and m.market_rate >= 0.3 and m.median_hold_min < 4 * 60:
+        scores["gunslinger"] += 4.5
+    if m.market_rate >= 0.25 and m.trades_per_week >= 5:
+        scores["gunslinger"] += 1.5
+
+    # Термояд: высокое плечо + крупные движения
+    if m.avg_leverage >= 3.0 and m.big_move_rate >= 0.35:
+        scores["thermonuke"] += 5.0
+    if m.leverage_rate >= 0.6 and m.big_move_rate >= 0.25:
+        scores["thermonuke"] += 2.5
+
+    # Стальной: берёт стоп без паники, не закрывает руками
+    if m.stop_rate >= 0.25 and m.market_rate < 0.15 and m.stake_discipline >= 0.85:
+        scores["ironhands"] += 4.5
+    if m.market_rate < 0.1 and m.stake_discipline >= 0.9:
+        scores["ironhands"] += 2.0
+
+    # Контрарианец: шортит против толпы + хороший R:R
+    if m.long_rate < 0.3 and (m.avg_realized_rr or 0) >= 1.2:
+        scores["contrarian"] += 4.0
+    if m.long_rate < 0.25 and m.target_rate >= 0.4:
+        scores["contrarian"] += 2.0
+
+    # Лонгист / Шортист: явный перевес направления
+    if m.long_rate >= 0.75:
+        scores["longbias"] += 3.5
+    if m.long_rate >= 0.85:
+        scores["longbias"] += 2.0
+
+    if m.long_rate <= 0.25:
+        scores["shortbias"] += 3.5
+    if m.long_rate <= 0.15:
+        scores["shortbias"] += 2.0
 
     best = max(scores.items(), key=lambda x: x[1])
     if best[1] < 1.5:
@@ -290,21 +401,46 @@ def _modifiers(m: _Metrics, archetype: str) -> list[str]:
     if archetype == "forming":
         return []
     tags: list[str] = []
-    if m.target_rate >= 0.5:
-        tags.append("до цели")
-    if m.plan_capture_median is not None and m.plan_capture_median < 0.6:
-        tags.append("раньше цели")
-    if m.limit_entry_rate >= 0.5:
+
+    # R:R монстр
+    if (m.avg_realized_rr or 0) >= 2.0:
+        tags.append("R:R монстр")
+    elif (m.avg_realized_rr or 0) >= 1.4:
+        tags.append("хороший R:R")
+
+    # направление (если не лонгист/шортист-архетип)
+    if archetype not in ("longbias", "shortbias", "contrarian"):
+        if m.long_rate >= 0.7:
+            tags.append("лонг-байас")
+        elif m.long_rate <= 0.3:
+            tags.append("шорт-байас")
+
+    # вход
+    if m.limit_entry_rate >= 0.65 and archetype not in ("strategist", "monk"):
         tags.append("с лимитки")
-    elif m.limit_entry_rate < 0.35:
+    elif m.limit_entry_rate < 0.25:
         tags.append("с поста")
-    if m.leverage_rate >= 0.4:
+
+    # плечо
+    if m.avg_leverage >= 3.0 and archetype not in ("thermonuke", "berserker"):
         tags.append("с плечом")
-    elif m.leverage_rate <= 0.15:
-        tags.append("1х спокойно")
-    if m.median_hold_min >= 24 * 60 and m.trades_per_week <= 5:
-        tags.append("чилл")
-    # убрать дубли с архетипом
+    elif m.avg_leverage < 1.2 and m.leverage_rate < 0.15:
+        tags.append("1х без плеча")
+
+    # время
+    if m.median_hold_min >= 24 * 60 and archetype not in ("marinator", "monk", "whalechaser"):
+        tags.append("долго держит")
+    elif m.median_hold_min < 20 and archetype not in ("ghost", "piranha"):
+        tags.append("быстрые руки")
+
+    # крупные движения
+    if m.big_move_rate >= 0.5 and archetype not in ("whalechaser", "thermonuke"):
+        tags.append("ловит тренд")
+
+    # дисциплина
+    if m.stake_discipline >= 0.95 and archetype not in ("ironhands", "surgeon", "machine", "strategist"):
+        tags.append("жёсткий MM")
+
     dedup: list[str] = []
     for t in tags:
         if t not in dedup:
@@ -316,12 +452,19 @@ def _stats_line(m: _Metrics) -> str:
     if m.sample_size == 0:
         return ""
     hold = _format_hold(m.median_hold_min)
+    rr_part = f" · R:R {m.avg_realized_rr:.1f}" if m.avg_realized_rr else ""
+    direction_part = ""
+    if m.long_rate >= 0.7:
+        direction_part = f" · {int(m.long_rate * 100)}% лонг"
+    elif m.long_rate <= 0.3:
+        direction_part = f" · {int((1 - m.long_rate) * 100)}% шорт"
     return (
         f"В сделке {hold} · "
         f"{m.target_rate * 100:.0f}% цель · "
         f"{m.stop_rate * 100:.0f}% стоп · "
         f"{m.market_rate * 100:.0f}% рынок · "
         f"{m.trades_per_week:.0f} сд./нед"
+        f"{rr_part}{direction_part}"
     )
 
 
