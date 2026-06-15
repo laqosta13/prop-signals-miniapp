@@ -33,6 +33,7 @@ def get_pool_balance(db: Session) -> float:
         select(func.sum(Signal.realized_pnl)).where(
             Signal.realized_pnl.is_not(None),
             Signal.status.in_(("win", "lose")),
+            Signal.is_cult_candidate.is_(False),
         )
     ) or 0.0
     return round(max(0.0, POOL_INITIAL_USD + total_pnl), 2)
