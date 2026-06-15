@@ -26,12 +26,12 @@ CANDIDATE_TOP_SPLIT: dict[int, float] = {1: 0.50, 2: 0.30, 3: 0.20}
 
 
 def get_pool_balance(db: Session) -> float:
-    """Баланс пула = начальный капитал + 20% от реализованного P&L copy-trades."""
+    """Баланс пула = начальный капитал + 20% от прибыли copy-trades (profit_usd > 0)."""
     from app.models import CopyTradingInvoice
 
     total_copy_pnl: float = db.scalar(
-        select(func.sum(CopyTradingInvoice.realized_pnl)).where(
-            CopyTradingInvoice.realized_pnl > 0
+        select(func.sum(CopyTradingInvoice.profit_usd)).where(
+            CopyTradingInvoice.profit_usd > 0
         )
     ) or 0.0
     return POOL_INITIAL_USD + round(total_copy_pnl * PROJECT_SHARE, 2)
