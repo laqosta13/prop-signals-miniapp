@@ -163,6 +163,7 @@ export type Trader = {
   volnovoi_style?: VolnovoiStyle | null;
   is_aggregate?: boolean;
   active_signals?: CultCandidateActiveSignal[];
+  pool_share_usd?: number;
 };
 
 export type CultChannel = {
@@ -239,6 +240,14 @@ export type CultCandidate = {
   trader_rank: TraderRank | null;
   volnovoi_style?: VolnovoiStyle | null;
   is_me: boolean;
+  pool_share_usd?: number;
+};
+
+export type PoolStats = {
+  balance: number;
+  project_usd: number;
+  traders_usd: number;
+  candidates_usd: number;
 };
 
 export const fetchCultCandidateSignal = (signalId: number) =>
@@ -558,6 +567,7 @@ export const topUpCopyDeposit = (tx_id: string) =>
     body: JSON.stringify({ tx_id }),
   });
 
+export const fetchPoolStats = () => api<PoolStats>("/traders/pool");
 export const fetchLeaderboard = () => api<Trader[]>("/traders/leaderboard");
 export const fetchFiredLeaderboard = () => api<Trader[]>("/traders/fired-leaderboard");
 

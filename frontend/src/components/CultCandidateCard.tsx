@@ -104,11 +104,23 @@ export function CultCandidateCard({
     </div>
   );
 
+  const poolShare = candidate.pool_share_usd ?? 0;
+  function fmtShare(v: number) {
+    if (v >= 1000) return `$${Math.round(v / 1000)}K`;
+    return `$${Math.round(v)}`;
+  }
+
   return (
     <li className={candidate.is_me ? "top-list__item--me" : undefined}>
       <div
         className={`top-card top-card--candidate${candidate.is_me ? " top-card--candidate-me" : ""}${expanded ? " top-card--candidate-expanded" : " top-card--candidate-collapsed"}`}
       >
+        {topPlace != null && poolShare > 0 && (
+          <div className="pool-share-badge">
+            <span className="pool-share-badge__label">нед.</span>
+            <span className="pool-share-badge__value">{fmtShare(poolShare)}</span>
+          </div>
+        )}
         {candidate.is_me ? (
           headContent
         ) : (

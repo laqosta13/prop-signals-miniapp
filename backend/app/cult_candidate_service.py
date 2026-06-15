@@ -295,6 +295,7 @@ def _candidate_read(
     active: dict[int, list[CultCandidateActiveSignalRead]],
     closed: dict[int, list[CultCandidateClosedSignalRead]],
     is_me: bool = False,
+    pool_share_usd: float = 0.0,
 ) -> CultCandidateRead:
     from app.models import Trader
 
@@ -320,11 +321,13 @@ def _candidate_read(
         trader_rank=trader_rank_read(trader, include_history=False) if trader else None,
         volnovoi_style=build_volnovoi_style(db, row.telegram_user_id, cult_candidate=True),
         is_me=is_me,
+        pool_share_usd=pool_share_usd,
     )
 
 
 def build_cult_candidates_read(db: Session, *, viewer_id: int | None = None) -> list[CultCandidateRead]:
     from app.trader_roster_service import ROSTER_FIRED, ROSTER_TOP, roster_overrides_map
+    from app.pool_service import calculate_candidate_pool_shares, get_pool_balance
 
     overrides = roster_overrides_map(db)
     rows = list(db.scalars(select(CultCandidate).where(CultCandidate.enabled.is_(True))).all())
@@ -340,6 +343,7 @@ def build_cult_candidates_read(db: Session, *, viewer_id: int | None = None) -> 
     active = _active_signals_for(db, ids)
     closed = _closed_signals_for(db, ids)
     ranked = sorted(rows, key=lambda c: (-(c.rating_percent or 0), -(c.wins or 0)))
+    candidate_shares = calculate_candidate_pool_shares(get_pool_balance(db))
     return [
         _candidate_read(
             db,
@@ -349,6 +353,7 @@ def build_cult_candidates_read(db: Session, *, viewer_id: int | None = None) -> 
             active=active,
             closed=closed,
             is_me=viewer_id is not None and row.telegram_user_id == viewer_id,
+            pool_share_usd=candidate_shares.get(rank, 0.0),
         )
         for rank, row in enumerate(ranked, start=1)
     ]

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import Signal, Trader
+from app.pool_service import calculate_trader_pool_shares, get_pool_balance
 from app.schemas import TraderDayStat, TraderRead
 from app.serializers import trader_to_read
 from app.signal_service import get_or_create_trader
@@ -89,13 +90,19 @@ def _traders_leaderboard_rows(db: Session, ids: list[int]) -> list[TraderRead]:
         traders.values(),
         key=lambda t: (-(t.rating_percent or 0), -(t.wins or 0)),
     )
-    result: list[TraderRead] = []
+    reads: list[TraderRead] = []
     for rank, t in enumerate(ranked, start=1):
         ensure_rank_fields(t)
         total = (t.wins or 0) + (t.losses or 0)
         wr = round((t.wins or 0) / total * 100, 1) if total else 0.0
-        result.append(trader_to_read(t, rank, wr, daily.get(t.telegram_id, []), db=db))
-    return result
+        reads.append(trader_to_read(t, rank, wr, daily.get(t.telegram_id, []), db=db))
+
+    pool_balance = get_pool_balance(db)
+    shares = calculate_trader_pool_shares(reads, pool_balance)
+    return [
+        r.model_copy(update={"pool_share_usd": shares.get(r.telegram_id, 0.0)})
+        for r in reads
+    ]
 
 
 def build_leaderboard(db: Session) -> list[TraderRead]:

@@ -5,6 +5,12 @@ from app.config import settings
 from app.deps import db_session, get_current_user, require_admin, require_super_admin
 from app.leaderboard_service import build_fired_leaderboard, build_leaderboard, build_roster_demoted_admins, fired_trader_ids
 from app.models import Trader
+from app.pool_service import (
+    CANDIDATES_SHARE,
+    PROJECT_SHARE,
+    TRADERS_SHARE,
+    get_pool_balance,
+)
 from app.rank_service import ensure_rank_fields
 from app.schemas import TelegramUser, TraderRankRead, TraderRead, TraderRosterBody
 from app.serializers import trader_rank_read
@@ -46,6 +52,21 @@ def roster_demoted_admins(
     result = build_roster_demoted_admins(db)
     db.commit()
     return result
+
+
+@router.get("/pool")
+def pool_stats(
+    db: Session = Depends(db_session),
+    user: TelegramUser = Depends(get_current_user),
+) -> dict[str, float]:
+    _ = user
+    balance = get_pool_balance(db)
+    return {
+        "balance": balance,
+        "project_usd": round(balance * PROJECT_SHARE, 2),
+        "traders_usd": round(balance * TRADERS_SHARE, 2),
+        "candidates_usd": round(balance * CANDIDATES_SHARE, 2),
+    }
 
 
 @router.put("/{telegram_id}/roster")

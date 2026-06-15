@@ -211,6 +211,7 @@ class TraderRead(BaseModel):
     volnovoi_style: VolnovoiStyleRead | None = None
     is_aggregate: bool = False
     active_signals: list[CultCandidateActiveSignalRead] = []
+    pool_share_usd: float = 0.0
 
     model_config = {"from_attributes": True}
 
@@ -279,6 +280,7 @@ class CultCandidateRead(BaseModel):
     trader_rank: TraderRankRead | None = None
     volnovoi_style: VolnovoiStyleRead | None = None
     is_me: bool = False
+    pool_share_usd: float = 0.0
 
 
 class SignalFormSnapshot(BaseModel):

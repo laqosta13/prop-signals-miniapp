@@ -1,14 +1,21 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import {
   closeCultCandidateSignalAtMarket,
   fetchCultCandidateSignal,
+  fetchPoolStats,
   type CultCandidate,
   type CultCandidateClosedSignal,
   type CultChannel,
+  type PoolStats,
   type Signal,
   type Trader,
 } from "../api";
+
+function fmtShare(v: number): string {
+  if (v >= 1000) return `$${Math.round(v / 1000)}K`;
+  return `$${Math.round(v)}`;
+}
 import { EquityCurve } from "./EquityCurve";
 import { CultCandidateCard } from "./CultCandidateCard";
 import { CultCandidateJoinPanel } from "./CultCandidateJoinPanel";
@@ -67,9 +74,17 @@ function TopTraderCard({
   const hasClosedDeals = traderClosedDealsCount(trader) > 0;
   const topChip = !fired && trader.rank >= 1 && trader.rank <= 3;
 
+  const poolShare = !fired ? (trader.pool_share_usd ?? 0) : 0;
+
   return (
     <li>
       <div className={`top-card${fired ? " top-card--fired" : ""}`}>
+        {poolShare > 0 && (
+          <div className="pool-share-badge">
+            <span className="pool-share-badge__label">нед.</span>
+            <span className="pool-share-badge__value">{fmtShare(poolShare)}</span>
+          </div>
+        )}
         <button type="button" className="top-card__head-btn" onClick={onOpen}>
           <div className="top-card__head">
             <Avatar
@@ -165,8 +180,13 @@ export function LeaderboardTab({
   onRosterChange,
 }: Props) {
   const copy = useThemedCopy();
+  const [poolStats, setPoolStats] = useState<PoolStats | null>(null);
   const [profileTrader, setProfileTrader] = useState<Trader | null>(null);
   const [signalModalOpen, setSignalModalOpen] = useState(false);
+
+  useEffect(() => {
+    fetchPoolStats().then(setPoolStats).catch(() => {});
+  }, []);
   const [closedTradeDetail, setClosedTradeDetail] = useState<Signal | null>(null);
   const [closedTradeLoading, setClosedTradeLoading] = useState(false);
   const [closedTradeError, setClosedTradeError] = useState<string | null>(null);
@@ -255,6 +275,7 @@ export function LeaderboardTab({
             trader={volnovoi}
             onOpen={() => setProfileTrader(volnovoi)}
             showActiveTrades={showVolnovoiActiveTrades}
+            poolBalance={poolStats?.balance}
           />
           <VolnovoiCopyPanel />
         </section>

@@ -6,15 +6,21 @@ import { Avatar } from "./Avatar";
 import { CultCandidateActiveTrades } from "./CultCandidateActiveTrades";
 import { EquityCurve } from "./EquityCurve";
 import { RankBadge } from "./RankBadge";
-import { VolnovoiMarketingBadge } from "./VolnovoiMarketingBadge";
+
+function fmtPool(v: number): string {
+  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1000) return `$${Math.round(v / 1000)}K`;
+  return `$${Math.round(v)}`;
+}
 
 type Props = {
   trader: Trader;
   onOpen: () => void;
   showActiveTrades?: boolean;
+  poolBalance?: number;
 };
 
-export function VolnovoiHeroCard({ trader, onOpen, showActiveTrades = false }: Props) {
+export function VolnovoiHeroCard({ trader, onOpen, showActiveTrades = false, poolBalance }: Props) {
   const copy = useThemedCopy();
   const profile = useAuthorProfile(trader.display_name, trader.username, trader.telegram_id);
   const hasClosedDeals = traderClosedDealsCount(trader) > 0;
@@ -40,12 +46,13 @@ export function VolnovoiHeroCard({ trader, onOpen, showActiveTrades = false }: P
                 </span>
                 <h2 className="volnovoi-hero__name">{profile.title}</h2>
               </div>
-              <div
-                className="volnovoi-hero__marketing"
-                onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.stopPropagation()}
-              >
-                <VolnovoiMarketingBadge trader={trader} className="volnovoi-marketing--hero" />
+              <div className="volnovoi-hero__marketing">
+                {poolBalance != null ? (
+                  <div className="volnovoi-pool-badge">
+                    <span className="volnovoi-pool-badge__label">ПУЛ</span>
+                    <span className="volnovoi-pool-badge__amount">{fmtPool(poolBalance)}</span>
+                  </div>
+                ) : null}
               </div>
             </div>
             <div className="volnovoi-hero__tagline-frame" aria-label={copy.volnovoiSubtitle}>

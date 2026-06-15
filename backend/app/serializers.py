@@ -124,6 +124,7 @@ def trader_to_read(
     daily_stats: list[TraderDayStat] | None = None,
     *,
     db: Session | None = None,
+    pool_share_usd: float = 0.0,
 ) -> TraderRead:
     style = None
     if db is not None:
@@ -145,6 +146,7 @@ def trader_to_read(
         trader_rank=trader_rank_read(t),
         volnovoi_style=style,
         is_aggregate=False,
+        pool_share_usd=pool_share_usd,
     )
 
 

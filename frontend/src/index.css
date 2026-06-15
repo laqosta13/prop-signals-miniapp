@@ -3103,6 +3103,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  position: relative;
   background: var(--surface);
   border-radius: var(--radius-lg);
   padding: 14px;
@@ -8009,4 +8010,68 @@ button.link-preview__media {
   background: transparent;
   cursor: pointer;
   margin-top: 8px;
+}
+
+/* ── Pool badges ───────────────────────────────────────────── */
+
+.volnovoi-pool-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--purple) 20%, transparent),
+    color-mix(in srgb, var(--green) 12%, transparent));
+  border: 1px solid color-mix(in srgb, var(--purple) 45%, var(--green));
+  border-radius: 10px;
+  padding: 4px 8px;
+  gap: 1px;
+  flex-shrink: 0;
+}
+
+.volnovoi-pool-badge__label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.volnovoi-pool-badge__amount {
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: var(--green);
+  line-height: 1.1;
+}
+
+.pool-share-badge {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  background: color-mix(in srgb, var(--green) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--green) 32%, transparent);
+  border-radius: 8px;
+  padding: 3px 7px;
+  gap: 1px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.pool-share-badge__label {
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.pool-share-badge__value {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--green);
+  line-height: 1.1;
 }
