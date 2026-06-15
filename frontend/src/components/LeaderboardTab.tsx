@@ -7,7 +7,6 @@ import {
   type CultCandidate,
   type CultCandidateClosedSignal,
   type CultChannel,
-  type PoolStats,
   type Signal,
   type Trader,
 } from "../api";
@@ -180,12 +179,14 @@ export function LeaderboardTab({
   onRosterChange,
 }: Props) {
   const copy = useThemedCopy();
-  const [poolStats, setPoolStats] = useState<PoolStats | null>(null);
+  const [poolBalance, setPoolBalance] = useState<number | undefined>(undefined);
   const [profileTrader, setProfileTrader] = useState<Trader | null>(null);
   const [signalModalOpen, setSignalModalOpen] = useState(false);
 
   useEffect(() => {
-    fetchPoolStats().then(setPoolStats).catch(() => {});
+    fetchPoolStats()
+      .then((s) => setPoolBalance(s.balance))
+      .catch(() => {});
   }, []);
   const [closedTradeDetail, setClosedTradeDetail] = useState<Signal | null>(null);
   const [closedTradeLoading, setClosedTradeLoading] = useState(false);
@@ -275,7 +276,7 @@ export function LeaderboardTab({
             trader={volnovoi}
             onOpen={() => setProfileTrader(volnovoi)}
             showActiveTrades={showVolnovoiActiveTrades}
-            poolBalance={poolStats?.balance}
+            poolBalance={poolBalance}
           />
           <VolnovoiCopyPanel />
         </section>

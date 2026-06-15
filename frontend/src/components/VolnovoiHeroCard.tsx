@@ -45,12 +45,12 @@ export function VolnovoiHeroCard({ trader, onOpen, showActiveTrades = false, poo
                 <h2 className="volnovoi-hero__name">{profile.title}</h2>
               </div>
               <div className="volnovoi-hero__marketing">
-                {poolBalance != null ? (
-                  <div className="volnovoi-pool-badge">
-                    <span className="volnovoi-pool-badge__label">ПУЛ</span>
-                    <span className="volnovoi-pool-badge__amount">{fmtPool(poolBalance)}</span>
-                  </div>
-                ) : null}
+                <div className="volnovoi-pool-badge">
+                  <span className="volnovoi-pool-badge__label">ПУЛ</span>
+                  <span className="volnovoi-pool-badge__amount">
+                    {poolBalance !== undefined ? fmtPool(poolBalance) : "$100 000"}
+                  </span>
+                </div>
               </div>
             </div>
             {trader.trader_rank ? (
