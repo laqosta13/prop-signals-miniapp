@@ -51,11 +51,6 @@ _PNL_LABEL = re.compile(
     re.IGNORECASE,
 )
 _SPLIT_SUFFIX = re.compile(r"^[\s\n]+(\d{2,4})\b")
-# «STARTER - $5 000», «STANDARD · $10 000» и т.п.
-_PLAN_AMOUNT = re.compile(
-    r"\b(?:STARTER|STANDARD|ADVANCED|PRO|ELITE|PRIME)\b[\s \-–—·]*\$[\s ]*(\d[\d  ,]*)",
-    re.IGNORECASE,
-)
 
 
 def _merge_split_ocr_amount(tail: str, match_end: int, value: float) -> float:
@@ -117,20 +112,27 @@ def _resolve_balance(text: str, account_size: float | None) -> float | None:
 
 
 def _account_size_from_plan(text: str) -> float | None:
-    """«STARTER - $5 000» → 5000. Надёжнее общего сканирования."""
-    for m in _PLAN_AMOUNT.finditer(text):
-        raw = _parse_money_token(m.group(1))
-        if raw is None or raw < 100:
-            continue
-        if raw < 500:
-            suffix = _SPLIT_SUFFIX.match(text[m.end():])
-            if suffix:
-                merged = float(f"{int(raw)}{suffix.group(1)}")
-                if merged > raw:
-                    raw = merged
-        nearest = min(ACCOUNT_SIZES, key=lambda s: abs(s - raw))
-        if abs(nearest - raw) <= max(50.0, nearest * 0.02):
-            return float(nearest)
+    """Ищет размер счёта в 60 символах после названия тарифа.
+
+    Работает для «STARTER - $5 000», «STARTER ^\n$5 000» и других форматов
+    с любым разделителем между названием плана и суммой.
+    """
+    for m in _PLAN.finditer(text):
+        window = text[m.start() : m.start() + 60]
+        for money in _MONEY.finditer(window):
+            raw = _parse_money_token(money.group(1))
+            if raw is None or raw < 100:
+                continue
+            if raw < 500:
+                rest = text[m.start() + money.end() :]
+                suffix = _SPLIT_SUFFIX.match(rest)
+                if suffix:
+                    merged = float(f"{int(raw)}{suffix.group(1)}")
+                    if merged > raw:
+                        raw = merged
+            nearest = min(ACCOUNT_SIZES, key=lambda s: abs(s - raw))
+            if abs(nearest - raw) <= max(50.0, nearest * 0.02):
+                return float(nearest)
     return None
 
 
