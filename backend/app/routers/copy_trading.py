@@ -110,7 +110,7 @@ def _require_copy_deposit_if_enabling(
     telegram_user_id: int,
     enabled: bool,
 ) -> None:
-    if not enabled or copy_fee_exempt(telegram_user_id):
+    if not enabled:
         return
     if not copy_trading_allowed(db, telegram_user_id):
         raise HTTPException(
