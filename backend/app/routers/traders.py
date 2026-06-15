@@ -63,7 +63,7 @@ def pool_stats(
 ) -> dict:
     _ = user
     from app.models import Signal
-    from app.trader_stats import closed_signal_move_pct
+    from app.trader_stats import closed_signal_move_pct, signal_entry_price, signal_resolved_exit_price
 
     signals = db.scalars(
         select(Signal)
@@ -85,6 +85,12 @@ def pool_stats(
             "move_pct": round(move, 4),
             "delta_usd": round(balance - before, 2),
             "pool_after": balance,
+            "entry_price": signal_entry_price(sig),
+            "exit_price": signal_resolved_exit_price(sig),
+            "published_market_price": sig.published_market_price,
+            "entry_low": sig.entry_low,
+            "entry_high": sig.entry_high,
+            "is_cult_candidate": sig.is_cult_candidate,
             "closed_exit_price": sig.closed_exit_price,
             "realized_pnl": sig.realized_pnl,
         })

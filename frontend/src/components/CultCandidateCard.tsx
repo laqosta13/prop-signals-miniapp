@@ -106,8 +106,7 @@ export function CultCandidateCard({
 
   const poolShare = candidate.pool_share_usd ?? 0;
   function fmtShare(v: number) {
-    if (v >= 1000) return `$${Math.round(v / 1000)}K`;
-    return `$${Math.round(v)}`;
+    return "$" + Math.round(v).toLocaleString("ru-RU");
   }
 
   return (

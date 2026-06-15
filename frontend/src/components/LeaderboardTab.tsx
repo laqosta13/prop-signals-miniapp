@@ -12,8 +12,7 @@ import {
 } from "../api";
 
 function fmtShare(v: number): string {
-  if (v >= 1000) return `$${Math.round(v / 1000)}K`;
-  return `$${Math.round(v)}`;
+  return "$" + Math.round(v).toLocaleString("ru-RU");
 }
 import { EquityCurve } from "./EquityCurve";
 import { CultCandidateCard } from "./CultCandidateCard";
