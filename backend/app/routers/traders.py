@@ -8,6 +8,7 @@ from app.leaderboard_service import build_fired_leaderboard, build_leaderboard, 
 from app.models import Trader
 from app.pool_service import (
     CANDIDATES_SHARE,
+    POOL_INITIAL_USD,
     PROJECT_SHARE,
     TRADERS_SHARE,
     get_pool_balance,
