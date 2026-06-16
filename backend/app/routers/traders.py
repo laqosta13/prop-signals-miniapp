@@ -111,8 +111,21 @@ def set_trader_roster(
 ) -> dict[str, object]:
     """Ротация трейдера: top / candidate / fired (главный админ)."""
     from datetime import datetime, timezone
-    from app.models import CultCandidate
+    from sqlalchemy import func
+    from app.models import CultCandidate, Signal
     from app.serializers import trader_display_name
+
+    active_count = db.scalar(
+        select(func.count()).select_from(Signal).where(
+            Signal.author_telegram_id == telegram_id,
+            Signal.status == "active",
+        )
+    )
+    if active_count:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="open_signal",
+        )
 
     try:
         set_roster_override(db, telegram_id, body.section)

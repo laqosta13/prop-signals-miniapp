@@ -26,6 +26,7 @@ const CONFIRM: Record<TraderRosterPlacement, string> = {
 function rosterErrorMessage(err: unknown, cooldownMsg: string): string {
   const text = err instanceof Error ? err.message : "";
   if (text.includes("fired_cooldown")) return cooldownMsg;
+  if (text.includes("open_signal")) return "Нельзя изменить статус — у трейдера есть открытая сделка";
   return text || "Не удалось изменить статус";
 }
 
