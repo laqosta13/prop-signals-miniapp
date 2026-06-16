@@ -337,7 +337,7 @@ def build_cult_candidates_read(db: Session, *, viewer_id: int | None = None) -> 
         r
         for r in rows
         if overrides.get(r.telegram_user_id) not in (ROSTER_TOP, ROSTER_FIRED)
-        and r.telegram_user_id not in demoted
+        and (r.telegram_user_id not in demoted or r.telegram_user_id == viewer_id)
     ]
     if not rows:
         return []

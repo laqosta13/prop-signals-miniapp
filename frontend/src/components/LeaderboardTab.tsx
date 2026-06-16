@@ -352,21 +352,23 @@ export function LeaderboardTab({
           )}
           {rosterDemotedAdmins.length > 0 && (
             <ol className="top-list">
-              {rosterDemotedAdmins.map((trader) => (
-                <TopTraderCard
-                  key={trader.telegram_id}
-                  trader={trader}
-                  onOpen={() => setProfileTrader(trader)}
-                  isSuperAdmin={isSuperAdmin}
-                  rosterPlacement="candidate"
-                  onRosterChange={onRosterChange}
-                  onTrade={
-                    trader.telegram_id === myId && canPublishCandidate
-                      ? () => setSignalModalOpen(true)
-                      : undefined
-                  }
-                />
-              ))}
+              {rosterDemotedAdmins
+                .filter((t) => !(t.telegram_id === myId && myCandidate))
+                .map((trader) => (
+                  <TopTraderCard
+                    key={trader.telegram_id}
+                    trader={trader}
+                    onOpen={() => setProfileTrader(trader)}
+                    isSuperAdmin={isSuperAdmin}
+                    rosterPlacement="candidate"
+                    onRosterChange={onRosterChange}
+                    onTrade={
+                      trader.telegram_id === myId && canPublishCandidate
+                        ? () => setSignalModalOpen(true)
+                        : undefined
+                    }
+                  />
+                ))}
             </ol>
           )}
           {cultCandidates.length === 0 && channelCandidates.length === 0 && rosterDemotedAdmins.length === 0 && !isAdmin && (
