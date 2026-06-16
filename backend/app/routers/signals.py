@@ -135,8 +135,8 @@ async def market_price(
     user: TelegramUser = Depends(get_current_user),
     db: Session = Depends(db_session),
 ) -> MarketPriceRead:
-    """Курс Bybit perp для формы сигнала (админ или кандидат CULT)."""
-    _require_signal_form_market_access(user, db)
+    """Курс Bybit perp — для PNL карточек (все авторизованные) и формы сигнала."""
+    _ = db
     sym = normalize_symbol(symbol)
     if not sym:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="symbol required")
