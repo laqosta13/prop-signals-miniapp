@@ -244,6 +244,14 @@ export function LeaderboardTab({
     () => [...cultCandidates].filter((c) => !c.is_me).sort((a, b) => a.rank - b.rank),
     [cultCandidates],
   );
+  const cultCandidateIds = useMemo(
+    () => new Set(cultCandidates.map((c) => c.telegram_user_id)),
+    [cultCandidates],
+  );
+  const visibleDemotedAdmins = useMemo(
+    () => rosterDemotedAdmins.filter((t) => !cultCandidateIds.has(t.telegram_id)),
+    [rosterDemotedAdmins, cultCandidateIds],
+  );
   const channelCandidates = useMemo(
     () => [...cultChannels].sort((a, b) => b.rating_percent - a.rating_percent),
     [cultChannels],
@@ -347,25 +355,23 @@ export function LeaderboardTab({
               ))}
             </ol>
           )}
-          {rosterDemotedAdmins.length > 0 && (
+          {visibleDemotedAdmins.length > 0 && (
             <ol className="top-list">
-              {rosterDemotedAdmins
-                .filter((t) => !(t.telegram_id === myId && myCandidate))
-                .map((trader) => (
-                  <TopTraderCard
-                    key={trader.telegram_id}
-                    trader={trader}
-                    onOpen={() => setProfileTrader(trader)}
-                    isSuperAdmin={isSuperAdmin}
-                    rosterPlacement="candidate"
-                    onRosterChange={onRosterChange}
-                    onTrade={
-                      trader.telegram_id === myId && canPublishCandidate
-                        ? () => setSignalModalOpen(true)
-                        : undefined
-                    }
-                  />
-                ))}
+              {visibleDemotedAdmins.map((trader) => (
+                <TopTraderCard
+                  key={trader.telegram_id}
+                  trader={trader}
+                  onOpen={() => setProfileTrader(trader)}
+                  isSuperAdmin={isSuperAdmin}
+                  rosterPlacement="candidate"
+                  onRosterChange={onRosterChange}
+                  onTrade={
+                    trader.telegram_id === myId && canPublishCandidate
+                      ? () => setSignalModalOpen(true)
+                      : undefined
+                  }
+                />
+              ))}
             </ol>
           )}
           {cultCandidates.length === 0 && channelCandidates.length === 0 && rosterDemotedAdmins.length === 0 && !isAdmin && (

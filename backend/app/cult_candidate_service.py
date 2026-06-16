@@ -347,11 +347,8 @@ def build_cult_candidates_read(
     all_ranked = sorted(eligible, key=lambda c: (-(c.rating_percent or 0), -(c.wins or 0)))
     true_ranks: dict[int, int] = {r.telegram_user_id: rank for rank, r in enumerate(all_ranked, start=1)}
 
-    # Видимые строки: demoted admins скрыты, кроме самого viewer'а
-    visible = [
-        r for r in eligible
-        if r.telegram_user_id not in demoted or r.telegram_user_id == viewer_id
-    ]
+    # Все участники видны всем — demoted admins отображаются как CultCandidateCard с сигналами
+    visible = list(eligible)
     if not visible:
         return []
 
