@@ -328,14 +328,16 @@ def _candidate_read(
 
 
 def build_cult_candidates_read(db: Session, *, viewer_id: int | None = None) -> list[CultCandidateRead]:
-    from app.trader_roster_service import ROSTER_FIRED, ROSTER_TOP, roster_overrides_map
+    from app.trader_roster_service import ROSTER_FIRED, ROSTER_TOP, demoted_admin_ids, roster_overrides_map
 
     overrides = roster_overrides_map(db)
+    demoted = set(demoted_admin_ids(db))
     rows = list(db.scalars(select(CultCandidate).where(CultCandidate.enabled.is_(True))).all())
     rows = [
         r
         for r in rows
         if overrides.get(r.telegram_user_id) not in (ROSTER_TOP, ROSTER_FIRED)
+        and r.telegram_user_id not in demoted
     ]
     if not rows:
         return []
