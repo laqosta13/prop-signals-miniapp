@@ -23,13 +23,37 @@ from app.price_service import (
 )
 from app.copy_trading_service import open_signal_copies, open_signal_copy_for_user
 from app.signal_service import after_limit_entry_filled, close_signal_and_notify, notify_entry_filled_if_needed
-from app.signal_utils import entry_zone_defined, monitor_exit_price
+from app.signal_utils import entry_triggered, entry_zone_defined, monitor_exit_price
 
 logger = logging.getLogger(__name__)
 
 
 def _signal_awaits_entry(signal: Signal | CultChannelSignal) -> bool:
     return signal.entry_filled_at is None and entry_zone_defined(signal.entry_low, signal.entry_high)
+
+
+async def _entry_quote_from_klines(
+    symbol: str,
+    direction: str,
+    entry_low: str | None,
+    entry_high: str | None,
+) -> PriceQuote | None:
+    """Fallback: ловит wick-касание лимитки через последние 1-минутные свечи Bybit.
+
+    Нужно когда цена коснулась зоны входа в wick свечи и отскочила до следующего
+    тика монитора — spot-цена в такой ситуации промахивается.
+    """
+    klines = await fetch_bybit_linear_klines(symbol, "1", limit=2)
+    for candle in klines:
+        if direction.lower() == "long":
+            extreme = float(candle.get("low") or 0)
+            q = PriceQuote("kline_low", extreme)
+        else:
+            extreme = float(candle.get("high") or 0)
+            q = PriceQuote("kline_high", extreme)
+        if extreme > 0 and entry_triggered(q.price, direction, entry_low, entry_high):
+            return q
+    return None
 
 
 def _candle_quotes(candle: dict, direction: str) -> list[PriceQuote]:
@@ -161,6 +185,10 @@ async def check_active_signals_once() -> tuple[int, bool]:
                 if signal.entry_filled_at is None and entry_zone_defined(signal.entry_low, signal.entry_high):
                     hit = first_entry_quote(quotes, signal.direction, signal.entry_low, signal.entry_high)
                     if hit is None:
+                        hit = await _entry_quote_from_klines(
+                            signal.symbol, signal.direction, signal.entry_low, signal.entry_high
+                        )
+                    if hit is None:
                         outcome_hit = monitor_outcome_for_signal(signal, quotes)
                         if outcome_hit is not None:
                             outcome, hit = outcome_hit
@@ -250,6 +278,10 @@ async def check_active_signals_once() -> tuple[int, bool]:
                 continue
             if signal.entry_filled_at is None and entry_zone_defined(signal.entry_low, signal.entry_high):
                 hit = first_entry_quote(quotes, signal.direction, signal.entry_low, signal.entry_high)
+                if hit is None:
+                    hit = await _entry_quote_from_klines(
+                        signal.symbol, signal.direction, signal.entry_low, signal.entry_high
+                    )
                 if hit is not None:
                     signal.entry_filled_at = datetime.now(timezone.utc)
                     db.commit()
@@ -288,6 +320,10 @@ async def check_active_signals_once() -> tuple[int, bool]:
 
             if sig.entry_filled_at is None and entry_zone_defined(sig.entry_low, sig.entry_high):
                 hit = first_entry_quote(quotes, sig.direction, sig.entry_low, sig.entry_high)
+                if hit is None:
+                    hit = await _entry_quote_from_klines(
+                        sig.symbol, sig.direction, sig.entry_low, sig.entry_high
+                    )
                 if hit is not None:
                     sig.entry_filled_at = datetime.now(timezone.utc)
                     db.commit()
