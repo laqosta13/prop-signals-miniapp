@@ -78,14 +78,16 @@ export function useSignalFormLimitsState(
 
   const dailyTradesCount = trackerSnap?.dailyTradesCount ?? 0;
   const dailyTradesLimit = trackerSnap?.dailyTradesLimit ?? SIGNAL_DAILY_TRADE_LIMIT;
-  const dailyLimit = dailyTradingBlocked({
-    dailyLossUsd,
-    rankNominalUsd: rankNominalForDailyStop,
-    dailyTradesCount,
-    dailyTradesLimit,
-    dailyStopRemainingRankPct: trackerSnap?.dailyStopRemainingRankPct,
-  });
-  const dailyStopBlocked = dailyRemainingRank < ACCOUNT_STOP_MIN_STEP;
+  const dailyLimit = trackerSnap == null
+    ? { blocked: false, reason: null as null }
+    : dailyTradingBlocked({
+        dailyLossUsd,
+        rankNominalUsd: rankNominalForDailyStop,
+        dailyTradesCount,
+        dailyTradesLimit,
+        dailyStopRemainingRankPct: trackerSnap.dailyStopRemainingRankPct,
+      });
+  const dailyStopBlocked = trackerSnap != null && dailyRemainingRank < ACCOUNT_STOP_MIN_STEP;
 
   return {
     trackerSnap,

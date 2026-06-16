@@ -363,8 +363,6 @@ export default function App() {
     return () => clearInterval(id);
   }, [loading, tab, refreshSignalsOnly]);
 
-  const hasMyTracker =
-    myId != null && trackers.some((t) => t.owner_telegram_id === myId);
 
   const openSettings = (tracker: ChallengeDashboard) => {
     setTrackerSettings(tracker);
@@ -597,7 +595,7 @@ export default function App() {
         </Suspense>
       </main>
 
-      {canPublishMainFeed && hasMyTracker && tab === "feed" && (
+      {canPublishMainFeed && tab === "feed" && (
         <button
           type="button"
           className="fab-bottom"
