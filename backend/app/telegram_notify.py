@@ -396,10 +396,15 @@ def format_updated_signal_message(signal: Signal, changes: list[str], *, actor_l
     return body
 
 
-def format_deleted_signal_message(signal: Signal, *, actor_label: str | None = None) -> str:
+def format_deleted_signal_message(signal: Signal, *, actor_label: str | None = None, reason: str | None = None) -> str:
     parts = [f"🗑 <b>СИГНАЛ СНЯТ</b>", _signal_headline(signal)]
+    who_body = ""
     if actor_label:
-        parts.append(_highlight_block("Кто", _row("Удалил", f"<b>{_esc(actor_label)}</b>")))
+        who_body += _row("Удалил", f"<b>{_esc(actor_label)}</b>")
+    if reason and reason.strip():
+        who_body += _row("Причина", f"<i>{_esc(reason.strip())}</i>")
+    if who_body:
+        parts.append(_highlight_block("Кто", who_body))
     parts.append(_signal_body(signal))
     return "".join(parts)
 

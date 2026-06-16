@@ -768,8 +768,11 @@ export const recordSignalView = (signalId: number) =>
 export const toggleSignalLike = (signalId: number) =>
   api<{ liked: boolean; likes_count: number }>(`/signals/${signalId}/like`, { method: "POST" });
 
-export async function deleteSignal(signalId: number): Promise<void> {
-  const res = await fetch(`${base}/signals/${signalId}`, {
+export async function deleteSignal(signalId: number, reason?: string): Promise<void> {
+  const url = reason
+    ? `${base}/signals/${signalId}?reason=${encodeURIComponent(reason)}`
+    : `${base}/signals/${signalId}`;
+  const res = await fetch(url, {
     method: "DELETE",
     headers: authHeaders(),
   });

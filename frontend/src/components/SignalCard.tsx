@@ -11,7 +11,7 @@ import {
   signalTrackerBalanceUsd,
 } from "../utils/signalPnl";
 import { useSignalLivePnl } from "../hooks/useSignalLivePnl";
-import { canEditOrDeleteSignal, canCloseAtMarketSignal, canSupplementSignal } from "../utils/signalActions";
+import { canEditOrDeleteSignal, canCloseAtMarketSignal, canSupplementSignal, canSuperAdminDeleteSignal } from "../utils/signalActions";
 import { localizeOutcomeLabel, useThemedCopy } from "../hooks/useThemedCopy";
 import {
   formatSignedMovePct,
@@ -30,6 +30,7 @@ type Props = {
   signal: Signal;
   liveTrackerBalance?: number | null;
   isAdmin?: boolean;
+  isSuperAdmin?: boolean;
   myId?: number | null;
   canEngage?: boolean;
   onEdit?: (signal: Signal) => void;
@@ -45,6 +46,7 @@ export function SignalCard({
   signal: s,
   liveTrackerBalance,
   isAdmin,
+  isSuperAdmin,
   myId,
   canEngage = true,
   onEdit,
@@ -211,6 +213,13 @@ export function SignalCard({
               {copy.cardDelete}
             </button>
           )}
+        </div>
+      )}
+      {isSuperAdmin && canSuperAdminDeleteSignal(s) && !canEditOrDeleteSignal(s, myId, !!isAdmin) && onDelete && (
+        <div className="signal-card__admin-bar">
+          <button type="button" className="delete-btn" disabled={deleting} onClick={() => onDelete(s.id)}>
+            {deleting ? "Удаление…" : "Удалить"}
+          </button>
         </div>
       )}
 

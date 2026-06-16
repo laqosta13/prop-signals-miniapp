@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.coin_icons import resolve_coin_icon_url
 from app.deps import db_session, get_current_user, require_active_subscription, require_main_feed_publisher
-from app.signal_permissions import require_signal_engagement, require_signal_owner
+from app.signal_permissions import require_signal_engagement, require_signal_owner, require_signal_owner_or_super_admin
 from app.engagement import purge_signal_engagement, record_view, toggle_like
 from app.media_storage import (
     delete_media_files,
@@ -349,19 +349,20 @@ async def update_signal(
 @router.delete("/{signal_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_signal(
     signal_id: int,
+    reason: str | None = Query(default=None),
     db: Session = Depends(db_session),
     admin: TelegramUser = Depends(require_main_feed_publisher),
 ) -> None:
     row = db.get(Signal, signal_id)
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")
-    require_signal_owner(row, admin)
-    if not signal_awaiting_entry(row):
+    require_signal_owner_or_super_admin(row, admin)
+    if not admin.is_super_admin and not signal_awaiting_entry(row):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Удалить можно только до срабатывания входа",
         )
-    await notify_deleted_signal(db, row, actor=admin)
+    await notify_deleted_signal(db, row, actor=admin, reason=reason)
     for sup in db.scalars(select(SignalSupplement).where(SignalSupplement.signal_id == signal_id)).all():
         delete_media_files(sup.media_image_path, sup.media_video_path)
     db.execute(delete(SignalSupplement).where(SignalSupplement.signal_id == signal_id))

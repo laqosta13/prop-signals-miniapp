@@ -19,6 +19,11 @@ export function canEditOrDeleteSignal(
   );
 }
 
+/** Удаление главным админом — любой активный сигнал. */
+export function canSuperAdminDeleteSignal(s: Signal): boolean {
+  return s.status === "active";
+}
+
 /** Дополнение — админ, свои сигналы, после входа. */
 export function canSupplementSignal(
   s: Signal,

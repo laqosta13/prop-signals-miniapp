@@ -187,12 +187,12 @@ async def notify_updated_signal(
         )
 
 
-async def notify_deleted_signal(db: Session, signal: Signal, *, actor: TelegramUser) -> None:
+async def notify_deleted_signal(db: Session, signal: Signal, *, actor: TelegramUser, reason: str | None = None) -> None:
     ids = subscriber_ids_for_notify(db)
     if ids:
         label = resolve_actor_label(db, actor)
         await notify_subscribers(
-            format_deleted_signal_message(signal, actor_label=label),
+            format_deleted_signal_message(signal, actor_label=label, reason=reason),
             ids,
         )
 

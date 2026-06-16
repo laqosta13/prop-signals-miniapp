@@ -525,6 +525,7 @@ export default function App() {
             trackers={trackers}
             loading={loading}
             isAdmin={isAdmin}
+            isSuperAdmin={isSuperAdmin}
             canPublishMainFeed={canPublishMainFeed}
             myId={myId}
             subscriptionActive={subActive}

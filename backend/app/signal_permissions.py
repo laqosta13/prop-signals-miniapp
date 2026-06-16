@@ -14,6 +14,12 @@ def require_signal_owner(row: Signal, admin: TelegramUser) -> None:
         )
 
 
+def require_signal_owner_or_super_admin(row: Signal, admin: TelegramUser) -> None:
+    if admin.is_super_admin:
+        return
+    require_signal_owner(row, admin)
+
+
 def require_signal_engagement(row: Signal, user: TelegramUser) -> None:
     """Просмотры и лайки: без подписки только на отработанных сигналах."""
     if user.is_admin or user.subscription_active:

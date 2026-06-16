@@ -7621,6 +7621,17 @@ input.readonly {
   background: var(--surface-hover);
 }
 
+.submit-btn--danger {
+  background: rgba(255, 92, 92, 0.15);
+  color: var(--red);
+  border: 1px solid rgba(255, 92, 92, 0.35);
+  box-shadow: none;
+}
+
+.submit-btn--danger:active:not(:disabled) {
+  background: rgba(255, 92, 92, 0.25);
+}
+
 .submit-btn:disabled {
   opacity: 0.5;
 }

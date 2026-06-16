@@ -7,6 +7,7 @@ import { canViewActiveSignals, visibleFeedSignals } from "../utils/signalActions
 import { splitFeedSignals } from "../utils/sortFeedSignals";
 import { PropTrackerMini } from "./PropTrackerMini";
 import { SignalCard } from "./SignalCard";
+import { DeleteSignalModal } from "./DeleteSignalModal";
 
 const CLOSED_FEED_BATCH = 3;
 
@@ -15,6 +16,7 @@ type Props = {
   trackers: ChallengeDashboard[];
   loading: boolean;
   isAdmin: boolean;
+  isSuperAdmin?: boolean;
   canPublishMainFeed: boolean;
   myId: number | null;
   subscriptionActive: boolean;
@@ -36,6 +38,7 @@ export function FeedTab({
   trackers,
   loading,
   isAdmin,
+  isSuperAdmin = false,
   canPublishMainFeed,
   myId,
   subscriptionActive,
@@ -54,6 +57,7 @@ export function FeedTab({
   const copy = useThemedCopy();
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [closingId, setClosingId] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Signal | null>(null);
   const [closedVisibleCount, setClosedVisibleCount] = useState(CLOSED_FEED_BATCH);
   const feedTrader = isAdmin || canPublishMainFeed;
   const hasActiveAccess = canViewActiveSignals(subscriptionActive, feedTrader);
@@ -77,12 +81,22 @@ export function FeedTab({
   const closedHiddenCount = Math.max(0, closedSignals.length - closedVisibleCount);
   const nextClosedBatch = Math.min(CLOSED_FEED_BATCH, closedHiddenCount);
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Удалить этот сигнал?")) return;
+  const handleDelete = (id: number) => {
+    const signal = signals.find((s) => s.id === id) ?? null;
+    if (isSuperAdmin) {
+      setDeleteTarget(signal);
+    } else {
+      void confirmAndDelete(id);
+    }
+  };
+
+  const confirmAndDelete = async (id: number, reason?: string) => {
+    if (!reason && !confirm("Удалить этот сигнал?")) return;
     setDeletingId(id);
     try {
-      await deleteSignal(id);
+      await deleteSignal(id, reason);
       WebApp.HapticFeedback.notificationOccurred("success");
+      setDeleteTarget(null);
       onChanged();
     } catch (e) {
       alert(e instanceof Error ? e.message : "Не удалось удалить");
@@ -114,6 +128,7 @@ export function FeedTab({
         signal={s}
         liveTrackerBalance={trackers.find((t) => t.owner_telegram_id === s.author_telegram_id)?.balance}
         isAdmin={isAdmin}
+        isSuperAdmin={isSuperAdmin}
         myId={myId}
         canEngage={true}
         deleting={deletingId === s.id}
@@ -187,6 +202,13 @@ export function FeedTab({
       )}
 
       {trackers.length > 0 && <PropTrackerMini trackers={trackers} onOpen={onOpenTracker} />}
+
+      <DeleteSignalModal
+        signal={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={(id, reason) => void confirmAndDelete(id, reason)}
+        deleting={deleteTarget !== null && deletingId === deleteTarget.id}
+      />
     </>
   );
 }
