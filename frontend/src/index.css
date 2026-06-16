@@ -3604,7 +3604,12 @@
 /* ── Volnovoi hero (сводный трейдер, вне блока «Трейдеры») ── */
 
 .volnovoi-hero {
-  margin: 0 10px 18px;
+  margin: 0 0 12px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface);
+  overflow: hidden;
 }
 
 .volnovoi-hero__card {

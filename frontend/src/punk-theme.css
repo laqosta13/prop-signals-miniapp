@@ -467,7 +467,8 @@ html.theme-glitch [data-theme="punk"] .vc-split-logo--punk .vc-split-logo__punk 
 }
 
 [data-theme="punk"] .feed-block,
-[data-theme="punk"] .top-cult-block {
+[data-theme="punk"] .top-cult-block,
+[data-theme="punk"] .volnovoi-hero {
   border-color: rgba(0, 240, 255, 0.28);
   background: var(--surface);
   box-shadow: inset 0 0 24px rgba(0, 240, 255, 0.06);
