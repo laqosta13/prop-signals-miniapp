@@ -78,7 +78,17 @@ def list_cult_candidates(
     db: Session = Depends(db_session),
     user: TelegramUser = Depends(get_current_user),
 ) -> list[CultCandidateRead]:
-    return build_cult_candidates_read(db, viewer_id=user.telegram_user_id)
+    from app.subscription_billing import subscription_active
+    bypass = cult_subscription_admin_bypass(db, user.telegram_user_id)
+    sub = db.get(Subscriber, user.telegram_user_id)
+    can_see_active = (
+        bypass
+        or cult_subscription_active(sub, is_admin=bypass)
+        or subscription_active(sub, bypass)
+    )
+    return build_cult_candidates_read(
+        db, viewer_id=user.telegram_user_id, viewer_can_see_active=can_see_active
+    )
 
 
 @router.get("/subscription/info", response_model=CultCandidateSubscriptionInfo)

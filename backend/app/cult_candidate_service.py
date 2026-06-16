@@ -327,7 +327,12 @@ def _candidate_read(
     )
 
 
-def build_cult_candidates_read(db: Session, *, viewer_id: int | None = None) -> list[CultCandidateRead]:
+def build_cult_candidates_read(
+    db: Session,
+    *,
+    viewer_id: int | None = None,
+    viewer_can_see_active: bool = False,
+) -> list[CultCandidateRead]:
     from app.trader_roster_service import ROSTER_FIRED, ROSTER_TOP, demoted_admin_ids, roster_overrides_map
 
     overrides = roster_overrides_map(db)
@@ -343,24 +348,29 @@ def build_cult_candidates_read(db: Session, *, viewer_id: int | None = None) -> 
         return []
     ids = [r.telegram_user_id for r in rows]
     daily = _daily_stats(db, ids)
-    active = _active_signals_for(db, ids)
+    active_all = _active_signals_for(db, ids)
     closed = _closed_signals_for(db, ids)
     ranked = sorted(rows, key=lambda c: (-(c.rating_percent or 0), -(c.wins or 0)))
     from app.pool_service import combined_candidate_pool_shares
     candidate_shares = combined_candidate_pool_shares(db)
-    return [
-        _candidate_read(
-            db,
-            row,
-            rank=rank,
-            daily=daily,
-            active=active,
-            closed=closed,
-            is_me=viewer_id is not None and row.telegram_user_id == viewer_id,
-            pool_share_usd=candidate_shares.get(row.telegram_user_id, 0.0),
+    result = []
+    for rank, row in enumerate(ranked, start=1):
+        is_me = viewer_id is not None and row.telegram_user_id == viewer_id
+        # Активные сделки: свои всегда, чужие — только при наличии доступа
+        active = active_all if (viewer_can_see_active or is_me) else {}
+        result.append(
+            _candidate_read(
+                db,
+                row,
+                rank=rank,
+                daily=daily,
+                active=active,
+                closed=closed,
+                is_me=is_me,
+                pool_share_usd=candidate_shares.get(row.telegram_user_id, 0.0),
+            )
         )
-        for rank, row in enumerate(ranked, start=1)
-    ]
+    return result
 
 
 def build_cult_candidate_me_read(db: Session, sub: Subscriber) -> CultCandidateMeRead:
