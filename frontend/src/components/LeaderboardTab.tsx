@@ -240,11 +240,8 @@ export function LeaderboardTab({
     [traders],
   );
   const myCandidate = useMemo(() => cultCandidates.find((c) => c.is_me), [cultCandidates]);
-  const otherUserCandidates = useMemo(
-    () =>
-      [...cultCandidates]
-        .filter((c) => !c.is_me)
-        .sort((a, b) => b.rating_percent - a.rating_percent),
+  const sortedCandidates = useMemo(
+    () => [...cultCandidates].sort((a, b) => a.rank - b.rank),
     [cultCandidates],
   );
   const channelCandidates = useMemo(
@@ -316,27 +313,17 @@ export function LeaderboardTab({
           {myId != null && (
             <CultCandidateJoinPanel onJoined={onCultCandidatesChange} />
           )}
-          {(myCandidate || otherUserCandidates.length > 0) && (
+          {sortedCandidates.length > 0 && (
             <ol className="top-list top-list--user-candidates">
-              {myCandidate && (
-                <CultCandidateCard
-                  key={`me-${myCandidate.telegram_user_id}`}
-                  candidate={myCandidate}
-                  showActiveTrades={canViewCandidateActiveTrades(subscriptionActive, isAdmin, true)}
-                  onTrade={canPublishCandidate ? () => setSignalModalOpen(true) : undefined}
-                  onOpenClosedTrade={openClosedTrade}
-                  onCloseAtMarket={handleCloseCandidateAtMarket}
-                  closingSignalId={closingSignalId}
-                  isSuperAdmin={isSuperAdmin}
-                  onRosterChange={onRosterChange}
-                />
-              )}
-              {otherUserCandidates.map((candidate) => (
+              {sortedCandidates.map((candidate) => (
                 <CultCandidateCard
                   key={candidate.telegram_user_id}
                   candidate={candidate}
-                  showActiveTrades={canViewCandidateActiveTrades(subscriptionActive, isAdmin, false)}
+                  showActiveTrades={canViewCandidateActiveTrades(subscriptionActive, isAdmin, candidate.is_me)}
+                  onTrade={candidate.is_me && canPublishCandidate ? () => setSignalModalOpen(true) : undefined}
                   onOpenClosedTrade={openClosedTrade}
+                  onCloseAtMarket={candidate.is_me ? handleCloseCandidateAtMarket : undefined}
+                  closingSignalId={candidate.is_me ? closingSignalId : null}
                   isSuperAdmin={isSuperAdmin}
                   onRosterChange={onRosterChange}
                 />
