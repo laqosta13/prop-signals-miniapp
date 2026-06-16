@@ -762,14 +762,47 @@ def get_candidate_owned_signal(db: Session, signal_id: int, author_id: int) -> S
 
 
 def ensure_can_trade(db: Session, sub: Subscriber) -> CultCandidate:
-    from app.trader_roster_service import cult_subscription_admin_bypass, is_main_feed_publisher
+    from datetime import datetime, timezone
+    from app.trader_roster_service import (
+        cult_subscription_admin_bypass,
+        is_main_feed_publisher,
+        is_roster_demoted_admin,
+    )
 
     if is_main_feed_publisher(db, sub.telegram_user_id):
         raise ValueError("Вы в ТОП — публикуйте сигналы в основную ленту")
+
+    bypass = cult_subscription_admin_bypass(db, sub.telegram_user_id)
+
+    # Демотированный админ: авто-создаём запись кандидата если нет
+    if is_roster_demoted_admin(db, sub.telegram_user_id):
+        row = db.get(CultCandidate, sub.telegram_user_id)
+        if row is None:
+            from app.models import Trader
+            from app.serializers import trader_display_name
+            trader = db.get(Trader, sub.telegram_user_id)
+            name = trader_display_name(trader, trader.username if trader else None) or f"Admin{sub.telegram_user_id}"
+            row = CultCandidate(
+                telegram_user_id=sub.telegram_user_id,
+                display_name=name[:64],
+                enabled=True,
+                joined_at=datetime.now(timezone.utc),
+                rating_percent=float(trader.rating_percent or 0) if trader else 0.0,
+                wins=int(trader.wins or 0) if trader else 0,
+                losses=int(trader.losses or 0) if trader else 0,
+            )
+            db.add(row)
+            db.flush()
+        elif not row.enabled:
+            row.enabled = True
+        blockers = _trade_access_blockers(db, sub, cult_admin_bypass=bypass)
+        if blockers:
+            raise ValueError(blockers[0])
+        return row
+
     row = db.get(CultCandidate, sub.telegram_user_id)
     if row is None or not row.enabled:
         raise ValueError("Сначала станьте кандидатом в CULT")
-    bypass = cult_subscription_admin_bypass(db, sub.telegram_user_id)
     blockers = _trade_access_blockers(db, sub, cult_admin_bypass=bypass)
     if blockers:
         raise ValueError(blockers[0])

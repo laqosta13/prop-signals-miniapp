@@ -154,10 +154,14 @@ def can_publish_candidate_signals(db: Session, telegram_id: int) -> bool:
         return False
     if is_main_feed_publisher(db, telegram_id):
         return False
+    # Демотированный админ может публиковать без записи в cult_candidates
     if is_roster_demoted_admin(db, telegram_id):
-        if not is_cult_candidate(db, telegram_id):
+        sub = db.get(Subscriber, telegram_id)
+        if sub is None:
             return False
-    elif not is_cult_candidate(db, telegram_id):
+        bypass = cult_subscription_admin_bypass(db, telegram_id)
+        return len(join_blockers(db, sub, cult_admin_bypass=bypass)) == 0
+    if not is_cult_candidate(db, telegram_id):
         return False
     sub = db.get(Subscriber, telegram_id)
     if sub is None:

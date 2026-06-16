@@ -110,11 +110,31 @@ def set_trader_roster(
     _admin: TelegramUser = Depends(require_super_admin),
 ) -> dict[str, object]:
     """Ротация трейдера: top / candidate / fired (главный админ)."""
+    from datetime import datetime, timezone
+    from app.models import CultCandidate
+    from app.serializers import trader_display_name
+
     try:
         set_roster_override(db, telegram_id, body.section)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
-    get_or_create_trader(db, telegram_id, None)
+    trader = get_or_create_trader(db, telegram_id, None)
+    # Демотированный админ → авто-создаём запись кандидата чтобы он мог публиковать сделки
+    if body.section == "candidate" and settings.is_signal_admin_id(telegram_id):
+        existing = db.get(CultCandidate, telegram_id)
+        if existing is None:
+            name = trader_display_name(trader, trader.username) or f"Admin{telegram_id}"
+            db.add(CultCandidate(
+                telegram_user_id=telegram_id,
+                display_name=name[:64],
+                enabled=True,
+                joined_at=datetime.now(timezone.utc),
+                rating_percent=float(trader.rating_percent or 0),
+                wins=int(trader.wins or 0),
+                losses=int(trader.losses or 0),
+            ))
+        elif not existing.enabled:
+            existing.enabled = True
     db.commit()
     return {"ok": True, "telegram_id": telegram_id, "section": body.section}
 
