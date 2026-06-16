@@ -167,5 +167,6 @@ def can_publish_candidate_signals(db: Session, telegram_id: int) -> bool:
 
 
 def cult_subscription_admin_bypass(db: Session, telegram_id: int) -> bool:
-    """Бесплатная cult-подписка — только админы в ТОП (не переведённые в кандидаты)."""
-    return settings.is_signal_admin_id(telegram_id) and is_main_feed_publisher(db, telegram_id)
+    """Бесплатная cult-подписка — все админы, включая переведённых в кандидаты."""
+    _ = db
+    return settings.is_signal_admin_id(telegram_id)
