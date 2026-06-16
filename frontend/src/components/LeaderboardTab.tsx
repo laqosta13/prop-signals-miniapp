@@ -60,6 +60,7 @@ function TopTraderCard({
   isSuperAdmin = false,
   rosterPlacement,
   onRosterChange,
+  onTrade,
 }: {
   trader: Trader;
   onOpen: () => void;
@@ -67,6 +68,7 @@ function TopTraderCard({
   isSuperAdmin?: boolean;
   rosterPlacement?: TraderRosterPlacement;
   onRosterChange?: () => void;
+  onTrade?: () => void;
 }) {
   const profile = useAuthorProfile(trader.display_name, trader.username, trader.telegram_id);
   const showRankBadge = shouldShowTraderRankBadge(trader);
@@ -157,6 +159,11 @@ function TopTraderCard({
             placement={rosterPlacement}
             onChanged={onRosterChange}
           />
+        )}
+        {onTrade && (
+          <button type="button" className="btn-primary cult-candidate-trade-btn" onClick={onTrade}>
+            Опубликовать сделку
+          </button>
         )}
       </div>
     </li>
@@ -353,6 +360,11 @@ export function LeaderboardTab({
                   isSuperAdmin={isSuperAdmin}
                   rosterPlacement="candidate"
                   onRosterChange={onRosterChange}
+                  onTrade={
+                    trader.telegram_id === myId && canPublishCandidate
+                      ? () => setSignalModalOpen(true)
+                      : undefined
+                  }
                 />
               ))}
             </ol>
