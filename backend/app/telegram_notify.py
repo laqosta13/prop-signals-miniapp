@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import html
 import logging
 import re
@@ -340,19 +341,17 @@ async def notify_subscribers(
         except Exception as e:
             logger.warning("notify card render failed: %s", e)
     logger.info("Отправка уведомления %s подписчикам", len(subscriber_ids))
-    ok = 0
-    fail = 0
-    for uid in subscriber_ids:
+
+    async def _send_one(uid: int) -> bool:
         if card_png:
-            sent = await _send_colored_card(uid, card_png, text)
-        elif photo_file:
-            sent = await _send_photo(uid, photo_file, text)
-        else:
-            sent = await _send_message(uid, text)
-        if sent:
-            ok += 1
-        else:
-            fail += 1
+            return await _send_colored_card(uid, card_png, text)
+        if photo_file:
+            return await _send_photo(uid, photo_file, text)
+        return await _send_message(uid, text)
+
+    results = await asyncio.gather(*[_send_one(uid) for uid in subscriber_ids], return_exceptions=True)
+    ok = sum(1 for r in results if r is True)
+    fail = len(results) - ok
     if fail:
         logger.warning("Уведомления: доставлено %s, ошибок %s (часто: не нажали /start в боте)", ok, fail)
     else:

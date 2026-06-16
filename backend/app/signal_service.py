@@ -187,6 +187,22 @@ async def notify_updated_signal(
         )
 
 
+async def notify_new_signal_bg(signal_id: int) -> None:
+    """Фоновая отправка уведомлений о новом сигнале (не блокирует HTTP-ответ)."""
+    db = SessionLocal()
+    try:
+        signal = db.get(Signal, signal_id)
+        if signal is None:
+            return
+        ids = subscriber_ids_for_notify(db)
+        if ids:
+            await notify_subscribers(format_new_signal_message(signal), ids)
+    except Exception:
+        logger.exception("notify new signal failed for signal #%s", signal_id)
+    finally:
+        db.close()
+
+
 async def notify_deleted_signal(db: Session, signal: Signal, *, actor: TelegramUser, reason: str | None = None) -> None:
     ids = subscriber_ids_for_notify(db)
     if ids:

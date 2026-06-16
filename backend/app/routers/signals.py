@@ -42,7 +42,7 @@ from app.signal_service import (
     close_signal_at_market,
     notify_market_closed,
     notify_deleted_signal,
-    notify_new_signal,
+    notify_new_signal_bg,
     notify_signal_supplement,
     notify_updated_signal,
     stamp_signal_at_publication,
@@ -187,6 +187,7 @@ async def create_signal(
     screenshot: UploadFile | None = File(None),
     video: UploadFile | None = File(None),
     market_entry: str | None = Form(None),
+    background_tasks: BackgroundTasks,
     db: Session = Depends(db_session),
     admin: TelegramUser = Depends(require_main_feed_publisher),
 ) -> SignalRead:
@@ -243,7 +244,7 @@ async def create_signal(
         row.media_video_path = await save_signal_video(row.id, video)
 
     await stamp_signal_at_publication(db, row)
-    await notify_new_signal(db, row)
+    background_tasks.add_task(notify_new_signal_bg, row.id)
     return signal_to_read(db, row, admin.telegram_user_id)
 
 
