@@ -122,7 +122,14 @@ def build_roster_demoted_admins(db: Session) -> list[TraderRead]:
     ids = demoted_admin_ids(db)
     if not ids:
         return []
-    return _traders_leaderboard_rows(db, ids)
+    from app.pool_service import combined_candidate_pool_shares
+    candidate_shares = combined_candidate_pool_shares(db)
+    rows = _traders_leaderboard_rows(db, ids)
+    # Заменяем долю трейдерского пула на долю кандидатского (10%)
+    return [
+        r.model_copy(update={"pool_share_usd": candidate_shares.get(r.telegram_id, 0.0)})
+        for r in rows
+    ]
 
 
 def build_fired_leaderboard(db: Session) -> list[TraderRead]:

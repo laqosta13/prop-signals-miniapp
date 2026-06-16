@@ -99,3 +99,45 @@ def calculate_candidate_pool_shares(pool_balance: float) -> dict[int, float]:
     """Вернуть {место: share_usd} для топ-3 кандидатов из 10% пула."""
     budget = pool_balance * CANDIDATES_SHARE
     return {rank: round(split * budget, 2) for rank, split in CANDIDATE_TOP_SPLIT.items()}
+
+
+def combined_candidate_pool_shares(db: Session) -> dict[int, float]:
+    """Топ-3 из объединённого списка: cult_candidates + demoted admins — {telegram_id: share_usd}.
+
+    Все кандидаты (включая демотированных админов) ранжируются вместе по rating_percent/wins.
+    Первые три места получают 50/30/20% от 10% пула.
+    """
+    from app.models import CultCandidate, Trader
+    from app.trader_roster_service import ROSTER_FIRED, ROSTER_TOP, demoted_admin_ids, roster_overrides_map
+
+    pool_balance = get_pool_balance(db)
+    budget = pool_balance * CANDIDATES_SHARE
+    overrides = roster_overrides_map(db)
+
+    # Обычные cult-кандидаты (не переведены в ТОП или уволены)
+    cult_rows = db.scalars(
+        select(CultCandidate).where(CultCandidate.enabled.is_(True))
+    ).all()
+    entries: list[tuple[int, float, int]] = []  # (telegram_id, rating_pct, wins)
+    for c in cult_rows:
+        if overrides.get(c.telegram_user_id) in (ROSTER_TOP, ROSTER_FIRED):
+            continue
+        entries.append((c.telegram_user_id, float(c.rating_percent or 0), int(c.wins or 0)))
+
+    # Демотированные админы
+    for tid in demoted_admin_ids(db):
+        if any(e[0] == tid for e in entries):
+            continue  # уже есть как cult-кандидат
+        trader = db.get(Trader, tid)
+        entries.append((
+            tid,
+            float(trader.rating_percent or 0) if trader else 0.0,
+            int(trader.wins or 0) if trader else 0,
+        ))
+
+    ranked = sorted(entries, key=lambda x: (-x[1], -x[2]))
+    result: dict[int, float] = {}
+    for pos, (tid, _, _) in enumerate(ranked[:3], start=1):
+        split = CANDIDATE_TOP_SPLIT.get(pos, 0.0)
+        result[tid] = round(split * budget, 2)
+    return result

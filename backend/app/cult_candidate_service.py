@@ -327,7 +327,6 @@ def _candidate_read(
 
 def build_cult_candidates_read(db: Session, *, viewer_id: int | None = None) -> list[CultCandidateRead]:
     from app.trader_roster_service import ROSTER_FIRED, ROSTER_TOP, roster_overrides_map
-    from app.pool_service import calculate_candidate_pool_shares, get_pool_balance
 
     overrides = roster_overrides_map(db)
     rows = list(db.scalars(select(CultCandidate).where(CultCandidate.enabled.is_(True))).all())
@@ -343,7 +342,8 @@ def build_cult_candidates_read(db: Session, *, viewer_id: int | None = None) -> 
     active = _active_signals_for(db, ids)
     closed = _closed_signals_for(db, ids)
     ranked = sorted(rows, key=lambda c: (-(c.rating_percent or 0), -(c.wins or 0)))
-    candidate_shares = calculate_candidate_pool_shares(get_pool_balance(db))
+    from app.pool_service import combined_candidate_pool_shares
+    candidate_shares = combined_candidate_pool_shares(db)
     return [
         _candidate_read(
             db,
@@ -353,7 +353,7 @@ def build_cult_candidates_read(db: Session, *, viewer_id: int | None = None) -> 
             active=active,
             closed=closed,
             is_me=viewer_id is not None and row.telegram_user_id == viewer_id,
-            pool_share_usd=candidate_shares.get(rank, 0.0),
+            pool_share_usd=candidate_shares.get(row.telegram_user_id, 0.0),
         )
         for rank, row in enumerate(ranked, start=1)
     ]
