@@ -337,32 +337,40 @@ def build_cult_candidates_read(
 
     overrides = roster_overrides_map(db)
     demoted = set(demoted_admin_ids(db))
-    rows = list(db.scalars(select(CultCandidate).where(CultCandidate.enabled.is_(True))).all())
-    rows = [
-        r
-        for r in rows
+    all_rows = list(db.scalars(select(CultCandidate).where(CultCandidate.enabled.is_(True))).all())
+
+    # Все участники пула (cult candidates + demoted admins, без TOP/FIRED) — для сквозного ранжирования
+    eligible = [
+        r for r in all_rows
         if overrides.get(r.telegram_user_id) not in (ROSTER_TOP, ROSTER_FIRED)
-        and (r.telegram_user_id not in demoted or r.telegram_user_id == viewer_id)
     ]
-    if not rows:
+    all_ranked = sorted(eligible, key=lambda c: (-(c.rating_percent or 0), -(c.wins or 0)))
+    true_ranks: dict[int, int] = {r.telegram_user_id: rank for rank, r in enumerate(all_ranked, start=1)}
+
+    # Видимые строки: demoted admins скрыты, кроме самого viewer'а
+    visible = [
+        r for r in eligible
+        if r.telegram_user_id not in demoted or r.telegram_user_id == viewer_id
+    ]
+    if not visible:
         return []
-    ids = [r.telegram_user_id for r in rows]
+
+    ids = [r.telegram_user_id for r in visible]
     daily = _daily_stats(db, ids)
     active_all = _active_signals_for(db, ids)
     closed = _closed_signals_for(db, ids)
-    ranked = sorted(rows, key=lambda c: (-(c.rating_percent or 0), -(c.wins or 0)))
+    visible_sorted = sorted(visible, key=lambda r: true_ranks.get(r.telegram_user_id, 9999))
     from app.pool_service import combined_candidate_pool_shares
     candidate_shares = combined_candidate_pool_shares(db)
     result = []
-    for rank, row in enumerate(ranked, start=1):
+    for row in visible_sorted:
         is_me = viewer_id is not None and row.telegram_user_id == viewer_id
-        # Активные сделки: свои всегда, чужие — только при наличии доступа
         active = active_all if (viewer_can_see_active or is_me) else {}
         result.append(
             _candidate_read(
                 db,
                 row,
-                rank=rank,
+                rank=true_ranks[row.telegram_user_id],
                 daily=daily,
                 active=active,
                 closed=closed,
