@@ -68,6 +68,7 @@ def _closed_admin_signals(db: Session, admin_ids: list[int]) -> list[Signal]:
             select(Signal).where(
                 Signal.author_telegram_id.in_(admin_ids),
                 Signal.status.in_(("win", "lose")),
+                Signal.is_cult_candidate.is_(False),
             )
         ).all()
     )

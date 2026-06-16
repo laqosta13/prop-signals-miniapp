@@ -38,6 +38,7 @@ def daily_stats_map(db: Session, admin_ids: list[int]) -> dict[int, list[TraderD
         select(Signal).where(
             Signal.author_telegram_id.in_(admin_ids),
             Signal.status.in_(("win", "lose")),
+            Signal.is_cult_candidate.is_(False),
         )
     ).all()
     buckets: dict[int, dict[str, dict]] = defaultdict(lambda: defaultdict(lambda: {"pnl": 0.0, "rating": 0.0, "w": 0, "l": 0}))
