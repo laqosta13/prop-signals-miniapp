@@ -174,6 +174,7 @@ async def market_klines(
 
 @router.post("", response_model=SignalRead)
 async def create_signal(
+    background_tasks: BackgroundTasks,
     symbol: str = Form(...),
     direction: str = Form(...),
     entry_low: str | None = Form(None),
@@ -187,7 +188,6 @@ async def create_signal(
     screenshot: UploadFile | None = File(None),
     video: UploadFile | None = File(None),
     market_entry: str | None = Form(None),
-    background_tasks: BackgroundTasks,
     db: Session = Depends(db_session),
     admin: TelegramUser = Depends(require_main_feed_publisher),
 ) -> SignalRead:
