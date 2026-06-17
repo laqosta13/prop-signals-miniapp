@@ -5,7 +5,7 @@
   70% → топ-трейдеры (по рангу, позиции в рейтинге, % за неделю; штраф за убыт. недели)
   10% → топ-3 кандидата Волнового (50 / 30 / 20% от этой части)
 
-Баланс пула = $100 000 (старт) + суммарный realized_pnl всех закрытых сигналов.
+Баланс пула = $1 000 (старт) + суммарный realized_pnl всех закрытых сигналов.
 Прибыльные сделки увеличивают пул, убыточные — уменьшают.
 """
 from __future__ import annotations
@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.rank_constants import RANKS_BEST_TO_WORST
 
-POOL_INITIAL_USD: float = 100_000.0
+POOL_INITIAL_USD: float = 1_000.0
 
 PROJECT_SHARE: float = 0.20
 TRADERS_SHARE: float = 0.70
@@ -26,9 +26,9 @@ CANDIDATE_TOP_SPLIT: dict[int, float] = {1: 0.50, 2: 0.30, 3: 0.20}
 
 
 def get_pool_balance(db: Session) -> float:
-    """Пул = $100 000 + сумма P/L всех закрытых сигналов ТОП-трейдеров (база Volnovoi $100k).
+    """Пул = $1 000 + сумма P/L всех закрытых сигналов ТОП-трейдеров (база Volnovoi $1k).
 
-    Каждая сделка: stake% × $100k × leverage × move% / 100 — то же что «доходность» у Volnovoi.
+    Каждая сделка: stake% × $1k × leverage × move% / 100 — то же что «доходность» у Volnovoi.
     Сделки кандидатов на пул не влияют.
     """
     from app.models import Signal
