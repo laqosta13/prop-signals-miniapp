@@ -1260,3 +1260,47 @@ html.theme-glitch [data-theme="punk"] .vc-split-logo--punk .vc-split-logo__punk 
     opacity: 0;
   }
 }
+
+/* ── CopyBannerSlider — punk override ────────────────────── */
+[data-theme="punk"] .copy-banner__headline {
+  color: #00f0ff;
+  text-shadow:
+    0 0 8px rgba(0, 240, 255, 0.8),
+    0 0 22px rgba(0, 240, 255, 0.4);
+  animation: punk-copy-glow 2.2s ease-in-out infinite alternate;
+}
+
+[data-theme="punk"] .copy-banner__eyebrow {
+  color: rgba(0, 240, 255, 0.75);
+}
+
+[data-theme="punk"] .copy-banner__dot--on {
+  background: #00f0ff;
+  box-shadow: 0 0 6px #00f0ff;
+}
+
+[data-theme="punk"] .copy-banner__scanline {
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 240, 255, 0.04) 3px,
+    rgba(0, 240, 255, 0.04) 4px
+  );
+}
+
+[data-theme="punk"] .volnovoi-copy__toggle--banner::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 240, 255, 0.06) 48%,
+    rgba(0, 240, 255, 0.14) 50%,
+    rgba(0, 240, 255, 0.06) 52%,
+    transparent 100%
+  );
+}
+
+@keyframes punk-copy-glow {
+  from { text-shadow: 0 0 6px rgba(0,240,255,0.6), 0 0 16px rgba(0,240,255,0.3); }
+  to   { text-shadow: 0 0 14px rgba(0,240,255,1),  0 0 30px rgba(0,240,255,0.6), 0 0 2px #fff; }
+}

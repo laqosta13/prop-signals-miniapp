@@ -8091,3 +8091,136 @@ button.link-preview__media {
   color: var(--green);
   line-height: 1.1;
 }
+
+/* ── CopyBannerSlider ─────────────────────────────────────── */
+
+.volnovoi-copy__toggle--banner {
+  position: relative;
+  overflow: hidden;
+  padding: 11px 14px;
+}
+
+/* бегущая горизонтальная полоса-сканер */
+.volnovoi-copy__toggle--banner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.07) 48%,
+    rgba(255, 255, 255, 0.13) 50%,
+    rgba(255, 255, 255, 0.07) 52%,
+    transparent 100%
+  );
+  animation: copy-banner-shimmer 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes copy-banner-shimmer {
+  0%   { transform: translateX(-110%); }
+  60%  { transform: translateX(110%); }
+  100% { transform: translateX(110%); }
+}
+
+.copy-banner {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* CRT строчная текстура */
+.copy-banner__scanline {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 255, 200, 0.018) 3px,
+    rgba(0, 255, 200, 0.018) 4px
+  );
+  pointer-events: none;
+}
+
+.copy-banner__slide {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+  animation: copy-banner-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes copy-banner-in {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0);
+  }
+}
+
+.copy-banner__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.68;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.copy-banner__headline {
+  font-size: 0.87rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow:
+    0 0 8px rgba(255, 255, 255, 0.55),
+    0 0 22px rgba(255, 255, 255, 0.22);
+  animation: copy-banner-glow 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes copy-banner-glow {
+  from { text-shadow: 0 0 6px rgba(255,255,255,0.4), 0 0 18px rgba(255,255,255,0.15); }
+  to   { text-shadow: 0 0 12px rgba(255,255,255,0.75), 0 0 28px rgba(255,255,255,0.3); }
+}
+
+.copy-banner__indicators {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+  padding-right: 2px;
+}
+
+.copy-banner__dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.22;
+  transition: opacity 0.35s, transform 0.35s;
+}
+
+.copy-banner__dot--on {
+  opacity: 1;
+  transform: scale(1.5);
+  box-shadow: 0 0 4px currentColor;
+}
