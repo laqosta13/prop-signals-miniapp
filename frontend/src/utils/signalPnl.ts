@@ -64,14 +64,14 @@ export function signalTrackerBalanceUsd(s: Signal, liveBalance?: number | null):
   if (liveBalance != null && liveBalance > 0) return liveBalance;
   if (s.tracker_balance != null && s.tracker_balance > 0) return s.tracker_balance;
   if (s.account_size != null && s.account_size > 0) return s.account_size;
-  return 10_000;
+  return 1_000;
 }
 
 /** База для номинала и P/L: баланс трекера на момент публикации, иначе размер счёта. */
 export function signalPnlBaseUsd(s: Signal): number {
   if (s.tracker_balance != null && s.tracker_balance > 0) return s.tracker_balance;
   if (s.account_size != null && s.account_size > 0) return s.account_size;
-  return 10_000;
+  return 1_000;
 }
 
 function priceMoveAt(entry: number, direction: string, marketPrice: number): number {

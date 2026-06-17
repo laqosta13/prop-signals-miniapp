@@ -24,7 +24,7 @@ def can_have_tracker(db: Session, telegram_id: int) -> bool:
     return is_main_feed_publisher(db, telegram_id)
 
 
-DEFAULT_SIGNAL_FORM_ACCOUNT_SIZE = 10_000.0
+DEFAULT_SIGNAL_FORM_ACCOUNT_SIZE = 1_000.0
 
 
 def _new_challenge_row(admin_id: int) -> UserChallenge:
