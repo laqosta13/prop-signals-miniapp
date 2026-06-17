@@ -3881,7 +3881,7 @@
 }
 
 .hero-banner__ticker-inner--rev {
-  animation: hb-ticker 22s linear infinite alternate-reverse;
+  animation: hb-ticker 18s linear infinite alternate-reverse;
 }
 
 @keyframes hb-ticker {
