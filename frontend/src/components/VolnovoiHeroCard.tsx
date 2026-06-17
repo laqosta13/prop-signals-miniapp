@@ -49,7 +49,7 @@ export function VolnovoiHeroCard({ trader, onOpen, showActiveTrades = false, poo
                 <div className="volnovoi-pool-badge">
                   <span className="volnovoi-pool-badge__label">ПУЛ</span>
                   <span className="volnovoi-pool-badge__amount">
-                    {poolBalance !== undefined ? fmtPool(poolBalance) : "$100 000"}
+                    {poolBalance !== undefined ? fmtPool(poolBalance) : "$1 000"}
                   </span>
                 </div>
               </div>

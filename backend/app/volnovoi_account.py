@@ -22,7 +22,7 @@ from app.trader_stats import (
 VOLNOVOI_TELEGRAM_ID = 0
 VOLNOVOI_DISPLAY_NAME = "volnovoi"
 VOLNOVOI_USERNAME = "volnovoi"
-VOLNOVOI_CAPITAL_USD = 100_000.0
+VOLNOVOI_CAPITAL_USD = 1_000.0
 VOLNOVOI_AVATAR_URL = "/avatars/volnovoi.png"
 
 
