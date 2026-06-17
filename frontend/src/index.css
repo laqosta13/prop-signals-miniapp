@@ -3877,22 +3877,16 @@
 .hero-banner__ticker-inner {
   display: inline-flex;
   white-space: nowrap;
-  animation: hb-ticker 18s linear infinite;
+  animation: hb-ticker 18s linear infinite alternate;
 }
 
-/* reverse direction for accent row — gives dual-flow cyber feel */
 .hero-banner__ticker-inner--rev {
-  animation: hb-ticker-rev 22s linear infinite;
+  animation: hb-ticker 22s linear infinite alternate-reverse;
 }
 
 @keyframes hb-ticker {
   from { transform: translateX(0); }
   to   { transform: translateX(-50%); }
-}
-
-@keyframes hb-ticker-rev {
-  from { transform: translateX(-50%); }
-  to   { transform: translateX(0); }
 }
 
 .hero-banner__ticker-row--lead {
