@@ -1301,10 +1301,10 @@ html.theme-glitch [data-theme="punk"] .vc-split-logo--punk .vc-split-logo__punk 
   to   { filter: drop-shadow(0 0 12px #00f0ff) hue-rotate(100deg); opacity: 1; }
 }
 
-[data-theme="punk"] .hero-banner__accent {
+[data-theme="punk"] .hero-banner__ticker-row--accent {
   font-family: var(--font-mono); /* Orbitron */
-  font-size: 0.75rem;
-  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+  letter-spacing: 0.13em;
   color: #00f0ff;
   animation: punk-hb-accent 2.4s ease-in-out infinite alternate;
 }
@@ -1314,24 +1314,11 @@ html.theme-glitch [data-theme="punk"] .vc-split-logo--punk .vc-split-logo__punk 
   to   { text-shadow: 0 0 16px #00f0ff, 0 0 32px rgba(0,240,255,0.45), 0 0 2px #fff; }
 }
 
-[data-theme="punk"] .hero-banner__lead {
+[data-theme="punk"] .hero-banner__ticker-row--lead {
   font-family: var(--font-body); /* Rajdhani */
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   letter-spacing: 0.07em;
-  color: rgba(0, 240, 255, 0.62);
-}
-
-[data-theme="punk"] .hero-banner__coin {
-  color: #b344ff;
-  text-shadow: 0 0 8px #b344ff;
-}
-
-[data-theme="punk"] .hero-banner__dot {
-  background: #00f0ff;
-}
-
-[data-theme="punk"] .hero-banner__dot--on {
-  box-shadow: 0 0 6px #00f0ff;
+  color: rgba(0, 240, 255, 0.6);
 }
 
 [data-theme="punk"] .hero-banner__progress-fill {

@@ -3855,93 +3855,69 @@
 .hb-dot-end          { fill: var(--green); }
 .hb-grid             { stroke: var(--green); opacity: 0.12; }
 
-/* animated content block */
-.hero-banner__content {
+/* ticker container */
+.hero-banner__ticker {
   flex: 1;
   display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  animation: hb-slide-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes hb-slide-in {
-  from { opacity: 0; transform: translateX(16px); filter: blur(3px); }
-  to   { opacity: 1; transform: translateX(0);    filter: blur(0); }
-}
-
-.hero-banner__coin {
-  font-size: 0.88rem;
-  flex-shrink: 0;
-  opacity: 0.65;
-  letter-spacing: 0.01em;
-}
-
-.hero-banner__text {
-  display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   min-width: 0;
-}
-
-.hero-banner__lead {
-  font-family: var(--font-body);
-  font-size: 0.68rem;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  color: var(--text-secondary);
-  line-height: 1.2;
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.hero-banner__accent {
+.hero-banner__ticker-row {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  /* fade edges */
+  mask-image: linear-gradient(90deg, transparent 0%, black 6%, black 94%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 6%, black 94%, transparent 100%);
+}
+
+.hero-banner__ticker-inner {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: hb-ticker 18s linear infinite;
+}
+
+/* reverse direction for accent row — gives dual-flow cyber feel */
+.hero-banner__ticker-inner--rev {
+  animation: hb-ticker-rev 22s linear infinite;
+}
+
+@keyframes hb-ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@keyframes hb-ticker-rev {
+  from { transform: translateX(-50%); }
+  to   { transform: translateX(0); }
+}
+
+.hero-banner__ticker-row--lead {
+  font-family: var(--font-body);
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  line-height: 1.25;
+}
+
+.hero-banner__ticker-row--accent {
   font-family: var(--font-brand);
-  font-size: 0.78rem;
+  font-size: 0.77rem;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  line-height: 1.2;
   color: var(--purple);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.25;
   animation: hb-glow 3.2s ease-in-out infinite alternate;
 }
 
 @keyframes hb-glow {
   from { text-shadow: 0 0 6px color-mix(in srgb, var(--purple) 40%, transparent); }
   to   { text-shadow: 0 0 14px color-mix(in srgb, var(--purple) 75%, transparent), 0 0 28px color-mix(in srgb, var(--purple) 35%, transparent); }
-}
-
-/* right side: dots + progress bar */
-.hero-banner__right {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-shrink: 0;
-}
-
-.hero-banner__dots {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.hero-banner__dot {
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: var(--purple);
-  opacity: 0.2;
-  transition: opacity 0.35s, transform 0.35s;
-}
-
-.hero-banner__dot--on {
-  opacity: 1;
-  transform: scale(1.6);
-  box-shadow: 0 0 5px var(--purple);
 }
 
 /* vertical progress bar */
