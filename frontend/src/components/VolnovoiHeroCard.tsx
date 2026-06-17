@@ -5,6 +5,7 @@ import { traderClosedDealsCount, traderRankAvatarId } from "../utils/traderRankD
 import { Avatar } from "./Avatar";
 import { CultCandidateActiveTrades } from "./CultCandidateActiveTrades";
 import { EquityCurve } from "./EquityCurve";
+import { HeroTaglineBanner } from "./HeroTaglineBanner";
 import { RankBadge } from "./RankBadge";
 
 function fmtPool(v: number): string {
@@ -58,11 +59,7 @@ export function VolnovoiHeroCard({ trader, onOpen, showActiveTrades = false, poo
                 <RankBadge rank={trader.trader_rank} featured />
               </div>
             ) : null}
-            <div className="volnovoi-hero__tagline-frame" aria-label={copy.volnovoiSubtitle}>
-              <span className="volnovoi-hero__tagline-lead">{copy.volnovoiSubtitleLead}</span>
-              <span className="volnovoi-hero__tagline-divider" aria-hidden />
-              <span className="volnovoi-hero__tagline-accent">{copy.volnovoiSubtitleAccent}</span>
-            </div>
+            <HeroTaglineBanner />
           </div>
         </header>
 

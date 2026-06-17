@@ -3766,6 +3766,204 @@
   text-shadow: 0 0 18px color-mix(in srgb, var(--purple) 35%, transparent);
 }
 
+/* ── HeroTaglineBanner ────────────────────────────────────── */
+
+.hero-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 10px;
+  padding: 8px 10px 8px 14px;
+  border-radius: 11px;
+  border: 1px solid color-mix(in srgb, var(--purple) 42%, var(--border));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--purple) 11%, transparent), transparent 62%),
+    color-mix(in srgb, var(--surface-solid) 88%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 3px 14px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+}
+
+/* left gradient accent bar */
+.hero-banner::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--purple) 90%, white),
+    color-mix(in srgb, var(--green) 70%, var(--purple))
+  );
+  box-shadow: 0 0 10px color-mix(in srgb, var(--purple) 55%, transparent);
+  animation: hb-bar-pulse 2.8s ease-in-out infinite alternate;
+}
+
+@keyframes hb-bar-pulse {
+  from { box-shadow: 0 0 6px color-mix(in srgb, var(--purple) 40%, transparent); }
+  to   { box-shadow: 0 0 14px color-mix(in srgb, var(--purple) 80%, transparent), 0 0 3px rgba(255,255,255,0.15); }
+}
+
+/* sweep shimmer */
+.hero-banner__shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 44%,
+    rgba(255, 255, 255, 0.09) 50%,
+    rgba(255, 255, 255, 0.04) 56%,
+    transparent 100%
+  );
+  animation: hb-shimmer 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes hb-shimmer {
+  0%   { transform: translateX(-130%); }
+  55%  { transform: translateX(130%); }
+  100% { transform: translateX(130%); }
+}
+
+/* chart SVG container */
+.hero-banner__chart {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  animation: hb-chart-glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes hb-chart-glow {
+  from { filter: drop-shadow(0 0 3px color-mix(in srgb, var(--green) 45%, transparent)); opacity: 0.75; }
+  to   { filter: drop-shadow(0 0 9px color-mix(in srgb, var(--green) 80%, transparent)); opacity: 1; }
+}
+
+/* SVG element classes */
+.hb-candle-bull      { fill: var(--green); }
+.hb-candle-bull--top { opacity: 0.85; }
+.hb-candle-bear      { fill: color-mix(in srgb, var(--green) 45%, var(--border)); }
+.hb-candle-wick      { stroke: var(--green); opacity: 0.7; }
+.hb-trend            { stroke: var(--green); opacity: 0.45; fill: none; }
+.hb-line             { stroke: var(--green); }
+.hb-area             { fill: color-mix(in srgb, var(--green) 12%, transparent); }
+.hb-dot-end          { fill: var(--green); }
+.hb-grid             { stroke: var(--green); opacity: 0.12; }
+
+/* animated content block */
+.hero-banner__content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  animation: hb-slide-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes hb-slide-in {
+  from { opacity: 0; transform: translateX(16px); filter: blur(3px); }
+  to   { opacity: 1; transform: translateX(0);    filter: blur(0); }
+}
+
+.hero-banner__coin {
+  font-size: 0.88rem;
+  flex-shrink: 0;
+  opacity: 0.65;
+  letter-spacing: 0.01em;
+}
+
+.hero-banner__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.hero-banner__lead {
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hero-banner__accent {
+  font-family: var(--font-brand);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  color: var(--purple);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: hb-glow 3.2s ease-in-out infinite alternate;
+}
+
+@keyframes hb-glow {
+  from { text-shadow: 0 0 6px color-mix(in srgb, var(--purple) 40%, transparent); }
+  to   { text-shadow: 0 0 14px color-mix(in srgb, var(--purple) 75%, transparent), 0 0 28px color-mix(in srgb, var(--purple) 35%, transparent); }
+}
+
+/* right side: dots + progress bar */
+.hero-banner__right {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.hero-banner__dots {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hero-banner__dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--purple);
+  opacity: 0.2;
+  transition: opacity 0.35s, transform 0.35s;
+}
+
+.hero-banner__dot--on {
+  opacity: 1;
+  transform: scale(1.6);
+  box-shadow: 0 0 5px var(--purple);
+}
+
+/* vertical progress bar */
+.hero-banner__progress {
+  width: 2px;
+  height: 26px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.hero-banner__progress-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, var(--purple), var(--green));
+  transform-origin: top;
+  transform: scaleY(0);
+}
+
+/* ── end HeroTaglineBanner ─────────────────────────────── */
+
 .volnovoi-hero__rank {
   margin: 4px 0 6px;
 }

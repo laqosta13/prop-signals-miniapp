@@ -1261,6 +1261,92 @@ html.theme-glitch [data-theme="punk"] .vc-split-logo--punk .vc-split-logo__punk 
   }
 }
 
+/* ── HeroTaglineBanner — punk override ───────────────────── */
+
+[data-theme="punk"] .hero-banner {
+  border-color: rgba(0, 240, 255, 0.38);
+  background:
+    linear-gradient(135deg, rgba(0, 240, 255, 0.07), rgba(179, 68, 255, 0.04) 60%, transparent),
+    rgba(8, 8, 18, 0.92);
+}
+
+[data-theme="punk"] .hero-banner::before {
+  background: linear-gradient(180deg, #00f0ff, #b344ff);
+  box-shadow: 0 0 14px #00f0ff, 0 0 4px rgba(255,255,255,0.2);
+  animation: punk-hb-bar 2s ease-in-out infinite alternate;
+}
+
+@keyframes punk-hb-bar {
+  from { box-shadow: 0 0 8px #00f0ff; }
+  to   { box-shadow: 0 0 18px #00f0ff, 0 0 5px #fff; }
+}
+
+[data-theme="punk"] .hero-banner__shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 240, 255, 0.04) 44%,
+    rgba(0, 240, 255, 0.1) 50%,
+    rgba(0, 240, 255, 0.04) 56%,
+    transparent 100%
+  );
+}
+
+[data-theme="punk"] .hero-banner__chart {
+  animation: punk-hb-chart 2.2s ease-in-out infinite alternate;
+}
+
+@keyframes punk-hb-chart {
+  from { filter: drop-shadow(0 0 4px #00f0ff) hue-rotate(100deg); opacity: 0.7; }
+  to   { filter: drop-shadow(0 0 12px #00f0ff) hue-rotate(100deg); opacity: 1; }
+}
+
+[data-theme="punk"] .hero-banner__accent {
+  font-family: var(--font-mono); /* Orbitron */
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  color: #00f0ff;
+  animation: punk-hb-accent 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes punk-hb-accent {
+  from { text-shadow: 0 0 6px #00f0ff, 0 0 2px rgba(255,255,255,0.4); }
+  to   { text-shadow: 0 0 16px #00f0ff, 0 0 32px rgba(0,240,255,0.45), 0 0 2px #fff; }
+}
+
+[data-theme="punk"] .hero-banner__lead {
+  font-family: var(--font-body); /* Rajdhani */
+  font-size: 0.7rem;
+  letter-spacing: 0.07em;
+  color: rgba(0, 240, 255, 0.62);
+}
+
+[data-theme="punk"] .hero-banner__coin {
+  color: #b344ff;
+  text-shadow: 0 0 8px #b344ff;
+}
+
+[data-theme="punk"] .hero-banner__dot {
+  background: #00f0ff;
+}
+
+[data-theme="punk"] .hero-banner__dot--on {
+  box-shadow: 0 0 6px #00f0ff;
+}
+
+[data-theme="punk"] .hero-banner__progress-fill {
+  background: linear-gradient(180deg, #00f0ff, #b344ff);
+}
+
+[data-theme="punk"] .hb-candle-bull,
+[data-theme="punk"] .hb-dot-end { fill: #00f0ff; }
+[data-theme="punk"] .hb-candle-bear { fill: rgba(0, 240, 255, 0.3); }
+[data-theme="punk"] .hb-candle-wick { stroke: #00f0ff; }
+[data-theme="punk"] .hb-trend { stroke: #00f0ff; }
+[data-theme="punk"] .hb-line { stroke: #00f0ff; }
+[data-theme="punk"] .hb-area { fill: rgba(0, 240, 255, 0.1); }
+[data-theme="punk"] .hb-grid { stroke: #00f0ff; }
+
 /* ── CopyBannerSlider — punk override ────────────────────── */
 [data-theme="punk"] .copy-banner__headline {
   color: #00f0ff;

@@ -13,7 +13,6 @@ import { copyToClipboard, formatUsdCents, selectFieldText } from "../utils";
 import { PasteButton } from "./PasteButton";
 import { useThemedCopy } from "../hooks/useThemedCopy";
 import { BybitLogo } from "./BrandLogos";
-import { CopyBannerSlider } from "./CopyBannerSlider";
 import { PartnerLinks } from "./PartnerLinks";
 import { PaymentMemoRow } from "./PaymentMemoRow";
 import { RiskPercentSlider } from "./RiskPercentSlider";
@@ -187,18 +186,14 @@ export function VolnovoiCopyPanel() {
     <div className="volnovoi-copy" onClick={(e) => e.stopPropagation()}>
       <button
         type="button"
-        className={`volnovoi-copy__toggle volnovoi-copy__toggle--banner${open ? " volnovoi-copy__toggle--open" : ""}`}
+        className={`volnovoi-copy__toggle${open ? " volnovoi-copy__toggle--open" : ""}`}
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        {open ? (
-          <span className="cta-btn__label">
-            <BybitLogo size={22} />
-            <span>{copy.volnovoiCopyTitle}</span>
-          </span>
-        ) : (
-          <CopyBannerSlider paused={open} />
-        )}
+        <span className="cta-btn__label">
+          <BybitLogo size={22} />
+          <span>{copy.volnovoiCopyTitle}</span>
+        </span>
         <span className="volnovoi-copy__chevron" aria-hidden>
           {open ? "▾" : "▸"}
         </span>
