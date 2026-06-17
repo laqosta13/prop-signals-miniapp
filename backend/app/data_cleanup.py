@@ -42,10 +42,7 @@ def _purge_cult_channel_content(db: Session) -> None:
 
 
 def _purge_cult_candidate_stats(db: Session) -> None:
-    for row in db.scalars(select(CultCandidate)):
-        row.rating_percent = 0.0
-        row.wins = 0
-        row.losses = 0
+    db.execute(delete(CultCandidate))
 
 
 def _purge_signals_media_and_rows(db: Session) -> None:

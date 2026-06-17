@@ -267,7 +267,8 @@ export function LeaderboardTab({
   );
 
   const showTradersBlock = traderCandidates.length > 0;
-  const showCandidatesBlock = false;
+  const showCandidatesBlock =
+    cultCandidates.length > 0 || channelCandidates.length > 0 || rosterDemotedAdmins.length > 0 || isAdmin || myId != null;
   const showFiredBlock = firedList.length > 0;
 
   const showVolnovoiActiveTrades = canViewActiveSignals(subscriptionActive, isAdmin);
