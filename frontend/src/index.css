@@ -124,8 +124,6 @@
 .topbar__marketplace-logo-wrap {
   flex-shrink: 0;
   margin-left: var(--feed-logo-pull);
-  overflow: hidden;
-  border-radius: 8px;
   line-height: 0;
 }
 
@@ -143,8 +141,6 @@
   display: block;
   flex-shrink: 0;
   line-height: 0;
-  border-radius: 8px;
-  overflow: hidden;
 }
 
 .vc-split-logo__classic,
