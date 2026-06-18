@@ -85,12 +85,21 @@ def admin_daily_loss_pct(db: Session, admin_id: int) -> float:
     return stats.daily_loss_pct
 
 
-def market_close_consumed_rank_pct(signal: Signal) -> float:
-    """Дневной лимит 2%: фактический убыток по рынку (% цены × плечо, как у стопа в форме)."""
+def market_close_consumed_rank_pct(
+    signal: Signal,
+    balance: float = 0.0,
+    rank_max_stake_pct: float = 0.0,
+) -> float:
+    """Дневной лимит 2%: фактический убыток по рынку с учётом размера позиции."""
     move = closed_signal_move_pct(signal)
     if move >= 0:
         return 0.0
-    return price_stop_to_reserved_rank_pct(abs(move), signal_leverage(signal))
+    stake = float(signal.risk_percent or 0)
+    lev = signal_leverage(signal)
+    price_pct = abs(move)
+    if stake > 0 and balance > 0 and rank_max_stake_pct > 0:
+        return _stake_aware_rank_pct(price_pct, lev, stake, rank_max_stake_pct)
+    return price_stop_to_reserved_rank_pct(price_pct, lev)
 
 
 def signal_closed_stop_budget_rank_pct(
@@ -110,7 +119,7 @@ def signal_closed_stop_budget_rank_pct(
     if signal.close_reason == "market":
         if signal.status != "lose":
             return 0.0
-        return market_close_consumed_rank_pct(signal)
+        return market_close_consumed_rank_pct(signal, balance, rank_max_stake_pct)
     if signal.status == "lose":
         return signal_reserved_rank_pct(signal, balance, rank_max_stake_pct)
     return 0.0
@@ -173,6 +182,7 @@ def _admin_active_signals(db: Session, admin_id: int) -> list[Signal]:
 def price_stop_to_reserved_rank_pct(price_stop_pct: float, leverage: int = 1) -> float:
     """
     Доля дневного лимита 2%: % цены до стопа × плечо (2×…5× — пропорционально).
+    Фолбэк когда нет данных о размере позиции — предполагает максимальный стейк.
     1×: 2% цены → 2%; 2×: 1% → 2%; 3×: 0.67% → 2%; 4×: 0.5% → 2%; 5×: 0.4% → 2%.
     """
     lev = max(1, int(leverage or 1))
@@ -190,6 +200,30 @@ def price_stop_to_reserved_rank_pct(price_stop_pct: float, leverage: int = 1) ->
     )
 
 
+def _stake_aware_rank_pct(
+    price_pct: float,
+    leverage: int,
+    stake_pct: float,
+    rank_max_stake_pct: float,
+) -> float:
+    """
+    Корректная доля дневного лимита с учётом фактического размера позиции.
+    consumed = stake / rank_max × lev / REF_LEV × price_stop / REF_STOP × LIMIT
+    При stake=rank_max, lev=REF_LEV=5×, price_stop=REF_STOP=2% → consumed=2% (полный бюджет).
+    """
+    if price_pct <= 0 or stake_pct <= 0 or rank_max_stake_pct <= 0:
+        return 0.0
+    lev = max(1, int(leverage or 1))
+    consumed = (
+        stake_pct
+        * lev
+        * price_pct
+        / (rank_max_stake_pct * RANK_NOMINAL_LEVERAGE_FOR_DAILY * DEFAULT_PRICE_STOP_FROM_ENTRY_PCT)
+        * SIGNAL_DAILY_STOP_LIMIT_PCT
+    )
+    return round(min(consumed, SIGNAL_DAILY_STOP_LIMIT_PCT), 2)
+
+
 def signal_price_stop_pct(signal: Signal) -> float:
     if not signal.stop_loss:
         return 0.0
@@ -205,10 +239,13 @@ def signal_reserved_rank_pct(
     balance: float,
     rank_max_stake_pct: float,
 ) -> float:
-    """Сколько % дневного лимита (0–2) «заморожено» стопом сигнала с учётом плеча."""
-    _ = balance, rank_max_stake_pct
+    """Сколько % дневного лимита (0–2) «заморожено» стопом сигнала с учётом плеча и размера позиции."""
     lev = int(signal.leverage or 1)
-    return price_stop_to_reserved_rank_pct(signal_price_stop_pct(signal), lev)
+    price_stop = signal_price_stop_pct(signal)
+    stake = float(signal.risk_percent or 0)
+    if stake > 0 and balance > 0 and rank_max_stake_pct > 0:
+        return _stake_aware_rank_pct(price_stop, lev, stake, rank_max_stake_pct)
+    return price_stop_to_reserved_rank_pct(price_stop, lev)
 
 
 def admin_active_stop_reserved_rank_pct(
@@ -355,7 +392,10 @@ def validate_signal_daily_stop(
         return
 
     price_stop_pct = compute_signal_points_percent(entry_low, entry_high, stop_loss)
-    needed_rank_pct = price_stop_to_reserved_rank_pct(price_stop_pct, leverage)
+    if stake_pct > 0 and rank_cap > 0:
+        needed_rank_pct = _stake_aware_rank_pct(price_stop_pct, leverage, stake_pct, rank_cap)
+    else:
+        needed_rank_pct = price_stop_to_reserved_rank_pct(price_stop_pct, leverage)
     if needed_rank_pct > remaining_pct + 0.01:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
