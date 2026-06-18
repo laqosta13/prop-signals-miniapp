@@ -210,6 +210,7 @@ export function VolnovoiCopyPanel() {
   };
 
   const DELAYS: { key: TimeCapsuleDelay; label: string }[] = [
+    { key: "test", label: "Тест" },
     { key: "1w", label: "1 нед" },
     { key: "1m", label: "1 мес" },
     { key: "3m", label: "3 мес" },

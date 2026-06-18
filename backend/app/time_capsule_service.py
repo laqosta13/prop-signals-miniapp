@@ -11,6 +11,7 @@ from app.credentials_crypto import decrypt_secret, encrypt_secret
 from app.models import TimeCapsule
 
 _DELAYS = {
+    "test": timedelta(minutes=2),
     "1w": timedelta(weeks=1),
     "1m": timedelta(days=30),
     "3m": timedelta(days=90),

@@ -796,7 +796,7 @@ export const setNotifications = (patch: { notify_enabled?: boolean; notify_news_
 export const updateChallengeSettings = (form: FormData) =>
   sendForm<ChallengeDashboard>("/challenge/settings", "PUT", form);
 
-export type TimeCapsuleDelay = "1w" | "1m" | "3m";
+export type TimeCapsuleDelay = "test" | "1w" | "1m" | "3m";
 
 export interface TimeCapsuleResult {
   id: number;
