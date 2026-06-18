@@ -1438,6 +1438,27 @@ html.theme-glitch [data-theme="punk"] .vc-split-logo--punk .vc-split-logo__punk 
   clip-path: none;
 }
 
+/* В join-модале Bybit-форма — основной контент, рамка-коробка лишняя */
+[data-theme="punk"] .cult-candidate-join__modal .cult-candidate-bybit .volnovoi-copy__toggle {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(0, 240, 255, 0.25);
+  border-radius: 0;
+  box-shadow: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+[data-theme="punk"] .cult-candidate-join__modal .cult-candidate-bybit .volnovoi-copy__toggle--open {
+  border-radius: 0;
+}
+[data-theme="punk"] .cult-candidate-join__modal .cult-candidate-bybit .volnovoi-copy__panel {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
+
 [data-theme="punk"] .capsule-section__toggle {
   font-family: "Rajdhani", sans-serif;
   letter-spacing: 0.03em;
