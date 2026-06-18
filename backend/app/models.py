@@ -128,10 +128,10 @@ class UserChallenge(Base):
     __tablename__ = "user_challenges"
 
     telegram_user_id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    account_size: Mapped[float] = mapped_column(Float, default=10_000.0)
+    account_size: Mapped[float] = mapped_column(Float, default=1_000.0)
     stage: Mapped[int] = mapped_column(Integer, default=1)
-    balance: Mapped[float] = mapped_column(Float, default=10_000.0)
-    day_start_balance: Mapped[float] = mapped_column(Float, default=10_000.0)
+    balance: Mapped[float] = mapped_column(Float, default=1_000.0)
+    day_start_balance: Mapped[float] = mapped_column(Float, default=1_000.0)
     trading_days: Mapped[int] = mapped_column(Integer, default=0)
     prop_trading_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
     prop_screenshot_path: Mapped[str | None] = mapped_column(String(256), nullable=True)

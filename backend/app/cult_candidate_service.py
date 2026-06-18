@@ -406,7 +406,7 @@ def build_cult_candidate_me_read(db: Session, sub: Subscriber) -> CultCandidateM
 def cult_candidate_account_size(db: Session, telegram_id: int) -> float:
     bybit = db.get(UserBybitSettings, telegram_id)
     if bybit is None:
-        return 10_000.0
+        return 1_000.0
     return copy_deposit_base_usd(bybit)
 
 

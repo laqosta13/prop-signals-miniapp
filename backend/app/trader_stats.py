@@ -43,7 +43,7 @@ def signal_tracker_balance(signal: Signal) -> float:
     """Баланс трекера на момент публикации (для отображения)."""
     if signal.tracker_balance is not None and signal.tracker_balance > 0:
         return float(signal.tracker_balance)
-    return 10_000.0
+    return 1_000.0
 
 
 def signal_pnl_base_usd(signal: Signal) -> float:
