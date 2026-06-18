@@ -208,7 +208,7 @@ function buildCopy(theme: Theme): ThemedCopy {
       nav: { feed: "Лента", tracker: "Трекер", top: "ТОП", reviews: "Отзывы", news: "Новости", pay: "Подписка" },
       tabTitles: { feed: "", tracker: "Трекер", top: "ТОП", reviews: "Отзывы", news: "Новости", pay: "Подписка" },
       tabSubtitles: { ...TAB_SUBTITLES },
-      feedKicker: "Marketplace",
+      feedKicker: "blockchain",
       feedHeadline: "",
       feedSubKicker: "",
       feedWordCrypto: "крипто-",

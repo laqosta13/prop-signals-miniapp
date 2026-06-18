@@ -61,7 +61,7 @@ export function VcPunkLogoMark({ className = "" }: Props) {
           fill="none"
           stroke="#fcee0a"
           strokeWidth="3.2"
-          d="M70 31 C58 31 54.5 40.5 54.5 50.5 C54.5 60.5 58 70 70 70"
+          d="M73 29 C57 28 52.5 39 52.5 50 C52.5 61 57 72 73 71"
         />
       </g>
 
@@ -83,7 +83,7 @@ export function VcPunkLogoMark({ className = "" }: Props) {
         strokeWidth="4.2"
         strokeLinecap="square"
         filter={`url(#vp-glow-c-${uid})`}
-        d="M69 30.5 C57.5 30.5 54 40 54 50 C54 60 57.5 69.5 69 69.5"
+        d="M72 28 C55 27 51 38.5 51 50 C51 61.5 55 73 72 72"
       />
 
       <circle className="vc-punk-logo__node" cx="50" cy="7" r="1.6" fill="#fcee0a" />
