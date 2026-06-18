@@ -323,3 +323,14 @@ class NewsPost(Base):
     link_image_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     author_telegram_id: Mapped[int] = mapped_column(Integer, nullable=False)
     pinned: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+
+
+class TimeCapsule(Base):
+    __tablename__ = "time_capsules"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    telegram_user_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    deliver_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

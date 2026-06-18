@@ -795,3 +795,17 @@ export const setNotifications = (patch: { notify_enabled?: boolean; notify_news_
 
 export const updateChallengeSettings = (form: FormData) =>
   sendForm<ChallengeDashboard>("/challenge/settings", "PUT", form);
+
+export type TimeCapsuleDelay = "1w" | "1m" | "3m";
+
+export interface TimeCapsuleResult {
+  id: number;
+  deliver_at: string;
+}
+
+export const scheduleTimeCapsule = (message: string, delay: TimeCapsuleDelay) =>
+  api<TimeCapsuleResult>("/time-capsule", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message, delay }),
+  });

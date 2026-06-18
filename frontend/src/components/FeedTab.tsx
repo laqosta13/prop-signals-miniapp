@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { closeSignalAtMarket, deleteSignal, type ChallengeDashboard, type Signal } from "../api";
 import { useThemedCopy } from "../hooks/useThemedCopy";
-import { formatDateTimeMsk } from "../utils";
 import { canViewActiveSignals, visibleFeedSignals } from "../utils/signalActions";
 import { splitFeedSignals } from "../utils/sortFeedSignals";
 import { PropTrackerMini } from "./PropTrackerMini";

@@ -1394,3 +1394,29 @@ html.theme-glitch [data-theme="punk"] .vc-split-logo--punk .vc-split-logo__punk 
   font-family: "Orbitron", "Rajdhani", sans-serif;
   text-shadow: 0 0 8px rgba(255, 50, 50, 0.6);
 }
+
+[data-theme="punk"] .capsule-section__toggle {
+  font-family: "Rajdhani", sans-serif;
+  letter-spacing: 0.03em;
+}
+
+[data-theme="punk"] .capsule-section__toggle--open {
+  color: #00f0ff;
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+}
+
+[data-theme="punk"] .capsule-delay-btn--active {
+  background: rgba(0, 240, 255, 0.1);
+  border-color: rgba(0, 240, 255, 0.4);
+  color: #00f0ff;
+}
+
+[data-theme="punk"] .capsule-section__input {
+  font-family: "Courier New", monospace;
+  border-color: rgba(0, 240, 255, 0.15);
+}
+
+[data-theme="punk"] .capsule-section__input:focus {
+  border-color: rgba(0, 240, 255, 0.5);
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.15);
+}

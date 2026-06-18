@@ -16,6 +16,7 @@ from app.database import Base, engine
 from app.migrate import run_migrations
 from app.price_monitor import check_missed_closes_on_startup, price_monitor_loop
 from app.copy_billing_scheduler import copy_billing_scheduler_loop
+from app.time_capsule_scheduler import time_capsule_scheduler_loop
 from app.rank_scheduler import rank_scheduler_loop
 from app.subscription_pause_scheduler import run_subscription_pause_sync, subscription_pause_scheduler_loop
 from app.support_chat import verify_support_group_after_delay
@@ -32,6 +33,7 @@ from app.routers import (
     signals,
     subscriptions,
     support,
+    time_capsule,
     traders,
 )
 
@@ -111,10 +113,11 @@ async def lifespan(app: FastAPI):
     price_task = asyncio.create_task(price_monitor_loop())
     rank_task = asyncio.create_task(rank_scheduler_loop())
     billing_task = asyncio.create_task(copy_billing_scheduler_loop())
+    capsule_task = asyncio.create_task(time_capsule_scheduler_loop())
     pause_task = asyncio.create_task(subscription_pause_scheduler_loop())
     tg_task = asyncio.create_task(telegram_updates_loop())
     yield
-    for task in (price_task, rank_task, billing_task, pause_task, tg_task):
+    for task in (price_task, rank_task, billing_task, capsule_task, pause_task, tg_task):
         task.cancel()
         try:
             await task
@@ -146,6 +149,7 @@ app.include_router(subscriptions.router)
 app.include_router(support.router)
 app.include_router(reviews.router)
 app.include_router(news.router)
+app.include_router(time_capsule.router)
 
 
 @app.get("/health")
