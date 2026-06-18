@@ -119,14 +119,14 @@ export const RANK_TIERS: RankTierInfo[] = [
   {
     id: 10,
     name: "Тот самый глаз пирамиды",
-    rangeLabel: formatPctRange(100, Infinity),
+    rangeLabel: formatPctRange(65, Infinity),
     maxStakePct: rankMaxStakePct(10),
     maxLeverage: rankMaxLeverage(10),
   },
   {
     id: 9,
     name: "Сатоши Накамото",
-    rangeLabel: formatPctRange(50, 100),
+    rangeLabel: formatPctRange(50, 65),
     maxStakePct: rankMaxStakePct(9),
     maxLeverage: rankMaxLeverage(9),
   },

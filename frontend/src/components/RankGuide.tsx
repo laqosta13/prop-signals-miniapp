@@ -2,8 +2,11 @@ import { useState } from "react";
 import { useThemedCopy } from "../hooks/useThemedCopy";
 import { RankGuideModal } from "./RankGuideModal";
 
-/** Подсказка на вкладке ТОП — открывает то же описание, что и нажатие на ранг. */
-export function RankGuide() {
+type Props = {
+  myRankId?: number;
+};
+
+export function RankGuide({ myRankId }: Props) {
   const copy = useThemedCopy();
   const [open, setOpen] = useState(false);
 
@@ -13,7 +16,7 @@ export function RankGuide() {
         <span className="rank-guide-hint__pulse" aria-hidden />
         {copy.rankGuideHint}
       </button>
-      {open && <RankGuideModal onClose={() => setOpen(false)} />}
+      {open && <RankGuideModal onClose={() => setOpen(false)} highlightRankId={myRankId} />}
     </>
   );
 }

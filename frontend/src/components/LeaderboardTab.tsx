@@ -240,6 +240,13 @@ export function LeaderboardTab({
     [traders],
   );
   const myCandidate = useMemo(() => cultCandidates.find((c) => c.is_me), [cultCandidates]);
+  const myRankId = useMemo(() => {
+    const myTrader = traders.find((t) => t.telegram_id === myId);
+    return (
+      myTrader?.trader_rank?.current_rank_id ??
+      myCandidate?.trader_rank?.current_rank_id
+    );
+  }, [traders, myId, myCandidate]);
   const otherCandidates = useMemo(
     () => [...cultCandidates].filter((c) => !c.is_me).sort((a, b) => a.rank - b.rank),
     [cultCandidates],
@@ -295,7 +302,7 @@ export function LeaderboardTab({
         </section>
       )}
 
-      <RankGuide />
+      <RankGuide myRankId={myRankId} />
 
       {showTradersBlock && (
         <section className="top-cult-block top-cult-block--traders">

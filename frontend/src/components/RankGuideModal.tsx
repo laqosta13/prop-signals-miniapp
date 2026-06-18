@@ -5,6 +5,7 @@ import { resolveRankName } from "../utils/punkTheme";
 import { isPunkTheme } from "../utils/punkTheme";
 import {
   RANK_TIERS,
+  RANKS_WORST_TO_BEST,
   rankMaxLeverage,
   rankMaxStakePct,
   rankTierExtraClass,
@@ -17,6 +18,15 @@ type Props = {
   onClose: () => void;
   highlightRankId?: number;
 };
+
+function rankQualityIndex(rankId: number): number {
+  const idx = RANKS_WORST_TO_BEST.indexOf(rankId as (typeof RANKS_WORST_TO_BEST)[number]);
+  return idx < 0 ? 0 : idx;
+}
+
+function isRankAboveCurrent(tierId: number, currentRankId: number): boolean {
+  return rankQualityIndex(tierId) > rankQualityIndex(currentRankId);
+}
 
 export function RankGuideModal({ onClose, highlightRankId }: Props) {
   const theme = useAppTheme();
@@ -42,22 +52,27 @@ export function RankGuideModal({ onClose, highlightRankId }: Props) {
           {RANK_TIERS.map((tier) => {
             const st = resolveRankStyle(tier.id, theme);
             const highlighted = highlightRankId === tier.id;
+            const locked = highlightRankId != null && isRankAboveCurrent(tier.id, highlightRankId);
             return (
               <li
                 key={tier.id}
-                className={`rank-guide__tier${rankTierExtraClass(tier.id)}${highlighted ? " rank-guide__tier--current" : ""}`}
+                className={`rank-guide__tier${rankTierExtraClass(tier.id)}${highlighted ? " rank-guide__tier--current" : ""}${locked ? " rank-guide__tier--locked" : ""}`}
               >
                 <span
-                  className={`rank-guide__tier-pill${punk ? " rank-guide__tier-pill--punk" : ""}`}
-                  style={{ background: st.bg, color: st.color }}
+                  className={`rank-guide__tier-pill${punk ? " rank-guide__tier-pill--punk" : ""}${locked ? " rank-guide__tier-pill--locked" : ""}`}
+                  style={locked ? undefined : { background: st.bg, color: st.color }}
                 >
-                  {st.iconId &&
+                  {!locked && st.iconId &&
                     (punk ? (
                       <PunkRankIcon id={st.iconId} size={18} className="rank-guide__tier-icon" />
                     ) : (
                       <RankIcon id={st.iconId} size={18} className="rank-guide__tier-icon" />
                     ))}
-                  {resolveRankName(tier.id, tier.name, theme)}
+                  {locked ? (
+                    <span className="rank-guide__tier-locked-name">🔒 ████████</span>
+                  ) : (
+                    resolveRankName(tier.id, tier.name, theme)
+                  )}
                 </span>
                 <div className="rank-guide__tier-meta">
                   <span className="rank-guide__tier-range">неделя {tier.rangeLabel}</span>

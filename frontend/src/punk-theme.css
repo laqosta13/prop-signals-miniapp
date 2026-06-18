@@ -1199,6 +1199,17 @@ html.theme-glitch [data-theme="punk"] .vc-split-logo--punk .vc-split-logo__punk 
   box-shadow: 0 0 12px rgba(5, 255, 161, 0.2);
 }
 
+[data-theme="punk"] .rank-guide__tier-pill--locked {
+  background: rgba(0, 240, 255, 0.03) !important;
+  border-color: rgba(0, 240, 255, 0.15) !important;
+  box-shadow: none !important;
+  color: rgba(0, 240, 255, 0.3) !important;
+}
+
+[data-theme="punk"] .rank-guide__tier-locked-name {
+  filter: blur(2.5px);
+}
+
 [data-theme="punk"] .rank-confirm-sheet--punk h2 {
   font-family: var(--font-brand);
   letter-spacing: 0.1em;

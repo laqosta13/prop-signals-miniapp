@@ -21,8 +21,8 @@ TRADER_RANKS: Final[tuple[TraderRankDef, ...]] = (
     TraderRankDef(3, "Большой Шорт", 18.0, 25.0),
     TraderRankDef(2, "Волк с Уолл-Стрит", 25.0, 30.0),
     TraderRankDef(1, "Легенда", 30.0, 50.0),
-    TraderRankDef(9, "Сатоши Накамото", 50.0, 100.0),
-    TraderRankDef(10, "Тот самый глаз пирамиды", 100.0, float("inf")),
+    TraderRankDef(9, "Сатоши Накамото", 50.0, 65.0),
+    TraderRankDef(10, "Тот самый глаз пирамиды", 65.0, float("inf")),
 )
 
 RANK_BY_ID: Final[dict[int, TraderRankDef]] = {r.id: r for r in TRADER_RANKS}

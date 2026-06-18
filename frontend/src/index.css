@@ -6373,6 +6373,22 @@
   }
 }
 
+.rank-guide__tier--locked {
+  opacity: 0.55;
+}
+
+.rank-guide__tier-pill--locked {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: var(--muted) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rank-guide__tier-locked-name {
+  letter-spacing: 0.08em;
+  filter: blur(2px);
+  user-select: none;
+}
+
 .rank-guide__tier-meta {
   display: flex;
   flex-direction: column;
