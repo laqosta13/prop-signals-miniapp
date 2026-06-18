@@ -7,6 +7,7 @@ import html
 import logging
 from datetime import timezone
 
+from app.credentials_crypto import decrypt_secret
 from app.database import SessionLocal
 from app.time_capsule_service import mark_delivered, pending_capsules
 
@@ -37,7 +38,12 @@ async def deliver_pending_capsules() -> int:
     try:
         capsules = pending_capsules(db)
         for capsule in capsules:
-            text = _format_capsule_message(capsule.message, capsule.created_at)
+            try:
+                plaintext = decrypt_secret(capsule.message)
+            except Exception:
+                logger.error("TimeCapsule #%s: decrypt failed, skipping", capsule.id)
+                continue
+            text = _format_capsule_message(plaintext, capsule.created_at)
             ok = await _send_message(capsule.telegram_user_id, text)
             if ok:
                 mark_delivered(db, capsule)

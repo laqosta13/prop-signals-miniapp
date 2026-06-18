@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.credentials_crypto import decrypt_secret, encrypt_secret
 from app.models import TimeCapsule
 
 _DELAYS = {
@@ -31,7 +32,7 @@ def create_capsule(db: Session, telegram_user_id: int, message: str, delay_key: 
     deliver_at = now + _DELAYS[delay_key]
     capsule = TimeCapsule(
         telegram_user_id=telegram_user_id,
-        message=message,
+        message=encrypt_secret(message),
         deliver_at=deliver_at,
     )
     db.add(capsule)
