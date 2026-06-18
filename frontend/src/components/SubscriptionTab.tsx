@@ -109,12 +109,10 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: Props) {
       <p className="meta sub-pay__intro">{copy.subscriptionIntro}</p>
       <p className={`sub-pay__status ${info.subscription_active ? "on" : "off"}`}>
         {info.test_mode_active ? (
-          <>
-            {copy.formatTestModeBanner(info.test_mode_until, info.test_mode_days_left)}
-            {info.test_mode_until ? (
-              <> До {formatDateTimeMsk(info.test_mode_until)} МСК.</>
-            ) : null}
-          </>
+          <span className="trial-inline">
+            <span className="trial-inline__days">{info.test_mode_days_left} дн.</span>
+            {" "}{copy.formatTestModeBanner(info.test_mode_until, info.test_mode_days_left)}
+          </span>
         ) : info.subscription_active && info.subscription_until ? (
           <>Подписка активна до {formatDateTimeMsk(info.subscription_until)} МСК</>
         ) : info.subscription_active ? (

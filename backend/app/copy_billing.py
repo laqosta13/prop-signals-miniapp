@@ -110,6 +110,9 @@ def copy_fee_exempt(telegram_user_id: int) -> bool:
 def copy_trading_allowed(db: Session, telegram_user_id: int) -> bool:
     if copy_fee_exempt(telegram_user_id):
         return True
+    from app.test_mode import is_test_mode_active
+    if is_test_mode_active():
+        return True
     sub = db.get(Subscriber, telegram_user_id)
     if sub is None:
         return False

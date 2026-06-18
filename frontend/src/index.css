@@ -2490,6 +2490,49 @@
   background: linear-gradient(135deg, var(--purple-soft), rgba(255, 255, 255, 0.03));
 }
 
+/* Тестовый период — баннер с крупным счётчиком дней */
+.trial-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+
+.trial-banner__days {
+  flex-shrink: 0;
+  font-size: 2rem;
+  font-weight: 800;
+  color: #ef4444;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.trial-banner__label {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+/* inline вариант для вкладки подписки */
+.trial-inline {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.trial-inline__days {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #ef4444;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
 .sub-banner p {
   margin: 0 0 10px;
 }

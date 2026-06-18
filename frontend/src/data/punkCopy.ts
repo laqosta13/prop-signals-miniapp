@@ -167,14 +167,8 @@ export const PUNK_SUBSCRIPTION_INTRO =
   "Доступ к ленте операций операторов сети — по кодам и результатам.";
 export const PUNK_SUBSCRIPTION_TRIAL_USED_MSG = "Доступ не активен. Получите ключ ниже.";
 
-export function punkTestModeBannerText(until: string | null, daysLeft: number): string {
-  if (until) {
-    return "Тестовый протокол — всё бесплатно до конца цикла. После дедлайна доступ только по ключу.";
-  }
-  if (daysLeft > 0) {
-    return `Тестовый протокол — всё бесплатно ещё ${daysLeft} дн. После дедлайна доступ только по ключу.`;
-  }
-  return "Тестовый протокол — всё бесплатно. После дедлайна доступ только по ключу.";
+export function punkTestModeBannerText(_until: string | null, _daysLeft: number): string {
+  return "Тестовый период — пока формируется команда ТОП трейдеров CULT";
 }
 
 export function punkSubscriptionInactiveHint(trialDays: number, trialUsed: boolean): string {

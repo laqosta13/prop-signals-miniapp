@@ -21,14 +21,8 @@ export const SUBSCRIPTION_INTRO =
 
 export const SUBSCRIPTION_TRIAL_USED_MSG = "Подписка не активна. Оформите доступ ниже.";
 
-export function testModeBannerText(until: string | null, daysLeft: number): string {
-  if (until) {
-    return `Тестовый режим — всё бесплатно до конца периода. После дедлайна доступ только по подписке.`;
-  }
-  if (daysLeft > 0) {
-    return `Тестовый режим — всё бесплатно ещё ${daysLeft} дн. После дедлайна доступ только по подписке.`;
-  }
-  return "Тестовый режим — всё бесплатно. После дедлайна доступ только по подписке.";
+export function testModeBannerText(_until: string | null, _daysLeft: number): string {
+  return "Тестовый период — пока формируется команда ТОП трейдеров CULT";
 }
 
 export function subscriptionInactiveHint(trialDays: number, trialUsed: boolean): string {

@@ -147,11 +147,9 @@ export function FeedTab({
   return (
     <>
       {testModeActive && (
-        <div className="sub-banner sub-banner--test-mode">
-          <p>
-            {copy.formatTestModeBanner(testModeUntil, testModeDaysLeft)}
-            {testModeUntil ? ` До ${formatDateTimeMsk(testModeUntil)} МСК.` : ""}
-          </p>
+        <div className="trial-banner">
+          <span className="trial-banner__days">{testModeDaysLeft} дн.</span>
+          <span className="trial-banner__label">{copy.formatTestModeBanner(testModeUntil, testModeDaysLeft)}</span>
         </div>
       )}
       {!hasActiveAccess && (
