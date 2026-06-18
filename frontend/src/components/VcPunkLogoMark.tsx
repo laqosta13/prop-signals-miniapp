@@ -11,19 +11,11 @@ export function VcPunkLogoMark({ className = "" }: Props) {
   return (
     <svg viewBox="0 0 100 100" className={className} aria-hidden>
       <defs>
-        <linearGradient id={`vp-bg-${uid}`} x1="30%" y1="0%" x2="70%" y2="100%">
-          <stop offset="0%" stopColor="#101820" />
-          <stop offset="55%" stopColor="#080c10" />
-          <stop offset="100%" stopColor="#050608" />
-        </linearGradient>
         <linearGradient id={`vp-edge-${uid}`} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#fcee0a" />
           <stop offset="50%" stopColor="#00f0ff" />
           <stop offset="100%" stopColor="#fcee0a" />
         </linearGradient>
-        <pattern id={`vp-lines-${uid}`} width="100" height="3" patternUnits="userSpaceOnUse">
-          <rect width="100" height="1" fill="rgba(0,240,255,0.08)" />
-        </pattern>
         <filter id={`vp-glow-y-${uid}`} x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="1.6" result="b" />
           <feMerge>
@@ -38,26 +30,9 @@ export function VcPunkLogoMark({ className = "" }: Props) {
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
-        <clipPath id={`vp-hex-${uid}`}>
-          <path d="M50 15.5 L78.5 31.5 L78.5 68.5 L50 84.5 L21.5 68.5 L21.5 31.5 Z" />
-        </clipPath>
       </defs>
 
-      <path
-        fill={`url(#vp-bg-${uid})`}
-        d="M50 15.5 L78.5 31.5 L78.5 68.5 L50 84.5 L21.5 68.5 L21.5 31.5 Z"
-      />
-
-      <rect
-        x="0"
-        y="0"
-        width="100"
-        height="100"
-        fill={`url(#vp-lines-${uid})`}
-        clipPath={`url(#vp-hex-${uid})`}
-        opacity="0.9"
-      />
-
+      {/* Внешний светящийся контур гексагона */}
       <path
         className="vc-punk-logo__frame"
         fill="none"
@@ -66,6 +41,7 @@ export function VcPunkLogoMark({ className = "" }: Props) {
         filter={`url(#vp-glow-c-${uid})`}
         d="M50 7 L88 26.5 L88 73.5 L50 93 L12 73.5 L12 26.5 Z"
       />
+      {/* Внутренний тонкий контур */}
       <path
         fill="none"
         stroke="#00f0ff"
