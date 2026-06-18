@@ -1396,22 +1396,25 @@ html.theme-glitch [data-theme="punk"] .vc-split-logo--punk .vc-split-logo__punk 
 }
 
 [data-theme="punk"] .cult-candidate-bybit .volnovoi-copy__toggle {
-  background: rgba(0, 240, 255, 0.08);
-  border: 1px solid rgba(0, 240, 255, 0.4);
+  background: rgba(0, 240, 255, 0.13);
+  border: 1px solid rgba(0, 240, 255, 0.65);
   color: #00f0ff;
-  box-shadow: 0 0 12px rgba(0, 240, 255, 0.1);
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.55);
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.18), inset 0 0 12px rgba(0, 240, 255, 0.06);
   border-radius: 12px;
+  font-family: "Rajdhani", sans-serif;
+  letter-spacing: 0.04em;
 }
 
 [data-theme="punk"] .cult-candidate-bybit .volnovoi-copy__toggle--open {
   border-radius: 12px 12px 0 0;
-  border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+  border-bottom: 1px solid rgba(0, 240, 255, 0.3);
 }
 
 [data-theme="punk"] .cult-candidate-bybit .volnovoi-copy__panel {
-  border: 1px solid rgba(0, 240, 255, 0.25);
+  border: 1px solid rgba(0, 240, 255, 0.35);
   border-top: none;
-  background: rgba(0, 240, 255, 0.04);
+  background: rgba(0, 240, 255, 0.05);
   border-radius: 0 0 12px 12px;
 }
 

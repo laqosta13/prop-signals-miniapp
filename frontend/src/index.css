@@ -5161,6 +5161,11 @@
   margin: 0 0 12px;
 }
 
+.cult-candidate-bybit {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
 .cult-candidate-bybit .volnovoi-copy__toggle {
   border-radius: 12px;
   border: 1px solid rgba(109, 40, 217, 0.45);
