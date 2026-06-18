@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import WebApp from "@twa-dev/sdk";
 import { fetchCultCandidateMe, joinCultCandidate, type CultCandidateMe } from "../api";
 import { useThemedCopy } from "../hooks/useThemedCopy";
@@ -72,7 +73,7 @@ export function CultCandidateJoinPanel({ onJoined }: Props) {
         {copy.cultJoinCta}
       </button>
 
-      {open && (
+      {open && createPortal(
         <div className="modal-backdrop" role="presentation" onClick={() => !busy && setOpen(false)}>
           <div className="modal cult-candidate-join__modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal__head">
@@ -118,7 +119,7 @@ export function CultCandidateJoinPanel({ onJoined }: Props) {
             </button>
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   );
 }
