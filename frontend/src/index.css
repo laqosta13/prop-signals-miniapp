@@ -190,9 +190,7 @@
   transform: scale(1);
   filter: none;
   object-fit: contain;
-  object-position: left center;
-  /* Убираем блик-звёздочку в правом нижнем углу PNG. */
-  clip-path: inset(0 9% 9% 0);
+  object-position: center center;
 }
 
 .vc-split-logo--classic {
