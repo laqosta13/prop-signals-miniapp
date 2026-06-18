@@ -1432,6 +1432,12 @@ html.theme-glitch [data-theme="punk"] .vc-split-logo--punk .vc-split-logo__punk 
   border-radius: 0 0 12px 12px;
 }
 
+/* clip-path on .modal conflicts with overflow-y: auto in iOS WebKit — scrolled content gets
+   clipped at the initial paint position. Override it on the scrollable join modal. */
+[data-theme="punk"] .cult-candidate-join__modal {
+  clip-path: none;
+}
+
 [data-theme="punk"] .capsule-section__toggle {
   font-family: "Rajdhani", sans-serif;
   letter-spacing: 0.03em;
