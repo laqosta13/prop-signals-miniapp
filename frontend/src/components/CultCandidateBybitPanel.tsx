@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
-import type { CopyTradingStatus } from "../api";
+import type { CopyTradingStatus, TimeCapsuleDelay } from "../api";
 import {
   deleteCopyTradingSettings,
   fetchCopyTradingStatus,
   patchCopyTradingSettings,
   saveCopyTradingSettings,
+  scheduleTimeCapsule,
   testCopyTradingConnection,
 } from "../api";
 import { useThemedCopy } from "../hooks/useThemedCopy";
@@ -133,6 +134,38 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
       setBusy(false);
     }
   };
+
+  const [capsuleOpen, setCapsuleOpen] = useState(false);
+  const [capsuleText, setCapsuleText] = useState("");
+  const [capsuleDelay, setCapsuleDelay] = useState<TimeCapsuleDelay>("1m");
+  const [capsuleBusy, setCapsuleBusy] = useState(false);
+  const [capsuleOk, setCapsuleOk] = useState<string | null>(null);
+  const [capsuleErr, setCapsuleErr] = useState<string | null>(null);
+
+  const onSendCapsule = async () => {
+    if (!capsuleText.trim()) return;
+    setCapsuleBusy(true);
+    setCapsuleErr(null);
+    setCapsuleOk(null);
+    try {
+      const res = await scheduleTimeCapsule(capsuleText.trim(), capsuleDelay);
+      const date = new Date(res.deliver_at).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+      setCapsuleOk(`Отправлено — получишь ${date}`);
+      setCapsuleText("");
+      WebApp.HapticFeedback.notificationOccurred("success");
+    } catch (e) {
+      setCapsuleErr(e instanceof Error ? e.message : "Ошибка");
+    } finally {
+      setCapsuleBusy(false);
+    }
+  };
+
+  const DELAYS: { key: TimeCapsuleDelay; label: string }[] = [
+    { key: "test", label: "Тест" },
+    { key: "1w", label: "1 нед" },
+    { key: "1m", label: "1 мес" },
+    { key: "3m", label: "3 мес" },
+  ];
 
   const onDisconnect = async () => {
     if (!confirm("Отключить API Bybit? Новые сделки кандидата не откроются.")) return;
@@ -269,6 +302,56 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
                   >
                     Отключить
                   </button>
+                )}
+              </div>
+
+              <div className="capsule-section">
+                <button
+                  type="button"
+                  className={`capsule-section__toggle${capsuleOpen ? " capsule-section__toggle--open" : ""}`}
+                  onClick={() => { setCapsuleOpen((v) => !v); setCapsuleOk(null); setCapsuleErr(null); }}
+                >
+                  <span>🔒 Отправить пароль в будущее</span>
+                  <span className="capsule-section__chevron">{capsuleOpen ? "▾" : "▸"}</span>
+                </button>
+                {capsuleOpen && (
+                  <div className="capsule-section__body">
+                    <p className="meta capsule-section__hint">
+                      Создай новый пароль Bybit, вставь его сюда — бот пришлёт его тебе через выбранный срок.
+                    </p>
+                    <textarea
+                      className="capsule-section__input"
+                      placeholder="Новый пароль Bybit…"
+                      rows={3}
+                      maxLength={1000}
+                      value={capsuleText}
+                      onChange={(e) => setCapsuleText(e.target.value)}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                    <div className="capsule-section__delays">
+                      {DELAYS.map(({ key, label }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          className={`capsule-delay-btn${capsuleDelay === key ? " capsule-delay-btn--active" : ""}`}
+                          onClick={() => setCapsuleDelay(key)}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {capsuleOk && <p className="capsule-section__ok">{capsuleOk}</p>}
+                    {capsuleErr && <p className="err">{capsuleErr}</p>}
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      disabled={capsuleBusy || !capsuleText.trim()}
+                      onClick={() => void onSendCapsule()}
+                    >
+                      {capsuleBusy ? "Отправка…" : "Запечатать и отправить"}
+                    </button>
+                  </div>
                 )}
               </div>
 

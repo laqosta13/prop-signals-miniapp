@@ -5165,10 +5165,22 @@
 
 .cult-candidate-bybit .volnovoi-copy__toggle {
   border-color: rgba(109, 40, 217, 0.35);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.cult-candidate-bybit .volnovoi-copy__toggle .volnovoi-copy__chevron {
+  color: var(--text-secondary);
+}
+
+.cult-candidate-bybit .volnovoi-copy__toggle--open {
+  border-bottom: 1px solid rgba(109, 40, 217, 0.25);
 }
 
 .cult-candidate-bybit .volnovoi-copy__panel {
   border-color: rgba(109, 40, 217, 0.22);
+  background: var(--surface);
 }
 
 .cult-candidate-pay {

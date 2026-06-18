@@ -1395,6 +1395,24 @@ html.theme-glitch [data-theme="punk"] .vc-split-logo--punk .vc-split-logo__punk 
   text-shadow: 0 0 8px rgba(255, 50, 50, 0.6);
 }
 
+[data-theme="punk"] .cult-candidate-bybit .volnovoi-copy__toggle {
+  background: rgba(0, 240, 255, 0.04);
+  border: 1px solid rgba(0, 240, 255, 0.22);
+  color: var(--text);
+  box-shadow: none;
+}
+
+[data-theme="punk"] .cult-candidate-bybit .volnovoi-copy__toggle--open {
+  border-radius: 8px 8px 0 0;
+  border-bottom: 1px solid rgba(0, 240, 255, 0.18);
+}
+
+[data-theme="punk"] .cult-candidate-bybit .volnovoi-copy__panel {
+  border-color: rgba(0, 240, 255, 0.18);
+  background: rgba(0, 240, 255, 0.03);
+  border-radius: 0 0 8px 8px;
+}
+
 [data-theme="punk"] .capsule-section__toggle {
   font-family: "Rajdhani", sans-serif;
   letter-spacing: 0.03em;
