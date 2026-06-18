@@ -5187,28 +5187,6 @@
   background: rgba(109, 40, 217, 0.06);
 }
 
-/* В join-модале рамка-коробка не нужна — форма основной контент */
-.cult-candidate-join__modal .cult-candidate-bybit .volnovoi-copy__toggle {
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid rgba(109, 40, 217, 0.3);
-  border-radius: 0;
-  box-shadow: none;
-  padding-left: 0;
-  padding-right: 0;
-}
-.cult-candidate-join__modal .cult-candidate-bybit .volnovoi-copy__toggle--open {
-  border-radius: 0;
-  border-bottom: 1px solid rgba(109, 40, 217, 0.2);
-}
-.cult-candidate-join__modal .cult-candidate-bybit .volnovoi-copy__panel {
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  padding-left: 0;
-  padding-right: 0;
-}
-
 .cult-candidate-pay {
   margin: 12px 0 16px;
   padding: 12px;

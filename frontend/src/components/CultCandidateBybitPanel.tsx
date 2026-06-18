@@ -35,15 +35,14 @@ const EMPTY_STATUS: CopyTradingStatus = {
 type Props = {
   /** После сохранения / проверки API — обновить чеклист в модалке. */
   onConfigured?: () => void;
-  defaultOpen?: boolean;
 };
 
-export function CultCandidateBybitPanel({ onConfigured, defaultOpen = false }: Props) {
+export function CultCandidateBybitPanel({ onConfigured }: Props) {
   const copy = useThemedCopy();
   const [status, setStatus] = useState<CopyTradingStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpen] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const [apiKey, setApiKey] = useState("");

@@ -92,7 +92,7 @@ export function CultCandidateJoinPanel({ onJoined }: Props) {
               <li>{copy.cultJoinStepConfirm}</li>
             </ol>
             <CultCandidatePaySection onPaid={reload} />
-            <CultCandidateBybitPanel onConfigured={reload} defaultOpen />
+            <CultCandidateBybitPanel onConfigured={reload} />
             <p className="cult-candidate-join__tg-name meta">
               {tgName.length >= 2 ? (
                 <>
