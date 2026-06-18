@@ -483,6 +483,18 @@ def format_new_news_message(post: NewsPost, *, author_label: str | None = None) 
     return "".join(parts)
 
 
+async def notify_copy_deposit_empty(telegram_user_id: int) -> None:
+    """Уведомить пользователя что депозит копирования закончился и копирование остановлено."""
+    text = (
+        "⚠️ <b>КОПИРОВАНИЕ ОСТАНОВЛЕНО</b>\n\n"
+        "Депозит для автокопирования volnovoi исчерпан — "
+        "новые сделки больше не копируются на ваш Bybit-счёт.\n\n"
+        "▸ Пополните депозит в разделе <b>Копирование</b>, "
+        "чтобы возобновить копирование."
+    )
+    await _send_message(telegram_user_id, text)
+
+
 def format_entry_filled_message(signal: Signal) -> str:
     is_market = not entry_zone_defined(signal.entry_low, signal.entry_high)
     status_line = (
