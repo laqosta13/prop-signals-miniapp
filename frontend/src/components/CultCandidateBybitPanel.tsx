@@ -42,7 +42,7 @@ export function CultCandidateBybitPanel({ onConfigured }: Props) {
   const [status, setStatus] = useState<CopyTradingStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const [apiKey, setApiKey] = useState("");

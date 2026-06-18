@@ -5164,10 +5164,12 @@
 }
 
 .cult-candidate-bybit .volnovoi-copy__toggle {
-  border-color: rgba(109, 40, 217, 0.35);
-  background: var(--surface);
+  border-radius: 12px;
+  border: 1px solid rgba(109, 40, 217, 0.45);
+  background: rgba(109, 40, 217, 0.12);
   color: var(--text);
   box-shadow: none;
+  margin-bottom: 0;
 }
 
 .cult-candidate-bybit .volnovoi-copy__toggle .volnovoi-copy__chevron {
@@ -5175,12 +5177,15 @@
 }
 
 .cult-candidate-bybit .volnovoi-copy__toggle--open {
-  border-bottom: 1px solid rgba(109, 40, 217, 0.25);
+  border-radius: 12px 12px 0 0;
+  border-bottom: 1px solid rgba(109, 40, 217, 0.2);
 }
 
 .cult-candidate-bybit .volnovoi-copy__panel {
-  border-color: rgba(109, 40, 217, 0.22);
-  background: var(--surface);
+  border: 1px solid rgba(109, 40, 217, 0.3);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  background: rgba(109, 40, 217, 0.06);
 }
 
 .cult-candidate-pay {
