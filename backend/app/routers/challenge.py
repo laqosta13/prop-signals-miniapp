@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.challenge_service import (
@@ -50,28 +50,45 @@ def my_tracker(
 @router.put("/settings", response_model=ChallengeDashboard)
 async def update_settings(
     screenshot: UploadFile | None = File(None),
+    account_size: float | None = Form(None),
     db: Session = Depends(db_session),
     admin: TelegramUser = Depends(require_main_feed_publisher),
 ) -> ChallengeDashboard:
-    """Сверка с пропом по скрину: OCR → баланс, этап, торговые дни; Старт фиксируется один раз."""
-    if not screenshot or not screenshot.filename:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Загрузите скрин с пропа",
-        )
+    """Сверка с пропом по скрину: OCR → баланс, этап, торговые дни; Старт фиксируется один раз.
 
+    При первом создании можно передать account_size вручную — будет использован
+    как стартовый номинал челленджа (OCR его уже не перезапишет).
+    """
     get_or_create_trader(db, admin.telegram_user_id, admin.username)
     ch = get_challenge(db, admin.telegram_user_id)
     is_new = ch is None
+
     if is_new:
         ch = create_challenge(db, admin.telegram_user_id)
+        if account_size is not None and account_size > 0:
+            ch.account_size = account_size
+            ch.balance = account_size
+            ch.day_start_balance = account_size
     elif not can_sync_prop_screenshot_today(ch):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Сверку можно делать раз в сутки. Повторите завтра или дождитесь следующего дня (MSK).",
         )
 
-    raw = await screenshot.read()
+    has_screenshot = screenshot is not None and bool(screenshot.filename)
+    if not has_screenshot and is_new and account_size and account_size > 0:
+        # Создание без скрина — достаточно номинала
+        db.commit()
+        db.refresh(ch)
+        return build_dashboard(db, ch)
+
+    if not has_screenshot:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Загрузите скрин с пропа",
+        )
+
+    raw = await screenshot.read()  # type: ignore[union-attr]
     try:
         parsed = parse_prop_screenshot_bytes(raw)
     except PropScreenshotParseError as exc:
@@ -82,7 +99,7 @@ async def update_settings(
 
     delete_media_files(ch.prop_screenshot_path)
     clear_tracker_screenshot_dir(admin.telegram_user_id)
-    ch.prop_screenshot_path = await save_tracker_screenshot(admin.telegram_user_id, screenshot, raw_bytes=raw)
+    ch.prop_screenshot_path = await save_tracker_screenshot(admin.telegram_user_id, screenshot, raw_bytes=raw)  # type: ignore[arg-type]
     apply_prop_screenshot_sync(db, ch, parsed)
 
     db.commit()

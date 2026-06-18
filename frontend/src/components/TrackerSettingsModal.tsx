@@ -27,6 +27,7 @@ function formatSyncedAt(iso: string | null | undefined): string | null {
 export function TrackerSettingsModal({ open, tracker, createMode = false, onClose, onSaved }: Props) {
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [nominalRaw, setNominalRaw] = useState("1000");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -37,6 +38,7 @@ export function TrackerSettingsModal({ open, tracker, createMode = false, onClos
   useEffect(() => {
     if (!open) return;
     setScreenshot(null);
+    setNominalRaw("1000");
     setPreview((prev) => {
       if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
       if (createMode || !tracker) return null;
@@ -57,9 +59,15 @@ export function TrackerSettingsModal({ open, tracker, createMode = false, onClos
     });
   };
 
+  const nominalUsd = parseFloat(nominalRaw.replace(",", ".")) || 0;
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!screenshot) {
+    if (createMode && nominalUsd <= 0) {
+      setError("Введите номинал челленджа");
+      return;
+    }
+    if (!createMode && !screenshot) {
       setError("Выберите скрин с пропа");
       return;
     }
@@ -67,7 +75,8 @@ export function TrackerSettingsModal({ open, tracker, createMode = false, onClos
     setError(null);
     try {
       const fd = new FormData();
-      fd.append("screenshot", screenshot);
+      if (screenshot) fd.append("screenshot", screenshot);
+      if (createMode && nominalUsd > 0) fd.append("account_size", String(nominalUsd));
       const updated = await updateChallengeSettings(fd);
       WebApp.HapticFeedback.notificationOccurred("success");
       onSaved(updated);
@@ -94,9 +103,26 @@ export function TrackerSettingsModal({ open, tracker, createMode = false, onClos
 
         <p className="meta tracker-settings-note">
           {createMode
-            ? "Загрузите скрин с пропа — Старт, баланс, этап и торговые дни подтянутся автоматически."
+            ? "Укажите номинал челленджа — он фиксируется один раз как стартовый баланс."
             : "Замените скрин — баланс, этап и торговые дни обновятся. Старт фиксируется при первой сверке."}
         </p>
+
+        {createMode && (
+          <label className="tracker-nominal-field">
+            <span className="field-label">Номинал челленджа ($)</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              min="1"
+              step="1"
+              placeholder="Например: 5000"
+              value={nominalRaw}
+              onChange={(e) => setNominalRaw(e.target.value)}
+              className="tracker-nominal-input"
+              autoFocus
+            />
+          </label>
+        )}
 
         {!createMode && tracker && (
           <div className="tracker-sync-readonly">
@@ -154,9 +180,13 @@ export function TrackerSettingsModal({ open, tracker, createMode = false, onClos
         <button
           type="submit"
           className="submit-btn"
-          disabled={submitting || !syncAvailable || !screenshot}
+          disabled={
+            submitting ||
+            (!createMode && (!syncAvailable || !screenshot)) ||
+            (createMode && nominalUsd <= 0)
+          }
         >
-          {submitting ? "Сверка…" : createMode ? "Создать трекер" : "Обновить по скрину"}
+          {submitting ? "Создание…" : createMode ? "Создать трекер" : "Обновить по скрину"}
         </button>
       </form>
     </div>
