@@ -737,6 +737,7 @@ BotFather: Mini App URL = HTTPS домен Amvera. Бот прод: **@volnovoib
 87. **Push без скрина** — только PNG-карточка + блочный HTML; market-entry в «Входе»; тесты `test_telegram_notify.py`
 88. **Топ-чипы 1–2–3** — `TopPlaceMedal` CSS-чипы; кандидаты `top-rank-plain`; purge **v14/v15**
 89. **Маркетинг IG** — `INSTAGRAM_VOLNOVOI_PACK.txt` (био, Taplink, 14 Stories, бот `@volnovoibot`)
+90. **Рефакторинг −513 строк** — удалены мёртвые экспорты (`TOP_INTRO`, `RANK_GUIDE_*`, `PUNK_CARD_IN_GAME/CLOSED`, `volnovoiAvatarUrl`, `RANK_RULES`-копия), убран враппер `register_subscriber`, `_quality_index` → `rank_quality_index`, `to_dict()` → `dataclasses.asdict`, `usdt_pay_address` упрощён, ленивый импорт `timezone` поднят в модуль; исправлены 2 pre-existing TS-ошибки
 
 ---
 
