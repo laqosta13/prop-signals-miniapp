@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from datetime import timedelta
+from datetime import timedelta, timezone
 
 from sqlalchemy.orm import Session
 
@@ -24,8 +24,6 @@ def review_write_access(
         return False, REVIEW_BLOCK_SUB, None
     created = sub.created_at
     if created.tzinfo is None:
-        from datetime import timezone
-
         created = created.replace(tzinfo=timezone.utc)
     eligible_at = created + timedelta(days=REVIEW_WAIT_DAYS)
     now = _now()

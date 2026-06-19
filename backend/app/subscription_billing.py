@@ -28,7 +28,7 @@ def _now() -> datetime:
 
 
 def usdt_pay_address() -> str:
-    return getattr(settings, "usdt_ton_address", None) or "UQDdFFYSG8sGiQfps2WWuIWFuaDPv1GAcFeRck6y5oeR_sPe"
+    return settings.usdt_ton_address
 
 
 def _subscription_until_active(sub: Subscriber | None) -> bool:

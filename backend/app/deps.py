@@ -6,10 +6,11 @@ from app.database import get_db
 from app.leaderboard_service import fired_trader_ids
 from app.schemas import TelegramUser
 from app.trader_roster_service import can_publish_candidate_signals, is_main_feed_publisher
-from app.signal_service import get_or_create_trader, register_subscriber
+from app.signal_service import get_or_create_trader
 from app.review_access import review_write_access
 from app.subscription_billing import (
     has_active_paid_subscription,
+    register_subscriber_with_meta,
     subscription_active,
     subscription_active_strict,
 )
@@ -26,7 +27,7 @@ def get_current_user(
         user = validate_init_data(x_telegram_init_data, settings.bot_token)
         if user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Telegram init data")
-        sub = register_subscriber(db, user.id, user.username, user.start_param)
+        sub = register_subscriber_with_meta(db, user.id, user.username, user.start_param)
         is_admin = settings.is_signal_admin_id(user.id) and user.id not in fired_trader_ids(db)
         is_super_admin = settings.is_super_admin_id(user.id)
         can_main_feed = is_main_feed_publisher(db, user.id)
@@ -57,7 +58,7 @@ def get_current_user(
             tid = int(x_dev_telegram_user_id.strip())
         except ValueError as e:
             raise HTTPException(status_code=400, detail="Bad dev user id") from e
-        sub = register_subscriber(db, tid, None, None)
+        sub = register_subscriber_with_meta(db, tid, None, None)
         is_admin = settings.is_signal_admin_id(tid) and tid not in fired_trader_ids(db)
         is_super_admin = settings.is_super_admin_id(tid)
         can_main_feed = is_main_feed_publisher(db, tid)

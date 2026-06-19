@@ -13,7 +13,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.rank_constants import RANKS_BEST_TO_WORST
+from app.rank_constants import RANKS_BEST_TO_WORST, rank_quality_index
 
 POOL_INITIAL_USD: float = 1_000.0
 
@@ -48,13 +48,6 @@ def get_pool_balance(db: Session) -> float:
     return max(0.0, balance)
 
 
-def _quality_index(rank_id: int) -> int:
-    try:
-        return RANKS_BEST_TO_WORST.index(rank_id)
-    except ValueError:
-        return len(RANKS_BEST_TO_WORST) - 1
-
-
 def _trader_score(rank_id: int, position: int, weekly_pct: float, consecutive_loss_weeks: int) -> float:
     """Балл трейдера для распределения 70% пула.
 
@@ -63,7 +56,7 @@ def _trader_score(rank_id: int, position: int, weekly_pct: float, consecutive_lo
     weekly_bonus: % за неделю если положительный.
     penalty: ×0.5 за каждую убыточную неделю подряд.
     """
-    rank_points = max(1, 10 - _quality_index(rank_id))
+    rank_points = max(1, 10 - rank_quality_index(rank_id))
     position_points = 10.0 / max(1, position)
     weekly_bonus = max(0.0, weekly_pct)
     penalty = max(0.25, 1.0 - 0.25 * consecutive_loss_weeks)

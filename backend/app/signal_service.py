@@ -111,10 +111,6 @@ def get_or_create_trader(
     return trader
 
 
-def register_subscriber(db: Session, telegram_id: int, username: str | None, start_param: str | None = None) -> Subscriber:
-    return register_subscriber_with_meta(db, telegram_id, username, start_param)
-
-
 def resolve_actor_label(db: Session, actor: TelegramUser) -> str:
     trader = get_or_create_trader(
         db,

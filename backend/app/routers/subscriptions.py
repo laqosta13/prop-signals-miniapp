@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from app.deps import _telegram_user_from_sub, db_session, get_current_user
 from app.models import Subscriber
 from app.schemas import PaymentSubmit, SubscriptionInfo, SubscriptionUpdate, TelegramUser
-from app.signal_service import register_subscriber
 from app.referral_links import build_referral_link, referral_share_text, telegram_bot_username
 from app.subscription_billing import (
     MONTH_USD,
@@ -13,6 +12,7 @@ from app.subscription_billing import (
     WEEK_USD,
     ensure_payment_memo,
     record_payment,
+    register_subscriber_with_meta,
     usdt_pay_address,
 )
 from app.subscription_pause import SUBSCRIPTION_PAUSE_HINT
@@ -73,7 +73,7 @@ def update_subscription(
     db: Session = Depends(db_session),
     user: TelegramUser = Depends(get_current_user),
 ) -> TelegramUser:
-    sub = register_subscriber(db, user.telegram_user_id, user.username, None)
+    sub = register_subscriber_with_meta(db, user.telegram_user_id, user.username, None)
     if body.notify_enabled is not None:
         sub.notify_enabled = body.notify_enabled
     if body.notify_news_enabled is not None:

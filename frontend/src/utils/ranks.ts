@@ -1,5 +1,4 @@
 import type { RankIconId } from "../components/RankIcon";
-import { RANK_RULES as RANK_RULES_COPY } from "../data/appCopy";
 import type { Theme } from "./theme";
 import { isPunkTheme } from "./punkTheme";
 
@@ -188,4 +187,3 @@ export const RANK_TIERS: RankTierInfo[] = [
   },
 ];
 
-export const RANK_RULES: string[] = [...RANK_RULES_COPY];

@@ -19,7 +19,7 @@ export const PRODUCT_PITCH =
 export const SUBSCRIPTION_INTRO =
   "Доступ к ленте сигналов трейдеров Cult — отобранных по рангам и результатам.";
 
-export const SUBSCRIPTION_TRIAL_USED_MSG = "Подписка не активна. Оформите доступ ниже.";
+const SUBSCRIPTION_TRIAL_USED_MSG = "Подписка не активна. Оформите доступ ниже.";
 
 export function testModeBannerText(_until: string | null, _daysLeft: number): string {
   return "Тестовый период — пока формируется команда ТОП трейдеров CULT";
@@ -40,8 +40,6 @@ export const TAB_SUBTITLES = {
   news: "",
   pay: "Доступ к ленте · USDT TON",
 } as const;
-
-export const TOP_INTRO = PRODUCT_PITCH;
 
 export const TOP_LABEL_TRADERS = "Трейдеры Cult";
 export const TOP_LABEL_CANDIDATES = "Кандидаты на отбор";
@@ -70,11 +68,6 @@ export const TRACKER_EXCHANGE_ONLY_HINT =
   "Без трекера — сигналы только на биржу. Нажмите «+», чтобы начать челлендж Hash Hedge и вести статистику пропа.";
 
 export const RANK_GUIDE_HINT = "Ранги — кто сколько может в сделке";
-export const RANK_GUIDE_TITLE = "Система рангов";
-export const RANK_GUIDE_INTRO =
-  "Недельный результат → ранг. Каждый понедельник ранг обновляется автоматически. Выше ранг — больше % входа и плечо.";
-export const RANK_GUIDE_POOL =
-  "Общий пул входа: если два трейдера заняли 100%, третий в эту сделку не войдёт.";
 
 export const RANK_AFTER_FIRST_CLOSE =
   "Стартовый ранг «В рынке». Первая сделка: плюс — остаётся, минус — «Нулёвый».";

@@ -1,6 +1,5 @@
 import type { Trader } from "../api";
 import { useAuthorProfile } from "../hooks/useAuthorProfile";
-import { useThemedCopy } from "../hooks/useThemedCopy";
 import { traderClosedDealsCount, traderRankAvatarId } from "../utils/traderRankDisplay";
 import { Avatar } from "./Avatar";
 import { CultCandidateActiveTrades } from "./CultCandidateActiveTrades";
@@ -20,7 +19,6 @@ type Props = {
 };
 
 export function VolnovoiHeroCard({ trader, onOpen, showActiveTrades = false, poolBalance }: Props) {
-  const copy = useThemedCopy();
   const profile = useAuthorProfile(trader.display_name, trader.username, trader.telegram_id);
   const hasClosedDeals = traderClosedDealsCount(trader) > 0;
   const hasActive = showActiveTrades && (trader.active_signals?.length ?? 0) > 0;

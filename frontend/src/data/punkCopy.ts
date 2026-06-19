@@ -116,8 +116,6 @@ export const PUNK_CARD_SHORT = "↓ SHORT";
 export const PUNK_CARD_EDIT = "Изменить";
 export const PUNK_CARD_DELETE = "Удалить";
 export const PUNK_CARD_CLOSE_MARKET = "Закрыть по рынку";
-export const PUNK_CARD_IN_GAME = (n: number) => `${n} в игре`;
-export const PUNK_CARD_CLOSED = (n: number) => `${n} закр.`;
 export const PUNK_CARD_TRADE = "+ Операция";
 
 export const PUNK_OUTCOME_WAITING = "Ожидание кода";
@@ -165,7 +163,7 @@ export const PUNK_TRACKER_EXCHANGE_ONLY_HINT =
 
 export const PUNK_SUBSCRIPTION_INTRO =
   "Доступ к ленте операций операторов сети — по кодам и результатам.";
-export const PUNK_SUBSCRIPTION_TRIAL_USED_MSG = "Доступ не активен. Получите ключ ниже.";
+const PUNK_SUBSCRIPTION_TRIAL_USED_MSG = "Доступ не активен. Получите ключ ниже.";
 
 export function punkTestModeBannerText(_until: string | null, _daysLeft: number): string {
   return "Тестовый период — пока формируется команда ТОП трейдеров CULT";

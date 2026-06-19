@@ -109,8 +109,8 @@ export function signalRealizedPnl(s: Signal): number | null {
   return Math.round((nominal * move) / 100 * 100) / 100;
 }
 
-export function signalEntryStakePct(s: Signal): number {
-  return stakePct(s);
+export function signalEntryStakePct(s: Pick<Signal, "risk_percent">): number {
+  return stakePct(s as Signal);
 }
 
 export function signalPriceMovePct(s: Signal): number | null {

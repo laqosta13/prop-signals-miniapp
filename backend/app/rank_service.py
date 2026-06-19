@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import json
 import logging
 from dataclasses import dataclass
@@ -36,13 +37,7 @@ class RankHistoryEntry:
     confirmed: bool
 
     def to_dict(self) -> dict:
-        return {
-            "week_label": self.week_label,
-            "weekly_pct": self.weekly_pct,
-            "rank_id": self.rank_id,
-            "rank_name": self.rank_name,
-            "confirmed": self.confirmed,
-        }
+        return dataclasses.asdict(self)
 
 
 def _utc_now() -> datetime:
