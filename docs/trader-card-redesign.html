@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Trader Card — Redesign Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bg:      '#0d0d10',
+            surface: '#18181d',
+            card:    '#1e1e25',
+            border:  'rgba(255,255,255,0.07)',
+            accent:  '#7c6af7',
+            green:   '#3bde8f',
+            red:     '#f75a5a',
+            muted:   '#6b6b80',
+            dim:     '#9898a8',
+          },
+          fontFamily: {
+            sans: ['-apple-system','BlinkMacSystemFont','SF Pro Display','Inter','sans-serif'],
+          },
+          borderRadius: {
+            '2xl': '18px',
+            '3xl': '24px',
+          },
+          keyframes: {
+            pulse2: { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.4 } }
+          },
+          animation: {
+            pulse2: 'pulse2 2s ease-in-out infinite',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { -webkit-font-smoothing: antialiased; box-sizing: border-box; }
+    body { background: #0d0d10; margin: 0; }
+
+    /* ── Tabular nums for all financial figures ── */
+    .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+    /* ── Ghost CTA ── */
+    .btn-copy {
+      width: 100%;
+      padding: 13px 0;
+      border-radius: 13px;
+      border: 1px solid rgba(124, 106, 247, 0.35);
+      background: transparent;
+      color: #b8aef9;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.015em;
+      cursor: pointer;
+      transition: background 0.16s, border-color 0.16s;
+      display: block;
+    }
+    .btn-copy:active {
+      background: rgba(124, 106, 247, 0.12);
+      border-color: rgba(124, 106, 247, 0.65);
+    }
+
+    /* ── Active trade pill ── */
+    .pill-active {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(59, 222, 143, 0.09);
+      border: 1px solid rgba(59, 222, 143, 0.22);
+      color: #3bde8f;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .pill-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #3bde8f;
+      animation: pulse2 2s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+
+    /* ── Bottom nav ── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 100%; max-width: 480px;
+      display: flex;
+      align-items: stretch;
+      background: rgba(18, 18, 22, 0.94);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-top: 1px solid rgba(255,255,255,0.07);
+      padding: 0 4px env(safe-area-inset-bottom, 12px);
+      z-index: 100;
+    }
+    .tab-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      padding: 10px 4px 10px;
+      border: none;
+      background: transparent;
+      color: #6b6b80;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      transition: color 0.15s;
+      min-height: 56px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tab-btn.on { color: #7c6af7; }
+    .tab-btn svg { width: 22px; height: 22px; display: block; }
+    .tab-dot {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: #7c6af7;
+      margin-top: 1px;
+    }
+    .tab-btn:not(.on) .tab-dot { display: none; }
+
+    /* ── Rank badge ── */
+    .rank-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .rank-badge--rocket {
+      background: rgba(255, 170, 30, 0.1);
+      border: 1px solid rgba(255, 170, 30, 0.22);
+      color: #f5a623;
+    }
+
+    /* ── Pool share (inline) ── */
+    .pool-inline {
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+    }
+
+    /* ── Audit pill ── */
+    .audit-tag {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 5px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    .audit-tag--bad  { background: rgba(247,90,90,0.12); color: #f75a5a; border: 1px solid rgba(247,90,90,0.25); }
+    .audit-tag--fix  { background: rgba(59,222,143,0.1); color: #3bde8f; border: 1px solid rgba(59,222,143,0.2); }
+
+    /* ── Divider ── */
+    .divider { height: 1px; background: rgba(255,255,255,0.06); margin: 4px 0; }
+
+    /* scrollable page */
+    .page { max-width: 480px; margin: 0 auto; padding: 20px 16px 100px; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ══ AUDIT BLOCK ═══════════════════════════════════════════════════ -->
+  <p style="color:#9898a8;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:0 0 12px">
+    UI / UX Аудит — 6 проблем
+  </p>
+
+  <div style="background:#1e1e25;border-radius:16px;border:1px solid rgba(255,255,255,.07);padding:14px;margin-bottom:24px;font-size:12.5px;color:#9898a8;line-height:1.65;">
+    <div style="display:flex;gap:8px;align-items:baseline;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <span class="audit-tag audit-tag--bad">Было</span>
+      <span><b style="color:#f0f0f4">Иерархия</b> — 5 одинаковых плашек конкурируют за внимание. PnL «+0.1%» теряется среди «Пул $1 001», «В рынке», «НЕД $701».</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:baseline;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <span class="audit-tag audit-tag--fix">Фикс</span>
+      <span>Единственный крупный акцент — <b style="color:#f0f0f4">PnL %</b> (24px). Пул — строка серым. Торговые статусы — компактный pill справа.</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:baseline;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <span class="audit-tag audit-tag--bad">Было</span>
+      <span><b style="color:#f0f0f4">Типографика</b> — «W 1 · L 2 · WR 33.3%» одним серым цветом, не читается. Нет tabular-nums → цифры «прыгают».</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:baseline;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <span class="audit-tag audit-tag--fix">Фикс</span>
+      <span>W зелёным, L красным, WR — контрастный белый. <code style="color:#b8aef9">font-variant-numeric: tabular-nums</code> на всех цифрах.</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:baseline;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <span class="audit-tag audit-tag--bad">Было</span>
+      <span><b style="color:#f0f0f4">График</b> — угловатые сегменты, нет заливки. Сетка толстая, перекрывает линию.</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:baseline;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <span class="audit-tag audit-tag--fix">Фикс</span>
+      <span>Catmull-Rom → кубические безье. Градиентная заливка 25%→0%. Сетка: 1px, opacity 4%.</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:baseline;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <span class="audit-tag audit-tag--bad">Было</span>
+      <span><b style="color:#f0f0f4">CTA</b> — жёлтая тяжёлая кнопка спорит с карточкой. Вес кнопки = вес всего контента.</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:baseline;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <span class="audit-tag audit-tag--fix">Фикс</span>
+      <span>Ghost-кнопка: прозрачный фон + тонкая рамка accent-цветом. Фокус на контент, действие — вторично.</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:baseline;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <span class="audit-tag audit-tag--bad">Было</span>
+      <span><b style="color:#f0f0f4">Таббар</b> — 3×2 grid (6 ячеек в 2 строки), текст 0.65rem, иконки 18px. Touch target ~32px.</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:baseline;padding:8px 0">
+      <span class="audit-tag audit-tag--fix">Фикс</span>
+      <span>5 табов в 1 строку. Иконки 22px. Min touch target 56px (iOS HIG / Material You). Dot-индикатор активного.</span>
+    </div>
+  </div>
+
+  <!-- ══ LABEL ════════════════════════════════════════════════════════ -->
+  <p style="color:#9898a8;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:0 0 12px">
+    Редизайн — карточка трейдера
+  </p>
+
+  <!-- ══ REDESIGNED TRADER CARD ════════════════════════════════════════ -->
+  <div style="background:#1e1e25;border-radius:20px;border:1px solid rgba(255,255,255,0.07);padding:16px;display:flex;flex-direction:column;gap:14px;">
+
+    <!-- ── ROW 1: Identity + Main KPI ── -->
+    <div style="display:flex;align-items:flex-start;gap:12px;">
+
+      <!-- Avatar + medal -->
+      <div style="position:relative;flex-shrink:0;">
+        <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#7c6af7,#a855f7);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;letter-spacing:-.01em;">
+          V
+        </div>
+        <!-- medal overlay -->
+        <div style="position:absolute;bottom:-4px;left:-4px;width:18px;height:18px;border-radius:50%;background:#0f9;background:linear-gradient(135deg,#f5a623,#ffd700);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:#4a2f00;border:2px solid #1e1e25;line-height:1;">
+          1
+        </div>
+      </div>
+
+      <!-- Name + meta -->
+      <div style="flex:1;min-width:0;padding-top:2px;">
+        <p style="margin:0;font-weight:700;font-size:15px;color:#f0f0f4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;">
+          volnovoi
+        </p>
+        <p style="margin:3px 0 0;font-size:11px;color:#6b6b80;">
+          Crypto · @volnovoibot
+        </p>
+        <div style="margin-top:6px;">
+          <span class="rank-badge rank-badge--rocket">🚀 Ракета</span>
+        </div>
+      </div>
+
+      <!-- Main KPI — single dominant number -->
+      <div style="text-align:right;flex-shrink:0;padding-top:2px;">
+        <p class="num" style="margin:0;font-size:26px;font-weight:800;color:#3bde8f;line-height:1;letter-spacing:-.02em;">
+          +14.2%
+        </p>
+        <p class="num" style="margin:4px 0 0;font-size:11px;color:#6b6b80;">
+          за 30 дней
+        </p>
+      </div>
+    </div>
+
+    <!-- ── ROW 2: Smooth equity curve ── -->
+    <div style="background:rgba(0,0,0,0.22);border-radius:13px;padding:10px 12px 6px;border:1px solid rgba(255,255,255,0.04);">
+      <svg id="equity-svg" width="100%" viewBox="0 0 320 60"
+           preserveAspectRatio="none" style="display:block;overflow:visible;">
+        <defs>
+          <linearGradient id="gUp" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stop-color="#3bde8f" stop-opacity="0.28"/>
+            <stop offset="100%" stop-color="#3bde8f" stop-opacity="0"/>
+          </linearGradient>
+          <clipPath id="curveClip">
+            <rect x="0" y="0" width="320" height="60"/>
+          </clipPath>
+        </defs>
+        <!-- subtle grid -->
+        <line x1="0" y1="20" x2="320" y2="20" stroke="white" stroke-opacity="0.04" stroke-width="1"/>
+        <line x1="0" y1="40" x2="320" y2="40" stroke="white" stroke-opacity="0.04" stroke-width="1"/>
+        <!-- Filled area -->
+        <path id="svg-fill" clip-path="url(#curveClip)" fill="url(#gUp)"/>
+        <!-- Curve line -->
+        <path id="svg-line" fill="none" stroke="#3bde8f" stroke-width="1.75"
+              stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Current dot -->
+        <circle id="svg-dot" r="3" fill="#3bde8f" stroke="#1e1e25" stroke-width="2"/>
+      </svg>
+      <!-- X-axis labels -->
+      <div style="display:flex;justify-content:space-between;padding:0 2px;margin-top:2px;">
+        <span style="font-size:9px;color:#4a4a60;" class="num">−30д</span>
+        <span style="font-size:9px;color:#4a4a60;" class="num">−20д</span>
+        <span style="font-size:9px;color:#4a4a60;" class="num">−10д</span>
+        <span style="font-size:9px;color:#4a4a60;" class="num">сег.</span>
+      </div>
+    </div>
+
+    <!-- ── ROW 3: W/L stats + active pill ── -->
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="num" style="display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:600;">
+        <span style="color:#3bde8f;">W 12</span>
+        <span style="color:rgba(255,255,255,0.15);">·</span>
+        <span style="color:#f75a5a;">L 3</span>
+        <span style="color:rgba(255,255,255,0.15);">·</span>
+        <span style="color:#6b6b80;">WR <span style="color:#f0f0f4;">80%</span></span>
+      </div>
+      <span class="pill-active">
+        <span class="pill-dot"></span>
+        2 в рынке
+      </span>
+    </div>
+
+    <!-- ── ROW 4: secondary stats ── -->
+    <div class="divider"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <span class="num" style="font-size:11.5px;color:#6b6b80;">
+        15 сделок
+        <span style="color:rgba(255,255,255,0.1);margin:0 4px;">·</span>
+        <span style="color:#9898a8;">нед. пул</span>
+        <span style="color:#f0f0f4;font-weight:600;"> $1 001</span>
+      </span>
+      <span class="num" style="font-size:11.5px;color:#6b6b80;">
+        баланс <span style="color:#f0f0f4;font-weight:600;">$25 000</span>
+      </span>
+    </div>
+
+    <!-- ── ROW 5: CTA ── -->
+    <button class="btn-copy">
+      Копировать volnovoi
+    </button>
+
+  </div>
+  <!-- / card -->
+
+
+  <!-- ══ SECOND CARD (negative PnL variant) ═══════════════════════════ -->
+  <p style="color:#9898a8;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:24px 0 12px">
+    Вариант — убыточный трейдер
+  </p>
+
+  <div style="background:#1e1e25;border-radius:20px;border:1px solid rgba(255,255,255,0.07);padding:16px;display:flex;flex-direction:column;gap:14px;">
+    <div style="display:flex;align-items:flex-start;gap:12px;">
+      <div style="position:relative;flex-shrink:0;">
+        <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#374151,#6b7280);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;">T</div>
+        <div style="position:absolute;bottom:-4px;left:-4px;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#9ca3af,#d1d5db);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:#1f2937;border:2px solid #1e1e25;">5</div>
+      </div>
+      <div style="flex:1;min-width:0;padding-top:2px;">
+        <p style="margin:0;font-weight:700;font-size:15px;color:#f0f0f4;">trader_xyz</p>
+        <p style="margin:3px 0 0;font-size:11px;color:#6b6b80;">Crypto · @trader_xyz</p>
+        <div style="margin-top:6px;"><span class="rank-badge" style="background:rgba(107,107,128,0.12);border:1px solid rgba(107,107,128,0.2);color:#6b6b80;">🐟 Новичок</span></div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;padding-top:2px;">
+        <p class="num" style="margin:0;font-size:26px;font-weight:800;color:#f75a5a;line-height:1;letter-spacing:-.02em;">−3.8%</p>
+        <p class="num" style="margin:4px 0 0;font-size:11px;color:#6b6b80;">за 30 дней</p>
+      </div>
+    </div>
+
+    <div style="background:rgba(0,0,0,0.22);border-radius:13px;padding:10px 12px 6px;border:1px solid rgba(255,255,255,0.04);">
+      <svg id="equity-svg-2" width="100%" viewBox="0 0 320 60"
+           preserveAspectRatio="none" style="display:block;overflow:visible;">
+        <defs>
+          <linearGradient id="gDown" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stop-color="#f75a5a" stop-opacity="0.22"/>
+            <stop offset="100%" stop-color="#f75a5a" stop-opacity="0"/>
+          </linearGradient>
+          <clipPath id="curveClip2">
+            <rect x="0" y="0" width="320" height="60"/>
+          </clipPath>
+        </defs>
+        <line x1="0" y1="20" x2="320" y2="20" stroke="white" stroke-opacity="0.04" stroke-width="1"/>
+        <line x1="0" y1="40" x2="320" y2="40" stroke="white" stroke-opacity="0.04" stroke-width="1"/>
+        <path id="svg-fill-2" clip-path="url(#curveClip2)" fill="url(#gDown)"/>
+        <path id="svg-line-2" fill="none" stroke="#f75a5a" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle id="svg-dot-2" r="3" fill="#f75a5a" stroke="#1e1e25" stroke-width="2"/>
+      </svg>
+      <div style="display:flex;justify-content:space-between;padding:0 2px;margin-top:2px;">
+        <span style="font-size:9px;color:#4a4a60;" class="num">−30д</span>
+        <span style="font-size:9px;color:#4a4a60;" class="num">−20д</span>
+        <span style="font-size:9px;color:#4a4a60;" class="num">−10д</span>
+        <span style="font-size:9px;color:#4a4a60;" class="num">сег.</span>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="num" style="display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:600;">
+        <span style="color:#3bde8f;">W 3</span>
+        <span style="color:rgba(255,255,255,0.15);">·</span>
+        <span style="color:#f75a5a;">L 7</span>
+        <span style="color:rgba(255,255,255,0.15);">·</span>
+        <span style="color:#6b6b80;">WR <span style="color:#f0f0f4;">30%</span></span>
+      </div>
+      <!-- no active trades — no pill -->
+      <span class="num" style="font-size:11px;color:#4a4a60;">нет позиций</span>
+    </div>
+
+    <div class="divider"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <span class="num" style="font-size:11.5px;color:#6b6b80;">10 сделок</span>
+      <span class="num" style="font-size:11.5px;color:#6b6b80;">баланс <span style="color:#f0f0f4;font-weight:600;">$8 200</span></span>
+    </div>
+
+    <button class="btn-copy" style="border-color:rgba(107,107,128,0.3);color:#6b6b80;">
+      Просмотр trader_xyz
+    </button>
+  </div>
+
+
+  <!-- ══ TABBAR LABEL ═══════════════════════════════════════════════════ -->
+  <p style="color:#9898a8;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:28px 0 8px;">
+    Редизайн — нижняя навигация
+  </p>
+  <div style="background:#1e1e25;border-radius:18px;border:1px solid rgba(255,255,255,0.07);overflow:hidden;margin-bottom:12px;">
+    <!-- mock tabbar inline for preview -->
+    <div style="display:flex;background:rgba(18,18,22,0.94);border-top:1px solid rgba(255,255,255,0.07);padding:0 4px 12px;">
+
+      <!-- Лента -->
+      <button style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:12px 4px 4px;border:none;background:transparent;color:#6b6b80;cursor:pointer;font-size:10px;font-weight:500;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:22px;height:22px;">
+          <path d="M4 6h16M4 10h16M4 14h10"/>
+        </svg>
+        Лента
+      </button>
+
+      <!-- Трекер -->
+      <button style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:12px 4px 4px;border:none;background:transparent;color:#6b6b80;cursor:pointer;font-size:10px;font-weight:500;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:22px;height:22px;">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+        Трекер
+      </button>
+
+      <!-- Топ — ACTIVE -->
+      <button style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:12px 4px 0px;border:none;background:transparent;color:#7c6af7;cursor:pointer;font-size:10px;font-weight:600;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:22px;height:22px;">
+          <path d="M8 21H4a1 1 0 01-1-1v-5M16 21h4a1 1 0 001-1v-9M12 21V11M12 11l-4-4m4 4l4-4"/>
+        </svg>
+        Топ
+        <div style="width:4px;height:4px;border-radius:50%;background:#7c6af7;margin-top:1px;"></div>
+      </button>
+
+      <!-- Копи -->
+      <button style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:12px 4px 4px;border:none;background:transparent;color:#6b6b80;cursor:pointer;font-size:10px;font-weight:500;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:22px;height:22px;">
+          <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+        </svg>
+        Копи
+      </button>
+
+      <!-- Профиль -->
+      <button style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:12px 4px 4px;border:none;background:transparent;color:#6b6b80;cursor:pointer;font-size:10px;font-weight:500;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:22px;height:22px;">
+          <circle cx="12" cy="8" r="4"/>
+          <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+        </svg>
+        Профиль
+      </button>
+
+    </div>
+  </div>
+
+  <!-- before/after size comparison note -->
+  <div style="background:rgba(124,106,247,0.06);border:1px solid rgba(124,106,247,0.15);border-radius:12px;padding:12px 14px;font-size:11.5px;color:#9898a8;line-height:1.6;margin-bottom:20px;">
+    <b style="color:#b8aef9;">Было:</b> 3×2 grid = 6 ячеек в 2 строки, иконки 18px, текст 10.4px, touch target ≈ 32px<br>
+    <b style="color:#3bde8f;">Стало:</b> flex 5 табов, иконки 22px, текст 10px bold, touch target 56px (iOS HIG минимум 44px ✓)
+  </div>
+
+</div>
+<!-- /page -->
+
+
+<!-- ══ FIXED BOTTOM NAV (actual) ════════════════════════════════════════ -->
+<nav class="bottom-nav">
+  <button class="tab-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 10h16M4 14h10"/></svg>
+    Лента
+  </button>
+  <button class="tab-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Трекер
+  </button>
+  <button class="tab-btn on">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 21H4a1 1 0 01-1-1v-5M16 21h4a1 1 0 001-1v-9M12 21V11M12 11l-4-4m4 4l4-4"/></svg>
+    Топ
+    <div class="tab-dot"></div>
+  </button>
+  <button class="tab-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    Копи
+  </button>
+  <button class="tab-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    Профиль
+  </button>
+</nav>
+
+
+<script>
+  // ── Smooth curve via Catmull-Rom → cubic Bezier ──────────────────────
+  function smoothPath(values, W, H, pad) {
+    const mn = Math.min(...values), mx = Math.max(...values);
+    const rng = (mx - mn) || 1;
+    const n = values.length;
+    const pts = values.map((v, i) => [
+      i / (n - 1) * W,
+      pad + (1 - (v - mn) / rng) * (H - pad * 2)
+    ]);
+
+    let line = `M${f(pts[0][0])},${f(pts[0][1])}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[Math.max(0, i - 1)];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[Math.min(n - 1, i + 2)];
+      const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+      const c1y = p1[1] + (p2[1] - p0[1]) / 6;
+      const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+      const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+      line += ` C${f(c1x)},${f(c1y)} ${f(c2x)},${f(c2y)} ${f(p2[0])},${f(p2[1])}`;
+    }
+    const last = pts[n - 1];
+    const fill = line + ` L${W},${H} L0,${H} Z`;
+    return { line, fill, last };
+  }
+
+  function f(n) { return n.toFixed(2); }
+
+  // ── Positive equity (card 1) ──────────────────────────────────────────
+  const upData = [0, 0.8, 0.3, 1.9, 1.4, 3.2, 2.8, 4.5, 4.0, 5.8, 5.3, 7.9, 7.2, 10.1, 12.1, 14.2];
+  const { line: ul, fill: uf, last: ulast } = smoothPath(upData, 320, 60, 4);
+  document.getElementById('svg-line').setAttribute('d', ul);
+  document.getElementById('svg-fill').setAttribute('d', uf);
+  document.getElementById('svg-dot').setAttribute('cx', ulast[0]);
+  document.getElementById('svg-dot').setAttribute('cy', ulast[1]);
+
+  // ── Negative equity (card 2) ─────────────────────────────────────────
+  const downData = [0, 1.2, 0.6, 2.1, 1.5, 0.4, 0.8, -0.5, 0.2, -1.1, -0.7, -1.9, -2.5, -3.0, -3.5, -3.8];
+  const { line: dl, fill: df, last: dlast } = smoothPath(downData, 320, 60, 4);
+  document.getElementById('svg-line-2').setAttribute('d', dl);
+  document.getElementById('svg-fill-2').setAttribute('d', df);
+  document.getElementById('svg-dot-2').setAttribute('cx', dlast[0]);
+  document.getElementById('svg-dot-2').setAttribute('cy', dlast[1]);
+</script>
+</body>
+</html>

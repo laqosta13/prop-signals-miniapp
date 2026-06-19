@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { updateChallengeSettings, type ChallengeDashboard } from "../api";
-import { mediaUrl } from "../utils";
+import { formatUsd, mediaUrl } from "../utils";
 
 type Props = {
   open: boolean;
@@ -128,11 +128,11 @@ export function TrackerSettingsModal({ open, tracker, createMode = false, onClos
           <div className="tracker-sync-readonly">
             <div className="tracker-sync-readonly__row">
               <span className="label">Старт</span>
-              <strong>${Math.round(tracker.account_size).toLocaleString("en-US")}</strong>
+              <strong>{formatUsd(tracker.account_size)}</strong>
             </div>
             <div className="tracker-sync-readonly__row">
               <span className="label">Баланс</span>
-              <strong>${Math.round(tracker.balance * 100) / 100}</strong>
+              <strong>{formatUsd(tracker.balance)}</strong>
             </div>
             <div className="tracker-sync-readonly__row">
               <span className="label">Этап</span>

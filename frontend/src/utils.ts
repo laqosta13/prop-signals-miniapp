@@ -110,11 +110,6 @@ export function normalizeTakeProfits(input: string): string | undefined {
 }
 
 export function formatUsd(n: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
-}
-
-/** USD с копейками — баланс Bybit, депозит комиссии, номинал копии. */
-export function formatUsdCents(n: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -122,6 +117,8 @@ export function formatUsdCents(n: number) {
     maximumFractionDigits: 2,
   }).format(n);
 }
+
+export const formatUsdCents = formatUsd;
 
 export function authorProfile(
   displayName: string | null | undefined,

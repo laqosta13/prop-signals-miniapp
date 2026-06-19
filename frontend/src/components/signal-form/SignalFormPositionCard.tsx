@@ -1,3 +1,4 @@
+import { formatUsd } from "../../utils";
 import { useThemedCopy } from "../../hooks/useThemedCopy";
 import { LeveragePicker } from "../LeveragePicker";
 import { RiskPercentSlider } from "../RiskPercentSlider";
@@ -38,14 +39,14 @@ export function SignalFormPositionCard({
         <div className="signal-form__stat">
           <span className="signal-form__stat-k">{copy.signalBalance}</span>
           <span className="signal-form__stat-v" title={hasBalance ? `$${balanceUsd}` : undefined}>
-            {hasBalance ? `$${Math.round(balanceUsd).toLocaleString("en-US")}` : "—"}
+            {hasBalance ? formatUsd(balanceUsd) : "—"}
           </span>
         </div>
         <div className="signal-form__stat signal-form__stat--accent">
           <span className="signal-form__stat-k">{copy.signalNominal}</span>
           <span className="signal-form__stat-v" title={hasBalance ? `$${stakeUsd}` : undefined}>
             {hasBalance
-              ? `$${stakeUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}`
+              ? formatUsd(stakeUsd)
               : "—"}
           </span>
         </div>

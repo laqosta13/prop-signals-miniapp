@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+  <title>Signal Card — Redesign</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *   { -webkit-font-smoothing:antialiased; box-sizing:border-box; margin:0; padding:0; }
+    body{ background:#0d0d10; color:#f0f0f4; font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',Inter,sans-serif; }
+
+    /* ── Typography tokens ───────────────────────────────────────────── */
+    :root {
+      --bg:       #0d0d10;
+      --surface:  #18181d;
+      --card:     #1e1e26;
+      --border:   rgba(255,255,255,0.07);
+      --border-s: rgba(255,255,255,0.05);
+      --muted:    #6b6b80;
+      --dim:      #9898a8;
+      --text:     #f0f0f4;
+      --green:    #3bde8f;
+      --red:      #f75a5a;
+      --accent:   #7c6af7;
+      --radius:   18px;
+    }
+
+    /* Tabular nums everywhere financial data appears */
+    .num { font-variant-numeric:tabular-nums; font-feature-settings:"tnum"; }
+    /* Mono for price levels */
+    .mono{ font-family:'SF Mono','JetBrains Mono','Fira Code',ui-monospace,monospace; }
+
+    /* ── Audit tags ──────────────────────────────────────────────────── */
+    .tag-bad { display:inline-block;padding:1px 7px;border-radius:5px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:rgba(247,90,90,.1);color:#f75a5a;border:1px solid rgba(247,90,90,.22); }
+    .tag-fix { display:inline-block;padding:1px 7px;border-radius:5px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:rgba(59,222,143,.09);color:#3bde8f;border:1px solid rgba(59,222,143,.2); }
+
+    /* ── BEFORE card (greyed-out reference) ─────────────────────────── */
+    .before-card { opacity:.45; pointer-events:none; filter:grayscale(.3); }
+
+    /* ── Subscription badge — BEFORE ────────────────────────────────── */
+    .sub-badge-before {
+      background:#b00;
+      color:#fff;
+      font-size:11px;
+      font-weight:700;
+      padding:2px 6px;
+      border-radius:4px; /* sharp corners — плохо */
+      text-align:right;
+      white-space:nowrap;
+    }
+    /* ── Subscription badge — AFTER ─────────────────────────────────── */
+    .sub-badge-after {
+      display:inline-flex;
+      align-items:center;
+      gap:5px;
+      background:rgba(247,90,90,.12);
+      border:1px solid rgba(247,90,90,.28);
+      color:#f87272;
+      font-size:11px;
+      font-weight:600;
+      padding:4px 10px;
+      border-radius:999px;   /* pill — мягко */
+      white-space:nowrap;
+      letter-spacing:.01em;
+    }
+    .sub-badge-after::before { content:""; width:6px; height:6px; border-radius:50%; background:#f75a5a; flex-shrink:0; }
+
+    /* ── Notify row — AFTER ─────────────────────────────────────────── */
+    .notify-wrap {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px 16px;
+      background:var(--card);
+      border-radius:16px;
+      border:1px solid var(--border);
+      margin-bottom:12px;
+    }
+    .notify-label { font-size:14px; font-weight:600; color:var(--text); }
+    .toggle-track {
+      position:relative; width:44px; height:26px;
+      border-radius:999px; background:rgba(255,255,255,.1);
+      border:1px solid rgba(255,255,255,.12);
+      transition:background .25s,border-color .25s;
+      flex-shrink:0; cursor:pointer;
+    }
+    .toggle-track::after {
+      content:""; position:absolute;
+      top:3px; left:3px;
+      width:18px; height:18px; border-radius:50%;
+      background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.35);
+      transition:transform .28s cubic-bezier(.34,1.4,.64,1);
+    }
+    .toggle-track.on { background:linear-gradient(135deg,#e0afff,#b794f6); border-color:rgba(199,168,255,.4); }
+    .toggle-track.on::after { transform:translateX(18px); }
+
+    /* ── Signal card shell ───────────────────────────────────────────── */
+    .card {
+      background:var(--card);
+      border-radius:var(--radius);
+      border:1px solid var(--border);
+      padding:18px;
+      display:flex;
+      flex-direction:column;
+      gap:0;
+    }
+
+    /* ── Card header row ─────────────────────────────────────────────── */
+    .card-header {
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      padding-bottom:14px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      margin-bottom:14px;
+    }
+
+    /* Left: symbol + direction + time */
+    .card-id { display:flex; flex-direction:column; gap:5px; }
+    .card-symbol-row { display:flex; align-items:center; gap:8px; }
+    .card-number { font-size:12px; font-weight:600; color:var(--muted); }
+    .card-symbol { font-size:18px; font-weight:800; color:var(--text); letter-spacing:-.01em; }
+    .dir-badge {
+      display:inline-flex; align-items:center;
+      padding:3px 9px; border-radius:999px;
+      font-size:11px; font-weight:700;
+      letter-spacing:.03em;
+    }
+    .dir-badge.long  { background:rgba(59,222,143,.12); color:#3bde8f; border:1px solid rgba(59,222,143,.22); }
+    .dir-badge.short { background:rgba(247,90,90,.12);  color:#f75a5a; border:1px solid rgba(247,90,90,.22); }
+    .card-time { font-size:11px; color:var(--muted); }
+
+    /* Right: outcome badge + PNL — key fix */
+    .card-pnl {
+      display:flex; flex-direction:column;
+      align-items:flex-end; gap:6px;
+      flex-shrink:0;
+    }
+    .outcome-badge {
+      display:inline-flex; align-items:center;
+      padding:4px 11px; border-radius:999px;
+      font-size:11px; font-weight:700;
+      letter-spacing:.04em; text-transform:uppercase;
+    }
+    .outcome-badge.sl  { background:rgba(247,90,90,.13); color:#f87272; border:1px solid rgba(247,90,90,.25); }
+    .outcome-badge.win { background:rgba(59,222,143,.12); color:#3bde8f;  border:1px solid rgba(59,222,143,.22); }
+
+    /* THE dominant number — was 1.32rem, now 2rem */
+    .pnl-value {
+      font-size:2rem;
+      font-weight:800;
+      line-height:1;
+      letter-spacing:-.03em;
+    }
+    .pnl-value.loss { color:#f75a5a; }
+    .pnl-value.gain { color:#3bde8f; }
+    .pnl-pct {
+      font-size:12px; font-weight:600;
+      opacity:.75; margin-top:2px;
+    }
+    .pnl-pct.loss { color:#f75a5a; }
+    .pnl-pct.gain { color:#3bde8f; }
+
+    /* ── Data grid (params) — KEY FIX: no "boxes in boxes" ──────────── */
+    /*
+       BEFORE:
+         outer wrap has border + bg
+         each .signal-param has its own border + bg
+         → double framing = visual dirt
+
+       AFTER:
+         flat horizontal row, no outer box, thin vertical dividers only
+    */
+    .params-grid {
+      display:flex;
+      align-items:stretch;
+      gap:0;
+      margin-bottom:14px;
+      padding:10px 0;
+      border-top:1px solid rgba(255,255,255,.05);
+      border-bottom:1px solid rgba(255,255,255,.05);
+    }
+    .param-cell {
+      flex:1;
+      display:flex; flex-direction:column;
+      align-items:center; gap:4px;
+      padding:0 8px;
+      border-right:1px solid rgba(255,255,255,.06);
+    }
+    .param-cell:last-child { border-right:none; }
+    .param-cell:first-child { padding-left:0; }
+    .param-cell:last-child  { padding-right:0; }
+    .param-label {
+      font-size:10px; font-weight:600;
+      text-transform:uppercase; letter-spacing:.07em;
+      color:var(--muted);
+    }
+    .param-value {
+      font-size:13px; font-weight:700;
+      color:var(--text);
+    }
+
+    /* ── Chart container — rounded + no double border ────────────────── */
+    .chart-wrap {
+      border-radius:13px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.06);
+      margin-bottom:14px;
+      background:#0f0f14;
+    }
+    .chart-placeholder {
+      width:100%; height:200px;
+      display:flex; align-items:center; justify-content:center;
+      position:relative; overflow:hidden;
+    }
+    /* Mini fake chart for demo */
+    .chart-placeholder svg { width:100%; height:100%; position:absolute; inset:0; }
+    .chart-placeholder-label {
+      position:relative; z-index:1;
+      font-size:11px; color:rgba(255,255,255,.2);
+      font-weight:500; letter-spacing:.04em;
+    }
+    /* Level labels below chart */
+    .chart-labels {
+      display:flex; gap:16px;
+      padding:8px 12px 10px;
+      border-top:1px solid rgba(255,255,255,.04);
+      background:#0f0f14;
+    }
+    .chart-label-item {
+      display:flex; align-items:center; gap:5px;
+      font-size:10px; color:var(--muted); font-weight:500;
+    }
+    .chart-label-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+
+    /* ── Levels grid — mono + clear hierarchy ────────────────────────── */
+    .levels-row {
+      display:grid; grid-template-columns:1fr 1fr 1fr;
+      gap:0; margin-bottom:14px;
+    }
+    .level-cell { display:flex; flex-direction:column; gap:3px; }
+    .level-cell:not(:first-child) { padding-left:12px; }
+    .level-label {
+      font-size:10px; font-weight:600; text-transform:uppercase;
+      letter-spacing:.07em; color:var(--muted);
+    }
+    .level-value {
+      /* MONO + tabular nums = no decimal wobble */
+      font-size:14px; font-weight:700;
+      font-family:'SF Mono','JetBrains Mono',ui-monospace,monospace;
+      font-variant-numeric:tabular-nums;
+      font-feature-settings:"tnum";
+      letter-spacing:-.01em;
+      color:var(--text);
+    }
+    .level-value.stop   { color:#f75a5a; }
+    .level-value.target { color:#3bde8f; }
+    .level-subtext {
+      font-size:10px; font-weight:600; color:var(--muted);
+      font-variant-numeric:tabular-nums;
+    }
+    .level-subtext.neg { color:rgba(247,90,90,.7); }
+
+    /* ── FAB — proper position ───────────────────────────────────────── */
+    .fab {
+      position:fixed;
+      right:16px;
+      bottom:calc(64px + 20px + env(safe-area-inset-bottom,0px));
+      /* was: overlapping tabbar — now: above nav height (64px) + 20px gap */
+      width:52px; height:52px;
+      border-radius:50%;
+      background:linear-gradient(135deg,#7c6af7,#a78bfa);
+      border:none; cursor:pointer; color:#fff;
+      font-size:24px; font-weight:300; line-height:1;
+      display:flex; align-items:center; justify-content:center;
+      box-shadow:0 4px 20px rgba(124,106,247,.45), 0 2px 8px rgba(0,0,0,.4);
+      transition:transform .15s ease, box-shadow .15s ease;
+      z-index:50;
+    }
+    .fab:active { transform:scale(.93); box-shadow:0 2px 10px rgba(124,106,247,.3); }
+
+    /* ── Tabbar (reference) ──────────────────────────────────────────── */
+    .tabbar {
+      position:fixed; bottom:0; left:50%;
+      transform:translateX(-50%);
+      width:100%; max-width:480px;
+      display:flex;
+      background:rgba(18,18,22,.96);
+      backdrop-filter:blur(24px);
+      -webkit-backdrop-filter:blur(24px);
+      border-top:1px solid rgba(255,255,255,.07);
+      padding:0 4px env(safe-area-inset-bottom,12px);
+      z-index:100;
+    }
+    .tab { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:10px 4px 4px; border:none; background:transparent; color:#6b6b80; cursor:pointer; font-size:10px; font-weight:500; min-height:56px; }
+    .tab.on { color:#7c6af7; }
+    .tab svg { width:22px; height:22px; display:block; }
+    .tab-dot { width:4px; height:4px; border-radius:50%; background:#7c6af7; margin-top:1px; }
+    .tab:not(.on) .tab-dot { display:none; }
+
+    /* ── Page scroll ─────────────────────────────────────────────────── */
+    .page { max-width:480px; margin:0 auto; padding:16px 16px 160px; }
+    .section-label {
+      font-size:10px; font-weight:700; letter-spacing:.1em;
+      text-transform:uppercase; color:var(--muted);
+      margin:0 0 10px;
+    }
+    .section-label + .section-label { margin-top:24px; }
+    .divider { height:1px; background:rgba(255,255,255,.05); margin:8px 0; }
+    .audit-row {
+      display:flex; gap:8px; align-items:flex-start;
+      padding:9px 0; border-bottom:1px solid rgba(255,255,255,.04);
+      font-size:12.5px; color:var(--dim); line-height:1.6;
+    }
+    .audit-row:last-child { border-bottom:none; }
+    .audit-block {
+      background:var(--card); border-radius:16px;
+      border:1px solid var(--border); padding:4px 14px;
+      margin-bottom:24px;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ══ AUDIT ════════════════════════════════════════════════════════ -->
+  <p class="section-label">UI / UX Аудит — 6 проблем</p>
+  <div class="audit-block">
+    <div class="audit-row"><span class="tag-bad">1 Шапка</span><span><b style="color:#f0f0f4">Notify-строка</b> зажата вертикально. Плашка «29 дн.» — прямые углы, смещённый текст, красный без контекста.</span></div>
+    <div class="audit-row"><span class="tag-fix">Фикс</span><span>Notify-строка в отдельной card-обёртке с padding 14px. Плашка → pill с точкой-индикатором и pill border-radius 999px.</span></div>
+    <div class="audit-row"><span class="tag-bad">2 Сетка</span><span><b style="color:#f0f0f4">Двойные рамки</b>: внешний контейнер <code>border</code> + каждый из 4 блоков своя <code>border+bg</code> → «коробки в коробках».</span></div>
+    <div class="audit-row"><span class="tag-fix">Фикс</span><span>Flat horizontal strip без внешней рамки. Разделители — тонкие вертикальные линии <code>1px rgba(255,255,255,.06)</code> между ячейками.</span></div>
+    <div class="audit-row"><span class="tag-bad">3 PNL</span><span><b style="color:#f0f0f4">PNL «−$0.44»</b> — <code>font-size:1.32rem</code>, outcome badge и цифра налеплены без иерархии и воздуха.</span></div>
+    <div class="audit-row"><span class="tag-fix">Фикс</span><span>PNL → <code>font-size:2rem; font-weight:800</code>. Outcome badge отдельной строкой выше. Gap между ними 6px.</span></div>
+    <div class="audit-row"><span class="tag-bad">4 График</span><span><b style="color:#f0f0f4">Chart</b> вставлен прямоугольником без скруглений, внешняя рамка дублируется внутренним lightwight-charts border.</span></div>
+    <div class="audit-row"><span class="tag-fix">Фикс</span><span>Обёртка <code>.chart-wrap</code>: <code>border-radius:13px; overflow:hidden;</code> — chart clips внутрь. Подписи уровней (Вход/SL/TP) в одну строку снизу.</span></div>
+    <div class="audit-row"><span class="tag-bad">5 Уровни</span><span><b style="color:#f0f0f4">71.2 / 71.0462 / 71.7013</b> — обычный шрифт, десятичные знаки «прыгают», нет иерархии с верхним блоком.</span></div>
+    <div class="audit-row"><span class="tag-fix">Фикс</span><span><code>font-family: monospace; font-variant-numeric:tabular-nums</code> на значениях. Размер 14px — меньше доминантного PNL (2rem), но читаем.</span></div>
+    <div class="audit-row"><span class="tag-bad">6 FAB «+»</span><span><b style="color:#f0f0f4">Кнопка «+»</b> перекрывает текст и конфликтует с таббаром (bottom:0 или слишком близко).</span></div>
+    <div class="audit-row"><span class="tag-fix">Фикс</span><span><code>bottom: calc(64px + 20px + env(safe-area-inset-bottom))</code> — всегда выше таббара. Тень усилена для отрыва от фона.</span></div>
+  </div>
+
+
+  <!-- ══ HEADER: BEFORE ════════════════════════════════════════════════ -->
+  <p class="section-label">Шапка — БЫЛО vs СТАЛО</p>
+  <div style="background:var(--card);border-radius:16px;border:1px solid var(--border);padding:14px;margin-bottom:12px;opacity:.4;pointer-events:none;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;">
+        <div class="toggle-track"></div>
+        <span style="font-size:14px;font-weight:600;color:#f0f0f4;">Уведомления в Telegram</span>
+      </label>
+      <!-- BEFORE: sharp red badge, right-aligned, no context -->
+      <span class="sub-badge-before">29 дн.</span>
+    </div>
+  </div>
+
+  <!-- AFTER -->
+  <div class="notify-wrap">
+    <label style="display:flex;align-items:center;gap:12px;cursor:pointer;flex:1;">
+      <div class="toggle-track on"></div>
+      <div>
+        <p class="notify-label">Уведомления в Telegram</p>
+        <p style="font-size:11px;color:var(--muted);margin-top:2px;">сигналы и закрытия сделок</p>
+      </div>
+    </label>
+    <!-- AFTER: pill with dot, breathing room -->
+    <span class="sub-badge-after">29 дн.</span>
+  </div>
+
+
+  <!-- ══ SIGNAL CARD — REDESIGNED ══════════════════════════════════════ -->
+  <p class="section-label">Карточка сделки — редизайн</p>
+
+  <div class="card">
+
+    <!-- ── Header row ── -->
+    <div class="card-header">
+      <div class="card-id">
+        <div class="card-symbol-row">
+          <span class="card-number">#42</span>
+          <!-- coin icon placeholder -->
+          <span style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#fbbf24);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#1a0f00;flex-shrink:0;">₿</span>
+          <span class="card-symbol">BTCUSDT</span>
+          <span class="dir-badge long">↑ LONG</span>
+        </div>
+        <span class="card-time">14 июн · 18:23 → 15 июн · 04:11</span>
+      </div>
+
+      <!-- PNL block — right column, clear hierarchy -->
+      <div class="card-pnl">
+        <span class="outcome-badge sl">SL</span>
+        <span class="pnl-value loss num">−$0.44</span>
+        <span class="pnl-pct loss num">▼ −0.62%</span>
+      </div>
+    </div>
+
+    <!-- ── Params data grid — NO "boxes in boxes" ── -->
+    <!--
+      BEFORE CSS:
+        .signal-card__params { border:1px solid; background:...; }
+        .signal-param        { border:1px solid; background:...; }  ← double frame
+
+      AFTER CSS:
+        flat strip, dividers only between cells
+    -->
+    <div class="params-grid">
+      <div class="param-cell">
+        <span class="param-label">Вход</span>
+        <span class="param-value num">10%</span>
+      </div>
+      <div class="param-cell">
+        <span class="param-label">Трекер</span>
+        <span class="param-value num">$1 000</span>
+      </div>
+      <div class="param-cell">
+        <span class="param-label">Плечо</span>
+        <span class="param-value num">1×</span>
+      </div>
+      <div class="param-cell">
+        <span class="param-label">RR</span>
+        <span class="param-value num">1:2</span>
+      </div>
+    </div>
+
+    <!-- ── Chart — rounded container, clipped edges ── -->
+    <!--
+      BEFORE: <div class="signal-chart"> with no border-radius on wrapper
+      AFTER:  wrap in .chart-wrap { border-radius:13px; overflow:hidden }
+    -->
+    <div class="chart-wrap">
+      <div class="chart-placeholder">
+        <!-- Demo SVG chart -->
+        <svg viewBox="0 0 360 200" preserveAspectRatio="none" style="width:100%;height:100%;position:absolute;inset:0;">
+          <defs>
+            <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stop-color="#f75a5a" stop-opacity=".18"/>
+              <stop offset="100%" stop-color="#f75a5a" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <!-- grid lines -->
+          <line x1="0" y1="50"  x2="360" y2="50"  stroke="white" stroke-opacity=".04" stroke-width="1"/>
+          <line x1="0" y1="100" x2="360" y2="100" stroke="white" stroke-opacity=".04" stroke-width="1"/>
+          <line x1="0" y1="150" x2="360" y2="150" stroke="white" stroke-opacity=".04" stroke-width="1"/>
+          <!-- vertical time lines -->
+          <line x1="90"  y1="0" x2="90"  y2="200" stroke="white" stroke-opacity=".03" stroke-width="1"/>
+          <line x1="180" y1="0" x2="180" y2="200" stroke="white" stroke-opacity=".03" stroke-width="1"/>
+          <line x1="270" y1="0" x2="270" y2="200" stroke="white" stroke-opacity=".03" stroke-width="1"/>
+          <!-- SL horizontal line -->
+          <line x1="0" y1="148" x2="360" y2="148" stroke="#f75a5a" stroke-opacity=".4" stroke-width="1" stroke-dasharray="4 4"/>
+          <!-- Entry line -->
+          <line x1="0" y1="90" x2="360" y2="90" stroke="#7c6af7" stroke-opacity=".5" stroke-width="1" stroke-dasharray="4 4"/>
+          <!-- TP line -->
+          <line x1="0" y1="40" x2="360" y2="40" stroke="#3bde8f" stroke-opacity=".4" stroke-width="1" stroke-dasharray="4 4"/>
+          <!-- Price path (hit SL) -->
+          <path id="cp" fill="url(#cg)"/>
+          <path id="cl" fill="none" stroke="#e2e2f0" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span class="chart-placeholder-label">TradingView Chart</span>
+      </div>
+      <!-- Level labels — compact, left-aligned, inside chart wrap -->
+      <div class="chart-labels">
+        <div class="chart-label-item">
+          <div class="chart-label-dot" style="background:#7c6af7;"></div>
+          <span>Вход</span>
+          <span class="num mono" style="color:#f0f0f4;font-size:10px;font-weight:600;">71.2000</span>
+        </div>
+        <div class="chart-label-item">
+          <div class="chart-label-dot" style="background:#f75a5a;"></div>
+          <span>SL</span>
+          <span class="num mono" style="color:#f75a5a;font-size:10px;font-weight:600;">71.0462</span>
+        </div>
+        <div class="chart-label-item">
+          <div class="chart-label-dot" style="background:#3bde8f;"></div>
+          <span>TP</span>
+          <span class="num mono" style="color:#3bde8f;font-size:10px;font-weight:600;">71.7013</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Levels grid — mono font, clear hierarchy ── -->
+    <!--
+      BEFORE: .levels-grid__value { font-size:.95rem; font-family:inherit }
+      AFTER:  monospace + tabular-nums, labels small-caps
+    -->
+    <div class="levels-row">
+      <div class="level-cell">
+        <span class="level-label">вход</span>
+        <button style="all:unset;cursor:pointer;" title="Скопировать">
+          <span class="level-value mono num">71.2000</span>
+        </button>
+      </div>
+      <div class="level-cell" style="border-left:1px solid rgba(255,255,255,.05);">
+        <span class="level-label">стоп</span>
+        <button style="all:unset;cursor:pointer;" title="Скопировать">
+          <span class="level-value stop mono num">71.0462</span>
+        </button>
+        <span class="level-subtext neg num">▼ −0.22%</span>
+      </div>
+      <div class="level-cell" style="border-left:1px solid rgba(255,255,255,.05);">
+        <span class="level-label">цель</span>
+        <button style="all:unset;cursor:pointer;" title="Скопировать">
+          <span class="level-value target mono num">71.7013</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Tap-to-copy hint -->
+    <p style="font-size:10px;color:rgba(255,255,255,.18);text-align:center;margin-top:4px;letter-spacing:.02em;">
+      нажми на цену чтобы скопировать
+    </p>
+
+  </div>
+  <!-- /card -->
+
+
+  <!-- ══ COMPARISON: params grid before/after ══════════════════════════ -->
+  <p class="section-label" style="margin-top:24px;">Грид параметров — БЫЛО vs СТАЛО</p>
+
+  <!-- BEFORE (коробки в коробках) -->
+  <p style="font-size:11px;color:var(--muted);margin-bottom:6px;">Было — двойная рамка</p>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px;padding:8px;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09);opacity:.5;">
+    <div style="text-align:center;padding:7px 4px;border-radius:9px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.05);">
+      <span style="display:block;font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:4px;">Вход</span>
+      <span style="display:block;font-size:12px;font-weight:700;">10%</span>
+    </div>
+    <div style="text-align:center;padding:7px 4px;border-radius:9px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.05);">
+      <span style="display:block;font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:4px;">Трекер</span>
+      <span style="display:block;font-size:12px;font-weight:700;">$1 000</span>
+    </div>
+    <div style="text-align:center;padding:7px 4px;border-radius:9px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.05);">
+      <span style="display:block;font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:4px;">Плечо</span>
+      <span style="display:block;font-size:12px;font-weight:700;">1×</span>
+    </div>
+    <div style="text-align:center;padding:7px 4px;border-radius:9px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.05);">
+      <span style="display:block;font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:4px;">RR</span>
+      <span style="display:block;font-size:12px;font-weight:700;">1:2</span>
+    </div>
+  </div>
+
+  <!-- AFTER (flat strip) -->
+  <p style="font-size:11px;color:var(--muted);margin-bottom:6px;">Стало — плоская строка с разделителями</p>
+  <div class="params-grid" style="background:var(--card);border-radius:12px;padding:12px 14px;border:1px solid var(--border);border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:24px;">
+    <div class="param-cell">
+      <span class="param-label">Вход</span>
+      <span class="param-value num">10%</span>
+    </div>
+    <div class="param-cell">
+      <span class="param-label">Трекер</span>
+      <span class="param-value num">$1 000</span>
+    </div>
+    <div class="param-cell">
+      <span class="param-label">Плечо</span>
+      <span class="param-value num">1×</span>
+    </div>
+    <div class="param-cell">
+      <span class="param-label">RR</span>
+      <span class="param-value num">1:2</span>
+    </div>
+  </div>
+
+
+  <!-- ══ CSS DIFFS ═════════════════════════════════════════════════════ -->
+  <p class="section-label">CSS-диффы для index.css</p>
+  <div style="background:#0f0f14;border-radius:14px;border:1px solid rgba(255,255,255,.07);padding:14px;font-size:11.5px;line-height:1.8;color:#9898a8;font-family:'SF Mono','JetBrains Mono',ui-monospace,monospace;overflow-x:auto;margin-bottom:24px;">
+    <div style="color:#6b6b80;margin-bottom:10px;">/* 1. Убрать "коробки в коробках" */</div>
+    <div style="color:#f75a5a;">-.signal-card__params { background:...; border:1px solid ...; padding:8px; }</div>
+    <div style="color:#f75a5a;">-.signal-param { background:rgba(0,0,0,.22); border:1px solid ...; }</div>
+    <div style="color:#3bde8f;">+.signal-card__params { display:flex; padding:10px 0; border-top:1px solid rgba(255,255,255,.05); border-bottom:1px solid rgba(255,255,255,.05); background:transparent; }</div>
+    <div style="color:#3bde8f;">+.signal-param { flex:1; text-align:center; border-right:1px solid rgba(255,255,255,.06); padding:0 8px; background:transparent; border-radius:0; }</div>
+    <div style="color:#3bde8f;">+.signal-param:last-child { border-right:none; }</div>
+    <br/>
+    <div style="color:#6b6b80;">/* 2. PNL dominant number */</div>
+    <div style="color:#f75a5a;">-.signal-card__result-usd { font-size:1.32rem; }</div>
+    <div style="color:#3bde8f;">+.signal-card__result-usd { font-size:2rem; letter-spacing:-.03em; }</div>
+    <div style="color:#f75a5a;">-.outcome--head { padding:3px 9px; }</div>
+    <div style="color:#3bde8f;">+.outcome--head { padding:4px 11px; border-radius:999px; margin-bottom:4px; }</div>
+    <br/>
+    <div style="color:#6b6b80;">/* 3. Chart rounded container — в SignalCard.tsx */</div>
+    <div style="color:#3bde8f;">+.signal-chart-container { border-radius:13px; overflow:hidden; border:1px solid rgba(255,255,255,.06); margin-bottom:14px; }</div>
+    <br/>
+    <div style="color:#6b6b80;">/* 4. Levels — mono font */</div>
+    <div style="color:#f75a5a;">-.levels-grid__value { font-size:.95rem; }</div>
+    <div style="color:#3bde8f;">+.levels-grid__value { font-size:.97rem; font-family:'SF Mono',ui-monospace,monospace; font-variant-numeric:tabular-nums; }</div>
+    <br/>
+    <div style="color:#6b6b80;">/* 5. Sub badge — pill */</div>
+    <div style="color:#3bde8f;">+.sub-days-badge { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; background:rgba(247,90,90,.12); border:1px solid rgba(247,90,90,.28); color:#f87272; font-size:11px; font-weight:600; }</div>
+    <div style="color:#3bde8f;">+.sub-days-badge::before { content:""; width:6px; height:6px; border-radius:50%; background:#f75a5a; }</div>
+    <br/>
+    <div style="color:#6b6b80;">/* 6. FAB position */</div>
+    <div style="color:#f75a5a;">-.tracker-add-btn { bottom:0; /* or overlapping */ }</div>
+    <div style="color:#3bde8f;">+.tracker-add-btn { position:fixed; right:16px; bottom:calc(var(--bottom-nav-h) + 20px + env(safe-area-inset-bottom,0px)); }</div>
+  </div>
+
+</div>
+<!-- /page -->
+
+<!-- ══ FAB ══════════════════════════════════════════════════════════════ -->
+<button class="fab" aria-label="Добавить сделку">＋</button>
+
+<!-- ══ TABBAR ════════════════════════════════════════════════════════════ -->
+<nav class="tabbar">
+  <button class="tab">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 10h16M4 14h10"/></svg>
+    Лента
+  </button>
+  <button class="tab on">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Трекер
+    <div class="tab-dot"></div>
+  </button>
+  <button class="tab">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 21H4a1 1 0 01-1-1v-5M16 21h4a1 1 0 001-1v-9M12 21V11M12 11l-4-4m4 4l4-4"/></svg>
+    Топ
+  </button>
+  <button class="tab">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    Копи
+  </button>
+  <button class="tab">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    Профиль
+  </button>
+</nav>
+
+<script>
+  // Demo chart path
+  const vals = [0,1.2,.4,2.1,1.8,3,.5,1.2,.8,.4,-.2,-.8,-1.6,-2.2,-3,-3.6,-4.2,-5,-5.6,-6.2];
+  const W=360,H=200,PAD=10;
+  const mn=Math.min(...vals),mx=Math.max(...vals),rng=mx-mn||1;
+  const n=vals.length;
+  const pts=vals.map((v,i)=>[i/(n-1)*W, PAD+(1-(v-mn)/rng)*(H-PAD*2)]);
+  const f=x=>x.toFixed(1);
+  let line=`M${f(pts[0][0])},${f(pts[0][1])}`;
+  for(let i=0;i<pts.length-1;i++){
+    const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(n-1,i+2)];
+    const c1x=p1[0]+(p2[0]-p0[0])/6,c1y=p1[1]+(p2[1]-p0[1])/6;
+    const c2x=p2[0]-(p3[0]-p1[0])/6,c2y=p2[1]-(p3[1]-p1[1])/6;
+    line+=` C${f(c1x)},${f(c1y)} ${f(c2x)},${f(c2y)} ${f(p2[0])},${f(p2[1])}`;
+  }
+  const last=pts[n-1];
+  const fill=line+` L${W},${H} L0,${H} Z`;
+  document.getElementById('cl').setAttribute('d',line);
+  document.getElementById('cp').setAttribute('d',fill);
+</script>
+</body>
+</html>

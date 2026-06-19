@@ -11,9 +11,7 @@ import {
   type Trader,
 } from "../api";
 
-function fmtShare(v: number): string {
-  return "$" + Math.round(v).toLocaleString("ru-RU");
-}
+import { formatUsd } from "../utils";
 import { EquityCurve } from "./EquityCurve";
 import { CultCandidateCard } from "./CultCandidateCard";
 import { CultCandidateJoinPanel } from "./CultCandidateJoinPanel";
@@ -83,7 +81,7 @@ function TopTraderCard({
         {poolShare > 0 && (
           <div className="pool-share-badge">
             <span className="pool-share-badge__label">нед.</span>
-            <span className="pool-share-badge__value">{fmtShare(poolShare)}</span>
+            <span className="pool-share-badge__value">{formatUsd(poolShare)}</span>
           </div>
         )}
         <button type="button" className="top-card__head-btn" onClick={onOpen}>

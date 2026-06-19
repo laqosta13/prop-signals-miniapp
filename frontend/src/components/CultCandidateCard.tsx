@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { CultCandidate, CultCandidateClosedSignal } from "../api";
+import { formatUsd } from "../utils";
 import { useAuthorProfile } from "../hooks/useAuthorProfile";
 import { Avatar } from "./Avatar";
 import { CultCandidateActiveTrades } from "./CultCandidateActiveTrades";
@@ -108,9 +109,6 @@ export function CultCandidateCard({
   );
 
   const poolShare = candidate.pool_share_usd ?? 0;
-  function fmtShare(v: number) {
-    return "$" + Math.round(v).toLocaleString("ru-RU");
-  }
 
   return (
     <li className={candidate.is_me ? "top-list__item--me" : undefined}>
@@ -120,7 +118,7 @@ export function CultCandidateCard({
         {topPlace != null && poolShare > 0 && (
           <div className="pool-share-badge">
             <span className="pool-share-badge__label">нед.</span>
-            <span className="pool-share-badge__value">{fmtShare(poolShare)}</span>
+            <span className="pool-share-badge__value">{formatUsd(poolShare)}</span>
           </div>
         )}
         {candidate.is_me ? (

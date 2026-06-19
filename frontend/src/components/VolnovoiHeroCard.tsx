@@ -1,15 +1,12 @@
 import type { Trader } from "../api";
 import { useAuthorProfile } from "../hooks/useAuthorProfile";
+import { formatUsd } from "../utils";
 import { traderClosedDealsCount, traderRankAvatarId } from "../utils/traderRankDisplay";
 import { Avatar } from "./Avatar";
 import { CultCandidateActiveTrades } from "./CultCandidateActiveTrades";
 import { EquityCurve } from "./EquityCurve";
 import { HeroTaglineBanner } from "./HeroTaglineBanner";
 import { RankBadge } from "./RankBadge";
-
-function fmtPool(v: number): string {
-  return "$" + Math.round(v).toLocaleString("ru-RU");
-}
 
 type Props = {
   trader: Trader;
@@ -47,7 +44,7 @@ export function VolnovoiHeroCard({ trader, onOpen, showActiveTrades = false, poo
                 <div className="volnovoi-pool-badge">
                   <span className="volnovoi-pool-badge__label">ПУЛ</span>
                   <span className="volnovoi-pool-badge__amount">
-                    {poolBalance !== undefined ? fmtPool(poolBalance) : "$1 000"}
+                    {poolBalance !== undefined ? formatUsd(poolBalance) : "$1,000.00"}
                   </span>
                 </div>
               </div>
