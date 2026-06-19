@@ -125,7 +125,8 @@ def stake_pool_snapshot(
         exclude_signal_id=exclude_signal_id,
     )
     block_new = rank_locked and exclude_signal_id is None
-    max_stake = 0.0 if block_new else round(min(rank_cap, remaining), 2)
+    rank_available = round(max(0.0, rank_cap - used), 2)
+    max_stake = 0.0 if block_new else round(min(rank_available, remaining), 2)
 
     return {
         "current_rank_id": rank_id,
