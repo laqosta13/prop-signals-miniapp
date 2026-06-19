@@ -3188,11 +3188,11 @@
 .top-card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   position: relative;
   background: var(--surface);
   border-radius: var(--radius-lg);
-  padding: 14px;
+  padding: 16px;
   margin-bottom: 10px;
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-sm);
@@ -3354,7 +3354,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .top-name-row {
@@ -4679,9 +4679,9 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 2px 8px;
+  padding: 3px 9px;
   border-radius: 999px;
-  font-size: 0.62rem;
+  font-size: 0.67rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   line-height: 1.35;
@@ -4704,6 +4704,12 @@
 .candidate-trades-pill--active .candidate-trades-pill__dot {
   background: #34d399;
   box-shadow: 0 0 6px rgba(52, 211, 153, 0.55);
+  animation: trade-dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes trade-dot-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px rgba(52, 211, 153, 0.55); }
+  50%       { opacity: 0.5; box-shadow: 0 0 2px rgba(52, 211, 153, 0.2); }
 }
 
 .candidate-trades-pill--closed {
@@ -5248,9 +5254,11 @@
 }
 
 .top-score {
-  font-size: 1.3rem;
-  font-weight: 700;
-  margin: 2px 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin: 1px 0;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 
 .top-score.up {
@@ -5262,10 +5270,14 @@
 }
 
 .top-meta {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--muted);
   margin: 0;
+  font-variant-numeric: tabular-nums;
 }
+
+.top-meta__w { color: var(--green); font-weight: 600; }
+.top-meta__l { color: var(--red);   font-weight: 600; }
 
 .top-card__head-btn {
   display: block;
@@ -8454,34 +8466,35 @@ button.link-preview__media {
 
 .pool-share-badge {
   position: absolute;
-  top: 10px;
-  right: 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  background: color-mix(in srgb, var(--green) 10%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--green) 32%, transparent);
-  border-radius: 8px;
-  padding: 3px 7px;
-  gap: 1px;
+  top: 12px;
+  right: 14px;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  background: color-mix(in srgb, var(--green) 9%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--green) 28%, transparent);
+  border-radius: 999px;
+  padding: 4px 10px;
   pointer-events: none;
   z-index: 1;
 }
 
 .pool-share-badge__label {
-  font-size: 0.56rem;
+  font-size: 0.58rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   color: var(--muted);
   text-transform: uppercase;
   line-height: 1;
 }
 
 .pool-share-badge__value {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 800;
   color: var(--green);
-  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 /* ── CopyBannerSlider ─────────────────────────────────────── */

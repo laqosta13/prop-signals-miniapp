@@ -98,7 +98,10 @@ export function CultCandidateCard({
           {candidate.rating_percent.toFixed(2)}%
         </p>
         <p className="top-meta">
-          W {candidate.wins} · L {candidate.losses} · WR {candidate.win_rate}%
+          <span className="top-meta__w">W {candidate.wins}</span>
+          {" · "}
+          <span className="top-meta__l">L {candidate.losses}</span>
+          {" · "}WR {candidate.win_rate}%
         </p>
       </div>
     </div>
