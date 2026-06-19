@@ -26,6 +26,7 @@ from app.cult_subscription_billing import (
 )
 from app.deps import db_session, get_current_user
 from app.trader_roster_service import cult_subscription_admin_bypass
+from app.rate_limit import check_rate_limit
 from app.subscription_billing import ensure_payment_memo, usdt_pay_address
 from app.models import Subscriber
 from app.schemas import (
@@ -119,6 +120,8 @@ def cult_subscription_pay(
     db: Session = Depends(db_session),
     user: TelegramUser = Depends(get_current_user),
 ) -> CultCandidateSubscriptionInfo:
+    if not check_rate_limit(f"pay:{user.telegram_user_id}"):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="too_many_requests")
     sub = _subscriber(db, user)
     try:
         record_cult_payment(db, user.telegram_user_id, body.tx_id)

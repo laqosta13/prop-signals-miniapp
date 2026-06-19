@@ -15,6 +15,7 @@ from app.subscription_billing import (
     register_subscriber_with_meta,
     usdt_pay_address,
 )
+from app.rate_limit import check_rate_limit
 from app.subscription_pause import SUBSCRIPTION_PAUSE_HINT
 from app.test_mode import test_mode_public_fields
 
@@ -98,6 +99,8 @@ def submit_payment(
     db: Session = Depends(db_session),
     user: TelegramUser = Depends(get_current_user),
 ) -> SubscriptionInfo:
+    if not check_rate_limit(f"pay:{user.telegram_user_id}"):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="too_many_requests")
     try:
         record_payment(db, user.telegram_user_id, body.plan, body.tx_id)
         db.commit()

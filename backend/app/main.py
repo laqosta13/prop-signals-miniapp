@@ -131,7 +131,7 @@ app.add_middleware(GZipMiddleware, minimum_size=800)
 origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins or ["*"],
+    allow_origins=origins,
     allow_credentials=bool(origins),
     allow_methods=["*"],
     allow_headers=["*"],
