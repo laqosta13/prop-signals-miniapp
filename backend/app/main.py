@@ -49,7 +49,7 @@ media_root()
 
 async def _one_time_purge_on_startup() -> None:
     """Разовая очистка контента при первом старте после деплоя."""
-    sentinel = media_root() / ".purge_done_v4"
+    sentinel = media_root() / ".purge_done_v5"
     if sentinel.is_file():
         return
     log = logging.getLogger(__name__)
