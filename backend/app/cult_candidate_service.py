@@ -475,7 +475,8 @@ def candidate_stake_pool_snapshot(
         exclude_signal_id=exclude_signal_id,
     )
     block_new = rank_locked and exclude_signal_id is None
-    max_stake = 0.0 if block_new else round(min(rank_cap, remaining), 2)
+    rank_available = round(max(0.0, rank_cap - used), 2)
+    max_stake = 0.0 if block_new else round(min(rank_available, remaining), 2)
     return {
         "current_rank_id": rank_id,
         "current_rank_name": rank_name(rank_id),
@@ -505,17 +506,35 @@ def candidate_signals_today_count(db: Session, author_id: int) -> int:
     return sum(1 for s in rows if msk_day_key(s.created_at) == today_key)
 
 
+def _candidate_signal_stop_budget_consumed(sig: Signal) -> float:
+    """Price-stop based daily budget consumed by a closed cult candidate signal.
+
+    Using price_stop_to_reserved_rank_pct (not stake-aware) so the budget
+    consumed equals the price-stop % * leverage, matching the form's stop slider.
+    """
+    from app.daily_stop_limit import price_stop_to_reserved_rank_pct, signal_price_stop_pct
+    from app.trader_stats import closed_signal_move_pct, signal_leverage
+
+    if sig.status not in ("win", "lose"):
+        return 0.0
+    if sig.close_reason == "target":
+        return 0.0
+    lev = signal_leverage(sig)
+    if sig.close_reason == "market" and sig.status == "lose":
+        move = abs(closed_signal_move_pct(sig))
+        return price_stop_to_reserved_rank_pct(move, lev)
+    if sig.status == "lose":
+        return price_stop_to_reserved_rank_pct(signal_price_stop_pct(sig), lev)
+    return 0.0
+
+
 def candidate_stop_consumed_rank_pct(
     db: Session,
     author_id: int,
     balance: float,
     rank_max_stake_pct_val: float,
 ) -> float:
-    from app.daily_stop_limit import (
-        SIGNAL_DAILY_STOP_LIMIT_PCT,
-        msk_day_key,
-        signal_closed_stop_budget_rank_pct,
-    )
+    from app.daily_stop_limit import SIGNAL_DAILY_STOP_LIMIT_PCT, msk_day_key
 
     today_key = msk_day_key(_now())
     if not today_key:
@@ -531,7 +550,7 @@ def candidate_stop_consumed_rank_pct(
     for sig in rows:
         if msk_day_key(sig.closed_at) != today_key:
             continue
-        total += signal_closed_stop_budget_rank_pct(sig, balance, rank_max_stake_pct_val)
+        total += _candidate_signal_stop_budget_consumed(sig)
     return round(min(total, SIGNAL_DAILY_STOP_LIMIT_PCT), 2)
 
 
@@ -543,13 +562,18 @@ def candidate_active_stop_reserved_rank_pct(
     *,
     exclude_signal_id: int | None = None,
 ) -> float:
-    from app.daily_stop_limit import SIGNAL_DAILY_STOP_LIMIT_PCT, signal_reserved_rank_pct
+    from app.daily_stop_limit import (
+        SIGNAL_DAILY_STOP_LIMIT_PCT,
+        price_stop_to_reserved_rank_pct,
+        signal_price_stop_pct,
+    )
+    from app.trader_stats import signal_leverage
 
     total = 0.0
     for sig in _candidate_active_signals(db, author_id):
         if exclude_signal_id is not None and sig.id == exclude_signal_id:
             continue
-        total += signal_reserved_rank_pct(sig, balance, rank_max_stake_pct_val)
+        total += price_stop_to_reserved_rank_pct(signal_price_stop_pct(sig), signal_leverage(sig))
     return round(min(total, SIGNAL_DAILY_STOP_LIMIT_PCT), 2)
 
 
