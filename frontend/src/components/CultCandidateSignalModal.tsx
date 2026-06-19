@@ -191,6 +191,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
         dailyStopReservedRankPct={tracker.dailyStopReservedRank}
         dailyTradesRemaining={tracker.dailyTradesRemainingCount}
         dailyTradesLimit={tracker.dailyTradesLimit}
+        stakePoolBurnedPct={tracker.trackerSnap?.stake_pool_burned_pct}
         stakePoolUsedPct={tracker.trackerSnap?.stake_pool_used_pct}
         stakePoolRemainingPct={tracker.trackerSnap?.stake_pool_remaining_pct}
         dailyBlocked={tracker.dailyLimit.blocked}

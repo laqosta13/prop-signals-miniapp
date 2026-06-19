@@ -435,6 +435,18 @@ def candidate_active_stake_used(db: Session, author_id: int, *, exclude_signal_i
     return round(float(db.scalar(q) or 0.0), 2)
 
 
+def candidate_burned_stake_pct(db: Session, author_id: int) -> float:
+    """Sum of risk_percent from cult signals closed at stop loss (permanently burned)."""
+    from app.signal_stake_pool import _signal_stake_expr
+
+    q = select(func.coalesce(func.sum(_signal_stake_expr()), 0.0)).where(
+        Signal.status == "lose",
+        Signal.is_cult_candidate.is_(True),
+        Signal.author_telegram_id == author_id,
+    )
+    return round(float(db.scalar(q) or 0.0), 2)
+
+
 def candidate_stake_pool_snapshot(
     db: Session,
     trader,
@@ -448,8 +460,10 @@ def candidate_stake_pool_snapshot(
 
     ensure_rank_fields(trader)
     rank_id = trader.current_rank_id or DEFAULT_RANK_ID
+    burned = candidate_burned_stake_pct(db, author_id)
+    capacity = round(max(0.0, 100.0 - burned), 2)
     used = candidate_active_stake_used(db, author_id, exclude_signal_id=exclude_signal_id)
-    remaining = round(max(0.0, 100.0 - used), 2)
+    remaining = round(max(0.0, capacity - used), 2)
     rank_cap = rank_max_stake_pct(rank_id)
     from app.signal_stake_pool import author_has_full_rank_entry_locked
 
@@ -467,6 +481,8 @@ def candidate_stake_pool_snapshot(
         "current_rank_name": rank_name(rank_id),
         "rank_max_stake_pct": rank_cap,
         "rank_max_leverage": rank_max_leverage(rank_id),
+        "stake_pool_burned_pct": burned,
+        "stake_pool_capacity_pct": capacity,
         "stake_pool_used_pct": used,
         "stake_pool_remaining_pct": remaining,
         "rank_entry_locked": rank_locked,
@@ -614,6 +630,8 @@ def build_candidate_form_snapshot(
         rank_max_leverage=int(pool["rank_max_leverage"]),
         daily_stop_reserved_rank_pct=float(stop_state["reserved_rank_pct"]),
         daily_stop_remaining_rank_pct=float(stop_state["remaining_rank_pct"]),
+        stake_pool_burned_pct=float(pool["stake_pool_burned_pct"]),
+        stake_pool_capacity_pct=float(pool["stake_pool_capacity_pct"]),
         stake_pool_used_pct=float(pool["stake_pool_used_pct"]),
         stake_pool_remaining_pct=float(pool["stake_pool_remaining_pct"]),
         rank_entry_locked=bool(pool.get("rank_entry_locked")),

@@ -315,6 +315,8 @@ class CultCandidateFormSnapshot(BaseModel):
     rank_max_leverage: int = 1
     daily_stop_reserved_rank_pct: float = 0.0
     daily_stop_remaining_rank_pct: float = 2.0
+    stake_pool_burned_pct: float = 0.0
+    stake_pool_capacity_pct: float = 100.0
     stake_pool_used_pct: float = 0.0
     stake_pool_remaining_pct: float = 100.0
     rank_entry_locked: bool = False

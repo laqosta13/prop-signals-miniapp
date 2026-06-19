@@ -14,6 +14,7 @@ type Props = {
   dailyRemaining?: number;
   dailyTradesRemaining: number;
   dailyTradesLimit?: number;
+  stakePoolBurnedPct?: number;
   stakePoolUsedPct?: number;
   stakePoolRemainingPct?: number;
   dailyStopReservedRankPct?: number;
@@ -32,6 +33,7 @@ export function SignalFormLimitsBar({
   dailyRemaining,
   dailyTradesRemaining,
   dailyTradesLimit = SIGNAL_DAILY_TRADE_LIMIT,
+  stakePoolBurnedPct = 0,
   stakePoolUsedPct,
   stakePoolRemainingPct,
   dailyStopReservedRankPct = 0,
@@ -85,6 +87,9 @@ export function SignalFormLimitsBar({
             {formatPoolChipPct(poolFree)}
             <span className="signal-form__chip-dim">/{STAKE_POOL_TOTAL_PCT}%</span>
           </span>
+          {stakePoolBurnedPct > 0 ? (
+            <span className="signal-form__chip-sub">−{formatPoolChipPct(stakePoolBurnedPct)}% сгорело</span>
+          ) : null}
         </div>
         <div className="signal-form__chip signal-form__chip--wide">
           <span className="signal-form__chip-k">{copy.signalInMarket}</span>

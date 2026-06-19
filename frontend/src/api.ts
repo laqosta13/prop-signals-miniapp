@@ -206,6 +206,8 @@ export type CultCandidateFormSnapshot = {
   rank_max_leverage: number;
   daily_stop_reserved_rank_pct: number;
   daily_stop_remaining_rank_pct: number;
+  stake_pool_burned_pct: number;
+  stake_pool_capacity_pct: number;
   stake_pool_used_pct: number;
   stake_pool_remaining_pct: number;
   rank_entry_locked?: boolean;
