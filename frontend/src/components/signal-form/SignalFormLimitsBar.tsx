@@ -85,7 +85,7 @@ export function SignalFormLimitsBar({
           <span className="signal-form__chip-k">{copy.signalInMarket}</span>
           <span className="signal-form__chip-v">
             {formatPoolChipPct(inMarket)}
-            <span className="signal-form__chip-dim">%</span>
+            <span className="signal-form__chip-dim">%/100%</span>
           </span>
           <span className="signal-form__chip-sub">
             доступно {formatPoolChipPct(maxStakePct)}%

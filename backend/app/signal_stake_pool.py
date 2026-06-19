@@ -85,6 +85,22 @@ def active_admin_stake_used(db: Session, *, exclude_signal_id: int | None = None
     return round(float(db.scalar(q) or 0.0), 2)
 
 
+def active_author_admin_stake_used(
+    db: Session,
+    author_id: int,
+    *,
+    exclude_signal_id: int | None = None,
+) -> float:
+    """Сумма входа % активных сигналов конкретного трейдера (для rank_available)."""
+    q = select(func.coalesce(func.sum(_signal_stake_expr()), 0.0)).where(
+        Signal.status == "active",
+        Signal.author_telegram_id == author_id,
+    )
+    if exclude_signal_id is not None:
+        q = q.where(Signal.id != exclude_signal_id)
+    return round(float(db.scalar(q) or 0.0), 2)
+
+
 def stake_pool_remaining(db: Session, *, exclude_signal_id: int | None = None) -> float:
     used = active_admin_stake_used(db, exclude_signal_id=exclude_signal_id)
     return round(max(0.0, STAKE_POOL_TOTAL_PCT - used), 2)
@@ -125,7 +141,8 @@ def stake_pool_snapshot(
         exclude_signal_id=exclude_signal_id,
     )
     block_new = rank_locked and exclude_signal_id is None
-    rank_available = round(max(0.0, rank_cap - used), 2)
+    author_used = active_author_admin_stake_used(db, author_id, exclude_signal_id=exclude_signal_id)
+    rank_available = round(max(0.0, rank_cap - author_used), 2)
     max_stake = 0.0 if block_new else round(min(rank_available, remaining), 2)
 
     return {
