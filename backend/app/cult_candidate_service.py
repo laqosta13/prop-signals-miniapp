@@ -506,25 +506,42 @@ def candidate_signals_today_count(db: Session, author_id: int) -> int:
     return sum(1 for s in rows if msk_day_key(s.created_at) == today_key)
 
 
-def _candidate_signal_stop_budget_consumed(sig: Signal) -> float:
-    """Price-stop based daily budget consumed by a closed cult candidate signal.
+def _candidate_stop_rank_pct(
+    price_stop_pct: float,
+    stake_pct: float,
+    lev: int,
+    rank_max: float,
+) -> float:
+    """Доля дневного лимита (0–2%) для кандидата.
 
-    Using price_stop_to_reserved_rank_pct (not stake-aware) so the budget
-    consumed equals the price-stop % * leverage, matching the form's stop slider.
+    consumed = stake% × lev × price_stop% / rank_max%
+    При stake=rank_max, lev=1, price_stop=2% → ровно 2% (полный лимит).
+    2% лимита отсчитываются от номинала ранга (rank_max × balance), не от баланса.
     """
-    from app.daily_stop_limit import price_stop_to_reserved_rank_pct, signal_price_stop_pct
+    from app.daily_stop_limit import SIGNAL_DAILY_STOP_LIMIT_PCT
+
+    if price_stop_pct <= 0 or stake_pct <= 0 or rank_max <= 0:
+        return 0.0
+    consumed = stake_pct * max(1, lev) * price_stop_pct / rank_max
+    return round(min(consumed, SIGNAL_DAILY_STOP_LIMIT_PCT), 2)
+
+
+def _candidate_signal_stop_budget_consumed(sig: Signal, rank_max: float) -> float:
+    """Дневной бюджет, потреблённый закрытым сигналом кандидата."""
+    from app.daily_stop_limit import signal_price_stop_pct
     from app.trader_stats import closed_signal_move_pct, signal_leverage
 
     if sig.status not in ("win", "lose"):
         return 0.0
     if sig.close_reason == "target":
         return 0.0
+    stake = float(sig.risk_percent or 0)
     lev = signal_leverage(sig)
     if sig.close_reason == "market" and sig.status == "lose":
         move = abs(closed_signal_move_pct(sig))
-        return price_stop_to_reserved_rank_pct(move, lev)
+        return _candidate_stop_rank_pct(move, stake, lev, rank_max)
     if sig.status == "lose":
-        return price_stop_to_reserved_rank_pct(signal_price_stop_pct(sig), lev)
+        return _candidate_stop_rank_pct(signal_price_stop_pct(sig), stake, lev, rank_max)
     return 0.0
 
 
@@ -550,7 +567,7 @@ def candidate_stop_consumed_rank_pct(
     for sig in rows:
         if msk_day_key(sig.closed_at) != today_key:
             continue
-        total += _candidate_signal_stop_budget_consumed(sig)
+        total += _candidate_signal_stop_budget_consumed(sig, rank_max_stake_pct_val)
     return round(min(total, SIGNAL_DAILY_STOP_LIMIT_PCT), 2)
 
 
@@ -562,18 +579,17 @@ def candidate_active_stop_reserved_rank_pct(
     *,
     exclude_signal_id: int | None = None,
 ) -> float:
-    from app.daily_stop_limit import (
-        SIGNAL_DAILY_STOP_LIMIT_PCT,
-        price_stop_to_reserved_rank_pct,
-        signal_price_stop_pct,
-    )
+    from app.daily_stop_limit import SIGNAL_DAILY_STOP_LIMIT_PCT, signal_price_stop_pct
     from app.trader_stats import signal_leverage
 
     total = 0.0
     for sig in _candidate_active_signals(db, author_id):
         if exclude_signal_id is not None and sig.id == exclude_signal_id:
             continue
-        total += price_stop_to_reserved_rank_pct(signal_price_stop_pct(sig), signal_leverage(sig))
+        stake = float(sig.risk_percent or 0)
+        total += _candidate_stop_rank_pct(
+            signal_price_stop_pct(sig), stake, signal_leverage(sig), rank_max_stake_pct_val
+        )
     return round(min(total, SIGNAL_DAILY_STOP_LIMIT_PCT), 2)
 
 
@@ -768,11 +784,9 @@ def validate_candidate_signal_daily_stop(
         SIGNAL_DAILY_TRADE_LIMIT,
         compute_signal_points_percent,
         daily_stop_budget_usd,
-        price_stop_to_reserved_rank_pct,
     )
     from app.signal_service import get_or_create_trader
 
-    _ = stake_pct
     balance = cult_candidate_account_size(db, author_id)
     trader = get_or_create_trader(db, author_id, None)
     snap = candidate_stake_pool_snapshot(db, trader, author_id, exclude_signal_id=exclude_signal_id)
@@ -801,7 +815,7 @@ def validate_candidate_signal_daily_stop(
     if not stop_loss:
         return
     price_stop_pct = compute_signal_points_percent(entry_low, entry_high, stop_loss)
-    needed_rank_pct = price_stop_to_reserved_rank_pct(price_stop_pct, leverage)
+    needed_rank_pct = _candidate_stop_rank_pct(price_stop_pct, stake_pct, leverage, rank_cap)
     if needed_rank_pct > remaining_pct + 0.01:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
