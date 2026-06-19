@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import { recordSignalView, toggleSignalLike, type Signal } from "../api";
 import { useAuthorProfile } from "../hooks/useAuthorProfile";
-import { calcRR, formatTakeProfits, formatTime, formatUsd, mediaUrl } from "../utils";
+import { calcRR, formatTakeProfits, formatTime, formatUsd, formatUsdCents, mediaUrl } from "../utils";
 import {
   signalEntryStakePct,
   signalPriceMovePct,
@@ -188,7 +188,7 @@ export function SignalCard({
               {headerPnl != null ? (
                 <span className="signal-card__result-usd">
                   {headerPnl >= 0 ? "+" : ""}
-                  {formatUsd(headerPnl)}
+                  {formatUsdCents(headerPnl)}
                 </span>
               ) : livePnl.loading ? (
                 <span className="signal-card__result-usd signal-card__result-usd--pending">…</span>
