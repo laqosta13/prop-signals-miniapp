@@ -74,7 +74,7 @@ def _cult_subscription_info(db: Session, user: TelegramUser, sub: Subscriber) ->
 
 
 @router.get("", response_model=list[CultCandidateRead])
-def list_cult_candidates(
+async def list_cult_candidates(
     db: Session = Depends(db_session),
     user: TelegramUser = Depends(get_current_user),
 ) -> list[CultCandidateRead]:
@@ -86,9 +86,22 @@ def list_cult_candidates(
         or cult_subscription_active(sub, is_admin=bypass)
         or subscription_active(sub, bypass)
     )
-    return build_cult_candidates_read(
+    candidates = build_cult_candidates_read(
         db, viewer_id=user.telegram_user_id, viewer_can_see_active=can_see_active
     )
+    for c in candidates:
+        if c.is_me:
+            from app.models import UserBybitSettings
+            from app.bybit_trading import get_wallet_usdt_balance
+            from app.copy_trading_service import _user_credentials
+            row = db.get(UserBybitSettings, user.telegram_user_id)
+            if row:
+                try:
+                    c.bybit_balance_usd = await get_wallet_usdt_balance(_user_credentials(row))
+                except Exception:
+                    pass
+            break
+    return candidates
 
 
 @router.get("/subscription/info", response_model=CultCandidateSubscriptionInfo)

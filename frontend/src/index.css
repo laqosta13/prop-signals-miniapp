@@ -5061,6 +5061,13 @@
   margin-top: 10px;
 }
 
+.cult-candidate-bybit-balance {
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 6px 0 2px;
+  margin: 0;
+}
+
 .cult-candidate-join {
   margin-bottom: 12px;
 }

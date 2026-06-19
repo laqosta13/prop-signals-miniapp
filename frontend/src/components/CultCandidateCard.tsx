@@ -155,6 +155,12 @@ export function CultCandidateCard({
           <EquityCurve dailyStats={candidate.daily_stats} percentOnly showDayList />
         )}
 
+        {expanded && candidate.is_me && candidate.bybit_balance_usd != null && (
+          <p className="cult-candidate-bybit-balance">
+            Bybit USDT: <strong>${candidate.bybit_balance_usd.toFixed(2)}</strong>
+          </p>
+        )}
+
         {expanded && candidate.is_me && onTrade && (
           <button type="button" className="btn-primary cult-candidate-trade-btn" onClick={onTrade}>
             + Сделка

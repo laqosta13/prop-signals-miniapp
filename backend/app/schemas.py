@@ -281,6 +281,7 @@ class CultCandidateRead(BaseModel):
     volnovoi_style: VolnovoiStyleRead | None = None
     is_me: bool = False
     pool_share_usd: float = 0.0
+    bybit_balance_usd: float | None = None
 
 
 class SignalFormSnapshot(BaseModel):

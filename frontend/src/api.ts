@@ -241,6 +241,7 @@ export type CultCandidate = {
   volnovoi_style?: VolnovoiStyle | null;
   is_me: boolean;
   pool_share_usd?: number;
+  bybit_balance_usd?: number | null;
 };
 
 export type PoolStats = {
