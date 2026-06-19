@@ -85,7 +85,7 @@ export function SignalFormLimitsBar({
           <span className="signal-form__chip-k">{copy.signalPool}</span>
           <span className="signal-form__chip-v">
             {formatPoolChipPct(maxStakePct)}
-            <span className="signal-form__chip-dim">/{rankMaxStakePct}%</span>
+            <span className="signal-form__chip-dim">/{STAKE_POOL_TOTAL_PCT}%</span>
           </span>
           {stakePoolBurnedPct > 0 ? (
             <span className="signal-form__chip-sub">−{formatPoolChipPct(stakePoolBurnedPct)}% сгорело</span>
