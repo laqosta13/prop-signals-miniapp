@@ -141,10 +141,6 @@ def apply_prop_screenshot_sync(db: Session, ch: UserChallenge, data: PropScreens
     """Обновить трекер по распознанным данным со скрина пропа."""
     closed = _tracker_closed_signals(db, ch.telegram_user_id)
 
-    # Размер счёта фиксируем только один раз — пока стоит дефолт
-    if data.account_size is not None and ch.account_size == DEFAULT_SIGNAL_FORM_ACCOUNT_SIZE:
-        ch.account_size = data.account_size
-
     if data.stage is not None:
         ch.stage = data.stage
 
