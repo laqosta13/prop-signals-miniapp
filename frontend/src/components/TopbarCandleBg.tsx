@@ -1,24 +1,37 @@
 import { useEffect, useRef } from "react";
 
-type Candle = { x: number; o: number; c: number; h: number; l: number };
+type Candle = { x: number; o: number; c: number; h: number; l: number; bull: boolean };
 
-const CANDLE_W = 5;
+const CANDLE_W = 7;
 const CANDLE_GAP = 3;
 const STEP = CANDLE_W + CANDLE_GAP;
-const SPEED = 0.4;
+const SPEED = 0.35;
+const MA_LEN = 8; // moving average window
 
-function nextCandle(x: number, prev: Candle, H: number): Candle {
-  const mid = H * 0.5;
-  const range = H * 0.32;
-  const prevMid = (prev.o + prev.c) / 2;
-  const drift = (Math.random() - 0.49) * H * 0.12;
-  const newMid = Math.min(Math.max(prevMid + drift, mid - range), mid + range);
-  const bodyH = H * (0.06 + Math.random() * 0.18);
-  const o = newMid - bodyH / 2;
-  const c = newMid + bodyH / 2;
-  const wickU = bodyH * (0.3 + Math.random() * 0.7);
-  const wickD = bodyH * (0.3 + Math.random() * 0.7);
-  return { x, o, c, h: Math.min(o, c) - wickU, l: Math.max(o, c) + wickD };
+function rnd(min: number, max: number) {
+  return min + Math.random() * (max - min);
+}
+
+function makeCandle(x: number, prevMid: number, H: number): Candle {
+  const lo = H * 0.1;
+  const hi = H * 0.9;
+  const range = H * 0.28;
+  const drift = (Math.random() - 0.48) * H * 0.14;
+  const mid = Math.min(Math.max(prevMid + drift, H * 0.5 - range), H * 0.5 + range);
+  const bodyH = H * rnd(0.10, 0.30);
+  const bull = Math.random() > 0.45;
+  const o = bull ? mid + bodyH / 2 : mid - bodyH / 2;
+  const c = bull ? mid - bodyH / 2 : mid + bodyH / 2;
+  const wickUp = bodyH * rnd(0.2, 1.1);
+  const wickDn = bodyH * rnd(0.2, 1.1);
+  return {
+    x,
+    o: Math.min(Math.max(o, lo), hi),
+    c: Math.min(Math.max(c, lo), hi),
+    h: Math.min(Math.min(o, c) - wickUp, lo + 2),
+    l: Math.max(Math.max(o, c) + wickDn, hi - 2),
+    bull,
+  };
 }
 
 export function TopbarCandleBg() {
@@ -34,6 +47,18 @@ export function TopbarCandleBg() {
     let offset = 0;
     const candles: Candle[] = [];
 
+    const seed = () => {
+      candles.length = 0;
+      const H = canvas.offsetHeight;
+      const W = canvas.offsetWidth;
+      let prevMid = H * 0.5;
+      for (let x = -STEP; x < W + STEP * 3; x += STEP) {
+        const c = makeCandle(x, prevMid, H);
+        prevMid = (c.o + c.c) / 2;
+        candles.push(c);
+      }
+    };
+
     const resize = () => {
       const dpr = window.devicePixelRatio || 1;
       const w = canvas.offsetWidth;
@@ -41,14 +66,7 @@ export function TopbarCandleBg() {
       canvas.width = w * dpr;
       canvas.height = h * dpr;
       ctx.scale(dpr, dpr);
-
-      // seed candles to fill width
-      candles.length = 0;
-      let seed: Candle = { x: 0, o: h * 0.45, c: h * 0.55, h: h * 0.35, l: h * 0.65 };
-      for (let x = -STEP; x < w + STEP * 2; x += STEP) {
-        seed = nextCandle(x, seed, h);
-        candles.push(seed);
-      }
+      seed();
     };
 
     resize();
@@ -65,58 +83,109 @@ export function TopbarCandleBg() {
         offset -= STEP;
         candles.shift();
         const last = candles[candles.length - 1];
-        candles.push(nextCandle(last.x + STEP, last, H));
+        const prevMid = (last.o + last.c) / 2;
+        candles.push(makeCandle(last.x + STEP, prevMid, H));
       }
 
-      // recompute x positions
+      // update x positions
       candles.forEach((c, i) => { c.x = i * STEP - offset; });
 
-      // draw candles
+      // compute MA: rolling mean of midpoints of last MA_LEN visible candles
+      const maPoints: { x: number; y: number }[] = [];
+      const buf: number[] = [];
       candles.forEach((c) => {
-        if (c.x < -STEP || c.x > W + STEP) return;
-        const bull = c.c < c.o; // canvas y inverted: smaller y = higher price
-        const bodyTop = Math.min(c.o, c.c);
-        const bodyH = Math.abs(c.c - c.o);
-        const cx = c.x + CANDLE_W / 2;
+        const mid = (c.o + c.c) / 2;
+        buf.push(mid);
+        if (buf.length > MA_LEN) buf.shift();
+        const avg = buf.reduce((s, v) => s + v, 0) / buf.length;
+        maPoints.push({ x: c.x + CANDLE_W / 2, y: avg });
+      });
 
-        const alpha = 0.22;
-        const green = `rgba(61,255,138,${alpha})`;
-        const red = `rgba(255,100,100,${alpha})`;
-        const color = bull ? green : red;
+      // --- Draw candles ---
+      candles.forEach((c) => {
+        if (c.x < -STEP - 4 || c.x > W + 4) return;
+        const cx = c.x + CANDLE_W / 2;
+        const bodyTop = Math.min(c.o, c.c);
+        const bodyH = Math.max(Math.abs(c.c - c.o), 1.5);
+        const alpha = 0.50;
+        const color = c.bull
+          ? `rgba(52,211,138,${alpha})`
+          : `rgba(248,80,80,${alpha})`;
+        const wickColor = c.bull
+          ? `rgba(52,211,138,${alpha * 0.75})`
+          : `rgba(248,80,80,${alpha * 0.75})`;
 
         // wick
         ctx.beginPath();
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 0.8;
+        ctx.strokeStyle = wickColor;
+        ctx.lineWidth = 1;
         ctx.moveTo(cx, c.h);
         ctx.lineTo(cx, c.l);
         ctx.stroke();
 
         // body
         ctx.fillStyle = color;
-        ctx.fillRect(c.x, bodyTop, CANDLE_W, Math.max(bodyH, 1.5));
+        ctx.fillRect(c.x, bodyTop, CANDLE_W, bodyH);
+
+        // body border
+        ctx.strokeStyle = c.bull ? `rgba(52,211,138,0.7)` : `rgba(248,80,80,0.7)`;
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(c.x, bodyTop, CANDLE_W, bodyH);
       });
 
-      // subtle chain dots along bottom edge
-      const dotCount = Math.floor(W / 18);
-      for (let i = 0; i <= dotCount; i++) {
-        const x = (i / dotCount) * W;
-        const phase = (x / W) * Math.PI * 6 + offset * 0.04;
-        const y = H * 0.88 + Math.sin(phase) * H * 0.06;
+      // --- MA line (yellow, smooth) ---
+      if (maPoints.length > 1) {
         ctx.beginPath();
-        ctx.arc(x, y, 1.2, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(159,122,234,0.30)";
-        ctx.fill();
-        if (i > 0) {
-          const xPrev = ((i - 1) / dotCount) * W;
-          const phasePrev = (xPrev / W) * Math.PI * 6 + offset * 0.04;
-          const yPrev = H * 0.88 + Math.sin(phasePrev) * H * 0.06;
+        ctx.strokeStyle = "rgba(250,204,21,0.70)";
+        ctx.lineWidth = 1.5;
+        ctx.lineJoin = "round";
+        maPoints.forEach((p, i) => {
+          if (p.x < -STEP || p.x > W + STEP) return;
+          if (i === 0 || maPoints[i - 1].x < -STEP) ctx.moveTo(p.x, p.y);
+          else ctx.lineTo(p.x, p.y);
+        });
+        ctx.stroke();
+
+        // MA glow
+        ctx.beginPath();
+        ctx.strokeStyle = "rgba(250,204,21,0.18)";
+        ctx.lineWidth = 4;
+        maPoints.forEach((p, i) => {
+          if (p.x < -STEP || p.x > W + STEP) return;
+          if (i === 0 || maPoints[i - 1].x < -STEP) ctx.moveTo(p.x, p.y);
+          else ctx.lineTo(p.x, p.y);
+        });
+        ctx.stroke();
+      }
+
+      // --- Entry / exit markers at MA reversals ---
+      const vis = maPoints.filter((p) => p.x >= 0 && p.x <= W);
+      for (let i = 2; i < vis.length - 2; i++) {
+        const prev = vis[i - 1].y;
+        const cur = vis[i].y;
+        const next = vis[i + 1].y;
+        const x = vis[i].x;
+        const y = vis[i].y;
+
+        // local bottom (price went down then up) → entry ▲
+        if (cur > prev && cur > next) {
           ctx.beginPath();
-          ctx.moveTo(xPrev, yPrev);
-          ctx.lineTo(x, y);
-          ctx.strokeStyle = "rgba(159,122,234,0.14)";
-          ctx.lineWidth = 0.6;
-          ctx.stroke();
+          ctx.fillStyle = "rgba(52,211,138,0.90)";
+          ctx.moveTo(x, y + 12);
+          ctx.lineTo(x - 5, y + 4);
+          ctx.lineTo(x + 5, y + 4);
+          ctx.closePath();
+          ctx.fill();
+        }
+        // local top → exit ▼
+        if (cur < prev && cur < next) {
+          ctx.beginPath();
+          ctx.fillStyle = "rgba(248,80,80,0.90)";
+          ctx.moveTo(x, y - 12);
+          ctx.lineTo(x - 5, y - 4);
+          ctx.lineTo(x + 5, y - 4);
+          ctx.closePath();
+          ctx.fill();
         }
       }
 
