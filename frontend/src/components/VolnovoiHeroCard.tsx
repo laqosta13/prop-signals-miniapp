@@ -5,6 +5,7 @@ import { traderClosedDealsCount, traderRankAvatarId } from "../utils/traderRankD
 import { Avatar } from "./Avatar";
 import { CultCandidateActiveTrades } from "./CultCandidateActiveTrades";
 import { EquityCurve } from "./EquityCurve";
+import { HeroBlockchainBg } from "./HeroBlockchainBg";
 import { HeroTaglineBanner } from "./HeroTaglineBanner";
 import { RankBadge } from "./RankBadge";
 
@@ -22,6 +23,7 @@ export function VolnovoiHeroCard({ trader, onOpen, showActiveTrades = false, poo
 
   return (
     <article className="volnovoi-hero__card">
+      <HeroBlockchainBg />
       <button type="button" className="volnovoi-hero__open" onClick={onOpen}>
         <header className="volnovoi-hero__head">
           <Avatar
