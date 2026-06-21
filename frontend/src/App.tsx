@@ -23,6 +23,7 @@ import { ThemeToggle } from "./components/ThemeToggle";
 import { ClassicFeedBrand } from "./components/ClassicFeedBrand";
 import { FeedHeaderStats } from "./components/FeedHeaderStats";
 import { TopbarCandleBg } from "./components/TopbarCandleBg";
+import { TopbarPunkBg } from "./components/TopbarPunkBg";
 import { mergeFeedSignals } from "./utils/mergeFeedSignals";
 import { sortFeedSignals } from "./utils/sortFeedSignals";
 import { isSignalAwaitingEntry, isSignalInMarket } from "./utils/signalActions";
@@ -438,7 +439,7 @@ export default function App() {
       )}
       <div className="app-view">
       <header className={`topbar${tab === "feed" ? " topbar--feed" : ""}`}>
-        {tab === "feed" && !isPunkTheme(theme) && <TopbarCandleBg />}
+        {tab === "feed" && (isPunkTheme(theme) ? <TopbarPunkBg /> : <TopbarCandleBg />)}
         <div className="topbar__titles">
           {tab === "feed" ? (
             <p

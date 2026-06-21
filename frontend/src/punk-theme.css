@@ -529,10 +529,6 @@ html.theme-glitch [data-theme="punk"] .vc-split-logo--punk .vc-split-logo__punk 
   background: linear-gradient(135deg, rgba(0, 240, 255, 0.06), rgba(252, 238, 10, 0.03));
 }
 
-[data-theme="punk"] .hero-blockchain-bg {
-  display: none;
-}
-
 [data-theme="punk"] .volnovoi-hero__card {
   border-color: rgba(0, 240, 255, 0.42);
   background:
