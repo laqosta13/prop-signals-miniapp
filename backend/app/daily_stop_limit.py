@@ -109,20 +109,14 @@ def signal_closed_stop_budget_rank_pct(
 ) -> float:
     """
     Сколько % дневного лимита (0–2) уже «съел» закрытый сегодня сигнал.
-    Стоп по уровню — по стопу в форме; убыток по рынку — по фактическому % закрытия.
-    Цель и прибыльное закрытие по рынку — 0.
+    Любой убыточный исход — фактический PnL / номинал ранга × 100.
+    Цель и прибыльное закрытие — 0.
     """
     if signal.status not in ("win", "lose"):
         return 0.0
-    if signal.close_reason == "target":
+    if signal.close_reason == "target" or signal.status != "lose":
         return 0.0
-    if signal.close_reason == "market":
-        if signal.status != "lose":
-            return 0.0
-        return market_close_consumed_rank_pct(signal, balance, rank_max_stake_pct)
-    if signal.status == "lose":
-        return signal_reserved_rank_pct(signal, balance, rank_max_stake_pct)
-    return 0.0
+    return market_close_consumed_rank_pct(signal, balance, rank_max_stake_pct)
 
 
 def admin_stop_consumed_rank_pct(
