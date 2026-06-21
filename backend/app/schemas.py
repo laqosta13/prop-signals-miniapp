@@ -282,6 +282,7 @@ class CultCandidateRead(BaseModel):
     is_me: bool = False
     pool_share_usd: float = 0.0
     bybit_balance_usd: float | None = None
+    outside_trade: bool = False
 
 
 class SignalFormSnapshot(BaseModel):

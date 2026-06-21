@@ -3432,6 +3432,18 @@
   flex: 1;
 }
 
+.outside-trade-badge {
+  flex-shrink: 0;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: #ff3b3b;
+  color: #fff;
+  text-transform: uppercase;
+}
+
 .top-name {
   margin: 0;
   font-weight: 700;

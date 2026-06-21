@@ -324,6 +324,7 @@ def _candidate_read(
         volnovoi_style=build_volnovoi_style(db, row.telegram_user_id, cult_candidate=True),
         is_me=is_me,
         pool_share_usd=pool_share_usd,
+        outside_trade=bool(row.outside_trade),
     )
 
 

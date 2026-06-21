@@ -180,6 +180,7 @@ class CultCandidate(Base):
     rating_percent: Mapped[float] = mapped_column(Float, default=0.0)
     wins: Mapped[int] = mapped_column(Integer, default=0)
     losses: Mapped[int] = mapped_column(Integer, default=0)
+    outside_trade: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

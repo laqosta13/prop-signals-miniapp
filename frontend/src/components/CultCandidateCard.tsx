@@ -64,6 +64,9 @@ export function CultCandidateCard({
               <span className="top-rank-plain">{candidate.rank}</span>
             )}
             <p className="top-name">{profile.title}</p>
+            {candidate.outside_trade && (
+              <span className="outside-trade-badge">ЛУДКА</span>
+            )}
           </div>
           {!candidate.is_me && (
             <span className="top-card__chevron" aria-hidden>

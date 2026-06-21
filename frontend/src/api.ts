@@ -244,6 +244,7 @@ export type CultCandidate = {
   is_me: boolean;
   pool_share_usd?: number;
   bybit_balance_usd?: number | null;
+  outside_trade?: boolean;
 };
 
 export type PoolStats = {

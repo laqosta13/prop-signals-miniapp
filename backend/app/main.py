@@ -21,6 +21,7 @@ from app.rank_scheduler import rank_scheduler_loop
 from app.subscription_pause_scheduler import run_subscription_pause_sync, subscription_pause_scheduler_loop
 from app.support_chat import verify_support_group_after_delay
 from app.telegram_updates import telegram_updates_loop
+from app.outside_trade_detector import outside_trade_detector_loop
 from app.routers import (
     admin,
     auth,
@@ -116,8 +117,9 @@ async def lifespan(app: FastAPI):
     capsule_task = asyncio.create_task(time_capsule_scheduler_loop())
     pause_task = asyncio.create_task(subscription_pause_scheduler_loop())
     tg_task = asyncio.create_task(telegram_updates_loop())
+    outside_task = asyncio.create_task(outside_trade_detector_loop())
     yield
-    for task in (price_task, rank_task, billing_task, capsule_task, pause_task, tg_task):
+    for task in (price_task, rank_task, billing_task, capsule_task, pause_task, tg_task, outside_task):
         task.cancel()
         try:
             await task

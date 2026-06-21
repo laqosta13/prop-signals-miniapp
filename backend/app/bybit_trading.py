@@ -335,6 +335,24 @@ async def close_position_market(
     return str(order_id)
 
 
+async def get_all_open_positions(creds: BybitCredentials) -> list[tuple[str, str]]:
+    """Все открытые позиции: список (symbol, direction). direction = 'long' | 'short'."""
+    result = await _request(
+        creds, "GET", "/v5/position/list",
+        params={"category": "linear", "settleCoin": "USDT"},
+    )
+    out = []
+    for item in result.get("list") or []:
+        if float(item.get("size") or 0) <= 0:
+            continue
+        symbol = str(item.get("symbol") or "")
+        side = str(item.get("side") or "")
+        direction = "long" if side == "Buy" else "short"
+        if symbol:
+            out.append((symbol, direction))
+    return out
+
+
 async def get_wallet_usdt_balance(creds: BybitCredentials) -> float | None:
     result = await _request(
         creds,
