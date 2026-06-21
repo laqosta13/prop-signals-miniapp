@@ -1241,6 +1241,8 @@
   height: 24px;
   border-radius: 6px;
   display: block;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 5px rgba(212, 175, 55, 0.75));
 }
 
 .hashhedge-rules {
