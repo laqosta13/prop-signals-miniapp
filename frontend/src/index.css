@@ -1218,6 +1218,31 @@
   opacity: 0.5;
 }
 
+.signal-tg-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  opacity: 0.70;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.signal-tg-link + .signal-tg-link {
+  margin-left: 6px;
+}
+
+.signal-tg-link:hover {
+  opacity: 1;
+}
+
+.signal-tg-link__icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: block;
+}
+
 .hashhedge-rules {
   margin-bottom: 14px;
 }

@@ -344,6 +344,26 @@ export function SignalCard({
         >
           {liked ? "♥" : "♡"} {likes}
         </button>
+        <a
+          href="https://t.me/volnovoi"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="signal-tg-link"
+          title="Канал"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <img src="/brands/vc-channel.png" alt="Канал" className="signal-tg-link__icon" />
+        </a>
+        <a
+          href="https://t.me/volnovoi_cult"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="signal-tg-link"
+          title="Чат"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <img src="/brands/vc-chat.png" alt="Чат" className="signal-tg-link__icon" />
+        </a>
       </div>
     </article>
   );
