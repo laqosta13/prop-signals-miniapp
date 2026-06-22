@@ -507,35 +507,13 @@ def candidate_signals_today_count(db: Session, author_id: int) -> int:
     return sum(1 for s in rows if msk_day_key(s.created_at) == today_key)
 
 
-def _candidate_signal_stop_budget_consumed(sig: Signal, rank_max: float) -> float:
-    """Дневной бюджет, потреблённый закрытым сигналом кандидата.
-
-    Заморозка = price_stop% × lev (независимо от размера позиции).
-    Стоп 0.93% при 1× → потребляет 0.93% из 2% лимита.
-    """
-    from app.daily_stop_limit import price_stop_to_reserved_rank_pct, signal_price_stop_pct
-    from app.trader_stats import closed_signal_move_pct, signal_leverage
-
-    if sig.status not in ("win", "lose"):
-        return 0.0
-    if sig.close_reason == "target":
-        return 0.0
-    lev = signal_leverage(sig)
-    if sig.close_reason == "market" and sig.status == "lose":
-        move = abs(closed_signal_move_pct(sig))
-        return price_stop_to_reserved_rank_pct(move, lev)
-    if sig.status == "lose":
-        return price_stop_to_reserved_rank_pct(signal_price_stop_pct(sig), lev)
-    return 0.0
-
-
 def candidate_stop_consumed_rank_pct(
     db: Session,
     author_id: int,
     balance: float,
     rank_max_stake_pct_val: float,
 ) -> float:
-    from app.daily_stop_limit import SIGNAL_DAILY_STOP_LIMIT_PCT, msk_day_key
+    from app.daily_stop_limit import SIGNAL_DAILY_STOP_LIMIT_PCT, market_close_consumed_rank_pct, msk_day_key
 
     today_key = msk_day_key(_now())
     if not today_key:
@@ -551,7 +529,9 @@ def candidate_stop_consumed_rank_pct(
     for sig in rows:
         if msk_day_key(sig.closed_at) != today_key:
             continue
-        total += _candidate_signal_stop_budget_consumed(sig, 0.0)
+        if sig.close_reason == "target" or sig.status != "lose":
+            continue
+        total += market_close_consumed_rank_pct(sig, balance, rank_max_stake_pct_val)
     return round(min(total, SIGNAL_DAILY_STOP_LIMIT_PCT), 2)
 
 
@@ -563,18 +543,13 @@ def candidate_active_stop_reserved_rank_pct(
     *,
     exclude_signal_id: int | None = None,
 ) -> float:
-    from app.daily_stop_limit import (
-        SIGNAL_DAILY_STOP_LIMIT_PCT,
-        price_stop_to_reserved_rank_pct,
-        signal_price_stop_pct,
-    )
-    from app.trader_stats import signal_leverage
+    from app.daily_stop_limit import SIGNAL_DAILY_STOP_LIMIT_PCT, signal_reserved_rank_pct
 
     total = 0.0
     for sig in _candidate_active_signals(db, author_id):
         if exclude_signal_id is not None and sig.id == exclude_signal_id:
             continue
-        total += price_stop_to_reserved_rank_pct(signal_price_stop_pct(sig), signal_leverage(sig))
+        total += signal_reserved_rank_pct(sig, balance, rank_max_stake_pct_val)
     return round(min(total, SIGNAL_DAILY_STOP_LIMIT_PCT), 2)
 
 
