@@ -255,7 +255,7 @@ def admin_active_stop_reserved_rank_pct(
     for sig in _admin_active_signals(db, admin_id):
         if exclude_signal_id is not None and sig.id == exclude_signal_id:
             continue
-        total += price_stop_to_reserved_rank_pct(signal_price_stop_pct(sig), int(sig.leverage or 1))
+        total += signal_reserved_rank_pct(sig, balance, rank_max_stake_pct)
     return round(min(total, SIGNAL_DAILY_STOP_LIMIT_PCT), 2)
 
 
