@@ -1781,7 +1781,7 @@ def _delete_all_trackers_v2(engine: Engine) -> None:
 
 
 def _purge_all_published_jun2026_v17(engine: Engine) -> None:
-    """Одноразово: полная очистка опубликованного контента (июнь 2026 v17)."""
+    """Одноразово: полная очистка опубликованного контента + трекеров (июнь 2026 v17)."""
     marker = _marker_path(engine, ".purged_all_published_jun2026_v17")
     if marker is None:
         from app.media_storage import media_root
@@ -1790,11 +1790,12 @@ def _purge_all_published_jun2026_v17(engine: Engine) -> None:
     if marker.exists():
         return
     from app.database import SessionLocal
-    from app.data_cleanup import purge_all_published_content
+    from app.data_cleanup import delete_all_trackers, purge_all_published_content
 
     db = SessionLocal()
     try:
         purge_all_published_content(db)
+        delete_all_trackers(db)
         db.commit()
         marker.parent.mkdir(parents=True, exist_ok=True)
         marker.touch()
