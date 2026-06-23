@@ -90,16 +90,11 @@ def market_close_consumed_rank_pct(
     balance: float = 0.0,
     rank_max_stake_pct: float = 0.0,
 ) -> float:
-    """Дневной лимит 2%: фактический убыток по рынку с учётом размера позиции."""
+    """Дневной лимит 2%: фактический % движения цены × плечо."""
     move = closed_signal_move_pct(signal)
     if move >= 0:
         return 0.0
-    stake = float(signal.risk_percent or 0)
-    lev = signal_leverage(signal)
-    price_pct = abs(move)
-    if stake > 0 and balance > 0 and rank_max_stake_pct > 0:
-        return _stake_aware_rank_pct(price_pct, lev, stake, rank_max_stake_pct)
-    return price_stop_to_reserved_rank_pct(price_pct, lev)
+    return price_stop_to_reserved_rank_pct(abs(move), signal_leverage(signal))
 
 
 def signal_closed_stop_budget_rank_pct(
@@ -255,7 +250,7 @@ def admin_active_stop_reserved_rank_pct(
     for sig in _admin_active_signals(db, admin_id):
         if exclude_signal_id is not None and sig.id == exclude_signal_id:
             continue
-        total += signal_reserved_rank_pct(sig, balance, rank_max_stake_pct)
+        total += price_stop_to_reserved_rank_pct(signal_price_stop_pct(sig), int(sig.leverage or 1))
     return round(min(total, SIGNAL_DAILY_STOP_LIMIT_PCT), 2)
 
 
@@ -386,10 +381,7 @@ def validate_signal_daily_stop(
         return
 
     price_stop_pct = compute_signal_points_percent(entry_low, entry_high, stop_loss)
-    if stake_pct > 0 and rank_cap > 0:
-        needed_rank_pct = _stake_aware_rank_pct(price_stop_pct, leverage, stake_pct, rank_cap)
-    else:
-        needed_rank_pct = price_stop_to_reserved_rank_pct(price_stop_pct, leverage)
+    needed_rank_pct = price_stop_to_reserved_rank_pct(price_stop_pct, leverage)
     if needed_rank_pct > remaining_pct + 0.01:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

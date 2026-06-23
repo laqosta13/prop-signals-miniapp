@@ -513,7 +513,8 @@ def candidate_stop_consumed_rank_pct(
     balance: float,
     rank_max_stake_pct_val: float,
 ) -> float:
-    from app.daily_stop_limit import SIGNAL_DAILY_STOP_LIMIT_PCT, market_close_consumed_rank_pct, msk_day_key
+    from app.daily_stop_limit import SIGNAL_DAILY_STOP_LIMIT_PCT, price_stop_to_reserved_rank_pct, msk_day_key
+    from app.trader_stats import closed_signal_move_pct, signal_leverage
 
     today_key = msk_day_key(_now())
     if not today_key:
@@ -531,7 +532,8 @@ def candidate_stop_consumed_rank_pct(
             continue
         if sig.close_reason == "target" or sig.status != "lose":
             continue
-        total += market_close_consumed_rank_pct(sig, balance, rank_max_stake_pct_val)
+        move = abs(closed_signal_move_pct(sig))
+        total += price_stop_to_reserved_rank_pct(move, signal_leverage(sig))
     return round(min(total, SIGNAL_DAILY_STOP_LIMIT_PCT), 2)
 
 
@@ -543,13 +545,14 @@ def candidate_active_stop_reserved_rank_pct(
     *,
     exclude_signal_id: int | None = None,
 ) -> float:
-    from app.daily_stop_limit import SIGNAL_DAILY_STOP_LIMIT_PCT, signal_reserved_rank_pct
+    from app.daily_stop_limit import SIGNAL_DAILY_STOP_LIMIT_PCT, price_stop_to_reserved_rank_pct, signal_price_stop_pct
+    from app.trader_stats import signal_leverage
 
     total = 0.0
     for sig in _candidate_active_signals(db, author_id):
         if exclude_signal_id is not None and sig.id == exclude_signal_id:
             continue
-        total += signal_reserved_rank_pct(sig, balance, rank_max_stake_pct_val)
+        total += price_stop_to_reserved_rank_pct(signal_price_stop_pct(sig), signal_leverage(sig))
     return round(min(total, SIGNAL_DAILY_STOP_LIMIT_PCT), 2)
 
 
