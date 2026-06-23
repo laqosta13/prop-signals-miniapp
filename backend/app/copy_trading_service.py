@@ -318,13 +318,27 @@ async def sync_open_copies_for_user(db: Session, telegram_user_id: int) -> None:
         await _open_copy_for_user(db, signal, row, at_publication=True)
 
 
-async def open_signal_copy_for_user(db: Session, signal: Signal, telegram_user_id: int) -> None:
+async def open_signal_copy_for_user(db: Session, signal: Signal, telegram_user_id: int) -> bool | None:
+    """None — нет API (не блокируем), True — ордер открыт, False — ордер не прошёл."""
     if signal.entry_filled_at is None or signal.status != "active":
-        return
+        return None
     row = db.get(UserBybitSettings, telegram_user_id)
     if row is None or not row.enabled:
-        return
+        return None
     await _open_copy_for_user(db, signal, row)
+    copy_row = db.scalar(
+        select(SignalCopyTrade).where(
+            SignalCopyTrade.signal_id == signal.id,
+            SignalCopyTrade.telegram_user_id == telegram_user_id,
+        )
+    )
+    if copy_row is None:
+        return None
+    if copy_row.exchange_status == EXCHANGE_OPEN:
+        return True
+    if copy_row.exchange_status == EXCHANGE_FAILED:
+        return False
+    return None
 
 
 async def open_signal_copies(db: Session, signal: Signal, *, at_publication: bool = False) -> None:

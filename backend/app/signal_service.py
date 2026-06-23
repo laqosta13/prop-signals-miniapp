@@ -509,7 +509,11 @@ async def stamp_signal_at_publication(
 
     if getattr(signal, "is_cult_candidate", False):
         if signal.entry_filled_at is not None:
-            await open_signal_copy_for_user(db, signal, signal.author_telegram_id)
+            ok = await open_signal_copy_for_user(db, signal, signal.author_telegram_id)
+            if ok is False:
+                signal.entry_filled_at = None
+                db.commit()
+                logger.info("Кандидат signal #%s: вход отменён — ордер не прошёл на бирже", signal.id)
         return
 
     try:

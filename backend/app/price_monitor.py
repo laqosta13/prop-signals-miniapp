@@ -286,7 +286,11 @@ async def check_active_signals_once() -> tuple[int, bool]:
                     signal.entry_filled_at = datetime.now(timezone.utc)
                     db.commit()
                     logger.info("CULT кандидат: вход #%s %s", signal.id, signal.symbol)
-                    await open_signal_copy_for_user(db, signal, signal.author_telegram_id)
+                    ok = await open_signal_copy_for_user(db, signal, signal.author_telegram_id)
+                    if ok is False:
+                        signal.entry_filled_at = None
+                        db.commit()
+                        logger.info("CULT кандидат: вход отменён — ордер не прошёл #%s", signal.id)
             outcome_hit = monitor_outcome_for_signal(signal, quotes)
             if outcome_hit is None:
                 continue

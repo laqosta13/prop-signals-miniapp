@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.active_signal_read import build_active_signal_read
 from app.copy_trading_service import copy_deposit_base_usd
-from app.models import CultCandidate, CultChannel, Signal, UserBybitSettings
+from app.models import CultCandidate, Signal, UserBybitSettings
 from app.schemas import (
     CultCandidateActiveSignalRead,
     CultCandidateClosedSignalRead,
@@ -73,14 +73,8 @@ def _trade_access_blockers(db: Session, sub: Subscriber, *, cult_admin_bypass: b
     if cult_admin_bypass:
         return []
     has_bybit = db.get(UserBybitSettings, sub.telegram_user_id) is not None
-    has_channel = db.scalar(
-        select(CultChannel).where(
-            CultChannel.added_by_telegram_id == sub.telegram_user_id,
-            CultChannel.enabled.is_(True),
-        )
-    ) is not None
-    if not has_bybit and not has_channel:
-        return ["Доступ через API Bybit или CULT-канал"]
+    if not has_bybit:
+        return ["Для торговли в кандидатах необходим API Bybit"]
     return []
 
 
