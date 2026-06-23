@@ -476,6 +476,7 @@ def run_migrations(engine: Engine) -> None:
     _delete_all_trackers_v2(engine)
     _reset_candidates_and_bybit_v1(engine)
     _purge_all_published_jun2026_v17(engine)
+    _purge_all_published_jun2026_v18(engine)
 
 
 def _purge_all_published_jun2026_v15(engine: Engine) -> None:
@@ -1796,6 +1797,28 @@ def _purge_all_published_jun2026_v17(engine: Engine) -> None:
     try:
         purge_all_published_content(db)
         delete_all_trackers(db)
+        db.commit()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
+
+
+def _purge_all_published_jun2026_v18(engine: Engine) -> None:
+    """Одноразово: полная очистка опубликованного контента (июнь 2026 v18)."""
+    marker = _marker_path(engine, ".purged_all_published_jun2026_v18")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".purged_all_published_jun2026_v18"
+    if marker.exists():
+        return
+    from app.database import SessionLocal
+    from app.data_cleanup import purge_all_published_content
+
+    db = SessionLocal()
+    try:
+        purge_all_published_content(db)
         db.commit()
         marker.parent.mkdir(parents=True, exist_ok=True)
         marker.touch()
