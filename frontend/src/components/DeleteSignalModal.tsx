@@ -25,7 +25,7 @@ export function DeleteSignalModal({ signal, onClose, onConfirm, deleting }: Prop
       <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
         <header className="modal__head">
           <div>
-            <h2>Удалить сигнал</h2>
+            <h2>Удалить сделку</h2>
             <p>
               #{signal.number} · {signal.symbol} · {signal.direction.toUpperCase()}
             </p>
@@ -40,13 +40,13 @@ export function DeleteSignalModal({ signal, onClose, onConfirm, deleting }: Prop
           {...ruTextFieldProps}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder="Укажите причину удаления сигнала…"
+          placeholder="Укажите причину удаления сделки…"
           rows={3}
           required
         />
 
         <button type="submit" className="submit-btn submit-btn--danger" disabled={deleting || !reason.trim()}>
-          {deleting ? "Удаление…" : "Удалить сигнал"}
+          {deleting ? "Удаление…" : "Удалить сделку"}
         </button>
       </form>
     </div>

@@ -49,7 +49,7 @@ export function formatHashHedgeTradeClipboard(signal: HashHedgeTradeSignal): str
   const entry = formatEntryLine(signal);
 
   return [
-    `HASH HEDGE · сигнал #${num}`,
+    `HASH HEDGE · сделка #${num}`,
     `Пара: ${pair} Perpetual`,
     `Направление: ${side}`,
     `Плечо: ${lev}x`,
@@ -62,7 +62,7 @@ export function formatHashHedgeTradeClipboard(signal: HashHedgeTradeSignal): str
     "",
     "Шаги:",
     "1. Торговать → Ордер",
-    "2. Рынок · изолированная маржа · плечо как в сигнале",
+    "2. Рынок · изолированная маржа · плечо как в сделке",
     "3. Включить TP/SL · вставить стоп и цель",
     "4. Подтвердить Long или Short",
   ].join("\n");

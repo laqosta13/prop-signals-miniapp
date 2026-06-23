@@ -20,7 +20,7 @@ const LABELS: Record<TraderRosterPlacement, string> = {
 const CONFIRM: Record<TraderRosterPlacement, string> = {
   top: "Перевести трейдера в блок «ТРЕЙДЕРЫ CULT»?",
   candidate: "Перевести трейдера в блок «КОНДИДАТЫ В CULT»?",
-  fired: "Уволить трейдера? Публикация сигналов будет заблокирована.",
+  fired: "Уволить трейдера? Публикация сделок будет заблокирована.",
 };
 
 function rosterErrorMessage(err: unknown, cooldownMsg: string): string {

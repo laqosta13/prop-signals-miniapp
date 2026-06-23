@@ -32,7 +32,7 @@ export function uploadProgressLabel(hasVideo: boolean, phase: UploadProgress["ph
   if (supplement) {
     return hasVideo ? "Загрузка видео и публикация дополнения" : "Загрузка файлов и публикация дополнения";
   }
-  return hasVideo ? "Загрузка видео и публикация сигнала" : "Загрузка файлов и публикация";
+  return hasVideo ? "Загрузка видео и публикация сделки" : "Загрузка файлов и публикация";
 }
 
 /** Понятное сообщение из ответа API или сетевой ошибки (в т.ч. «Load failed» в Telegram). */

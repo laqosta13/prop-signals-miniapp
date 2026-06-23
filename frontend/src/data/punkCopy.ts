@@ -14,7 +14,7 @@ export const PUNK_NAV = {
   tracker: "ТРЕКЕР",
   top: "ЭЛИТА",
   reviews: "ЭХО",
-  news: "СИГНАЛЫ",
+  news: "СДЕЛКИ",
   pay: "ДОСТУП",
 } as const;
 
@@ -23,7 +23,7 @@ export const PUNK_TAB_TITLES = {
   tracker: "ТРЕКЕР",
   top: "ЭЛИТА",
   reviews: "ЭХО",
-  news: "СИГНАЛЫ",
+  news: "СДЕЛКИ",
   pay: "ДОСТУП",
 } as const;
 

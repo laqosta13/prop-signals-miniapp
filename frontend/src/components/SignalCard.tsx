@@ -277,7 +277,7 @@ export function SignalCard({
       {s.comment && <p className="signal-card__comment">{s.comment}</p>}
 
       {(s.supplements?.length ?? 0) > 0 && (
-        <section className="signal-supplements" aria-label="Дополнения к сигналу">
+        <section className="signal-supplements" aria-label="Дополнения к сделке">
           <p className="signal-section-label signal-section-label--sup">Дополнения · {s.supplements!.length}</p>
           {s.supplements!.map((sup) => (
             <div key={sup.id} className="signal-supplement tracker-hero">

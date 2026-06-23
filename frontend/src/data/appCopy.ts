@@ -17,7 +17,7 @@ export const PRODUCT_PITCH =
 /** Подзаголовки вкладок (шапка приложения). */
 /** Вкладка «Подписка» — зачем платить. */
 export const SUBSCRIPTION_INTRO =
-  "Доступ к ленте сигналов трейдеров Cult — отобранных по рангам и результатам.";
+  "Доступ к ленте сделок трейдеров Cult — отобранных по рангам и результатам.";
 
 const SUBSCRIPTION_TRIAL_USED_MSG = "Подписка не активна. Оформите доступ ниже.";
 
@@ -65,7 +65,7 @@ export const VOLNOVOI_MARKETING_CTA = "Подключите Bybit под кар�
 export const SIGNAL_NO_TRACKER_HINT =
   "Трекер Hash Hedge не подключён — лимиты дня и ранга действуют; в статистику пропа сделка не попадёт.";
 export const TRACKER_EXCHANGE_ONLY_HINT =
-  "Без трекера — сигналы только на биржу. Нажмите «+», чтобы начать челлендж Hash Hedge и вести статистику пропа.";
+  "Без трекера — сделки только на биржу. Нажмите «+», чтобы начать челлендж Hash Hedge и вести статистику пропа.";
 
 export const RANK_GUIDE_HINT = "Ранги — кто сколько может в сделке";
 
@@ -85,7 +85,7 @@ export const RANK_RULES = [
 
 export const DISCLAIMER_TITLE = "Методика Cult";
 export const DISCLAIMER_LEAD =
-  "Результат возможен только при 100% повторении сделки — как в сигнале.";
+  "Результат возможен только при 100% повторении сделки — как в сделке.";
 export const DISCLAIMER_POINTS = [
   "Вход, стоп, цель, % риска и плечо — один в один.",
   "Пропустили вход, догнали цену или изменили размер — это уже другая сделка.",
@@ -117,7 +117,7 @@ export const REVIEW_RULES = [
 ] as const;
 
 export const REFERRAL_SHARE_FALLBACK =
-  "Volnovoi Cult — marketplace крипто-сделок. Прозрачные сигналы топ-трейдеров.";
+  "Volnovoi Cult — marketplace крипто-сделок. Прозрачные сделки топ-трейдеров.";
 
 export const PARTNER_BYBIT_HINT = "Bybit — копирование volnovoi";
 

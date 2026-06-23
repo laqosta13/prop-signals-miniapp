@@ -18,7 +18,7 @@ const SLIDES = [
     logo: true,
   },
   {
-    eyebrow: "CULT TRADERS · СИГНАЛЫ",
+    eyebrow: "CULT TRADERS · СДЕЛКИ",
     headline: "ОТКРЫВАЮТ ПОЗИЦИИ ЗА ТЕБЯ",
     logo: false,
   },

@@ -90,7 +90,7 @@ export function FeedTab({
   };
 
   const confirmAndDelete = async (id: number, reason?: string) => {
-    if (!reason && !confirm("Удалить этот сигнал?")) return;
+    if (!reason && !confirm("Удалить эту сделку?")) return;
     setDeletingId(id);
     try {
       await deleteSignal(id, reason);
@@ -105,7 +105,7 @@ export function FeedTab({
   };
 
   const handleCloseAtMarket = async (id: number) => {
-    if (!confirm("Закрыть сигнал по текущей рыночной цене?")) return;
+    if (!confirm("Закрыть сделку по текущей рыночной цене?")) return;
     setClosingId(id);
     try {
       const updated = await closeSignalAtMarket(id);

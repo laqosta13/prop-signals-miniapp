@@ -102,7 +102,7 @@ export function SignalMediaPicker({
           {(video || hasExistingVideo) && (
             <div className="signal-media-picker__item signal-media-picker__item--video">
               <p className="meta">
-                🎬 {video ? `${video.name} (${formatUploadSize(video.size)})` : "Текущее видео в сигнале"}
+                🎬 {video ? `${video.name} (${formatUploadSize(video.size)})` : "Текущее видео в сделке"}
               </p>
               <button type="button" className="signal-media-picker__remove" onClick={clearVideo}>
                 Убрать видео

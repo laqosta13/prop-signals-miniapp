@@ -604,7 +604,7 @@ export default function App() {
           type="button"
           className="fab-bottom"
           onClick={() => setShowNewSignal(true)}
-          aria-label="Новый сигнал"
+          aria-label="Новая сделка"
         >
           +
         </button>

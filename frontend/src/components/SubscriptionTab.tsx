@@ -154,7 +154,7 @@ export function SubscriptionTab({ onPaid, refreshKey = 0 }: Props) {
             <strong>${info.month_usd}</strong>
           </button>
         </div>
-        <p className="meta small">Лента активных сигналов · USDT(в сети TON) · TXID</p>
+        <p className="meta small">Лента активных сделок · USDT(в сети TON) · TXID</p>
 
         <form onSubmit={pay} className="pay-form">
           <div className="field-row">

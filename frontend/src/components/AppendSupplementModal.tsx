@@ -75,7 +75,7 @@ export function AppendSupplementModal({ signal, onClose, onDone }: Props) {
       <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
         <header className="modal__head">
           <div>
-            <h2>Дополнить сигнал</h2>
+            <h2>Дополнить сделку</h2>
             <p>
               #{signal.number} · {signal.symbol} · {signal.direction.toUpperCase()}
             </p>
