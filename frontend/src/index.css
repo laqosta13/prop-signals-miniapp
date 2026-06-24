@@ -4345,6 +4345,41 @@
   margin-bottom: 10px;
 }
 
+.volnovoi-copy__api-hint {
+  margin: 4px 0 12px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--accent, #a78bfa) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent, #a78bfa) 30%, transparent);
+  border-radius: 8px;
+}
+
+.volnovoi-copy__api-hint-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent, #a78bfa);
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.volnovoi-copy__api-hint-steps {
+  margin: 0;
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.volnovoi-copy__api-hint-steps li {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.volnovoi-copy__api-hint-steps li strong {
+  color: var(--text);
+}
+
 .volnovoi-copy__field .field-label {
   margin: 0;
 }
