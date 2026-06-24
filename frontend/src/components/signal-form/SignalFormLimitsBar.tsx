@@ -65,13 +65,6 @@ export function SignalFormLimitsBar({
       ) : null}
       <div className="signal-form__chips">
         <div className="signal-form__chip">
-          <span className="signal-form__chip-k">{copy.signalTrades}</span>
-          <span className="signal-form__chip-v">
-            {dailyTradesRemaining}
-            <span className="signal-form__chip-dim">/{dailyTradesLimit}</span>
-          </span>
-        </div>
-        <div className="signal-form__chip">
           <span className="signal-form__chip-k">{copy.signalStopChip}</span>
           <span className="signal-form__chip-v">
             {formatPoolChipPct(dailyRemaining ?? 0)}

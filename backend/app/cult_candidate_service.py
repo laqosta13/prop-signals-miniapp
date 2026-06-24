@@ -706,22 +706,6 @@ def validate_candidate_signal_leverage(db: Session, author_id: int, leverage: in
         )
 
 
-def validate_candidate_signal_daily_trades(db: Session, author_id: int) -> None:
-    from fastapi import HTTPException, status
-
-    from app.daily_stop_limit import SIGNAL_DAILY_TRADE_LIMIT
-
-    count = candidate_signals_today_count(db, author_id)
-    if count >= SIGNAL_DAILY_TRADE_LIMIT:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                f"Лимит дня: {SIGNAL_DAILY_TRADE_LIMIT} сделки — "
-                f"сделок сегодня уже {count}"
-            ),
-        )
-
-
 def validate_candidate_signal_daily_stop(
     db: Session,
     author_id: int,
@@ -738,7 +722,6 @@ def validate_candidate_signal_daily_stop(
     from app.daily_stop_limit import (
         ACCOUNT_STOP_MIN_STEP,
         SIGNAL_DAILY_STOP_LIMIT_PCT,
-        SIGNAL_DAILY_TRADE_LIMIT,
         compute_signal_points_percent,
         daily_stop_budget_usd,
         price_stop_to_reserved_rank_pct,
@@ -765,8 +748,7 @@ def validate_candidate_signal_daily_stop(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
-                f"Лимит дня: {SIGNAL_DAILY_TRADE_LIMIT} сделки или "
-                f"{SIGNAL_DAILY_STOP_LIMIT_PCT:g}% стопа от номинала ранга — дневной стоп исчерпан "
+                f"Стоп-лимит {SIGNAL_DAILY_STOP_LIMIT_PCT:g}% дня исчерпан "
                 f"(использовано {consumed_pct:g}%, заморожено {reserved_pct:g}%, "
                 f"лимит ${daily_stop_budget_usd(rank_nominal):g})"
             ),

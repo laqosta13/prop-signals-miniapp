@@ -14,7 +14,6 @@ from app.cult_candidate_service import (
     join_cult_candidate,
     update_display_name,
     validate_candidate_signal_daily_stop,
-    validate_candidate_signal_daily_trades,
     validate_candidate_signal_leverage,
     validate_candidate_signal_stake,
 )
@@ -240,7 +239,6 @@ async def create_cult_candidate_signal(
     acct = cult_candidate_account_size(db, user.telegram_user_id)
     stake = risk_percent if risk_percent is not None and risk_percent > 0 else 10.0
     lev = leverage if leverage is not None and leverage >= 1 else 1
-    validate_candidate_signal_daily_trades(db, user.telegram_user_id)
     validate_candidate_signal_stake(db, user.telegram_user_id, stake)
     validate_candidate_signal_leverage(db, user.telegram_user_id, lev)
     validate_candidate_signal_daily_stop(

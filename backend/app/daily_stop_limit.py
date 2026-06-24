@@ -313,22 +313,6 @@ def admin_signals_today_count(db: Session, admin_id: int) -> int:
     return sum(1 for s in rows if msk_day_key(s.created_at) == today_key)
 
 
-def daily_trades_remaining(count: int) -> int:
-    return max(0, SIGNAL_DAILY_TRADE_LIMIT - max(0, count))
-
-
-def validate_signal_daily_trades(db: Session, admin_id: int) -> None:
-    count = admin_signals_today_count(db, admin_id)
-    if count >= SIGNAL_DAILY_TRADE_LIMIT:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                f"Лимит дня: {SIGNAL_DAILY_TRADE_LIMIT} сделки или "
-                f"{SIGNAL_DAILY_STOP_LIMIT_PCT:g}% стопа от номинала ранга — сделок сегодня уже {count}"
-            ),
-        )
-
-
 def validate_signal_daily_stop(
     db: Session,
     admin_id: int,
@@ -370,8 +354,7 @@ def validate_signal_daily_stop(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
-                f"Лимит дня: {SIGNAL_DAILY_TRADE_LIMIT} сделки или "
-                f"{SIGNAL_DAILY_STOP_LIMIT_PCT:g}% стопа от номинала ранга — дневной стоп исчерпан "
+                f"Стоп-лимит {SIGNAL_DAILY_STOP_LIMIT_PCT:g}% дня исчерпан "
                 f"(использовано {consumed_pct:g}%, заморожено {reserved_pct:g}%, "
                 f"лимит ${daily_stop_budget_usd(rank_nominal):g})"
             ),

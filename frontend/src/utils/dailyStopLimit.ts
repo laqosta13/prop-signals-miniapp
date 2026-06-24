@@ -200,16 +200,12 @@ export function dailyTradingBlocked(opts: {
   } else if (isDailyStopBudgetExhaustedRank(opts.dailyLossUsd, opts.rankNominalUsd)) {
     return { blocked: true, reason: "stop" };
   }
-  if (isDailyTradesExhausted(opts.dailyTradesCount, opts.dailyTradesLimit)) {
-    return { blocked: true, reason: "trades" };
-  }
   return { blocked: false, reason: null };
 }
 
 export function dailyLimitBlockedMessage(reason: "stop" | "trades" | null): string {
   if (reason === "stop") return `Стоп-лимит ${SIGNAL_DAILY_STOP_LIMIT_PCT}% на сегодня исчерпан`;
-  if (reason === "trades") return `Сделок на сегодня: макс. ${SIGNAL_DAILY_TRADE_LIMIT}`;
-  return `Лимит: ${SIGNAL_DAILY_TRADE_LIMIT} сделки или стоп ${SIGNAL_DAILY_STOP_LIMIT_PCT}%`;
+  return `Стоп-лимит ${SIGNAL_DAILY_STOP_LIMIT_PCT}% на сегодня исчерпан`;
 }
 
 /** % движения цены до стопа → % потери счёта при срабатывании стопа. */

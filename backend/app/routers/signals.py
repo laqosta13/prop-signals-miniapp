@@ -35,7 +35,7 @@ from app.challenge_service import (
     ensure_tracker_for_new_signal,
     get_challenge,
 )
-from app.daily_stop_limit import validate_signal_daily_stop, validate_signal_daily_trades
+from app.daily_stop_limit import validate_signal_daily_stop
 from app.signal_stake_pool import validate_signal_leverage, validate_signal_stake_pool
 from app.signal_service import (
     build_signal_row,
@@ -201,7 +201,6 @@ async def create_signal(
         )
     tb = admin_tracker_balance(db, admin.telegram_user_id)
     acct = admin_account_size(db, admin.telegram_user_id)
-    validate_signal_daily_trades(db, admin.telegram_user_id)
     stake = risk_percent if risk_percent is not None and risk_percent > 0 else 10.0
     lev = leverage if leverage is not None and leverage >= 1 else 1
     validate_signal_leverage(db, admin.telegram_user_id, int(lev))
