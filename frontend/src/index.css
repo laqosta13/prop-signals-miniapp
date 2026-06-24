@@ -4345,39 +4345,117 @@
   margin-bottom: 10px;
 }
 
-.volnovoi-copy__api-hint {
-  margin: 4px 0 12px;
-  padding: 10px 12px;
-  background: color-mix(in srgb, var(--accent, #a78bfa) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent, #a78bfa) 30%, transparent);
-  border-radius: 8px;
+.bybit-guide {
+  margin: 4px 0 14px;
 }
 
-.volnovoi-copy__api-hint-title {
+.bybit-guide__header {
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--accent, #a78bfa);
-  margin: 0 0 6px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  margin: 0 0 8px;
 }
 
-.volnovoi-copy__api-hint-steps {
-  margin: 0;
-  padding-left: 16px;
+.bybit-guide__card {
+  border: 1px solid color-mix(in srgb, var(--accent, #a78bfa) 25%, transparent);
+  border-radius: 10px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--accent, #a78bfa) 6%, transparent);
+}
+
+.bybit-guide__img-wrap {
+  width: 100%;
+  aspect-ratio: 9/16;
+  max-height: 340px;
+  background: var(--card-bg, #1a1a2e);
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
-.volnovoi-copy__api-hint-steps li {
-  font-size: 0.75rem;
+.bybit-guide__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  display: block;
+}
+
+.bybit-guide__body {
+  padding: 10px 12px 6px;
+}
+
+.bybit-guide__step-label {
+  font-size: 0.65rem;
   color: var(--muted);
-  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.volnovoi-copy__api-hint-steps li strong {
+.bybit-guide__title {
+  font-size: 0.9rem;
+  font-weight: 700;
   color: var(--text);
+  margin: 2px 0 4px;
+}
+
+.bybit-guide__text {
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.bybit-guide__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px 10px;
+}
+
+.bybit-guide__nav-btn {
+  background: none;
+  border: 1px solid var(--border, #333);
+  border-radius: 6px;
+  color: var(--text);
+  width: 32px;
+  height: 32px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bybit-guide__nav-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.bybit-guide__dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.bybit-guide__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border, #444);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s;
+}
+
+.bybit-guide__dot--active {
+  background: var(--accent, #a78bfa);
+  width: 18px;
+  border-radius: 4px;
 }
 
 .volnovoi-copy__field .field-label {

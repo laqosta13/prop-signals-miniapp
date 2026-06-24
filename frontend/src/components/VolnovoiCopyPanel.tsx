@@ -14,6 +14,7 @@ import { copyToClipboard, formatUsdCents, selectFieldText } from "../utils";
 import { PasteButton } from "./PasteButton";
 import { useThemedCopy } from "../hooks/useThemedCopy";
 import { BybitLogo } from "./BrandLogos";
+import { BybitApiGuide } from "./BybitApiGuide";
 import { PartnerLinks } from "./PartnerLinks";
 import { PaymentMemoRow } from "./PaymentMemoRow";
 import { RiskPercentSlider } from "./RiskPercentSlider";
@@ -344,16 +345,7 @@ export function VolnovoiCopyPanel() {
                         onChange={(e) => setApiSecret(e.target.value)}
                       />
                     </label>
-                    <div className="volnovoi-copy__api-hint">
-                      <p className="volnovoi-copy__api-hint-title">Как создать API на Bybit</p>
-                      <ol className="volnovoi-copy__api-hint-steps">
-                        <li>Bybit → Профиль → <strong>API</strong></li>
-                        <li>Создать ключ → <strong>Сторонний сервис</strong></li>
-                        <li>Права: только <strong>Контракты — Торговля</strong></li>
-                        <li>Вывод средств — <strong>не включать</strong></li>
-                        <li>Скопируй Key и Secret сюда</li>
-                      </ol>
-                    </div>
+                    <BybitApiGuide />
                   </>
                 )}
 
