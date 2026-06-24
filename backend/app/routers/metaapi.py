@@ -148,12 +148,13 @@ async def save_settings(
     return _row_to_status(row, balance=balance, currency=currency)
 
 
-@router.delete("/disconnect", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/disconnect", status_code=status.HTTP_200_OK)
 def disconnect(
     user: TelegramUser = Depends(get_current_user),
     db: Session = Depends(db_session),
-) -> None:
+) -> dict:
     row = db.get(UserMetaApiSettings, user.telegram_user_id)
     if row is not None:
         db.delete(row)
         db.commit()
+    return {}
