@@ -380,3 +380,155 @@ async def close_signal_copies(db: Session, signal: Signal) -> None:
         except ValueError:
             continue
         await _close_copy_for_user(db, copy_row, signal, creds)
+
+
+# ── MetaAPI copy ──────────────────────────────────────────
+
+async def open_metaapi_copies(db: Session, signal: Signal, *, at_publication: bool = False) -> None:
+    """Открыть копии сигнала на MT через MetaAPI."""
+    from app.config import settings as _cfg
+    from app.copy_billing import copy_trading_allowed
+    from app.credentials_crypto import decrypt_secret
+    from app.metaapi_trading import mt_symbol, place_trade
+    from app.models import SignalMetaApiTrade, UserMetaApiSettings
+    from app.signal_utils import parse_price, parse_take_profit_levels
+
+    if getattr(signal, "is_cult_candidate", False) or signal.status != "active":
+        return
+
+    token = _cfg.metaapi_token.strip()
+    if not token:
+        return
+
+    rows = list(db.scalars(select(UserMetaApiSettings).where(UserMetaApiSettings.enabled.is_(True))).all())
+    eligible = [r for r in rows if copy_trading_allowed(db, r.telegram_user_id)]
+    if not eligible:
+        return
+
+    symbol = mt_symbol(signal.symbol)
+    if symbol is None:
+        return
+
+    stop = parse_price(signal.stop_loss)
+    tps = parse_take_profit_levels(signal.take_profits)
+    tp: float | None = None
+    if tps:
+        tp = min(tps) if signal.direction.lower() == "long" else max(tps)
+    else:
+        tp = parse_price(signal.take_profits)
+
+    for user_row in eligible:
+        existing = db.scalar(
+            select(SignalMetaApiTrade).where(
+                SignalMetaApiTrade.signal_id == signal.id,
+                SignalMetaApiTrade.telegram_user_id == user_row.telegram_user_id,
+            )
+        )
+        if existing and existing.exchange_status in (EXCHANGE_OPEN, EXCHANGE_CLOSED, EXCHANGE_CLOSING, EXCHANGE_SKIPPED):
+            continue
+
+        trade_row = existing or SignalMetaApiTrade(
+            signal_id=signal.id,
+            telegram_user_id=user_row.telegram_user_id,
+        )
+        if existing is None:
+            db.add(trade_row)
+
+        trade_row.exchange_symbol = symbol
+        trade_row.lot_size = user_row.lot_size
+        trade_row.exchange_status = EXCHANGE_OPENING
+        trade_row.exchange_error = None
+        db.commit()
+
+        try:
+            account_id = decrypt_secret(user_row.account_id_encrypted)
+            pos_id = await place_trade(
+                token,
+                account_id,
+                symbol,
+                signal.direction,
+                user_row.lot_size,
+                stop_loss=stop,
+                take_profit=tp,
+            )
+            trade_row.position_id = pos_id
+            trade_row.exchange_status = EXCHANGE_OPEN
+            trade_row.exchange_error = None
+            db.commit()
+            logger.info(
+                "MetaAPI copy: user=%s signal #%s %s lot=%.3f%s",
+                user_row.telegram_user_id,
+                signal.id,
+                symbol,
+                user_row.lot_size,
+                " (at publication)" if at_publication else "",
+            )
+        except Exception as e:
+            trade_row.exchange_status = EXCHANGE_FAILED
+            trade_row.exchange_error = str(e)[:500]
+            db.commit()
+            logger.warning("MetaAPI copy open user=%s signal #%s: %s", user_row.telegram_user_id, signal.id, e)
+
+
+async def close_metaapi_copies(db: Session, signal: Signal) -> None:
+    """Закрыть копии сигнала на MT через MetaAPI."""
+    from app.config import settings as _cfg
+    from app.credentials_crypto import decrypt_secret
+    from app.metaapi_trading import close_mt_position
+    from app.models import SignalMetaApiTrade, UserMetaApiSettings
+
+    token = _cfg.metaapi_token.strip()
+    if not token:
+        return
+
+    trades = list(
+        db.scalars(
+            select(SignalMetaApiTrade).where(
+                SignalMetaApiTrade.signal_id == signal.id,
+                SignalMetaApiTrade.exchange_status == EXCHANGE_OPEN,
+            )
+        ).all()
+    )
+    if not trades:
+        return
+
+    settings_map = {
+        r.telegram_user_id: r
+        for r in db.scalars(
+            select(UserMetaApiSettings).where(
+                UserMetaApiSettings.telegram_user_id.in_([t.telegram_user_id for t in trades])
+            )
+        ).all()
+    }
+
+    for trade_row in trades:
+        if not trade_row.position_id:
+            trade_row.exchange_status = EXCHANGE_CLOSED
+            db.commit()
+            continue
+
+        user_row = settings_map.get(trade_row.telegram_user_id)
+        if user_row is None:
+            continue
+
+        trade_row.exchange_status = EXCHANGE_CLOSING
+        db.commit()
+
+        try:
+            account_id = decrypt_secret(user_row.account_id_encrypted)
+            await close_mt_position(token, account_id, trade_row.position_id)
+            trade_row.exchange_status = EXCHANGE_CLOSED
+            trade_row.exchange_error = None
+            db.commit()
+            logger.info("MetaAPI copy close: user=%s signal #%s", trade_row.telegram_user_id, signal.id)
+        except Exception as e:
+            err = str(e).lower()
+            if "not found" in err or "position" in err:
+                trade_row.exchange_status = EXCHANGE_CLOSED
+                trade_row.exchange_error = None
+                db.commit()
+            else:
+                trade_row.exchange_status = EXCHANGE_FAILED
+                trade_row.exchange_error = f"close: {e}"[:500]
+                db.commit()
+                logger.warning("MetaAPI copy close user=%s signal #%s: %s", trade_row.telegram_user_id, signal.id, e)

@@ -571,6 +571,33 @@ export const topUpCopyDeposit = (tx_id: string) =>
     body: JSON.stringify({ tx_id }),
   });
 
+// ── MetaAPI ──────────────────────────────────────────────
+
+export type MetaApiStatus = {
+  configured: boolean;
+  enabled: boolean;
+  account_id_hint: string | null;
+  lot_size: number;
+  balance: number | null;
+  currency: string | null;
+  balance_error: string | null;
+  connected_at: string | null;
+};
+
+export const fetchMetaApiStatus = () => api<MetaApiStatus>("/meta-api/status");
+
+export const saveMetaApiSettings = (body: { account_id: string; lot_size: number; enabled: boolean }) =>
+  api<MetaApiStatus>("/meta-api/save", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+export async function deleteMetaApiSettings(): Promise<void> {
+  const res = await fetch(`${base}/meta-api/disconnect`, { method: "DELETE", headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseApiError(res));
+}
+
 export const fetchPoolStats = () => api<PoolStats>("/traders/pool");
 export const fetchLeaderboard = () => api<Trader[]>("/traders/leaderboard");
 export const fetchFiredLeaderboard = () => api<Trader[]>("/traders/fired-leaderboard");

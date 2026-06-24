@@ -418,6 +418,49 @@ def run_migrations(engine: Engine) -> None:
                 conn.execute(text("ALTER TABLE cult_candidates ADD COLUMN outside_trade BOOLEAN DEFAULT 0"))
                 conn.execute(text("UPDATE cult_candidates SET outside_trade = 0 WHERE outside_trade IS NULL"))
 
+        if "user_metaapi_settings" not in inspect(engine).get_table_names():
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS user_metaapi_settings (
+                        telegram_user_id INTEGER PRIMARY KEY,
+                        enabled BOOLEAN DEFAULT 1,
+                        account_id_encrypted VARCHAR(512) NOT NULL,
+                        lot_size REAL DEFAULT 0.01,
+                        connected_at DATETIME,
+                        last_balance REAL,
+                        last_currency VARCHAR(16),
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
+            )
+
+        if "signal_metaapi_trades" not in inspect(engine).get_table_names():
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS signal_metaapi_trades (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        signal_id INTEGER NOT NULL,
+                        telegram_user_id INTEGER NOT NULL,
+                        exchange_status VARCHAR(16),
+                        exchange_symbol VARCHAR(32),
+                        position_id VARCHAR(64),
+                        lot_size REAL,
+                        exchange_error TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
+            )
+            conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_signal_metaapi_trades_signal_id "
+                    "ON signal_metaapi_trades (signal_id)"
+                )
+            )
+
         if "trader_roster_overrides" not in inspect(engine).get_table_names():
             conn.execute(
                 text(

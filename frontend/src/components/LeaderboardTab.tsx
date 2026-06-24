@@ -23,6 +23,7 @@ import { RankBadge } from "./RankBadge";
 import { RankGuide } from "./RankGuide";
 import { TraderProfileModal } from "./TraderProfileModal";
 import { TraderRosterActions, type TraderRosterPlacement } from "./TraderRosterActions";
+import { MetaApiPanel } from "./MetaApiPanel";
 import { VolnovoiCopyPanel } from "./VolnovoiCopyPanel";
 import { VolnovoiHeroCard } from "./VolnovoiHeroCard";
 import { VolnovoiStylePanel } from "./VolnovoiStylePanel";
@@ -297,6 +298,7 @@ export function LeaderboardTab({
             poolBalance={poolBalance}
           />
           <VolnovoiCopyPanel />
+          <MetaApiPanel />
         </section>
       )}
 

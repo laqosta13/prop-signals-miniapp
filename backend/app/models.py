@@ -61,6 +61,37 @@ class UserBybitSettings(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
+class UserMetaApiSettings(Base):
+    """MT4/MT5 аккаунт пользователя через MetaAPI для копирования сигналов."""
+
+    __tablename__ = "user_metaapi_settings"
+
+    telegram_user_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    account_id_encrypted: Mapped[str] = mapped_column(String(512), nullable=False)
+    lot_size: Mapped[float] = mapped_column(Float, default=0.01)
+    connected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_balance: Mapped[float | None] = mapped_column(Float, nullable=True)
+    last_currency: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class SignalMetaApiTrade(Base):
+    """Копия сигнала на MT-аккаунте пользователя через MetaAPI."""
+
+    __tablename__ = "signal_metaapi_trades"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    signal_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    telegram_user_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    exchange_status: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    exchange_symbol: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    position_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    lot_size: Mapped[float | None] = mapped_column(Float, nullable=True)
+    exchange_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class CopyTradingInvoice(Base):
     """Счёт 20% от прибыли копирования volnovoi."""
 

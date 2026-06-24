@@ -29,6 +29,7 @@ from app.routers import (
     copy_trading,
     cult_candidates,
     cult_channels,
+    metaapi,
     news,
     reviews,
     signals,
@@ -140,6 +141,7 @@ app.add_middleware(
 )
 
 app.include_router(copy_trading.router)
+app.include_router(metaapi.router)
 app.include_router(cult_channels.router)
 app.include_router(cult_candidates.router)
 app.include_router(admin.router)

@@ -34,7 +34,13 @@ from app.telegram_notify import (
     format_updated_signal_message,
     notify_subscribers,
 )
-from app.copy_trading_service import close_signal_copies, open_signal_copies, open_signal_copy_for_user
+from app.copy_trading_service import (
+    close_metaapi_copies,
+    close_signal_copies,
+    open_metaapi_copies,
+    open_signal_copies,
+    open_signal_copy_for_user,
+)
 from app.challenge_service import apply_signal_to_tracker
 from app.database import SessionLocal
 from app.price_service import (
@@ -284,6 +290,7 @@ async def try_close_on_quotes(
         await close_signal_and_notify(db, signal, outcome, exit_price=exit_px, close_reason=reason)
     elif close_signal(db, signal, outcome, exit_price=exit_px, close_reason=reason):
         await close_signal_copies(db, signal)
+        await close_metaapi_copies(db, signal)
     return signal.status != "active"
 
 
@@ -301,6 +308,7 @@ async def close_signal_and_notify(
     if not close_signal(db, signal, outcome, exit_price, close_reason=reason, closed_at=closed_at):
         return
     await close_signal_copies(db, signal)
+    await close_metaapi_copies(db, signal)
     if getattr(signal, "is_cult_candidate", False):
         return
     ids = subscriber_ids_for_notify(db)
@@ -346,6 +354,7 @@ async def close_signal_at_market(db: Session, signal: Signal, *, notify: bool = 
         raise ValueError("close_failed")
     else:
         await close_signal_copies(db, signal)
+        await close_metaapi_copies(db, signal)
     if signal.status == "active":
         raise ValueError("close_failed")
 
@@ -412,6 +421,10 @@ async def after_limit_entry_filled(db: Session, signal: Signal, *, notify: bool 
         await open_signal_copies(db, signal)
     except Exception:
         logger.exception("open_signal_copies failed for signal #%s", signal.id)
+    try:
+        await open_metaapi_copies(db, signal)
+    except Exception:
+        logger.exception("open_metaapi_copies failed for signal #%s", signal.id)
 
 
 async def notify_signal_supplement(
@@ -520,6 +533,10 @@ async def stamp_signal_at_publication(
         await open_signal_copies(db, signal, at_publication=True)
     except Exception:
         logger.exception("open_signal_copies at publication failed for signal #%s", signal.id)
+    try:
+        await open_metaapi_copies(db, signal, at_publication=True)
+    except Exception:
+        logger.exception("open_metaapi_copies at publication failed for signal #%s", signal.id)
 
     if signal.entry_filled_at is not None:
         await after_limit_entry_filled(db, signal, notify=notify_entry and entry_hit is not None)
