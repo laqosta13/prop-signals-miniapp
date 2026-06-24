@@ -7674,16 +7674,23 @@ input.readonly {
 }
 
 .signal-form__reset {
-  margin: 8px 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 10px 0 0;
+  padding: 3px 10px;
   font-size: 0.7rem;
-  color: var(--muted);
+  color: var(--accent, #a78bfa);
+  border: 1px solid var(--accent, #a78bfa);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent, #a78bfa) 8%, transparent);
 }
 
 .signal-form__reset-clock {
   font-variant-numeric: tabular-nums;
   font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
-  font-weight: 600;
-  color: var(--text);
+  font-weight: 700;
+  color: var(--accent, #a78bfa);
 }
 
 .signal-form__alert {
