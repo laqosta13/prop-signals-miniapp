@@ -4,6 +4,7 @@ import { formatUsd } from "../utils";
 import { traderClosedDealsCount, traderRankAvatarId } from "../utils/traderRankDisplay";
 import { Avatar } from "./Avatar";
 import { CultCandidateActiveTrades } from "./CultCandidateActiveTrades";
+import { EquityCurve } from "./EquityCurve";
 import { HeroBlockchainBg } from "./HeroBlockchainBg";
 import { HeroTaglineBanner } from "./HeroTaglineBanner";
 import { RankBadge } from "./RankBadge";
@@ -89,6 +90,9 @@ export function VolnovoiHeroCard({ trader, onOpen, showActiveTrades = false, poo
         </div>
       </button>
 
+      {trader.daily_stats.length > 0 && (
+        <EquityCurve dailyStats={trader.daily_stats} percentOnly showDayList />
+      )}
     </article>
   );
 }
