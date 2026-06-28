@@ -1,6 +1,7 @@
 """API кандидатов CULT — пользователи со своими сигналами на Bybit."""
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.cult_candidate_service import (
@@ -27,7 +28,7 @@ from app.deps import db_session, get_current_user
 from app.trader_roster_service import cult_subscription_admin_bypass
 from app.rate_limit import check_rate_limit
 from app.subscription_billing import ensure_payment_memo, usdt_pay_address
-from app.models import Subscriber
+from app.models import Signal, Subscriber
 from app.schemas import (
     CultCandidateFormSnapshot,
     CultCandidateJoinBody,
@@ -41,8 +42,11 @@ from app.schemas import (
 )
 from app.media_storage import save_signal_image, save_signal_video
 from app.serializers import signal_to_read
-from app.signal_service import build_signal_row, close_signal_at_market, stamp_signal_at_publication
-from app.signal_utils import form_bool_flag, signal_in_trade, stored_entry_levels
+from app.signal_service import build_signal_row, close_signal_at_market, stamp_signal_at_publication, update_signal_fields
+from app.signal_utils import entry_zone_defined, form_bool_flag, signal_awaiting_entry, signal_in_trade, stored_entry_levels
+from app.media_storage import delete_media_files, delete_signal_media_dir
+from app.engagement import purge_signal_engagement
+from app.models import SignalSupplement
 from app.routers.signals import _parse_direction
 from app.test_mode import test_mode_public_fields
 
@@ -273,6 +277,107 @@ async def create_cult_candidate_signal(
     db.commit()
     db.refresh(row)
     return signal_to_read(db, row, user.telegram_user_id)
+
+
+@router.put("/me/signals/{signal_id}", response_model=SignalRead)
+async def update_cult_candidate_signal(
+    signal_id: int,
+    symbol: str = Form(...),
+    direction: str = Form(...),
+    entry_low: str | None = Form(None),
+    entry_high: str | None = Form(None),
+    stop_loss: str | None = Form(None),
+    take_profits: str | None = Form(None),
+    comment: str | None = Form(None),
+    leverage: int | None = Form(None),
+    risk_percent: float | None = Form(None),
+    screenshot: UploadFile | None = File(None),
+    video: UploadFile | None = File(None),
+    remove_screenshot: bool = Form(False),
+    remove_video: bool = Form(False),
+    market_entry: str | None = Form(None),
+    db: Session = Depends(db_session),
+    user: TelegramUser = Depends(get_current_user),
+) -> SignalRead:
+    sub = _subscriber(db, user)
+    try:
+        ensure_can_trade(db, sub)
+        row = get_candidate_owned_signal(db, signal_id, user.telegram_user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e)) from e
+    if not signal_awaiting_entry(row):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Редактировать можно только до срабатывания входа",
+        )
+    stake = risk_percent if risk_percent is not None and risk_percent > 0 else 10.0
+    lev = leverage if leverage is not None and leverage >= 1 else 1
+    validate_candidate_signal_leverage(db, user.telegram_user_id, lev)
+    validate_candidate_signal_daily_stop(
+        db, user.telegram_user_id, entry_low, entry_high, stop_loss, stake, lev,
+        exclude_signal_id=signal_id,
+    )
+    validate_candidate_signal_stake(db, user.telegram_user_id, stake, exclude_signal_id=signal_id)
+    market = form_bool_flag(market_entry)
+    stored_low, stored_high = stored_entry_levels(entry_low, entry_high, market_entry=market)
+    acct = cult_candidate_account_size(db, user.telegram_user_id)
+    update_signal_fields(
+        row,
+        symbol=symbol.strip().upper(),
+        direction=_parse_direction(direction),
+        entry_low=stored_low,
+        entry_high=stored_high,
+        stop_loss=stop_loss or None,
+        take_profits=take_profits or None,
+        comment=comment or None,
+        leverage=min(int(lev), 5),
+        risk_percent=stake,
+        tracker_balance=acct,
+        account_size=acct,
+    )
+    if remove_screenshot and row.media_image_path:
+        delete_media_files(row.media_image_path)
+        row.media_image_path = None
+    if remove_video and row.media_video_path:
+        delete_media_files(row.media_video_path)
+        row.media_video_path = None
+    if screenshot and screenshot.filename:
+        delete_media_files(row.media_image_path)
+        row.media_image_path = await save_signal_image(row.id, screenshot)
+    if video and video.filename:
+        delete_media_files(row.media_video_path)
+        row.media_video_path = await save_signal_video(row.id, video)
+    row.entry_filled_at = None if entry_zone_defined(row.entry_low, row.entry_high) else row.entry_filled_at
+    db.commit()
+    db.refresh(row)
+    return signal_to_read(db, row, user.telegram_user_id)
+
+
+@router.delete("/me/signals/{signal_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_cult_candidate_signal(
+    signal_id: int,
+    db: Session = Depends(db_session),
+    user: TelegramUser = Depends(get_current_user),
+) -> None:
+    _subscriber(db, user)
+    try:
+        row = get_candidate_owned_signal(db, signal_id, user.telegram_user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    if not signal_awaiting_entry(row):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Удалить можно только до срабатывания входа",
+        )
+    for sup in db.scalars(select(SignalSupplement).where(SignalSupplement.signal_id == signal_id)).all():
+        delete_media_files(sup.media_image_path, sup.media_video_path)
+    from sqlalchemy import delete as sa_delete
+    db.execute(sa_delete(SignalSupplement).where(SignalSupplement.signal_id == signal_id))
+    delete_media_files(row.media_image_path, row.media_video_path)
+    delete_signal_media_dir(signal_id)
+    purge_signal_engagement(db, signal_id)
+    db.delete(row)
+    db.commit()
 
 
 @router.post("/me/signals/{signal_id}/close-market", response_model=SignalRead)

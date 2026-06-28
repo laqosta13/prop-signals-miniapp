@@ -85,9 +85,14 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
 
   const riskPctRef = useRef(riskPct);
   riskPctRef.current = riskPct;
+  const skipSyncRef = useRef(false);
 
   /** При смене входа или направления — стоп/цель заново от цены входа. */
   useEffect(() => {
+    if (skipSyncRef.current) {
+      skipSyncRef.current = false;
+      return;
+    }
     const next = stopTargetFromEntryAndRisk(entry, direction, parseRiskPctValue(riskPctRef.current));
     if (!next) return;
     setStop(next.stop);
@@ -167,6 +172,7 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
       dir: "long" | "short";
     }) => {
       const { entryVal, stopVal, targetVal, dir } = params;
+      skipSyncRef.current = true;
       setDirectionState(dir);
       setEntry(entryVal);
       setStop(stopVal);

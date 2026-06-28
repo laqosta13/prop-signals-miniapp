@@ -649,6 +649,13 @@ export const createCultCandidateSignal = (form: FormData, onProgress?: (p: Uploa
   onProgress
     ? sendFormWithProgress<Signal>("/cult-candidates/me/signals", "POST", form, onProgress)
     : sendForm<Signal>("/cult-candidates/me/signals", "POST", form);
+export const updateCultCandidateSignal = (id: number, form: FormData, onProgress?: (p: UploadProgress) => void) =>
+  onProgress
+    ? sendFormWithProgress<Signal>(`/cult-candidates/me/signals/${id}`, "PUT", form, onProgress)
+    : sendForm<Signal>(`/cult-candidates/me/signals/${id}`, "PUT", form);
+export async function deleteCultCandidateSignal(id: number): Promise<void> {
+  await api<void>(`/cult-candidates/me/signals/${id}`, { method: "DELETE" });
+}
 export const fetchTraderRank = (telegramId: number) => api<TraderRank>(`/traders/${telegramId}/rank`);
 export const fetchChallengeTrackers = () => api<ChallengeDashboard[]>("/challenge/trackers");
 

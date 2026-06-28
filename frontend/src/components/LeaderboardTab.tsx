@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 import {
   closeCultCandidateSignalAtMarket,
+  deleteCultCandidateSignal,
   fetchCultCandidateSignal,
   fetchPoolStats,
   type CultCandidate,
@@ -188,6 +189,7 @@ export function LeaderboardTab({
   const [poolBalance, setPoolBalance] = useState<number | undefined>(undefined);
   const [profileTrader, setProfileTrader] = useState<Trader | null>(null);
   const [signalModalOpen, setSignalModalOpen] = useState(false);
+  const [editingSignal, setEditingSignal] = useState<Signal | null>(null);
 
   useEffect(() => {
     fetchPoolStats()
@@ -211,6 +213,27 @@ export function LeaderboardTab({
       onCultCandidatesChange();
     } finally {
       setClosingSignalId(null);
+    }
+  };
+
+  const handleEditCandidateSignal = async (signalId: number) => {
+    try {
+      const sig = await fetchCultCandidateSignal(signalId);
+      setEditingSignal(sig);
+      setSignalModalOpen(true);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Не удалось загрузить сделку");
+    }
+  };
+
+  const handleDeleteCandidateSignal = async (signalId: number) => {
+    if (!confirm("Удалить сделку?")) return;
+    try {
+      await deleteCultCandidateSignal(signalId);
+      WebApp.HapticFeedback.notificationOccurred("success");
+      onCultCandidatesChange();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Не удалось удалить");
     }
   };
 
@@ -333,9 +356,11 @@ export function LeaderboardTab({
                   key={`me-${myCandidate.telegram_user_id}`}
                   candidate={myCandidate}
                   showActiveTrades={canViewCandidateActiveTrades(subscriptionActive, isAdmin, true)}
-                  onTrade={canPublishCandidate ? () => setSignalModalOpen(true) : undefined}
+                  onTrade={canPublishCandidate ? () => { setEditingSignal(null); setSignalModalOpen(true); } : undefined}
                   onOpenClosedTrade={openClosedTrade}
                   onCloseAtMarket={handleCloseCandidateAtMarket}
+                  onEditSignal={canPublishCandidate ? handleEditCandidateSignal : undefined}
+                  onDeleteSignal={canPublishCandidate ? handleDeleteCandidateSignal : undefined}
                   closingSignalId={closingSignalId}
                   isSuperAdmin={isSuperAdmin}
                   onRosterChange={onRosterChange}
@@ -372,7 +397,7 @@ export function LeaderboardTab({
                   onRosterChange={onRosterChange}
                   onTrade={
                     trader.telegram_id === myId && canPublishCandidate
-                      ? () => setSignalModalOpen(true)
+                      ? () => { setEditingSignal(null); setSignalModalOpen(true); }
                       : undefined
                   }
                 />
@@ -388,8 +413,9 @@ export function LeaderboardTab({
 
       <CultCandidateSignalModal
         open={signalModalOpen}
-        onClose={() => setSignalModalOpen(false)}
-        onCreated={onCultCandidatesChange}
+        onClose={() => { setSignalModalOpen(false); setEditingSignal(null); }}
+        onCreated={() => { onCultCandidatesChange(); setEditingSignal(null); }}
+        editSignal={editingSignal}
       />
 
       <CultCandidateSignalDetailModal

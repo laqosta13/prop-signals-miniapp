@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
-import { createCultCandidateSignal, type UploadProgress } from "../api";
+import { createCultCandidateSignal, updateCultCandidateSignal, type Signal, type UploadProgress } from "../api";
 import { useCandidateSignalFormTracker } from "../hooks/useCandidateSignalFormTracker";
 import { useGuardedSubmit } from "../hooks/useGuardedSubmit";
 import { useThemedCopy } from "../hooks/useThemedCopy";
@@ -24,11 +24,12 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
+  editSignal?: Signal | null;
 };
 
 const DEFAULT_SYMBOL = "BTCUSDT";
 
-export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
+export function CultCandidateSignalModal({ open, onClose, onCreated, editSignal }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [priceLoading, setPriceLoading] = useState(false);
@@ -56,6 +57,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
     resyncStopTargetForLeverage,
     applyMarketPrice,
     resetForm,
+    loadLevels,
   } = useSignalLevelFields("long");
   const directionRef = useRef(direction);
   directionRef.current = direction;
@@ -63,7 +65,7 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
 
   const copy = useThemedCopy();
   const { tryAcquire, release } = useGuardedSubmit();
-  const tracker = useCandidateSignalFormTracker(open, { risk, setRisk }, { leverage, setLeverage });
+  const tracker = useCandidateSignalFormTracker(open, { risk, setRisk }, { leverage, setLeverage }, editSignal?.id);
   const balance = tracker.balanceForNominal();
 
   const { resetInitKey } = useSignalMarketPriceInit({
@@ -102,19 +104,36 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
       setPriceLoading(false);
       setSubmitting(false);
       setUploadProgress(null);
-      setSymbol(DEFAULT_SYMBOL);
-      setSymbolEdited(false);
-      setEntryEdited(false);
-      setLeverage("1");
-      setRisk("10");
-      setComment("");
-      resetForm();
       setScreenshot(null);
       setVideo(null);
       setShotPreview((prev) => {
         if (prev) URL.revokeObjectURL(prev);
         return null;
       });
+      if (editSignal) {
+        setSymbol(editSignal.symbol);
+        setSymbolEdited(true);
+        setEntryEdited(true);
+        setLeverage(String(editSignal.leverage ?? 1));
+        setRisk(String(editSignal.risk_percent ?? 10));
+        setComment(editSignal.comment ?? "");
+        const dir = editSignal.direction.toLowerCase() === "short" ? "short" : "long";
+        const firstTarget = (editSignal.take_profits ?? "").split(",")[0]?.trim() ?? "";
+        loadLevels({
+          entryVal: editSignal.entry_low ?? "",
+          stopVal: editSignal.stop_loss ?? "",
+          targetVal: firstTarget,
+          dir,
+        });
+      } else {
+        setSymbol(DEFAULT_SYMBOL);
+        setSymbolEdited(false);
+        setEntryEdited(false);
+        setLeverage("1");
+        setRisk("10");
+        setComment("");
+        resetForm();
+      }
     }
   }, [open, resetForm, resetInitKey, release]);
 
@@ -152,11 +171,16 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
         screenshot,
         video,
         marketEntry: !entryEdited,
+        alwaysSendComment: !!editSignal,
       });
       const uploadBytes = mediaBytesInForm(fd);
       const trackUpload = uploadBytes > 0;
       setUploadProgress(trackUpload ? initialUploadProgress(uploadBytes) : null);
-      await createCultCandidateSignal(fd, trackUpload ? (p) => setUploadProgress(p) : undefined);
+      if (editSignal) {
+        await updateCultCandidateSignal(editSignal.id, fd, trackUpload ? (p) => setUploadProgress(p) : undefined);
+      } else {
+        await createCultCandidateSignal(fd, trackUpload ? (p) => setUploadProgress(p) : undefined);
+      }
       published = true;
       try {
         WebApp.HapticFeedback.notificationOccurred("success");
@@ -176,8 +200,8 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
 
   return (
     <SignalFormShell
-      title={copy.signalNew}
-      subtitle={copy.signalToCard}
+      title={editSignal ? "Изменить сделку" : copy.signalNew}
+      subtitle={editSignal ? editSignal.symbol : copy.signalToCard}
       onClose={handleClose}
       onBackdropClick={handleClose}
       onSubmit={submit}
@@ -295,8 +319,8 @@ export function CultCandidateSignalModal({ open, onClose, onCreated }: Props) {
         uploadProgress={uploadProgress}
         hasVideo={!!video}
         disabled={submitting || priceLoading || formBlocked}
-        publishLabel={copy.signalPublish}
-        saveLabel={copy.signalPublishing}
+        publishLabel={editSignal ? "Сохранить" : copy.signalPublish}
+        saveLabel={editSignal ? "Сохранение…" : copy.signalPublishing}
       />
     </SignalFormShell>
   );

@@ -17,6 +17,8 @@ type Props = {
   onTrade?: () => void;
   onOpenClosedTrade?: (trade: CultCandidateClosedSignal) => void;
   onCloseAtMarket?: (signalId: number) => void;
+  onEditSignal?: (signalId: number) => void;
+  onDeleteSignal?: (signalId: number) => void;
   closingSignalId?: number | null;
   isSuperAdmin?: boolean;
   onRosterChange?: () => void;
@@ -28,6 +30,8 @@ export function CultCandidateCard({
   onTrade,
   onOpenClosedTrade,
   onCloseAtMarket,
+  onEditSignal,
+  onDeleteSignal,
   closingSignalId = null,
   isSuperAdmin = false,
   onRosterChange,
@@ -146,8 +150,11 @@ export function CultCandidateCard({
             trades={candidate.active_signals}
             showDetails
             canClose={candidate.is_me}
+            canEdit={candidate.is_me}
             closingId={closingSignalId}
             onCloseAtMarket={onCloseAtMarket}
+            onEdit={onEditSignal}
+            onDelete={onDeleteSignal}
           />
         )}
 

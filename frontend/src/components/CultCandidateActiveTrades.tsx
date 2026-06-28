@@ -5,8 +5,11 @@ type Props = {
   trades: CultCandidateActiveSignal[];
   showDetails?: boolean;
   canClose?: boolean;
+  canEdit?: boolean;
   closingId?: number | null;
   onCloseAtMarket?: (id: number) => void;
+  onEdit?: (id: number) => void;
+  onDelete?: (id: number) => void;
 };
 
 function dirLabel(direction: string): string {
@@ -28,8 +31,11 @@ export function CultCandidateActiveTrades({
   trades,
   showDetails = true,
   canClose = false,
+  canEdit = false,
   closingId = null,
   onCloseAtMarket,
+  onEdit,
+  onDelete,
 }: Props) {
   if (!trades.length || !showDetails) return null;
 
@@ -42,6 +48,7 @@ export function CultCandidateActiveTrades({
           const target = firstTarget(t.take_profits);
           const status = statusLabel(t);
           const showClose = canClose && t.in_market && onCloseAtMarket;
+          const showEditDelete = canEdit && t.awaiting_entry;
 
           return (
             <li key={t.id} className="cult-active-trades__item">
@@ -83,6 +90,28 @@ export function CultCandidateActiveTrades({
                   )}
                 </div>
               </div>
+              {showEditDelete && (
+                <div className="cult-active-trades__edit-row">
+                  {onEdit && (
+                    <button
+                      type="button"
+                      className="ghost-btn cult-active-trades__edit"
+                      onClick={() => onEdit(t.id)}
+                    >
+                      Изменить
+                    </button>
+                  )}
+                  {onDelete && (
+                    <button
+                      type="button"
+                      className="ghost-btn cult-active-trades__delete"
+                      onClick={() => onDelete(t.id)}
+                    >
+                      Удалить
+                    </button>
+                  )}
+                </div>
+              )}
               {showClose && (
                 <button
                   type="button"
