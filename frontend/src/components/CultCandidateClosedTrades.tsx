@@ -1,6 +1,9 @@
+import { useState } from "react";
 import type { CultCandidateClosedSignal } from "../api";
 import { formatTradePrice } from "../utils/formatTradePrice";
 import { CoinLogo } from "./CoinLogo";
+
+const COLLAPSED_COUNT = 3;
 
 type Props = {
   trades: CultCandidateClosedSignal[];
@@ -8,13 +11,17 @@ type Props = {
 };
 
 export function CultCandidateClosedTrades({ trades, onOpen }: Props) {
+  const [expanded, setExpanded] = useState(false);
   if (!trades.length) return null;
+
+  const visible = expanded ? trades : trades.slice(0, COLLAPSED_COUNT);
+  const hasMore = trades.length > COLLAPSED_COUNT;
 
   return (
     <div className="cult-closed-trades" onClick={(e) => e.stopPropagation()}>
       <p className="cult-closed-trades__title">Закрытые сделки</p>
       <ul className="cult-closed-trades__list">
-        {trades.map((t) => {
+        {visible.map((t) => {
           const up = t.move_pct >= 0;
           return (
             <li key={t.id}>
@@ -34,6 +41,15 @@ export function CultCandidateClosedTrades({ trades, onOpen }: Props) {
           );
         })}
       </ul>
+      {hasMore && (
+        <button
+          type="button"
+          className="cult-closed-trades__toggle"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? "Свернуть" : `Ещё ${trades.length - COLLAPSED_COUNT}`}
+        </button>
+      )}
     </div>
   );
 }

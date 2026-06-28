@@ -5028,6 +5028,22 @@
   color: var(--red);
 }
 
+.cult-closed-trades__toggle {
+  display: block;
+  width: 100%;
+  padding: 6px 0;
+  background: none;
+  border: none;
+  color: var(--text-secondary, #8899aa);
+  font-size: 12px;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.cult-closed-trades__toggle:hover {
+  opacity: 1;
+}
+
 .cult-candidate-signal-detail {
   max-height: min(92vh, 720px);
 }
