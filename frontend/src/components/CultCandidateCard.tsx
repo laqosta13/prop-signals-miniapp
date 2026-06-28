@@ -145,6 +145,10 @@ export function CultCandidateCard({
           <VolnovoiStylePanel style={candidate.volnovoi_style} stopPropagation />
         )}
 
+        {candidate.daily_stats.length > 0 && (
+          <EquityCurve dailyStats={candidate.daily_stats} />
+        )}
+
         {expanded && showActiveTrades && candidate.active_signals.length > 0 && (
           <CultCandidateActiveTrades
             trades={candidate.active_signals}
@@ -160,10 +164,6 @@ export function CultCandidateCard({
 
         {expanded && (candidate.closed_signals?.length ?? 0) > 0 && onOpenClosedTrade && (
           <CultCandidateClosedTrades trades={candidate.closed_signals ?? []} onOpen={onOpenClosedTrade} />
-        )}
-
-        {expanded && candidate.daily_stats.length > 0 && (
-          <EquityCurve dailyStats={candidate.daily_stats} percentOnly showDayList />
         )}
 
         {expanded && candidate.is_me && candidate.bybit_balance_usd != null && (
