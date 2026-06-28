@@ -1,5 +1,6 @@
 import type { CultCandidateActiveSignal } from "../api";
 import { CoinLogo } from "./CoinLogo";
+import { SignalChart } from "./SignalChart";
 
 type Props = {
   trades: CultCandidateActiveSignal[];
@@ -122,6 +123,18 @@ export function CultCandidateActiveTrades({
                   {closingId === t.id ? "Закрытие…" : "Закрыть по рынку"}
                 </button>
               )}
+              <SignalChart
+                key={t.id}
+                symbol={t.symbol}
+                direction={t.direction.toLowerCase() === "short" ? "short" : "long"}
+                createdAt={t.created_at}
+                entryLow={t.entry_low}
+                entryHigh={t.entry_high}
+                stopLoss={t.stop_loss}
+                takeProfits={t.take_profits}
+                entryFilledAt={t.entry_filled_at}
+                status="active"
+              />
             </li>
           );
         })}

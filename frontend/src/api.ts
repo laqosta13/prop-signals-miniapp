@@ -192,6 +192,10 @@ export type CultCandidateActiveSignal = {
   take_profits: string | null;
   in_market: boolean;
   awaiting_entry: boolean;
+  entry_low: string | null;
+  entry_high: string | null;
+  created_at: string | null;
+  entry_filled_at: string | null;
 };
 
 export type CultCandidateFormSnapshot = {

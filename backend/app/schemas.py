@@ -250,6 +250,10 @@ class CultCandidateActiveSignalRead(BaseModel):
     take_profits: str | None = None
     in_market: bool = False
     awaiting_entry: bool = False
+    entry_low: str | None = None
+    entry_high: str | None = None
+    created_at: datetime | None = None
+    entry_filled_at: datetime | None = None
 
 
 class CultCandidateClosedSignalRead(BaseModel):

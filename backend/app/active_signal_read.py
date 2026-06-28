@@ -42,4 +42,8 @@ def build_active_signal_read(signal: Signal) -> CultCandidateActiveSignalRead:
         take_profits=signal.take_profits,
         in_market=in_market,
         awaiting_entry=awaiting,
+        entry_low=signal.entry_low,
+        entry_high=signal.entry_high,
+        created_at=signal.created_at,
+        entry_filled_at=signal.entry_filled_at,
     )
