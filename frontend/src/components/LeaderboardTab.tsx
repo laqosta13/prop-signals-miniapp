@@ -36,6 +36,7 @@ import { Avatar } from "./Avatar";
 import { TopPlaceMedal } from "./TopPlaceMedal";
 
 type Props = {
+  section?: "top" | "candidates";
   traders: Trader[];
   firedTraders: Trader[];
   rosterDemotedAdmins: Trader[];
@@ -170,6 +171,7 @@ function TopTraderCard({
 }
 
 export function LeaderboardTab({
+  section = "top",
   traders,
   firedTraders,
   rosterDemotedAdmins,
@@ -305,13 +307,16 @@ export function LeaderboardTab({
 
   return (
     <>
-      {!traders.length && !firedList.length && !cultCandidates.length && !cultChannels.length && (
+      {section === "top" && !traders.length && !firedList.length && (
+        <p className="meta">{copy.topEmpty}</p>
+      )}
+      {section === "candidates" && !cultCandidates.length && !cultChannels.length && !isAdmin && myId == null && (
         <p className="meta">{copy.topEmpty}</p>
       )}
 
-      <p className="meta top-marketplace-intro">{copy.topIntro}</p>
+      {section === "top" && <p className="meta top-marketplace-intro">{copy.topIntro}</p>}
 
-      {volnovoi && (
+      {section === "top" && volnovoi && (
         <section className="volnovoi-hero" aria-label="volnovoi">
           <VolnovoiHeroCard
             trader={volnovoi}
@@ -323,9 +328,9 @@ export function LeaderboardTab({
         </section>
       )}
 
-      <RankGuide myRankId={myRankId} />
+      {section === "top" && <RankGuide myRankId={myRankId} />}
 
-      {showTradersBlock && (
+      {section === "top" && showTradersBlock && (
         <section className="top-cult-block top-cult-block--traders">
           <p className="top-cult-label top-cult-label--traders">{copy.topLabelTraders}</p>
           <ol className="top-list">
@@ -343,7 +348,7 @@ export function LeaderboardTab({
         </section>
       )}
 
-      {showCandidatesBlock && (
+      {section === "candidates" && showCandidatesBlock && (
         <section className="top-cult-block top-cult-block--candidates">
           <p className="top-cult-label top-cult-label--candidates">{copy.topLabelCandidates}</p>
           {myId != null && (
@@ -429,7 +434,7 @@ export function LeaderboardTab({
         }}
       />
 
-      {showFiredBlock && (
+      {section === "top" && showFiredBlock && (
         <section className="top-cult-block top-cult-block--fired">
           <p className="top-cult-label top-cult-label--fired">{copy.topLabelFired}</p>
           <ol className="top-list">

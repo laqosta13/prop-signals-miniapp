@@ -11,8 +11,8 @@ export const PUNK_BOOT_META = "СИНХРОНИЗАЦИЯ СЕТИ…";
 
 export const PUNK_NAV = {
   feed: "ЛЕНТА",
-  tracker: "ТРЕКЕР",
   top: "ЭЛИТА",
+  candidates: "ОТБОР",
   reviews: "ЭХО",
   news: "СДЕЛКИ",
   pay: "ДОСТУП",
@@ -20,8 +20,8 @@ export const PUNK_NAV = {
 
 export const PUNK_TAB_TITLES = {
   feed: "",
-  tracker: "ТРЕКЕР",
   top: "ЭЛИТА",
+  candidates: "ОТБОР",
   reviews: "ЭХО",
   news: "СДЕЛКИ",
   pay: "ДОСТУП",
@@ -29,8 +29,8 @@ export const PUNK_TAB_TITLES = {
 
 export const PUNK_TAB_SUBTITLES = {
   feed: "ТЕНЕВОЙ MARKETPLACE",
-  tracker: "ПРОТОКОЛ HASH HEDGE",
   top: "КОДЫ И ОТБОР",
+  candidates: "ОТБОР В CULT",
   reviews: "ГОЛОСА СЕТИ",
   news: "",
   pay: "КЛЮЧ · USDT TON",

@@ -59,9 +59,9 @@ export type ThemedCopy = {
   bootTitle: string;
   bootMeta: string;
   loading: string;
-  nav: Record<"feed" | "tracker" | "top" | "reviews" | "news" | "pay", string>;
-  tabTitles: Record<"feed" | "tracker" | "top" | "reviews" | "news" | "pay", string>;
-  tabSubtitles: Record<"feed" | "tracker" | "top" | "reviews" | "news" | "pay", string>;
+  nav: Record<"feed" | "top" | "candidates" | "reviews" | "news" | "pay", string>;
+  tabTitles: Record<"feed" | "top" | "candidates" | "reviews" | "news" | "pay", string>;
+  tabSubtitles: Record<"feed" | "top" | "candidates" | "reviews" | "news" | "pay", string>;
   feedKicker: string;
   feedHeadline: string;
   feedSubKicker: string;
@@ -205,8 +205,8 @@ function buildCopy(theme: Theme): ThemedCopy {
       bootTitle: PRODUCT_NAME,
       bootMeta: "Загрузка…",
       loading: "Загрузка…",
-      nav: { feed: "Лента", tracker: "Трекер", top: "ТОП", reviews: "Отзывы", news: "Новости", pay: "Подписка" },
-      tabTitles: { feed: "", tracker: "Трекер", top: "ТОП", reviews: "Отзывы", news: "Новости", pay: "Подписка" },
+      nav: { feed: "Лента", top: "ТОП", candidates: "Кандидаты", reviews: "Отзывы", news: "Новости", pay: "Подписка" },
+      tabTitles: { feed: "", top: "ТОП", candidates: "Кандидаты", reviews: "Отзывы", news: "Новости", pay: "Подписка" },
       tabSubtitles: { ...TAB_SUBTITLES },
       feedKicker: "blockchain",
       feedHeadline: "",

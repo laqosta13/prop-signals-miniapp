@@ -34,8 +34,8 @@ export function subscriptionInactiveHint(trialDays: number, trialUsed: boolean):
 
 export const TAB_SUBTITLES = {
   feed: PRODUCT_TAGLINE,
-  tracker: "Челлендж Hash Hedge",
   top: "Ранги и отбор",
+  candidates: "Отбор в Cult",
   reviews: "Опыт участников",
   news: "",
   pay: "Доступ к ленте · USDT TON",

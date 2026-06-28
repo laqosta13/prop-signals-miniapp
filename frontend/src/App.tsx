@@ -33,7 +33,6 @@ import { hasAcceptedDisclaimer, markDisclaimerAccepted } from "./utils/disclaime
 import { isPunkTheme } from "./utils/punkTheme";
 import { triggerGlitch } from "./utils/theme";
 
-const TrackerTab = lazy(() => import("./components/TrackerTab").then((m) => ({ default: m.TrackerTab })));
 const LeaderboardTab = lazy(() => import("./components/LeaderboardTab").then((m) => ({ default: m.LeaderboardTab })));
 const ReviewsTab = lazy(() => import("./components/ReviewsTab").then((m) => ({ default: m.ReviewsTab })));
 const NewsTab = lazy(() => import("./components/NewsTab").then((m) => ({ default: m.NewsTab })));
@@ -46,15 +45,12 @@ import { NewSignalModal } from "./components/NewSignalModal";
 import { NotifySettingsPanel } from "./components/NotifySettingsPanel";
 import { DisclaimerModal } from "./components/DisclaimerModal";
 const NewsModal = lazy(() => import("./components/NewsModal").then((m) => ({ default: m.NewsModal })));
-const TrackerSettingsModal = lazy(() =>
-  import("./components/TrackerSettingsModal").then((m) => ({ default: m.TrackerSettingsModal })),
-);
 
-type Tab = "feed" | "tracker" | "top" | "reviews" | "news" | "pay";
+type Tab = "feed" | "top" | "candidates" | "reviews" | "news" | "pay";
 
 const FEED_POLL_MS = 15_000;
 
-const NAV_TABS: Tab[] = ["feed", "tracker", "top", "reviews", "news", "pay"];
+const NAV_TABS: Tab[] = ["feed", "top", "candidates", "reviews", "news", "pay"];
 
 function NavIcon({ tab }: { tab: Tab }) {
   if (tab === "feed") {
@@ -65,18 +61,20 @@ function NavIcon({ tab }: { tab: Tab }) {
       </svg>
     );
   }
-  if (tab === "tracker") {
-    return (
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path d="M4 7h16M4 12h10M4 17h7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      </svg>
-    );
-  }
   if (tab === "top") {
     return (
       <svg viewBox="0 0 24 24" fill="none" aria-hidden>
         <path d="M7 20h10M8 16h8l1.5-8H6.5L8 16Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
         <path d="M9 8V5a3 3 0 0 1 6 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (tab === "candidates") {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden>
+        <circle cx="12" cy="8" r="3" stroke="currentColor" strokeWidth="2" />
+        <path d="M5 20c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M19 8l1.5 1.5L23 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   }
@@ -153,9 +151,6 @@ export default function App() {
   const [disclaimerReady, setDisclaimerReady] = useState(false);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const [feedDisclaimerOpen, setFeedDisclaimerOpen] = useState(false);
-  const [trackerSettings, setTrackerSettings] = useState<ChallengeDashboard | null>(null);
-  const [trackerSettingsOpen, setTrackerSettingsOpen] = useState(false);
-
   const fullAccessRef = useRef(false);
   const trackersFetchedRef = useRef(false);
 
@@ -312,11 +307,7 @@ export default function App() {
         trackersFetchedRef.current = true;
         await Promise.all([refreshSignalsFull(), loadTrackers(), refreshMe()]);
         setFeedRefreshKey((k) => k + 1);
-      } else if (tab === "tracker") {
-        trackersFetchedRef.current = true;
-        await Promise.all([loadTrackers(), refreshSignalsFull(), refreshMe()]);
-        setFeedRefreshKey((k) => k + 1);
-      } else if (tab === "top") {
+      } else if (tab === "top" || tab === "candidates") {
         await Promise.all([loadTop(), refreshMe()]);
       } else if (tab === "news") {
         await refreshMe();
@@ -348,14 +339,14 @@ export default function App() {
   }, [myId]);
 
   useEffect(() => {
-    if (tab !== "feed" && tab !== "tracker") return;
+    if (tab !== "feed") return;
     if (trackersFetchedRef.current) return;
     trackersFetchedRef.current = true;
     void loadTrackers();
   }, [tab, loadTrackers]);
 
   useEffect(() => {
-    if (tab !== "top") return;
+    if (tab !== "top" && tab !== "candidates") return;
     void loadTop();
   }, [tab, loadTop]);
 
@@ -365,16 +356,6 @@ export default function App() {
     return () => clearInterval(id);
   }, [loading, tab, refreshSignalsOnly]);
 
-
-  const openSettings = (tracker: ChallengeDashboard) => {
-    setTrackerSettings(tracker);
-    setTrackerSettingsOpen(true);
-  };
-
-  const openCreateTracker = () => {
-    setTrackerSettings(null);
-    setTrackerSettingsOpen(true);
-  };
 
   const toggleSignalNotify = async () => {
     try {
@@ -539,25 +520,16 @@ export default function App() {
             onSupplement={setSupplementSignal}
             onPatch={patchSignal}
             onOpenPay={() => switchTab("pay")}
-            onOpenTracker={() => switchTab("tracker")}
+            onOpenTracker={() => {}}
             testModeActive={testModeActive}
             testModeUntil={testModeUntil}
             testModeDaysLeft={testModeDaysLeft}
           />
         )}
         <Suspense fallback={<p className="meta">{copy.loading}</p>}>
-          {tab === "tracker" && (
-            <TrackerTab
-              trackers={trackers}
-              signals={signals}
-              myId={myId}
-              canPublishMainFeed={canPublishMainFeed}
-              onSettings={openSettings}
-              onCreateTracker={openCreateTracker}
-            />
-          )}
-          {tab === "top" && (
+          {(tab === "top" || tab === "candidates") && (
             <LeaderboardTab
+              section={tab === "candidates" ? "candidates" : "top"}
               traders={traders}
               firedTraders={firedTraders}
               rosterDemotedAdmins={rosterDemotedAdmins}
@@ -646,15 +618,7 @@ export default function App() {
           onSaved={onNewsSaved}
         />
 
-        <TrackerSettingsModal
-          open={trackerSettingsOpen}
-          tracker={trackerSettings}
-          createMode={trackerSettings === null}
-          onClose={() => setTrackerSettingsOpen(false)}
-          onSaved={() => {
-            void loadTrackers();
-          }}
-        />
+
       </Suspense>
 
       {showDisclaimer && <DisclaimerModal onAccept={acceptDisclaimer} />}
