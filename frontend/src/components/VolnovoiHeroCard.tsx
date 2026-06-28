@@ -61,7 +61,7 @@ export function VolnovoiHeroCard({ trader, onOpen, showActiveTrades = false, poo
 
         {hasActive && (
           <div className="volnovoi-hero__active">
-            <CultCandidateActiveTrades trades={trader.active_signals!} />
+            <CultCandidateActiveTrades trades={trader.active_signals!} showChart={false} />
           </div>
         )}
 

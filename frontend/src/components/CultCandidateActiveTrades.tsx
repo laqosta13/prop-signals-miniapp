@@ -7,6 +7,7 @@ type Props = {
   showDetails?: boolean;
   canClose?: boolean;
   canEdit?: boolean;
+  showChart?: boolean;
   closingId?: number | null;
   onCloseAtMarket?: (id: number) => void;
   onEdit?: (id: number) => void;
@@ -33,6 +34,7 @@ export function CultCandidateActiveTrades({
   showDetails = true,
   canClose = false,
   canEdit = false,
+  showChart = true,
   closingId = null,
   onCloseAtMarket,
   onEdit,
@@ -123,7 +125,7 @@ export function CultCandidateActiveTrades({
                   {closingId === t.id ? "Закрытие…" : "Закрыть по рынку"}
                 </button>
               )}
-              <SignalChart
+              {showChart && <SignalChart
                 key={t.id}
                 symbol={t.symbol}
                 direction={t.direction.toLowerCase() === "short" ? "short" : "long"}
@@ -134,7 +136,7 @@ export function CultCandidateActiveTrades({
                 takeProfits={t.take_profits}
                 entryFilledAt={t.entry_filled_at}
                 status="active"
-              />
+              />}
             </li>
           );
         })}
