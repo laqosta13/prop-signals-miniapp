@@ -5288,6 +5288,18 @@
   margin-top: 10px;
 }
 
+.cult-candidate-head-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.cult-candidate-bybit-balance-header {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin: 0 0 2px;
+}
+
 .cult-candidate-bybit-balance {
   font-size: 13px;
   color: var(--text-secondary);

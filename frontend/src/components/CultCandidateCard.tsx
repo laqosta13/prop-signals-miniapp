@@ -100,10 +100,15 @@ export function CultCandidateCard({
             )}
           </div>
         )}
-        <p className={`top-score ${candidate.rating_percent >= 0 ? "up" : "down"}`}>
-          {candidate.rating_percent >= 0 ? "+" : ""}
-          {candidate.rating_percent.toFixed(2)}%
-        </p>
+        <div className="cult-candidate-head-right">
+          {candidate.bybit_balance_usd != null && (
+            <p className="cult-candidate-bybit-balance-header">${candidate.bybit_balance_usd.toFixed(0)}</p>
+          )}
+          <p className={`top-score ${candidate.rating_percent >= 0 ? "up" : "down"}`}>
+            {candidate.rating_percent >= 0 ? "+" : ""}
+            {candidate.rating_percent.toFixed(2)}%
+          </p>
+        </div>
         <p className="top-meta">
           <span className="top-meta__w">W {candidate.wins}</span>
           {" · "}
