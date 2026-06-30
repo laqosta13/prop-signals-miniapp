@@ -1,6 +1,5 @@
 import { useState } from "react";
 import type { CultCandidate, CultCandidateClosedSignal } from "../api";
-import { formatUsd } from "../utils";
 import { useAuthorProfile } from "../hooks/useAuthorProfile";
 import { Avatar } from "./Avatar";
 import { CultCandidateActiveTrades } from "./CultCandidateActiveTrades";
@@ -115,19 +114,11 @@ export function CultCandidateCard({
     </div>
   );
 
-  const poolShare = candidate.pool_share_usd ?? 0;
-
   return (
     <li className={candidate.is_me ? "top-list__item--me" : undefined}>
       <div
         className={`top-card top-card--candidate${candidate.is_me ? " top-card--candidate-me" : ""}${expanded ? " top-card--candidate-expanded" : " top-card--candidate-collapsed"}`}
       >
-        {topPlace != null && poolShare > 0 && (
-          <div className="pool-share-badge">
-            <span className="pool-share-badge__label">нед.</span>
-            <span className="pool-share-badge__value">{formatUsd(poolShare)}</span>
-          </div>
-        )}
         {candidate.is_me ? (
           headContent
         ) : (
@@ -164,12 +155,6 @@ export function CultCandidateCard({
 
         {expanded && candidate.daily_stats.length > 0 && (
           <EquityCurve dailyStats={candidate.daily_stats} percentOnly showDayList />
-        )}
-
-        {expanded && candidate.is_me && candidate.bybit_balance_usd != null && (
-          <p className="cult-candidate-bybit-balance">
-            Bybit USDT: <strong>${candidate.bybit_balance_usd.toFixed(2)}</strong>
-          </p>
         )}
 
         {expanded && candidate.is_me && onTrade && (
