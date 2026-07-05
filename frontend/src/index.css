@@ -8083,12 +8083,12 @@ input.readonly {
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-/* ── RR picker row — full width under the 3 inputs ─ */
+/* ── RR picker row — full width above the 3 inputs ─ */
 .signal-form__rr-row {
   grid-column: 1 / -1;
   display: flex;
   justify-content: center;
-  margin-top: 2px;
+  margin-bottom: 4px;
 }
 
 /* ── RR Segmented control ─────────────────── */
