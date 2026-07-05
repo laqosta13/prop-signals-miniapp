@@ -47,11 +47,13 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
     stop,
     target,
     riskPct,
+    rrRatio,
     setDirection,
     onEntryChange,
     onStopChange,
     onTargetChange,
     onRiskPctChange,
+    onRrRatioChange,
     resyncStopTargetForLeverage,
     applyMarketPrice,
     loadLevels,
@@ -210,9 +212,11 @@ export function EditSignalModal({ signal, onClose, onUpdated }: Props) {
           riskPct={riskPct}
           priceLoading={priceLoading}
           onEntryChange={onEntryChange}
+          rrRatio={rrRatio}
           onStopChange={onStopChange}
           onTargetChange={onTargetChange}
           onRiskPctChange={onRiskPctChange}
+          onRrRatioChange={onRrRatioChange}
           stakePct={tracker.stakePct}
           leverage={tracker.lev}
           dailyRemainingPct={tracker.dailyRemainingRank}

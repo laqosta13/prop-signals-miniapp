@@ -49,11 +49,13 @@ export function CultCandidateSignalModal({ open, onClose, onCreated, editSignal 
     stop,
     target,
     riskPct,
+    rrRatio,
     setDirection,
     onEntryChange,
     onStopChange,
     onTargetChange,
     onRiskPctChange,
+    onRrRatioChange,
     resyncStopTargetForLeverage,
     applyMarketPrice,
     resetForm,
@@ -252,9 +254,11 @@ export function CultCandidateSignalModal({ open, onClose, onCreated, editSignal 
             setEntryEdited(true);
             onEntryChange(value);
           }}
+          rrRatio={rrRatio}
           onStopChange={onStopChange}
           onTargetChange={onTargetChange}
           onRiskPctChange={onRiskPctChange}
+          onRrRatioChange={onRrRatioChange}
           stakePct={tracker.stakePct}
           leverage={tracker.lev}
           dailyRemainingPct={tracker.dailyRemainingRank}

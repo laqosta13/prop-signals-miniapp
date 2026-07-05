@@ -121,14 +121,14 @@ export function SignalFormDealSection({
           className={direction === "long" ? "active long" : ""}
           onClick={() => onDirectionChange("long")}
         >
-          Long
+          <span className="dir-toggle__arrow">↑</span> Long
         </button>
         <button
           type="button"
           className={direction === "short" ? "active short" : ""}
           onClick={() => onDirectionChange("short")}
         >
-          Short
+          <span className="dir-toggle__arrow">↓</span> Short
         </button>
       </div>
     </div>

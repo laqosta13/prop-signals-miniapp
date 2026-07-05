@@ -27,13 +27,14 @@ export function SignalFormShell({
         onClick={(e) => e.stopPropagation()}
         onSubmit={onSubmit}
       >
+        <div className="signal-form__drag-pill" aria-hidden />
         <header className="modal__head signal-form__head">
-          <div>
-            <h2>{title}</h2>
-            <p>{subtitle}</p>
+          <div className="signal-form__head-text">
+            <h2 className="signal-form__head-title">{title}</h2>
+            <p className="signal-form__head-sub">{subtitle}</p>
           </div>
-          <button type="button" className="icon-btn" onClick={onClose} disabled={busy} aria-label="Закрыть">
-            ×
+          <button type="button" className="signal-form__close-btn" onClick={onClose} disabled={busy} aria-label="Закрыть">
+            ✕
           </button>
         </header>
         {children}

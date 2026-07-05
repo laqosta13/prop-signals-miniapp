@@ -46,14 +46,15 @@ export function parseRiskPctValue(raw: string): number {
   return n;
 }
 
-/** Стоп на riskPct% от входа, цель на riskPct × 3% (R:R 1:3). */
+/** Стоп на riskPct% от входа, цель на riskPct × ratio% (R:R 1:ratio). */
 export function levelsFromEntryAndRisk(
   entry: number,
   direction: "long" | "short",
   riskPct: number = DEFAULT_STOP_RISK_PCT,
+  ratio: number = REWARD_RISK_RATIO,
 ): { entry: string; stop: string; target: string } {
   const risk = riskPct / 100;
-  const reward = risk * REWARD_RISK_RATIO;
+  const reward = risk * ratio;
   if (direction === "long") {
     return {
       entry: formatPriceLevel(entry),
@@ -73,10 +74,11 @@ export function stopTargetFromEntryAndRisk(
   direction: "long" | "short",
   /** % движения цены от входа до стопа. */
   riskPct: number,
+  ratio: number = REWARD_RISK_RATIO,
 ): { stop: string; target: string } | null {
   const entry = parseEntryPrice(entryRaw);
   if (entry === null) return null;
-  const levels = levelsFromEntryAndRisk(entry, direction, riskPct);
+  const levels = levelsFromEntryAndRisk(entry, direction, riskPct, ratio);
   return { stop: levels.stop, target: levels.target };
 }
 

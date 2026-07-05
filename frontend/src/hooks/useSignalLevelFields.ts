@@ -28,18 +28,23 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
   const [stop, setStop] = useState("");
   const [target, setTarget] = useState("");
   const [riskPct, setRiskPct] = useState(String(DEFAULT_STOP_RISK_PCT));
+  const [rrRatio, setRrRatio] = useState<number | null>(3);
+  const rrRatioRef = useRef<number | null>(3);
+  rrRatioRef.current = rrRatio;
 
   const syncStopTarget = useCallback((entryVal: string, dir: "long" | "short", riskRaw: string) => {
-    const next = stopTargetFromEntryAndRisk(entryVal, dir, parseRiskPctValue(riskRaw));
+    const ratio = rrRatioRef.current;
+    const next = stopTargetFromEntryAndRisk(entryVal, dir, parseRiskPctValue(riskRaw), ratio ?? 3);
     if (!next) return;
     setStop(next.stop);
-    setTarget(next.target);
+    if (ratio !== null) setTarget(next.target);
   }, []);
 
   const applyMarketPrice = useCallback(
     (price: number, dir: "long" | "short", priceRiskPct?: number) => {
       const risk = priceRiskPct ?? DEFAULT_STOP_RISK_PCT;
-      const levels = levelsFromEntryAndRisk(price, dir, risk);
+      const ratio = rrRatioRef.current ?? 3;
+      const levels = levelsFromEntryAndRisk(price, dir, risk, ratio);
       setEntry(levels.entry);
       setStop(levels.stop);
       setTarget(levels.target);
@@ -75,10 +80,11 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
     (value: string) => {
       setRiskPct(value);
       const pct = parseRiskPctValue(value);
-      const next = stopTargetFromEntryAndRisk(entry, direction, pct);
+      const ratio = rrRatioRef.current;
+      const next = stopTargetFromEntryAndRisk(entry, direction, pct, ratio ?? 3);
       if (!next) return;
       setStop(next.stop);
-      setTarget(next.target);
+      if (ratio !== null) setTarget(next.target);
     },
     [direction, entry],
   );
@@ -93,10 +99,11 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
       skipSyncRef.current = false;
       return;
     }
-    const next = stopTargetFromEntryAndRisk(entry, direction, parseRiskPctValue(riskPctRef.current));
+    const ratio = rrRatioRef.current;
+    const next = stopTargetFromEntryAndRisk(entry, direction, parseRiskPctValue(riskPctRef.current), ratio ?? 3);
     if (!next) return;
     setStop(next.stop);
-    setTarget(next.target);
+    if (ratio !== null) setTarget(next.target);
   }, [entry, direction]);
 
   const onStopChange = useCallback(
@@ -106,8 +113,9 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
       if (inferred === null) return;
       const pctLabel = formatRiskPct(clampStopOffsetPct(inferred));
       setRiskPct(pctLabel);
-      const next = stopTargetFromEntryAndRisk(entry, direction, clampStopOffsetPct(inferred));
-      if (next) setTarget(next.target);
+      const ratio = rrRatioRef.current;
+      const next = stopTargetFromEntryAndRisk(entry, direction, clampStopOffsetPct(inferred), ratio ?? 3);
+      if (next && ratio !== null) setTarget(next.target);
     },
     [direction, entry],
   );
@@ -115,6 +123,18 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
   const onTargetChange = useCallback((value: string) => {
     setTarget(value);
   }, []);
+
+  const onRrRatioChange = useCallback(
+    (ratio: number | null) => {
+      setRrRatio(ratio);
+      rrRatioRef.current = ratio;
+      if (ratio === null) return;
+      const pct = parseRiskPctValue(riskPctRef.current);
+      const next = stopTargetFromEntryAndRisk(entry, direction, pct, ratio);
+      if (next) setTarget(next.target);
+    },
+    [entry, direction],
+  );
 
   const setDirection = useCallback(
     (dir: "long" | "short") => {
@@ -189,11 +209,13 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
     stop,
     target,
     riskPct,
+    rrRatio,
     setDirection,
     onEntryChange,
     onStopChange,
     onTargetChange,
     onRiskPctChange,
+    onRrRatioChange,
     resyncStopTargetForLeverage,
     applyMarketPrice,
     resetForm,

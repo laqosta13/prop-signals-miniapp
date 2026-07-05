@@ -49,11 +49,13 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
     stop,
     target,
     riskPct,
+    rrRatio,
     setDirection,
     onEntryChange,
     onStopChange,
     onTargetChange,
     onRiskPctChange,
+    onRrRatioChange,
     resyncStopTargetForLeverage,
     applyMarketPrice,
     resetForm,
@@ -229,9 +231,11 @@ export function NewSignalModal({ open, onClose, onCreated }: Props) {
             setEntryEdited(true);
             onEntryChange(value);
           }}
+          rrRatio={rrRatio}
           onStopChange={onStopChange}
           onTargetChange={onTargetChange}
           onRiskPctChange={onRiskPctChange}
+          onRrRatioChange={onRrRatioChange}
           stakePct={tracker.stakePct}
           leverage={tracker.lev}
           dailyRemainingPct={tracker.dailyRemainingRank}

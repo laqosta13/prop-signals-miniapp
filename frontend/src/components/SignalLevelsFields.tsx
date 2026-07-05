@@ -8,11 +8,13 @@ type Props = {
   target: string;
   riskPct: string;
   direction: "long" | "short";
+  rrRatio: number | null;
   priceLoading?: boolean;
   onEntryChange: (value: string) => void;
   onStopChange: (value: string) => void;
   onTargetChange: (value: string) => void;
   onRiskPctChange: (value: string) => void;
+  onRrRatioChange: (ratio: number | null) => void;
   entryPlaceholder?: string;
   stakePct?: number;
   leverage?: number;
@@ -22,17 +24,25 @@ type Props = {
   dailyStopBlocked?: boolean;
 };
 
+const RR_OPTIONS: { label: string; value: number | null }[] = [
+  { label: "1:2", value: 2 },
+  { label: "1:3", value: 3 },
+  { label: "1:∞", value: null },
+];
+
 export function SignalLevelsFields({
   entry,
   direction: _direction,
   stop,
   target,
   riskPct,
+  rrRatio,
   priceLoading = false,
   onEntryChange,
   onStopChange,
   onTargetChange,
   onRiskPctChange,
+  onRrRatioChange,
   entryPlaceholder = "0.00",
   stakePct,
   leverage,
@@ -49,6 +59,7 @@ export function SignalLevelsFields({
     balanceUsd > 0 &&
     rankMaxStakePct > 0;
   const hasEntry = parseEntryPrice(entry) !== null;
+  const targetReadOnly = trackerMode || rrRatio !== null;
 
   return (
     <div className="signal-form__levels">
@@ -76,13 +87,29 @@ export function SignalLevelsFields({
         />
       </div>
       <div className="signal-form__level signal-form__level--target">
-        <label className="signal-form__level-label">{copy.signalTarget}</label>
+        <div className="signal-form__target-label-row">
+          <span className="signal-form__level-label">{copy.signalTarget}</span>
+          {!trackerMode && (
+            <div className="signal-form__rr-picker" role="group" aria-label="Соотношение риск/прибыль">
+              {RR_OPTIONS.map((opt) => (
+                <button
+                  key={String(opt.value)}
+                  type="button"
+                  className={`signal-form__rr-btn${rrRatio === opt.value ? " signal-form__rr-btn--active" : ""}`}
+                  onClick={() => onRrRatioChange(opt.value)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <input
           className="signal-form__level-input"
           value={target}
-          readOnly={trackerMode}
-          aria-readonly={trackerMode}
-          onChange={trackerMode ? undefined : (e) => onTargetChange(e.target.value)}
+          readOnly={targetReadOnly}
+          aria-readonly={targetReadOnly}
+          onChange={targetReadOnly ? undefined : (e) => onTargetChange(e.target.value)}
           placeholder="—"
           inputMode="decimal"
         />

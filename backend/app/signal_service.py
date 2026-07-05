@@ -588,8 +588,16 @@ async def try_fill_entry_from_market(db: Session, signal: Signal, *, notify: boo
     return True
 
 
-def next_signal_number(db: Session) -> int:
-    mx = db.scalar(select(func.max(Signal.number)))
+def next_signal_number(db: Session, *, is_candidate: bool = False, author_telegram_id: int | None = None) -> int:
+    if is_candidate:
+        count = db.scalar(
+            select(func.count()).where(
+                Signal.is_cult_candidate == True,
+                Signal.author_telegram_id == author_telegram_id,
+            )
+        ) or 0
+        return count + 1
+    mx = db.scalar(select(func.max(Signal.number)).where(Signal.is_cult_candidate == False))
     return 1 if mx is None else int(mx) + 1
 
 
@@ -623,7 +631,7 @@ def build_signal_row(
         last_name=author_last_name,
     )
     return Signal(
-        number=next_signal_number(db),
+        number=next_signal_number(db, is_candidate=is_cult_candidate, author_telegram_id=author_telegram_id),
         symbol=symbol,
         direction=direction,
         entry_low=entry_low,

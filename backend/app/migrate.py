@@ -520,6 +520,7 @@ def run_migrations(engine: Engine) -> None:
     _reset_candidates_and_bybit_v1(engine)
     _purge_all_published_jun2026_v17(engine)
     _purge_all_published_jun2026_v18(engine)
+    _separate_signal_numbering_v1(engine)
 
 
 def _purge_all_published_jun2026_v15(engine: Engine) -> None:
@@ -1862,6 +1863,45 @@ def _purge_all_published_jun2026_v18(engine: Engine) -> None:
     db = SessionLocal()
     try:
         purge_all_published_content(db)
+        db.commit()
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    finally:
+        db.close()
+
+
+def _separate_signal_numbering_v1(engine: Engine) -> None:
+    """Одноразово: нумерация кандидатов отдельно от топов (per-кандидат с #1)."""
+    marker = _marker_path(engine, ".separate_signal_numbering_v1")
+    if marker is None:
+        from app.media_storage import media_root
+
+        marker = media_root() / ".separate_signal_numbering_v1"
+    if marker.exists():
+        return
+    if "signals" not in inspect(engine).get_table_names():
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+        return
+
+    from app.database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        rows = db.execute(
+            text(
+                "SELECT id, author_telegram_id FROM signals "
+                "WHERE is_cult_candidate = 1 "
+                "ORDER BY author_telegram_id ASC, created_at ASC, id ASC"
+            )
+        ).fetchall()
+        counters: dict[int, int] = {}
+        for signal_id, author_id in rows:
+            counters[author_id] = counters.get(author_id, 0) + 1
+            db.execute(
+                text("UPDATE signals SET number = :n WHERE id = :id"),
+                {"n": counters[author_id], "id": signal_id},
+            )
         db.commit()
         marker.parent.mkdir(parents=True, exist_ok=True)
         marker.touch()
