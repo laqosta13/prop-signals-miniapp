@@ -89,20 +89,18 @@ export function SignalLevelsFields({
       <div className="signal-form__level signal-form__level--target">
         <div className="signal-form__target-label-row">
           <span className="signal-form__level-label">{copy.signalTarget}</span>
-          {!trackerMode && (
-            <div className="signal-form__rr-picker" role="group" aria-label="Соотношение риск/прибыль">
-              {RR_OPTIONS.map((opt) => (
-                <button
-                  key={String(opt.value)}
-                  type="button"
-                  className={`signal-form__rr-btn${rrRatio === opt.value ? " signal-form__rr-btn--active" : ""}`}
-                  onClick={() => onRrRatioChange(opt.value)}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="signal-form__rr-picker" role="group" aria-label="Соотношение риск/прибыль">
+            {RR_OPTIONS.filter((opt) => !trackerMode || opt.value !== null).map((opt) => (
+              <button
+                key={String(opt.value)}
+                type="button"
+                className={`signal-form__rr-btn${rrRatio === opt.value ? " signal-form__rr-btn--active" : ""}`}
+                onClick={() => onRrRatioChange(opt.value)}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
         <input
           className="signal-form__level-input"
