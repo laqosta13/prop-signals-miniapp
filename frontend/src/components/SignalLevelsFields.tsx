@@ -59,13 +59,13 @@ export function SignalLevelsFields({
     balanceUsd > 0 &&
     rankMaxStakePct > 0;
   const hasEntry = parseEntryPrice(entry) !== null;
-  const targetReadOnly = trackerMode || rrRatio !== null;
+  const targetReadOnly = rrRatio !== null;
 
   return (
     <div className="signal-form__levels">
       <div className="signal-form__rr-row">
         <div className="signal-form__rr-picker" role="group" aria-label="Соотношение риск/прибыль">
-          {RR_OPTIONS.filter((opt) => !trackerMode || opt.value !== null).map((opt) => (
+          {RR_OPTIONS.map((opt) => (
             <button
               key={String(opt.value)}
               type="button"
