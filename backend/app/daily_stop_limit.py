@@ -245,10 +245,13 @@ def admin_active_stop_reserved_rank_pct(
     *,
     exclude_signal_id: int | None = None,
 ) -> float:
-    """Сумма заморозки по всем активным сигналам (пока стоп не отработал — лимит занят)."""
+    """Заморозка только по сделкам, открытым сегодня — вчерашние не блокируют новый день."""
+    today_key = msk_day_key(datetime.now(timezone.utc))
     total = 0.0
     for sig in _admin_active_signals(db, admin_id):
         if exclude_signal_id is not None and sig.id == exclude_signal_id:
+            continue
+        if msk_day_key(sig.created_at) != today_key:
             continue
         total += price_stop_to_reserved_rank_pct(signal_price_stop_pct(sig), int(sig.leverage or 1))
     return round(min(total, SIGNAL_DAILY_STOP_LIMIT_PCT), 2)

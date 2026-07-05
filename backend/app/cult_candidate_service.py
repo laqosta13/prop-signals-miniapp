@@ -540,11 +540,15 @@ def candidate_active_stop_reserved_rank_pct(
     exclude_signal_id: int | None = None,
 ) -> float:
     from app.daily_stop_limit import SIGNAL_DAILY_STOP_LIMIT_PCT, price_stop_to_reserved_rank_pct, signal_price_stop_pct
+    from app.tracker_metrics import msk_day_key
     from app.trader_stats import signal_leverage
 
+    today_key = msk_day_key(datetime.now(timezone.utc))
     total = 0.0
     for sig in _candidate_active_signals(db, author_id):
         if exclude_signal_id is not None and sig.id == exclude_signal_id:
+            continue
+        if msk_day_key(sig.created_at) != today_key:
             continue
         total += price_stop_to_reserved_rank_pct(signal_price_stop_pct(sig), signal_leverage(sig))
     return round(min(total, SIGNAL_DAILY_STOP_LIMIT_PCT), 2)
