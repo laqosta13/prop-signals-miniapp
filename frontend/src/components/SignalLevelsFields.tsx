@@ -87,21 +87,7 @@ export function SignalLevelsFields({
         />
       </div>
       <div className="signal-form__level signal-form__level--target">
-        <div className="signal-form__target-label-row">
-          <span className="signal-form__level-label">{copy.signalTarget}</span>
-          <div className="signal-form__rr-picker" role="group" aria-label="Соотношение риск/прибыль">
-            {RR_OPTIONS.filter((opt) => !trackerMode || opt.value !== null).map((opt) => (
-              <button
-                key={String(opt.value)}
-                type="button"
-                className={`signal-form__rr-btn${rrRatio === opt.value ? " signal-form__rr-btn--active" : ""}`}
-                onClick={() => onRrRatioChange(opt.value)}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <label className="signal-form__level-label">{copy.signalTarget}</label>
         <input
           className="signal-form__level-input"
           value={target}
@@ -111,6 +97,20 @@ export function SignalLevelsFields({
           placeholder="—"
           inputMode="decimal"
         />
+      </div>
+      <div className="signal-form__rr-row">
+        <div className="signal-form__rr-picker" role="group" aria-label="Соотношение риск/прибыль">
+          {RR_OPTIONS.filter((opt) => !trackerMode || opt.value !== null).map((opt) => (
+            <button
+              key={String(opt.value)}
+              type="button"
+              className={`signal-form__rr-btn${rrRatio === opt.value ? " signal-form__rr-btn--active" : ""}`}
+              onClick={() => onRrRatioChange(opt.value)}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="signal-form__levels-slider">
         <StopOffsetSlider

@@ -8083,13 +8083,12 @@ input.readonly {
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-/* ── Target label row (label + RR picker) ──── */
-.signal-form__target-label-row {
+/* ── RR picker row — full width under the 3 inputs ─ */
+.signal-form__rr-row {
+  grid-column: 1 / -1;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-  min-height: 16px;
+  justify-content: center;
+  margin-top: 2px;
 }
 
 /* ── RR Segmented control ─────────────────── */
@@ -8098,22 +8097,22 @@ input.readonly {
   gap: 2px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
-  padding: 2px;
+  border-radius: 8px;
+  padding: 3px;
 }
 
 .signal-form__rr-btn {
-  font-size: 0.55rem;
-  font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 4px 16px;
+  border-radius: 6px;
   border: none;
   background: transparent;
   color: var(--muted);
   cursor: pointer;
   letter-spacing: 0.03em;
   transition: background 0.1s, color 0.1s;
-  line-height: 1.5;
+  line-height: 1.4;
   white-space: nowrap;
 }
 
