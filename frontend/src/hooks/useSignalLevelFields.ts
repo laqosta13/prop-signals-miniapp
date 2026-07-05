@@ -125,13 +125,21 @@ export function useSignalLevelFields(initialDirection: "long" | "short" = "long"
   }, []);
 
   const onRrRatioChange = useCallback(
-    (ratio: number | null) => {
+    (ratio: number | null, rankMaxPricePct?: number) => {
       setRrRatio(ratio);
       rrRatioRef.current = ratio;
       if (ratio === null) return;
-      const pct = parseRiskPctValue(riskPctRef.current);
+      const pct = rankMaxPricePct != null && rankMaxPricePct > 0
+        ? rankMaxPricePct
+        : parseRiskPctValue(riskPctRef.current);
+      if (rankMaxPricePct != null && rankMaxPricePct > 0) {
+        setRiskPct(formatRiskPct(pct));
+      }
       const next = stopTargetFromEntryAndRisk(entry, direction, pct, ratio);
-      if (next) setTarget(next.target);
+      if (next) {
+        if (rankMaxPricePct != null && rankMaxPricePct > 0) setStop(next.stop);
+        setTarget(next.target);
+      }
     },
     [entry, direction],
   );

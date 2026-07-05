@@ -1,6 +1,7 @@
 import { useThemedCopy } from "../hooks/useThemedCopy";
 import { StopOffsetSlider } from "./StopOffsetSlider";
 import { parseEntryPrice } from "../utils/signalLevels";
+import { maxPriceStopPctForRemainingRank } from "../utils/dailyStopLimit";
 
 type Props = {
   entry: string;
@@ -14,7 +15,7 @@ type Props = {
   onStopChange: (value: string) => void;
   onTargetChange: (value: string) => void;
   onRiskPctChange: (value: string) => void;
-  onRrRatioChange: (ratio: number | null) => void;
+  onRrRatioChange: (ratio: number | null, rankMaxPricePct?: number) => void;
   entryPlaceholder?: string;
   stakePct?: number;
   leverage?: number;
@@ -61,6 +62,17 @@ export function SignalLevelsFields({
   const hasEntry = parseEntryPrice(entry) !== null;
   const targetReadOnly = rrRatio !== null;
 
+  const handleRrClick = (value: number | null) => {
+    if (trackerMode && value !== null && dailyRemainingPct !== undefined && leverage !== undefined) {
+      const maxPct = maxPriceStopPctForRemainingRank(dailyRemainingPct, leverage);
+      if (maxPct > 0) {
+        onRrRatioChange(value, maxPct);
+        return;
+      }
+    }
+    onRrRatioChange(value);
+  };
+
   return (
     <div className="signal-form__levels">
       <div className="signal-form__rr-row">
@@ -70,7 +82,7 @@ export function SignalLevelsFields({
               key={String(opt.value)}
               type="button"
               className={`signal-form__rr-btn${rrRatio === opt.value ? " signal-form__rr-btn--active" : ""}`}
-              onClick={() => onRrRatioChange(opt.value)}
+              onClick={() => handleRrClick(opt.value)}
             >
               {opt.label}
             </button>
