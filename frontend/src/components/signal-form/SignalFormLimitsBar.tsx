@@ -60,9 +60,6 @@ export function SignalFormLimitsBar({
 
   return (
     <aside className="signal-form__limits" aria-label="Лимиты дня">
-      {!trackerConfigured ? (
-        <p className="signal-form__limits-note meta">{copy.signalNoTrackerHint}</p>
-      ) : null}
       <div className="signal-form__chips">
         <div className="signal-form__chip">
           <span className="signal-form__chip-k">{copy.signalStopChip}</span>
