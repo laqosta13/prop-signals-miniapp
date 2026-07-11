@@ -212,6 +212,7 @@ class CultCandidate(Base):
     wins: Mapped[int] = mapped_column(Integer, default=0)
     losses: Mapped[int] = mapped_column(Integer, default=0)
     outside_trade: Mapped[bool] = mapped_column(Boolean, default=False)
+    luda_penalty_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

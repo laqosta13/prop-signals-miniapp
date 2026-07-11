@@ -282,6 +282,17 @@ def _daily_stats(db: Session, user_ids: list[int]) -> dict[int, list[TraderDaySt
     return out
 
 
+def _candidate_rank_read(row: CultCandidate, trader) -> "TraderRankRead | None":
+    if trader is None:
+        return None
+    base = trader_rank_read(trader, include_history=False)
+    eff = candidate_effective_rank_id(row, trader)
+    if eff != (trader.current_rank_id or eff):
+        from app.rank_constants import rank_name
+        return base.model_copy(update={"current_rank_id": eff, "current_rank_name": rank_name(eff)})
+    return base
+
+
 def _candidate_read(
     db: Session,
     row: CultCandidate,
@@ -314,7 +325,7 @@ def _candidate_read(
         daily_stats=daily.get(row.telegram_user_id, []),
         active_signals=active.get(row.telegram_user_id, []),
         closed_signals=closed.get(row.telegram_user_id, []),
-        trader_rank=trader_rank_read(trader, include_history=False) if trader else None,
+        trader_rank=_candidate_rank_read(row, trader),
         volnovoi_style=build_volnovoi_style(db, row.telegram_user_id, cult_candidate=True),
         is_me=is_me,
         pool_share_usd=pool_share_usd,
@@ -442,6 +453,18 @@ def candidate_burned_stake_pct(db: Session, author_id: int) -> float:
     return round(float(db.scalar(q) or 0.0), 2)
 
 
+def candidate_effective_rank_id(candidate: CultCandidate, trader) -> int:
+    """Текущий ранг с учётом штрафа за лудку (3 дня → Нулёвый)."""
+    from app.rank_constants import DEFAULT_RANK_ID
+    penalty = candidate.luda_penalty_until
+    if penalty is not None and penalty.tzinfo is None:
+        from datetime import timezone as _tz
+        penalty = penalty.replace(tzinfo=_tz.utc)
+    if penalty is not None and penalty > datetime.now(timezone.utc):
+        return DEFAULT_RANK_ID  # "Нулёвый" = 8
+    return trader.current_rank_id or DEFAULT_RANK_ID
+
+
 def candidate_stake_pool_snapshot(
     db: Session,
     trader,
@@ -454,7 +477,8 @@ def candidate_stake_pool_snapshot(
     from app.signal_stake_pool import rank_max_stake_pct
 
     ensure_rank_fields(trader)
-    rank_id = trader.current_rank_id or DEFAULT_RANK_ID
+    candidate = db.get(CultCandidate, author_id)
+    rank_id = candidate_effective_rank_id(candidate, trader) if candidate else (trader.current_rank_id or DEFAULT_RANK_ID)
     burned = candidate_burned_stake_pct(db, author_id)
     capacity = round(max(0.0, 100.0 - burned), 2)
     used = candidate_active_stake_used(db, author_id, exclude_signal_id=exclude_signal_id)

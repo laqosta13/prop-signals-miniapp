@@ -417,6 +417,8 @@ def run_migrations(engine: Engine) -> None:
             if not _has_column(engine, "cult_candidates", "outside_trade"):
                 conn.execute(text("ALTER TABLE cult_candidates ADD COLUMN outside_trade BOOLEAN DEFAULT 0"))
                 conn.execute(text("UPDATE cult_candidates SET outside_trade = 0 WHERE outside_trade IS NULL"))
+            if not _has_column(engine, "cult_candidates", "luda_penalty_until"):
+                conn.execute(text("ALTER TABLE cult_candidates ADD COLUMN luda_penalty_until DATETIME NULL"))
 
         if "user_metaapi_settings" not in inspect(engine).get_table_names():
             conn.execute(

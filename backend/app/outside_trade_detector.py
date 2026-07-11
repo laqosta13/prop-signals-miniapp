@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -15,6 +16,7 @@ from app.models import CultCandidate, Signal, UserBybitSettings
 logger = logging.getLogger(__name__)
 
 _CHECK_INTERVAL = 300  # 5 минут
+LUDA_PENALTY_DAYS = 3
 
 
 async def _check_candidate(db: Session, row: CultCandidate) -> None:
@@ -45,8 +47,16 @@ async def _check_candidate(db: Session, row: CultCandidate) -> None:
         for sym, direction in positions
     )
 
-    if bool(row.outside_trade) != outside:
+    changed = bool(row.outside_trade) != outside
+    if changed:
         row.outside_trade = outside
+        if outside:
+            # Новая лудка — штраф: ранг «Нулёвый» на 3 дня
+            penalty_until = datetime.now(timezone.utc) + timedelta(days=LUDA_PENALTY_DAYS)
+            # Продлеваем, только если новый срок позже текущего
+            if row.luda_penalty_until is None or row.luda_penalty_until < penalty_until:
+                row.luda_penalty_until = penalty_until
+                logger.info("luda penalty applied to %s until %s", row.telegram_user_id, penalty_until.date())
         db.commit()
 
 
